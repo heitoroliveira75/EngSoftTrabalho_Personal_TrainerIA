@@ -1,0 +1,8 @@
+Este banco de dados foi criado especificamente para o projeto de Personal AI durante a realização da UC "Engenharia de Software"
+
+08/09:
+- Foi definida a escolha do SGBD escolhido para hospedar o banco de dados. Para este projeto sera usado o Supabase, baseado em PostgreeSQL.
+- Este SGBD roda na nuvem e permite a criacao de diversos usuarios.
+- Antes de iniciar a criacao de tabelas e entidades, foi criado um modelo relacional para a arquitetura do banco inicial do projeto. 
+
+09/09:
