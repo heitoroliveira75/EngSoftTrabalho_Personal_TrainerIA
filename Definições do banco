@@ -26,4 +26,4 @@ Triggers:
 - Triggers são uma parte fundamental de um banco de dados, elas permitem a edição e manipulação automática de dados do banco quando alguma condição for atingida.
 
   Triggers criadas:
-    -> Trigger de criação do usuário: Ao criar um usuário via back-end, o usuário é criado automaticamente dentro do authentication do supabase.
+    -> Trigger de criação do usuário: Ao criar um usuário via back-end, o usuário é criado automaticamente dentro do authentication do supabase e no banco de dados.
