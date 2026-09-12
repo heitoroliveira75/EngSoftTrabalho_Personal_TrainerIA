@@ -1,0 +1,38 @@
+Guia RLS:
+
+O que eh RLS?
+RLS (Row-Level-Security ou Seguranca em nivel de linha) eh um recurso de seguranca usado para restringir quais linhas de dados um usuario pode acessar em uma tabela ou relatorio.
+
+Dessa forma, um usuario consegue acessar apenas as informacoes que competem a ele. Por exemplo, ele consegue ver o proprio perfil, mas nao o de outros usuarios.
+
+Embora não seja algo que tenha tanta utilidade a principio visto que o sistema de login e funcoes do python direcionam o usuario para ver e editar as proprias informações, utilizar RLS protege o banco mesmo em situações em que um usuario mal intencionado modifique informações do back-end (ex. Acessar ou editar informações de outro usuario).
+
+
+O RLS está ativado para a tabela, como defino o que cada usuario pode fazer?
+-> Para definir quais funcoes do banco o usuario pode realizar dentro da tabela, devem ser criadas policies.
+-> Estas policies seguem o seguinte molde:
+
+create policy "nome da policy"
+on public.nome_da_tabela
+for nome_da_funcao (ex. for select)
+to ______ (ex. to authenticated, para apenas usuarios logados poderem realizar)
+using(
+condicao_para_acessar (ex. id = auth.uid) /// Define condicoes que precisam ser cumpridas para acessar a linha da tabela, nesse caso o id da tabela tem que ser igual ao id do usuario
+)
+with check(
+condicao_de_saida (ex. id = auth.uid) /// Define condicao para que a operacao seja realmente atualizada. Nesse caso, o id do usuario no fim da execucao tem que ser seu proprio ID do banco, ou seja, o usuario nao pode modificar este dado.
+)
+
+
+Exemplo de policies:
+
+create policy "Usuario pode editar o proprio perfil"
+on public.usuarios
+for update
+to authenticated
+using(
+id = auth.uid
+)
+with check(
+id = auth.uid
+)
