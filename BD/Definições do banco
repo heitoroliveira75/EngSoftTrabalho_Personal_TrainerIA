@@ -1,5 +1,18 @@
 Este banco de dados foi criado especificamente para o projeto de Personal AI durante a realização da UC "Engenharia de Software"
 
+Políticas de Segurança (RLS):
+- Para impedir que qualquer usuário possa modificar livremente qualquer tabela e acessar dados de outros usuários, devem ser criadas políticas de segurança que bloqueiam certas tabelas e dados de acordo com o usuário.
+
+  Politicas criadas:
+    -> Usuario pode visualizar o proprio perfil
+    -> Usuario pode editar o proprio perfil
+
+Triggers:
+- Triggers são uma parte fundamental de um banco de dados, elas permitem a edição e manipulação automática de dados do banco quando alguma condição for atingida.
+
+  Triggers criadas:
+    -> Trigger de criação do usuário: Ao criar um usuário via back-end, o usuário é criado automaticamente dentro do authentication do supabase e no banco de dados.
+
 08/09:
 - Foi definida a escolha do SGBD escolhido para hospedar o banco de dados. Para este projeto sera usado o Supabase, baseado em PostgreeSQL.
 - Este SGBD roda na nuvem e permite a criacao de diversos usuarios.
@@ -13,17 +26,6 @@ Este banco de dados foi criado especificamente para o projeto de Personal AI dur
   -> Exercicios: Armazena os dados do exercicio específico. Possui ID, nome, descrição, grupo muscular e data de criação.
   -> Treino_exercicios: Tabela que associa treino a exercicios. Possui ID, ID do treino, ID do exercicio, a ordem dos exercicios, quantas séries por exercicio, quantas repetições por exercicio e data de criação.
 
+13/09:
+Finalizados CRUD das entidades do banco.
 
-Políticas de Segurança (RLS):
-- Para impedir que qualquer usuário possa modificar livremente qualquer tabela e acessar dados de outros usuários, devem ser criadas políticas de segurança que bloqueiam certas tabelas e dados de acordo com o usuário.
-
-  Politicas criadas:
-    -> Usuario pode visualizar o proprio perfil
-    -> Usuario pode editar o proprio perfil
-
-
-Triggers:
-- Triggers são uma parte fundamental de um banco de dados, elas permitem a edição e manipulação automática de dados do banco quando alguma condição for atingida.
-
-  Triggers criadas:
-    -> Trigger de criação do usuário: Ao criar um usuário via back-end, o usuário é criado automaticamente dentro do authentication do supabase e no banco de dados.
