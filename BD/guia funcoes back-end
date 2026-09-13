@@ -1,0 +1,23 @@
+A fim de tornar mais facil a futura utilização das funções criadas para estabelecer conexões entre banco e backend, listarei cada função, seu funcionamento e quais parâmetros devem ser passados como referencia e quais seus retornos se tiverem.
+
+criar_conta()
+
+fazer_login()
+
+ver_perfil()
+
+editar_perfil()
+
+deslogar_perfil()
+
+criar_treino()
+
+listar_exercicios()
+
+ver_treinos_premont()
+
+listar_treinos()
+
+editar_treino()
+
+excluir_treino()
