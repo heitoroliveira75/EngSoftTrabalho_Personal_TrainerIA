@@ -1,8 +1,11 @@
 import cv2
 import os
+import math
 import mediapipe as mp
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
+
+
 
 # 1. Definimos os pares de pontos que devem ser conectados por linhas (barras)
 CONEXOES_CORPO = [
@@ -31,7 +34,13 @@ options = vision.PoseLandmarkerOptions(
 )
 detector = vision.PoseLandmarker.create_from_options(options)
 
+
+
 cap = cv2.VideoCapture(0)
+
+LARGURA_OMBRO_REAL_CM= 40.0
+FOCAL_LENGTH = 600.0
+
 
 while cap.isOpened():
     success, frame = cap.read()
@@ -46,8 +55,32 @@ while cap.isOpened():
     mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb_frame)
     detection_result = detector.detect(mp_image)
 
+    
+
     if detection_result.pose_landmarks:
         for pose_landmarks in detection_result.pose_landmarks:
+
+            #Cálculo de Proporção Baseado no tamanho do ombro em relação à câmera 
+
+            ombro_esq= pose_landmarks[12];
+            ombro_dir= pose_landmarks[13];
+
+            
+
+            if ombro_esq.visibility > 0.5 and ombro_dir.visibility > 0.5:
+                x_esq , y_esq = int(ombro_esq.x * w), int (ombro_esq.y * h)
+                x_dir, y_dir = int(ombro_dir.x * w), int(ombro_dir.y * h)
+
+                distancia_pixel = math.hypot(x_dir-x_esq, y_dir-y_esq)
+
+                distancia_camera_ = (LARGURA_OMBRO_REAL_CM * FOCAL_LENGTH)/distancia_pixel
+
+                if distancia_pixel > 0 :
+                    fator_cm_pixel = LARGURA_OMBRO_REAL_CM/distancia_pixel
+
+                    texto_escala = f"Escala: 1 pixel = {distancia_camera_:.2f} cm"
+                    cv2.putText(frame, texto_escala, (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 255), 2)
+                
             
             # 2. DESENHAR AS LINHAS (BARRAS) ENTRE OS PONTOS
             for p1, p2 in CONEXOES_CORPO:
