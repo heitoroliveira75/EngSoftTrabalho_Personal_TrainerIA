@@ -6,6 +6,15 @@ from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 
 
+def calcularangulo (p1,p2,p3):
+    radianos = math.atan2(p3[1]-p2[1],p3[0]-p2[0])-math.atan(p1[1]-p2[1],p1[0]-p2[0])
+    angulo = abs(radianos*180/math.pi)
+       
+    if angulo >360 :
+        angulo = 360.0-angulo
+        return angulo
+
+
 
 # 1. Definimos os pares de pontos que devem ser conectados por linhas (barras)
 CONEXOES_CORPO = [
