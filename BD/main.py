@@ -1,329 +1,371 @@
+from typing import Optional, List, Dict, Any, Union
 from supabase_client import supabase
 
 
 # ============================================================
-# FUNÇÕES DE AUTENTICAÇÃO
+# 1. AUTENTICAÇÃO E SESSÃO
 # ============================================================
 
-def criar_conta():
-    print("\n" + "=" * 45)
-    print("             CRIAR CONTA")
-    print("=" * 45)
-
-    nome = input("Nome: ").strip()
-    email = input("Email: ").strip()
-    senha = input("Senha: ").strip()
-
+def criar_conta(nome: str, email: str, senha: str) -> Dict[str, Any]:
+    """
+    Cria uma nova conta no Supabase Auth.
+    A trigger do banco insere automaticamente o usuário na tabela 'usuarios'.
+    """
     if not nome or not email or not senha:
-        print("\n[ERRO] Todos os campos são obrigatórios.")
-        return
+        return {"sucesso": False, "mensagem": "Nome, e-mail e senha são obrigatórios."}
 
     try:
         resposta = supabase.auth.sign_up({
-            "email": email,
-            "password": senha,
+            "email": email.strip(),
+            "password": senha.strip(),
             "options": {
                 "data": {
-                    "nome": nome
+                    "nome": nome.strip()
                 }
             }
         })
 
-        if resposta.user is None:
-            print("\n[ERRO] Não foi possível criar a conta.")
-            print(resposta)
-            return
+        if not resposta.user:
+            return {"sucesso": False, "mensagem": "Não foi possível criar a conta."}
 
-        print("\n[OK] Conta criada com sucesso!")
-        print("ID:", resposta.user.id)
-        print("Email:", resposta.user.email)
-
-        print("\nAgora você pode fazer login.")
-
+        return {
+            "sucesso": True,
+            "mensagem": "Conta criada com sucesso!",
+            "usuario": {
+                "id": resposta.user.id,
+                "email": resposta.user.email,
+                "nome": nome.strip()
+            }
+        }
     except Exception as erro:
-        print("\n[ERRO] Não foi possível criar a conta.")
-        print(erro)
+        return {"sucesso": False, "mensagem": str(erro)}
 
 
-def fazer_login():
-    print("\n" + "=" * 45)
-    print("                LOGIN")
-    print("=" * 45)
-
-    email = input("Email: ").strip()
-    senha = input("Senha: ").strip()
-
+def fazer_login(email: str, senha: str) -> Dict[str, Any]:
+    """
+    Autentica o usuário com e-mail e senha, retornando os dados do usuário e tokens de sessão.
+    """
     if not email or not senha:
-        print("\n[ERRO] Email e senha são obrigatórios.")
-        return None
+        return {"sucesso": False, "mensagem": "E-mail e senha são obrigatórios."}
 
     try:
         resposta = supabase.auth.sign_in_with_password({
-            "email": email,
-            "password": senha
+            "email": email.strip(),
+            "password": senha.strip()
         })
 
-        if resposta.user is None:
-            print("\n[ERRO] Login não realizado.")
-            return None
+        if not resposta.user:
+            return {"sucesso": False, "mensagem": "Credenciais inválidas ou usuário não encontrado."}
 
-        print("\n[OK] Login realizado com sucesso!")
-
-        return resposta.user
-
+        return {
+            "sucesso": True,
+            "mensagem": "Login realizado com sucesso!",
+            "usuario": {
+                "id": resposta.user.id,
+                "email": resposta.user.email,
+                "user_metadata": resposta.user.user_metadata
+            },
+            "sessao": {
+                "access_token": resposta.session.access_token if resposta.session else None,
+                "refresh_token": resposta.session.refresh_token if resposta.session else None
+            }
+        }
     except Exception as erro:
-        print("\n[ERRO] Não foi possível realizar o login.")
-        print(erro)
-        return None
+        return {"sucesso": False, "mensagem": str(erro)}
 
 
-def fazer_logout():
+def deslogar_perfil() -> Dict[str, Any]:
+    """
+    Encerra a sessão ativa do usuário no Supabase.
+    """
     try:
         supabase.auth.sign_out()
-        print("\n[OK] Logout realizado com sucesso.")
-
+        return {"sucesso": True, "mensagem": "Logout realizado com sucesso."}
     except Exception as erro:
-        print("\n[ERRO] Não foi possível realizar o logout.")
-        print(erro)
+        return {"sucesso": False, "mensagem": str(erro)}
 
 
-# ============================================================
-# FUNÇÕES DE PERFIL
-# ============================================================
-
-def obter_usuario_atual():
-    resposta = supabase.auth.get_user()
-
-    if resposta.user is None:
+def obter_usuario_atual() -> Optional[Dict[str, Any]]:
+    """
+    Retorna os dados do usuário autenticado no momento no cliente Supabase.
+    """
+    try:
+        resposta = supabase.auth.get_user()
+        if resposta and resposta.user:
+            return {
+                "id": resposta.user.id,
+                "email": resposta.user.email,
+                "user_metadata": resposta.user.user_metadata
+            }
         return None
-
-    return resposta.user
-
-
-def visualizar_perfil():
-    usuario = obter_usuario_atual()
-
-    if usuario is None:
-        print("\n[ERRO] Nenhum usuário autenticado.")
-        return
-
-    try:
-        resultado = (
-            supabase
-            .table("usuarios")
-            .select("*")
-            .eq("id", usuario.id)
-            .execute()
-        )
-
-        if not resultado.data:
-            print("\n[ERRO] Perfil não encontrado.")
-            return
-
-        perfil = resultado.data[0]
-
-        print("\n" + "=" * 45)
-        print("              MEU PERFIL")
-        print("=" * 45)
-
-        print(f"Nome:       {perfil['nome']}")
-        print(f"Email:      {usuario.email}")
-        print(f"CPF:        {perfil['cpf']}")
-        print(f"Criado em:  {perfil['created_at']}")
-
-        print("=" * 45)
-
-    except Exception as erro:
-        print("\n[ERRO] Não foi possível carregar o perfil.")
-        print(erro)
-
-
-def editar_perfil():
-    usuario = obter_usuario_atual()
-
-    if usuario is None:
-        print("\n[ERRO] Nenhum usuário autenticado.")
-        return
-
-    try:
-        # Primeiro buscamos os dados atuais
-        resultado = (
-            supabase
-            .table("usuarios")
-            .select("*")
-            .eq("id", usuario.id)
-            .execute()
-        )
-
-        if not resultado.data:
-            print("\n[ERRO] Perfil não encontrado.")
-            return
-
-        perfil = resultado.data[0]
-
-        print("\n" + "=" * 45)
-        print("             EDITAR PERFIL")
-        print("=" * 45)
-
-        print("Deixe vazio para manter o valor atual.\n")
-
-        nome_atual = perfil["nome"]
-        cpf_atual = perfil["cpf"]
-
-        print(f"Nome atual: {nome_atual}")
-        novo_nome = input("Novo nome: ").strip()
-
-        print(f"\nCPF atual: {cpf_atual}")
-        novo_cpf = input("Novo CPF: ").strip()
-
-        # Se o usuário não digitou nada,
-        # mantemos o valor atual
-        if not novo_nome:
-            novo_nome = nome_atual
-
-        if not novo_cpf:
-            novo_cpf = cpf_atual
-
-        resultado = (
-            supabase
-            .table("usuarios")
-            .update({
-                "nome": novo_nome,
-                "cpf": novo_cpf
-            })
-            .eq("id", usuario.id)
-            .execute()
-        )
-
-        print("\n[OK] Perfil atualizado com sucesso!")
-
-        print("\nDados atualizados:")
-        print("Nome:", novo_nome)
-        print("CPF:", novo_cpf)
-
-    except Exception as erro:
-        print("\n[ERRO] Não foi possível atualizar o perfil.")
-        print(erro)
-
-
-# ============================================================
-# MENU DO USUÁRIO
-# ============================================================
-
-def menu_usuario(usuario):
-    while True:
-
-        print("\n" + "=" * 45)
-        print("             MENU PRINCIPAL")
-        print("=" * 45)
-
-        print(f"Olá, {usuario.user_metadata.get('nome', 'Usuário')}!")
-        print(f"Email: {usuario.email}")
-
-        print("\n1 - Ver meu perfil")
-        print("2 - Editar meu perfil")
-        print("3 - Treinos")
-        print("4 - Logout")
-        print("0 - Sair")
-
-        print("=" * 45)
-
-        opcao = input("Escolha uma opção: ").strip()
-
-        if opcao == "1":
-
-            visualizar_perfil()
-
-        elif opcao == "2":
-
-            editar_perfil()
-
-        elif opcao == "3":
-
-            print("\n" + "=" * 45)
-            print("                TREINOS")
-            print("=" * 45)
-
-            print("\nAinda vamos implementar essa parte.")
-            print("Por enquanto, o CRUD de usuários está sendo desenvolvido.")
-
-        elif opcao == "4":
-
-            fazer_logout()
-            return "logout"
-
-        elif opcao == "0":
-
-            return "sair"
-
-        else:
-
-            print("\n[ERRO] Opção inválida.")
-
-        input("\nPressione ENTER para continuar...")
-
-
-# ============================================================
-# TELA INICIAL
-# ============================================================
-
-def tela_inicial():
-
-    while True:
-
-        print("\n" + "=" * 45)
-        print("         SISTEMA DE TREINOS")
-        print("=" * 45)
-
-        print("\n1 - Criar conta")
-        print("2 - Fazer login")
-        print("0 - Sair")
-
-        print("=" * 45)
-
-        opcao = input("Escolha uma opção: ").strip()
-
-        if opcao == "1":
-
-            criar_conta()
-
-            input("\nPressione ENTER para continuar...")
-
-        elif opcao == "2":
-
-            usuario = fazer_login()
-
-            if usuario is not None:
-
-                resultado = menu_usuario(usuario)
-
-                if resultado == "sair":
-                    break
-
-        elif opcao == "0":
-
-            print("\nEncerrando o sistema...")
-            break
-
-        else:
-
-            print("\n[ERRO] Opção inválida.")
-
-
-# ============================================================
-# PROGRAMA PRINCIPAL
-# ============================================================
-
-if __name__ == "__main__":
-
-    # Garante que não começamos com uma sessão antiga
-    try:
-        supabase.auth.sign_out()
     except Exception:
-        pass
+        return None
 
-    print("\nSupabase conectado.")
 
-    tela_inicial()
+# ============================================================
+# 2. PERFIL DE USUÁRIO
+# ============================================================
 
-    print("\nPrograma encerrado.")
+def ver_perfil(usuario_id: str) -> Dict[str, Any]:
+    """
+    Consulta e retorna os dados cadastrais da tabela 'usuarios' referentes ao ID informado.
+    """
+    if not usuario_id:
+        return {"sucesso": False, "mensagem": "ID do usuário é obrigatório."}
+
+    try:
+        resultado = (
+            supabase
+            .table("usuarios")
+            .select("*")
+            .eq("id", usuario_id)
+            .execute()
+        )
+
+        if not resultado.data:
+            return {"sucesso": False, "mensagem": "Perfil não encontrado."}
+
+        return {
+            "sucesso": True,
+            "perfil": resultado.data[0]
+        }
+    except Exception as erro:
+        return {"sucesso": False, "mensagem": str(erro)}
+
+
+def editar_perfil(usuario_id: str, nome: Optional[str] = None, cpf: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Atualiza os dados de nome e/ou CPF do usuário na tabela 'usuarios'.
+    """
+    if not usuario_id:
+        return {"sucesso": False, "mensagem": "ID do usuário é obrigatório."}
+
+    dados_atualizacao = {}
+    if nome is not None and nome.strip() != "":
+        dados_atualizacao["nome"] = nome.strip()
+    if cpf is not None and cpf.strip() != "":
+        dados_atualizacao["cpf"] = cpf.strip()
+
+    if not dados_atualizacao:
+        return {"sucesso": False, "mensagem": "Nenhum dado informado para atualização."}
+
+    try:
+        resultado = (
+            supabase
+            .table("usuarios")
+            .update(dados_atualizacao)
+            .eq("id", usuario_id)
+            .execute()
+        )
+
+        if not resultado.data:
+            return {"sucesso": False, "mensagem": "Não foi possível atualizar o perfil."}
+
+        return {
+            "sucesso": True,
+            "mensagem": "Perfil atualizado com sucesso!",
+            "perfil": resultado.data[0]
+        }
+    except Exception as erro:
+        return {"sucesso": False, "mensagem": str(erro)}
+
+
+# ============================================================
+# 3. EXERCÍCIOS
+# ============================================================
+
+def listar_exercicios(grupo_muscular: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Retorna a lista de exercícios cadastrados. Permite filtrar opcionalmente por grupo muscular.
+    """
+    try:
+        consulta = supabase.table("exercicios").select("*")
+
+        if grupo_muscular and grupo_muscular.strip() != "":
+            consulta = consulta.ilike("grupo_muscular", f"%{grupo_muscular.strip()}%")
+
+        resultado = consulta.execute()
+        return {
+            "sucesso": True,
+            "exercicios": resultado.data or []
+        }
+    except Exception as erro:
+        return {"sucesso": False, "mensagem": str(erro), "exercicios": []}
+
+
+# ============================================================
+# 4. TREINOS
+# ============================================================
+
+def ver_treinos_premont() -> Dict[str, Any]:
+    """
+    Lista todos os treinos pré-montados do sistema junto com seus exercícios associados.
+    """
+    try:
+        resultado = (
+            supabase
+            .table("treinos")
+            .select("*, treino_exercicios(*, exercicios(*))")
+            .eq("pre_montado", True)
+            .execute()
+        )
+
+        return {
+            "sucesso": True,
+            "treinos": resultado.data or []
+        }
+    except Exception as erro:
+        return {"sucesso": False, "mensagem": str(erro), "treinos": []}
+
+
+def listar_treinos(usuario_id: str) -> Dict[str, Any]:
+    """
+    Lista todos os treinos criados por um usuário específico com os respectivos exercícios vinculados.
+    """
+    if not usuario_id:
+        return {"sucesso": False, "mensagem": "ID do usuário é obrigatório.", "treinos": []}
+
+    try:
+        resultado = (
+            supabase
+            .table("treinos")
+            .select("*, treino_exercicios(*, exercicios(*))")
+            .eq("usuario_id", usuario_id)
+            .execute()
+        )
+
+        return {
+            "sucesso": True,
+            "treinos": resultado.data or []
+        }
+    except Exception as erro:
+        return {"sucesso": False, "mensagem": str(erro), "treinos": []}
+
+
+def criar_treino(
+    usuario_id: Optional[str] = None,
+    nome: str = "",
+    descricao: str = "",
+    pre_montado: bool = False,
+    exercicios: Optional[List[Dict[str, Any]]] = None
+) -> Dict[str, Any]:
+    """
+    Cria um novo treino na tabela 'treinos' e insere os exercícios associados na tabela 'treino_exercicios'.
+    """
+    if not nome:
+        return {"sucesso": False, "mensagem": "Nome do treino é obrigatório."}
+
+    if not pre_montado and not usuario_id:
+        return {"sucesso": False, "mensagem": "ID do usuário é obrigatório para treinos personalizados."}
+
+    try:
+        dados_treino = {
+            "nome": nome.strip(),
+            "descricao": descricao.strip() if descricao else "",
+            "pre_montado": pre_montado
+        }
+        if usuario_id:
+            dados_treino["usuario_id"] = usuario_id
+
+        res_treino = supabase.table("treinos").insert(dados_treino).execute()
+
+        if not res_treino.data:
+            return {"sucesso": False, "mensagem": "Não foi possível criar o treino."}
+
+        treino_criado = res_treino.data[0]
+        treino_id = treino_criado["id"]
+
+        exercicios_adicionados = []
+        if exercicios:
+            registros_exercicios = [
+                {
+                    "treino_id": treino_id,
+                    "exercicio_id": item["exercicio_id"],
+                    "ordem": item.get("ordem", 1),
+                    "series": item.get("series", 3),
+                    "repeticoes": item.get("repeticoes", 10)
+                }
+                for item in exercicios
+            ]
+
+            res_ex = supabase.table("treino_exercicios").insert(registros_exercicios).execute()
+            exercicios_adicionados = res_ex.data or []
+
+        return {
+            "sucesso": True,
+            "mensagem": "Treino criado com sucesso!",
+            "treino": treino_criado,
+            "exercicios": exercicios_adicionados
+        }
+    except Exception as erro:
+        return {"sucesso": False, "mensagem": str(erro)}
+
+
+def editar_treino(
+    treino_id: Union[int, str],
+    nome: Optional[str] = None,
+    descricao: Optional[str] = None,
+    exercicios: Optional[List[Dict[str, Any]]] = None
+) -> Dict[str, Any]:
+    """
+    Atualiza os dados do treino (nome/descrição) e/ou substitui a lista de exercícios vinculados.
+    """
+    if not treino_id:
+        return {"sucesso": False, "mensagem": "ID do treino é obrigatório."}
+
+    try:
+        dados_atualizacao = {}
+        if nome is not None and nome.strip() != "":
+            dados_atualizacao["nome"] = nome.strip()
+        if descricao is not None:
+            dados_atualizacao["descricao"] = descricao.strip()
+
+        if dados_atualizacao:
+            res_treino = (
+                supabase
+                .table("treinos")
+                .update(dados_atualizacao)
+                .eq("id", treino_id)
+                .execute()
+            )
+            if not res_treino.data:
+                return {"sucesso": False, "mensagem": "Treino não encontrado para atualização."}
+
+        if exercicios is not None:
+            supabase.table("treino_exercicios").delete().eq("treino_id", treino_id).execute()
+
+            if exercicios:
+                registros_exercicios = [
+                    {
+                        "treino_id": treino_id,
+                        "exercicio_id": item["exercicio_id"],
+                        "ordem": item.get("ordem", 1),
+                        "series": item.get("series", 3),
+                        "repeticoes": item.get("repeticoes", 10)
+                    }
+                    for item in exercicios
+                ]
+                supabase.table("treino_exercicios").insert(registros_exercicios).execute()
+
+        return {"sucesso": True, "mensagem": "Treino atualizado com sucesso!"}
+    except Exception as erro:
+        return {"sucesso": False, "mensagem": str(erro)}
+
+
+def excluir_treino(treino_id: Union[int, str]) -> Dict[str, Any]:
+    """
+    Remove o treino da tabela 'treinos' e desvincula suas associações na tabela 'treino_exercicios'.
+    """
+    if not treino_id:
+        return {"sucesso": False, "mensagem": "ID do treino é obrigatório."}
+
+    try:
+        supabase.table("treino_exercicios").delete().eq("treino_id", treino_id).execute()
+        resultado = supabase.table("treinos").delete().eq("id", treino_id).execute()
+
+        if not resultado.data:
+            return {"sucesso": False, "mensagem": "Treino não encontrado para exclusão."}
+
+        return {"sucesso": True, "mensagem": "Treino excluído com sucesso!"}
+    except Exception as erro:
+        return {"sucesso": False, "mensagem": str(erro)}

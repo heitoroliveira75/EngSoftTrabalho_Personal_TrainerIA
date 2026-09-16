@@ -1,23 +1,214 @@
-A fim de tornar mais facil a futura utilização das funções criadas para estabelecer conexões entre banco e backend, listarei cada função, seu funcionamento e quais parâmetros devem ser passados como referencia e quais seus retornos se tiverem.
+Guia de Funções do Back-end:
 
-criar_conta()
+Este documento serve como um guia prático para utilizar as funções do arquivo main.py, responsáveis por realizar a conexão e operações entre o back-end e o banco de dados Supabase.
 
-fazer_login()
+Padrão de Retorno:
+- As funções retornam dicionários indicando o status através de "sucesso": True ou False, acompanhado dos dados solicitados ou da mensagem de erro.
 
-ver_perfil()
 
-editar_perfil()
+1. Autenticação e Sessão:
 
-deslogar_perfil()
+- criar_conta(nome, email, senha):
+  -> O que faz: Cria uma nova conta no Supabase Auth. A trigger do banco insere automaticamente o usuário na tabela usuarios.
+  -> Parâmetros: nome (str), email (str), senha (str).
+  -> Retorno: {"sucesso": True, "mensagem": "Conta criada com sucesso!", "usuario": {"id": "...", "email": "...", "nome": "..."}} ou {"sucesso": False, "mensagem": "..."}
+  -> Exemplo de código e prints:
+     resposta = criar_conta("João Silva", "joao@email.com", "senha123")
+     if resposta["sucesso"]:
+         print("Conta criada com sucesso!")
+         print("ID do Usuário:", resposta["usuario"]["id"])
+         print("Nome:", resposta["usuario"]["nome"])
+         print("E-mail:", resposta["usuario"]["email"])
+     else:
+         print("Erro ao criar conta:", resposta["mensagem"])
 
-criar_treino()
+- fazer_login(email, senha):
+  -> O que faz: Autentica o usuário com e-mail e senha, retornando os dados do usuário e tokens de acesso (JWT).
+  -> Parâmetros: email (str), senha (str).
+  -> Retorno: {"sucesso": True, "mensagem": "Login realizado com sucesso!", "usuario": {...}, "sessao": {"access_token": "...", "refresh_token": "..."}} ou {"sucesso": False, "mensagem": "..."}
+  -> Exemplo de código e prints:
+     login = fazer_login("joao@email.com", "senha123")
+     if login["sucesso"]:
+         print("Login realizado com sucesso!")
+         print("ID:", login["usuario"]["id"])
+         print("E-mail:", login["usuario"]["email"])
+         print("Nome:", login["usuario"]["user_metadata"].get("nome"))
+         print("Token de Acesso:", login["sessao"]["access_token"])
+     else:
+         print("Falha no login:", login["mensagem"])
 
-listar_exercicios()
+- deslogar_perfil():
+  -> O que faz: Encerra a sessão ativa do usuário no Supabase.
+  -> Parâmetros: Nenhum.
+  -> Retorno: {"sucesso": True, "mensagem": "Logout realizado com sucesso."} ou {"sucesso": False, "mensagem": "..."}
+  -> Exemplo de código e prints:
+     resultado = deslogar_perfil()
+     if resultado["sucesso"]:
+         print(resultado["mensagem"])
+     else:
+         print("Erro ao deslogar:", resultado["mensagem"])
 
-ver_treinos_premont()
+- obter_usuario_atual():
+  -> O que faz: Retorna os dados do usuário logado no momento no cliente Supabase.
+  -> Parâmetros: Nenhum.
+  -> Retorno: {"id": "...", "email": "...", "user_metadata": {...}} ou None (se não logado).
+  -> Exemplo de código e prints:
+     usuario = obter_usuario_atual()
+     if usuario:
+         print("Usuário autenticado:")
+         print("ID:", usuario["id"])
+         print("E-mail:", usuario["email"])
+         print("Nome:", usuario["user_metadata"].get("nome"))
+     else:
+         print("Nenhum usuário logado no momento.")
 
-listar_treinos()
 
-editar_treino()
+2. Perfil de Usuário:
 
-excluir_treino()
+- ver_perfil(usuario_id):
+  -> O que faz: Consulta e retorna os dados cadastrais da tabela usuarios referentes ao ID informado.
+  -> Parâmetros: usuario_id (str - UUID do usuário).
+  -> Retorno: {"sucesso": True, "perfil": {"id": "...", "nome": "...", "cpf": "...", "created_at": "..."}} ou {"sucesso": False, "mensagem": "..."}
+  -> Exemplo de código e prints:
+     resposta = ver_perfil("a1b2c3d4-0000-0000-0000-000000000000")
+     if resposta["sucesso"]:
+         perfil = resposta["perfil"]
+         print("--- Perfil do Usuário ---")
+         print("ID:", perfil["id"])
+         print("Nome:", perfil["nome"])
+         print("CPF:", perfil.get("cpf", "Não informado"))
+         print("Data de Criação:", perfil.get("created_at"))
+     else:
+         print("Erro ao carregar perfil:", resposta["mensagem"])
+
+- editar_perfil(usuario_id, nome=None, cpf=None):
+  -> O que faz: Atualiza os dados de nome e/ou CPF do usuário na tabela usuarios.
+  -> Parâmetros: usuario_id (str), nome (str, opcional), cpf (str, opcional).
+  -> Retorno: {"sucesso": True, "mensagem": "Perfil atualizado com sucesso!", "perfil": {...}} ou {"sucesso": False, "mensagem": "..."}
+  -> Exemplo de código e prints:
+     resposta = editar_perfil("a1b2c3d4-0000-0000-0000-000000000000", nome="João da Silva", cpf="123.456.789-00")
+     if resposta["sucesso"]:
+         print(resposta["mensagem"])
+         print("Nome atualizado:", resposta["perfil"]["nome"])
+         print("CPF atualizado:", resposta["perfil"]["cpf"])
+     else:
+         print("Erro ao editar perfil:", resposta["mensagem"])
+
+
+3. Exercícios:
+
+- listar_exercicios(grupo_muscular=None):
+  -> O que faz: Retorna a lista de exercícios cadastrados. Permite filtrar opcionalmente por grupo muscular.
+  -> Parâmetros: grupo_muscular (str, opcional - ex: "Peito", "Costas", "Pernas").
+  -> Retorno: {"sucesso": True, "exercicios": [{"id": 1, "nome": "Supino", "grupo_muscular": "Peito", "descricao": "..."}, ...]}
+  -> Exemplo de código e prints:
+     # Listar todos os exercícios ou filtrar por grupo muscular:
+     resposta = listar_exercicios(grupo_muscular="Peito")
+     if resposta["sucesso"]:
+         print(f"Total de exercícios encontrados: {len(resposta['exercicios'])}")
+         for ex in resposta["exercicios"]:
+             print(f"- ID: {ex['id']} | Nome: {ex['nome']} | Grupo: {ex['grupo_muscular']}")
+             if ex.get("descricao"):
+                 print(f"  Descrição: {ex['descricao']}")
+     else:
+         print("Erro ao listar exercícios:", resposta["mensagem"])
+
+
+4. Treinos:
+
+- ver_treinos_premont():
+  -> O que faz: Lista todos os treinos pré-montados do sistema junto com seus exercícios associados.
+  -> Parâmetros: Nenhum.
+  -> Retorno: {"sucesso": True, "treinos": [{"id": 1, "nome": "Treino A", "descricao": "...", "treino_exercicios": [...]}]}
+  -> Exemplo de código e prints:
+     resposta = ver_treinos_premont()
+     if resposta["sucesso"]:
+         print("=== Treinos Pré-Montados ===")
+         for treino in resposta["treinos"]:
+             print(f"\nTreino: {treino['nome']} (ID: {treino['id']})")
+             print(f"Descrição: {treino.get('descricao') or 'Sem descrição'}")
+             print("Exercícios:")
+             for te in treino.get("treino_exercicios", []):
+                 ex_info = te.get("exercicios") or {}
+                 nome_ex = ex_info.get("nome", "Exercício")
+                 grupo = ex_info.get("grupo_muscular", "")
+                 print(f"  - Ordem {te.get('ordem')}: {nome_ex} ({grupo}) -> {te.get('series')} séries x {te.get('repeticoes')} repetições")
+     else:
+         print("Erro ao buscar treinos pré-montados:", resposta["mensagem"])
+
+- listar_treinos(usuario_id):
+  -> O que faz: Lista todos os treinos criados por um usuário específico com os respectivos exercícios vinculados.
+  -> Parâmetros: usuario_id (str - UUID do usuário).
+  -> Retorno: {"sucesso": True, "treinos": [{"id": 1, "nome": "Meu Treino", "descricao": "...", "treino_exercicios": [...]}]}
+  -> Exemplo de código e prints:
+     resposta = listar_treinos("a1b2c3d4-0000-0000-0000-000000000000")
+     if resposta["sucesso"]:
+         print(f"Total de treinos do usuário: {len(resposta['treinos'])}")
+         for treino in resposta["treinos"]:
+             print(f"\nTreino: {treino['nome']} (ID: {treino['id']})")
+             print(f"Descrição: {treino.get('descricao') or 'Sem descrição'}")
+             print("Exercícios:")
+             for te in treino.get("treino_exercicios", []):
+                 ex_info = te.get("exercicios") or {}
+                 nome_ex = ex_info.get("nome", "Exercício")
+                 grupo = ex_info.get("grupo_muscular", "")
+                 print(f"  - Ordem {te.get('ordem')}: {nome_ex} ({grupo}) -> {te.get('series')} séries x {te.get('repeticoes')} repetições")
+     else:
+         print("Erro ao listar treinos do usuário:", resposta["mensagem"])
+
+- criar_treino(usuario_id, nome, descricao="", pre_montado=False, exercicios=None):
+  -> O que faz: Cria um novo treino na tabela treinos e insere os exercícios associados na tabela treino_exercicios.
+  -> Parâmetros:
+     - usuario_id (str): UUID do criador do treino.
+     - nome (str): Nome do treino.
+     - descricao (str, opcional): Descrição do treino.
+     - pre_montado (bool, opcional): Define se é treino padrão do sistema (padrão: False).
+     - exercicios (list de dicts, opcional): Lista contendo exercicio_id, ordem, series e repeticoes.
+  -> Retorno: {"sucesso": True, "mensagem": "Treino criado com sucesso!", "treino": {...}, "exercicios": [...]}
+  -> Exemplo de código e prints:
+     exercicios_treino = [
+         {"exercicio_id": 1, "ordem": 1, "series": 4, "repeticoes": 12},
+         {"exercicio_id": 2, "ordem": 2, "series": 3, "repeticoes": 10}
+     ]
+     resposta = criar_treino(
+         usuario_id="a1b2c3d4-0000-0000-0000-000000000000",
+         nome="Treino A - Peito e Tríceps",
+         descricao="Foco em hipertrofia",
+         exercicios=exercicios_treino
+     )
+     if resposta["sucesso"]:
+         print(resposta["mensagem"])
+         print("ID do novo treino:", resposta["treino"]["id"])
+         print("Nome:", resposta["treino"]["nome"])
+         print(f"Quantidade de exercícios vinculados: {len(resposta.get('exercicios', []))}")
+     else:
+         print("Erro ao criar treino:", resposta["mensagem"])
+
+- editar_treino(treino_id, nome=None, descricao=None, exercicios=None):
+  -> O que faz: Atualiza os dados do treino (nome/descrição) e/ou substitui a lista de exercícios vinculados.
+  -> Parâmetros: treino_id (int ou str), nome (str, opcional), descricao (str, opcional), exercicios (list de dicts, opcional).
+  -> Retorno: {"sucesso": True, "mensagem": "Treino atualizado com sucesso!"} ou {"sucesso": False, "mensagem": "..."}
+  -> Exemplo de código e prints:
+     novos_exercicios = [
+         {"exercicio_id": 3, "ordem": 1, "series": 4, "repeticoes": 8}
+     ]
+     resposta = editar_treino(
+         treino_id=1,
+         nome="Treino A - Atualizado",
+         exercicios=novos_exercicios
+     )
+     if resposta["sucesso"]:
+         print(resposta["mensagem"])
+     else:
+         print("Erro ao editar treino:", resposta["mensagem"])
+
+- excluir_treino(treino_id):
+  -> O que faz: Remove o treino da tabela treinos e desvincula suas associações na tabela treino_exercicios.
+  -> Parâmetros: treino_id (int ou str - ID do treino).
+  -> Retorno: {"sucesso": True, "mensagem": "Treino excluído com sucesso!"} ou {"sucesso": False, "mensagem": "..."}
+  -> Exemplo de código e prints:
+     resposta = excluir_treino(1)
+     if resposta["sucesso"]:
+         print(resposta["mensagem"])
+     else:
+         print("Erro ao excluir treino:", resposta["mensagem"])
