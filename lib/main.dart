@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'screens/home_screen.dart';
+import 'screens/login_screen.dart';
 
 void main() {
   runApp(const MeuAppTreino());
@@ -18,32 +19,10 @@ class MeuAppTreino extends StatelessWidget {
             Navigator.push(
               context,
               MaterialPageRoute<void>(
-                builder: (context) => const SecondRoute(),
+                builder: (context) => const LoginScreen(),
               ),
             );
           },
-        ),
-      ),
-    );
-  }
-}
-
-// Tela de exemplo de destino
-class SecondRoute extends StatelessWidget {
-  const SecondRoute({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF0D1117),
-      appBar: AppBar(
-        title: const Text('Treino Iniciado'),
-        backgroundColor: const Color(0xFF2B2B2B),
-      ),
-      body: const Center(
-        child: Text(
-          'Bons treinos!',
-          style: TextStyle(color: Colors.white, fontSize: 24),
         ),
       ),
     );
