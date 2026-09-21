@@ -1,63 +1,49 @@
 import 'package:flutter/material.dart';
-
-//telas iniciais
 import 'screens/home_screen.dart';
 
 void main() {
-  runApp(const MeuApp());
+  runApp(const MeuAppTreino());
 }
 
-class MeuApp extends StatelessWidget {
-  const MeuApp({super.key});
+class MeuAppTreino extends StatelessWidget {
+  const MeuAppTreino({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
+    return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: FirstRoute(), // Define a tela inicial aqui
-    );
-  }
-}
-
-class FirstRoute extends StatelessWidget {
-  const FirstRoute({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('First Route')),
-      body: Center(
-        child: ElevatedButton(
-          child: const Text('Open route'),
-          // Within the `FirstRoute` widget:
-          onPressed: () {
+      home: Builder(
+        builder: (context) => HomeScreen(
+          onSecondRoute: () {
             Navigator.push(
               context,
               MaterialPageRoute<void>(
                 builder: (context) => const SecondRoute(),
               ),
             );
-          }
-
+          },
         ),
       ),
     );
   }
 }
 
+// Tela de exemplo de destino
 class SecondRoute extends StatelessWidget {
   const SecondRoute({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Second Route')),
-      body: Center(
-        child: ElevatedButton(
-          onPressed: () {
-            Navigator.pop(context);
-          },
-          child: const Text('Go back!'),
+      backgroundColor: const Color(0xFF0D1117),
+      appBar: AppBar(
+        title: const Text('Treino Iniciado'),
+        backgroundColor: const Color(0xFF2B2B2B),
+      ),
+      body: const Center(
+        child: Text(
+          'Bons treinos!',
+          style: TextStyle(color: Colors.white, fontSize: 24),
         ),
       ),
     );

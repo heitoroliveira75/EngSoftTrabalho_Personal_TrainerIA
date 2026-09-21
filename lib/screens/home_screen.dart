@@ -1,23 +1,11 @@
 import 'package:flutter/material.dart';
 
-void main() {
-  runApp(const MeuAppTreino());
-}
-
-class MeuAppTreino extends StatelessWidget {
-  const MeuAppTreino({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return const MaterialApp(
-      debugShowCheckedModeBanner: false,
-      home: HomeScreen(),
-    );
-  }
-}
-
 class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
+  // 1. Declaração do parâmetro
+  final VoidCallback onSecondRoute;
+
+  // 2. Construtor correto da classe HomeScreen
+  const HomeScreen({super.key, required this.onSecondRoute});
 
   @override
   Widget build(BuildContext context) {
@@ -59,7 +47,8 @@ class HomeScreen extends StatelessWidget {
                 child: InkWell(
                   borderRadius: BorderRadius.circular(28.0),
                   onTap: () {
-                    debugPrint('Botão pressionado!');
+                    // 3. Executa a função repassada
+                    onSecondRoute();
                   },
                   child: Container(
                     padding: const EdgeInsets.symmetric(
