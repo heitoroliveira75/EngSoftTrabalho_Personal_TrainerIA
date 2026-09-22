@@ -20,6 +20,7 @@ class MeuAppRecuperarSenha extends StatelessWidget {
 Redefinirsenha(BuildContext context){
   Navigator.push(
     context, MaterialPageRoute(
+    settings: const RouteSettings(name: '/esqueceu_senha_screen'),
     builder: (context) => const RedefinirSenhaScreen(),
     )
   );
