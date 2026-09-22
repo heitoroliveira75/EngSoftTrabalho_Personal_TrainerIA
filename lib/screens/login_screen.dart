@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'cadastro_screen.dart';
 
 void main() {
   runApp(const MeuAppLogin());
@@ -14,6 +15,14 @@ class MeuAppLogin extends StatelessWidget {
       home: LoginScreen(),
     );
   }
+}
+
+Teladecadastro(BuildContext context){
+  Navigator.push(
+    context, MaterialPageRoute(
+      builder: (context) => const MeuAppCadastro(),
+    )
+  );
 }
 
 class LoginScreen extends StatefulWidget {
@@ -197,6 +206,7 @@ class _LoginScreenState extends State<LoginScreen> {
                     GestureDetector(
                       onTap: () {
                         debugPrint('Crie uma conta clicado');
+                        Teladecadastro(context);
                       },
                       child: const Text(
                         'Crie uma conta',
