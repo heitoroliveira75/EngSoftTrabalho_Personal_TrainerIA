@@ -14,6 +14,11 @@ def calcularangulo (p1,p2,p3):
         angulo = 360.0-angulo
         return angulo
 
+def calculardist(p1,p2):
+    distancia = math.hypot(p2[0]-p1[0],p2[1]-p1[0])
+    return distancia
+
+
 
 
 # 1. Definimos os pares de pontos que devem ser conectados por linhas (barras)
