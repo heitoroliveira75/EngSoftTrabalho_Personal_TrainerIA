@@ -6,17 +6,20 @@ void main() {
   runApp(const MeuAppLogin());
 }
 
-
-
 class MeuAppLogin extends StatelessWidget {
   const MeuAppLogin({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
-      initialRoute: '/LoginScreen',
+    return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: LoginScreen(),
+      title: 'App Login',
+      initialRoute: '/loginscreen',
+      routes: {
+        '/loginscreen': (context) => const LoginScreen(),
+        '/cadastroscreen': (context) => const CadastroScreen(),
+        '/esqueceusenhascreen': (context) => const EsqueceuSenhaScreen(),
+      },
     );
   }
 }
