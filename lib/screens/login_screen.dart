@@ -6,12 +6,15 @@ void main() {
   runApp(const MeuAppLogin());
 }
 
+
+
 class MeuAppLogin extends StatelessWidget {
   const MeuAppLogin({super.key});
 
   @override
   Widget build(BuildContext context) {
     return const MaterialApp(
+      initialRoute: '/LoginScreen',
       debugShowCheckedModeBanner: false,
       home: LoginScreen(),
     );
@@ -29,7 +32,7 @@ Teladecadastro(BuildContext context){
 Teladeesqueceusenha(BuildContext context){
   Navigator.push(
     context, MaterialPageRoute(
-    settings: const RouteSettings(name: '/LoginScreen'),
+    settings: const RouteSettings(name: '/123'),
     builder: (context) => const EsqueceuSenhaScreen(),
     )
   );
