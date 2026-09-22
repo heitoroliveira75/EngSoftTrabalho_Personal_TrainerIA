@@ -93,7 +93,11 @@ while cap.isOpened():
         cotovelo_d= (int(lm_cotovelo_d *w),lm_cotovelo_d*h)
         pulso_d = (int(lm_pulso_d*w),lm_pulso_d*h)
 
-        distexer= calcular_distancia(cotovelo_d,pulso_d)
+        distexerpx= calcular_distancia(cotovelo_d,pulso_d) #pixel
+
+        distemcm= distexerpx *fator_cm_pixel #transforma em cm
+
+       
     
 
     if detection_result.pose_landmarks:
