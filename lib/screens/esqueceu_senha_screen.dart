@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'redefinir_senha_screen.dart';
 
 void main() {
   runApp(const MeuAppRecuperarSenha());
@@ -14,6 +15,14 @@ class MeuAppRecuperarSenha extends StatelessWidget {
       home: EsqueceuSenhaScreen(),
     );
   }
+}
+
+Redefinirsenha(BuildContext context){
+  Navigator.push(
+    context, MaterialPageRoute(
+    builder: (context) => const RedefinirSenhaScreen(),
+    )
+  );
 }
 
 class EsqueceuSenhaScreen extends StatefulWidget {
@@ -103,6 +112,7 @@ class _EsqueceuSenhaScreenState extends State<EsqueceuSenhaScreen> {
                 ElevatedButton(
                   onPressed: () {
                     debugPrint('Enviar código para: ${_usuarioController.text}');
+                    Redefinirsenha(context);
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF030712), // Preto / quase preto
@@ -138,8 +148,8 @@ class _EsqueceuSenhaScreenState extends State<EsqueceuSenhaScreen> {
                     ),
                     GestureDetector(
                       onTap: () {
-                        Navigator.pop(context);
                         debugPrint('Voltar para o login clicado');
+                        Navigator.pop(context);
                       },
                       child: const Text(
                         'Faça login.',
