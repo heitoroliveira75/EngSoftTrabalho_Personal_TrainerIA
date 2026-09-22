@@ -26,11 +26,13 @@ class CadastroScreen extends StatefulWidget {
 class _CadastroScreenState extends State<CadastroScreen> {
   final TextEditingController _usuarioController = TextEditingController();
   final TextEditingController _senhaController = TextEditingController();
+  final TextEditingController _confirmarSenhaController = TextEditingController();
 
   @override
   void dispose() {
     _usuarioController.dispose();
     _senhaController.dispose();
+    _confirmarSenhaController.dispose();
     super.dispose();
   }
 
@@ -46,9 +48,9 @@ class _CadastroScreenState extends State<CadastroScreen> {
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                // Título LOGIN
+                // Título Cadastro
                 const Text(
-                  'LOGIN',
+                  'Cadastro',
                   textAlign: TextAlign.center,
                   style: TextStyle(
                     color: Colors.white,
@@ -77,10 +79,19 @@ class _CadastroScreenState extends State<CadastroScreen> {
 
                 const SizedBox(height: 16),
 
+                // Campo Confirme a senha
+                _buildInputField(
+                  controller: _confirmarSenhaController,
+                  hintText: 'Confirme a senha',
+                  obscureText: true,
+                ),
+
+                const SizedBox(height: 18),
+
                 // Botão Continuar
                 ElevatedButton(
                   onPressed: () {
-                    debugPrint('Continuar clicado: ${_usuarioController.text}');
+                    debugPrint('Cadastro continuar clicado');
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF030712), // Preto / quase preto
@@ -101,27 +112,7 @@ class _CadastroScreenState extends State<CadastroScreen> {
                   ),
                 ),
 
-                const SizedBox(height: 14),
-
-                // Link "Esqueceu a senha?"
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: GestureDetector(
-                    onTap: () {
-                      debugPrint('Esqueceu a senha clicado');
-                    },
-                    child: const Text(
-                      'Esqueceu a senha?',
-                      style: TextStyle(
-                        color: Color(0xFFE91E63), // Rosa vibrante
-                        fontSize: 13,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 24),
+                const SizedBox(height: 28),
 
                 // Divisor "ou"
                 Row(
@@ -162,7 +153,7 @@ class _CadastroScreenState extends State<CadastroScreen> {
                     size: 28,
                   ),
                   onTap: () {
-                    debugPrint('Google login');
+                    debugPrint('Google cadastro');
                   },
                 ),
 
@@ -177,18 +168,18 @@ class _CadastroScreenState extends State<CadastroScreen> {
                     size: 22,
                   ),
                   onTap: () {
-                    debugPrint('Apple login');
+                    debugPrint('Apple cadastro');
                   },
                 ),
 
                 const SizedBox(height: 36),
 
-                // Rodapé "Não possui uma conta? Crie uma conta"
+                // Rodapé "Já possui uma conta? Faça login."
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const Text(
-                      'Não possui uma conta? ',
+                      'Já possui uma conta? ',
                       style: TextStyle(
                         color: Colors.white,
                         fontSize: 13,
@@ -196,10 +187,11 @@ class _CadastroScreenState extends State<CadastroScreen> {
                     ),
                     GestureDetector(
                       onTap: () {
-                        debugPrint('Crie uma conta clicado');
+                        // Exemplo de navegação de volta: Navigator.pop(context);
+                        debugPrint('Faça login clicado');
                       },
                       child: const Text(
-                        'Crie uma conta',
+                        'Faça login.',
                         style: TextStyle(
                           color: Color(0xFFE91E63), // Rosa vibrante
                           fontWeight: FontWeight.bold,
