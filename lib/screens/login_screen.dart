@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'cadastro_screen.dart';
+import 'esqueceu_senha_screen.dart';
 
 void main() {
   runApp(const MeuAppLogin());
@@ -21,6 +22,14 @@ Teladecadastro(BuildContext context){
   Navigator.push(
     context, MaterialPageRoute(
     builder: (context) => const CadastroScreen(),
+    )
+  );
+}
+
+Teladeesqueceusenha(BuildContext context){
+  Navigator.push(
+    context, MaterialPageRoute(
+    builder: (context) => const EsqueceuSenhaScreen(),
     )
   );
 }
@@ -118,6 +127,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   child: GestureDetector(
                     onTap: () {
                       debugPrint('Esqueceu a senha clicado');
+                      Teladeesqueceusenha(context);
                     },
                     child: const Text(
                       'Esqueceu a senha?',

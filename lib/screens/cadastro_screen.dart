@@ -189,6 +189,7 @@ class _CadastroScreenState extends State<CadastroScreen> {
                       onTap: () {
                         // Exemplo de navegação de volta: Navigator.pop(context);
                         debugPrint('Faça login clicado');
+                        Navigator.pop(context);
                       },
                       child: const Text(
                         'Faça login.',

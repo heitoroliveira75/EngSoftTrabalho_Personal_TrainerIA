@@ -138,7 +138,7 @@ class _EsqueceuSenhaScreenState extends State<EsqueceuSenhaScreen> {
                     ),
                     GestureDetector(
                       onTap: () {
-                        // Exemplo: Navigator.pop(context);
+                        Navigator.pop(context);
                         debugPrint('Voltar para o login clicado');
                       },
                       child: const Text(
