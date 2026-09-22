@@ -110,7 +110,7 @@ class _RedefinirSenhaScreenState extends State<RedefinirSenhaScreen> {
                 ElevatedButton(
                   onPressed: () {
                     debugPrint('Redefinir senha enviado');
-                    Navigator.popUntil(context, ModalRoute.withName('/login'));
+                    Navigator.of(context)..pop()..pop();
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF030712), // Preto / quase preto
