@@ -10,9 +10,14 @@ class MeuAppRecuperarSenha extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const MaterialApp(
+    return MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: EsqueceuSenhaScreen(),
+      title: 'App Login',
+      initialRoute: '/esqueceuasemja',
+      routes: {
+        '/esqueceuasemja': (context) => const EsqueceuSenhaScreen(),
+        '/redefinir_senha_screen': (context) => const RedefinirSenhaScreen(),
+      },
     );
   }
 }

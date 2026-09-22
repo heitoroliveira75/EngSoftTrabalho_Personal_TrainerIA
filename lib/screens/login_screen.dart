@@ -14,7 +14,7 @@ class MeuAppLogin extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'App Login',
-      initialRoute: '/loginscreen',
+      initialRoute: '/loginscreen23',
       routes: {
         '/loginscreen': (context) => const LoginScreen(),
         '/cadastroscreen': (context) => const CadastroScreen(),
