@@ -20,12 +20,12 @@ def calcularangulo(p1, p2, p3):
     cosseno = max(-1.0, min(1.0, cosseno))
     return math.degrees(math.acos(cosseno))
 
-def calculardist(p1,p2):
-    distancia = math.hypot(p2[0]-p1[0],p2[1]-p1[0])
+
+
+def calcular_distancia(p1, p2):
+    # Calcula a distância em linha reta entre os pontos p1 e p2
+    distancia = math.hypot(p2[0] - p1[0], p2[1] - p1[1])
     return distancia
-
-
-
 
 # 1. Definimos os pares de pontos que devem ser conectados por linhas (barras)
 CONEXOES_CORPO = [
