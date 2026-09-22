@@ -6,13 +6,19 @@ from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 
 
-def calcularangulo (p1,p2,p3):
-    radianos = math.atan2(p3[1]-p2[1],p3[0]-p2[0])-math.atan(p1[1]-p2[1],p1[0]-p2[0])
-    angulo = abs(radianos*180/math.pi)
-       
-    if angulo >360 :
-        angulo = 360.0-angulo
-        return angulo
+def calcularangulo(p1, p2, p3):
+    vetor_1 = (p1.x - p2.x, p1.y - p2.y)
+    vetor_2 = (p3.x - p2.x, p3.y - p2.y)
+    produto_escalar = vetor_1[0] * vetor_2[0] + vetor_1[1] * vetor_2[1]
+    tamanho_1 = math.hypot(*vetor_1)
+    tamanho_2 = math.hypot(*vetor_2)
+
+    if tamanho_1 == 0 or tamanho_2 == 0:
+        return None
+
+    cosseno = produto_escalar / (tamanho_1 * tamanho_2)
+    cosseno = max(-1.0, min(1.0, cosseno))
+    return math.degrees(math.acos(cosseno))
 
 
 
@@ -32,6 +38,16 @@ CONEXOES_CORPO = [
 
 # Pontos individuais para desenhar os círculos
 Pontos_corpo = [11, 12, 13, 14, 15, 16, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32]
+
+ANGULOS_CORPO = [
+    (12, 11, 13, "Ombro esquerdo"),
+    (11, 12, 14, "Ombro direito"),
+    (11, 13, 15, "Cotovelo esquerdo"),
+    (12, 14, 16, "Cotovelo direito"),
+    #Falta do tronco e das pernas
+    (23, 25, 27, "Joelho esquerdo"),
+    (24, 26, 28, "Joelho direito"),
+]
 
 DIR_ATUAL = os.path.dirname(os.path.abspath(__file__))
 CAMINHO_MODELO = os.path.join(DIR_ATUAL, 'pose_landmarker_full.task')
@@ -109,6 +125,25 @@ while cap.isOpened():
                     x = int(landmark.x * w)
                     y = int(landmark.y * h)
                     cv2.circle(frame, (x, y), 5, (255, 0, 0), -1)
+
+            # Mostra todos os angulos em uma coluna fixa no lado esquerdo.
+            for linha, (ponto_1, vertice, ponto_3, nome) in enumerate(ANGULOS_CORPO):
+                indices = (ponto_1, vertice, ponto_3)
+                if all(pose_landmarks[index].visibility > 0.5 for index in indices):
+                    angulo = calcularangulo(
+                        pose_landmarks[ponto_1],
+                        pose_landmarks[vertice],
+                        pose_landmarks[ponto_3],
+                    )
+                    cv2.putText(
+                        frame,
+                        f"{nome}: {angulo:.1f} graus",
+                        (10, 60 + linha * 30),
+                        cv2.FONT_HERSHEY_SIMPLEX,
+                        0.6,
+                        (0, 255, 0),
+                        2,
+                    )
 
     cv2.imshow('MediaPipe Pose - Esqueleto Filtrado', frame)
 
