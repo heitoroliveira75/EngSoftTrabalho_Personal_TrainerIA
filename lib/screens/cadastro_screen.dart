@@ -1,29 +1,29 @@
 import 'package:flutter/material.dart';
 
 void main() {
-  runApp(const MeuAppLogin());
+  runApp(const MeuAppCadastro());
 }
 
-class MeuAppLogin extends StatelessWidget {
-  const MeuAppLogin({super.key});
+class MeuAppCadastro extends StatelessWidget {
+  const MeuAppCadastro({super.key});
 
   @override
   Widget build(BuildContext context) {
     return const MaterialApp(
       debugShowCheckedModeBanner: false,
-      home: LoginScreen(),
+      home: CadastroScreen(),
     );
   }
 }
 
-class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+class CadastroScreen extends StatefulWidget {
+  const CadastroScreen({super.key});
 
   @override
-  State<LoginScreen> createState() => _LoginScreenState();
+  State<CadastroScreen> createState() => _CadastroScreenState();
 }
 
-class _LoginScreenState extends State<LoginScreen> {
+class _CadastroScreenState extends State<CadastroScreen> {
   final TextEditingController _usuarioController = TextEditingController();
   final TextEditingController _senhaController = TextEditingController();
 

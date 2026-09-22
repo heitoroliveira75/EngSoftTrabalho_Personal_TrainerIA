@@ -20,7 +20,7 @@ class MeuAppLogin extends StatelessWidget {
 Teladecadastro(BuildContext context){
   Navigator.push(
     context, MaterialPageRoute(
-      builder: (context) => const MeuAppCadastro(),
+    builder: (context) => const CadastroScreen(),
     )
   );
 }
