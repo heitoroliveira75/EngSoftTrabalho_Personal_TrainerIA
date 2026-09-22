@@ -29,6 +29,7 @@ Teladecadastro(BuildContext context){
 Teladeesqueceusenha(BuildContext context){
   Navigator.push(
     context, MaterialPageRoute(
+    settings: const RouteSettings(name: '/LoginScreen'),
     builder: (context) => const EsqueceuSenhaScreen(),
     )
   );
