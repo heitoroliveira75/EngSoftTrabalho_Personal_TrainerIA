@@ -5,6 +5,14 @@ import mediapipe as mp
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 
+# =======================================================
+# NOVA CLASSE: Para criar uma linha reta para baixo do ombro
+# =======================================================
+class PontoVirtual:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
+
 def calcularangulo(p1, p2, p3):
     vetor_1 = (p1.x - p2.x, p1.y - p2.y)
     vetor_2 = (p3.x - p2.x, p3.y - p2.y)
@@ -20,20 +28,16 @@ def calcularangulo(p1, p2, p3):
     return math.degrees(math.acos(cosseno))
 
 def calcular_distancia(p1, p2):
-    # Calcula a distância em linha reta entre os pontos p1 e p2 em pixels
-    dist = math.hypot(p2[0] - p1[0], p2[1] - p1[1])
-    return dist
+    return math.hypot(p2[0] - p1[0], p2[1] - p1[1])
 
-# Definimos os pares de pontos que devem ser conectados por linhas (barras)
+# Conexões do corpo
 CONEXOES_CORPO = [
-    (11, 12), (11, 23), (12, 24), (23, 24), # Tronco
-    (11, 13), (13, 15),                     # Braço Esquerdo
-    (12, 14), (14, 16),                     # Braço Direito
-    (23, 25), (25, 27), (27, 29), (29, 31), (27, 31), # Perna Esquerda
-    (24, 26), (26, 28), (28, 30), (30, 32), (28, 32)  # Perna Direita
+    (11, 12), (11, 23), (12, 24), (23, 24),
+    (11, 13), (13, 15), (12, 14), (14, 16),
+    (23, 25), (25, 27), (27, 29), (29, 31), (27, 31),
+    (24, 26), (26, 28), (28, 30), (30, 32), (28, 32)
 ]
 
-# Pontos individuais para desenhar os círculos
 Pontos_corpo = [11, 12, 13, 14, 15, 16, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32]
 
 DIR_ATUAL = os.path.dirname(os.path.abspath(__file__))
@@ -46,19 +50,13 @@ options = vision.PoseLandmarkerOptions(
 )
 detector = vision.PoseLandmarker.create_from_options(options)
 
-# Variaveis Pra repetição
 contadoreps = 0
 fase_movimento = "baixo"
 cap = cv2.VideoCapture(0)
 
-LARGURA_OMBRO_REAL_CM = 40.0
-FOCAL_LENGTH = 600.0
-fator_cm_pixel = 0.0
-
 while cap.isOpened():
     success, frame = cap.read()
     if not success:
-        print("Não foi possível acessar a câmera.")
         break
 
     frame = cv2.flip(frame, 1)
@@ -71,97 +69,81 @@ while cap.isOpened():
     if detection_result.pose_landmarks:
         for pose_landmarks in detection_result.pose_landmarks:
 
-            # =======================================================
-            # Cálculo de Proporção (Ombros)
-            # =======================================================
-            ombro_esq = pose_landmarks[11] 
-            ombro_dir = pose_landmarks[12] 
-
-            if ombro_esq.visibility > 0.5 and ombro_dir.visibility > 0.5:
-                x_esq, y_esq = int(ombro_esq.x * w), int(ombro_esq.y * h)
-                x_dir, y_dir = int(ombro_dir.x * w), int(ombro_dir.y * h)
-                distancia_pixel = math.hypot(x_dir - x_esq, y_dir - y_esq)
-
-                if distancia_pixel > 0:
-                    fator_cm_pixel = LARGURA_OMBRO_REAL_CM / distancia_pixel
-
-            # =======================================================
-            # Análise do Braço Direito (Postura e Repetições)
-            # =======================================================
-            lm_ombro = pose_landmarks[12]
+            lm_ombro_e = pose_landmarks[13]
+            lm_ombro_d = pose_landmarks[12]
             lm_cotovelo_d = pose_landmarks[14]
             lm_pulso_d = pose_landmarks[16]
-            lm_quadril_d = pose_landmarks[24]
 
-            if (lm_cotovelo_d.visibility > 0.5 and lm_pulso_d.visibility > 0.5 and 
-                lm_quadril_d.visibility > 0.5 and lm_ombro.visibility > 0.5):
+            # Só checamos a visibilidade do braço!
+            if (lm_cotovelo_d.visibility > 0.5 and lm_pulso_d.visibility > 0.5 and lm_ombro_d.visibility > 0.5):
                 
-                ombro_d = (int(lm_ombro.x * w), int(lm_ombro.y * h))
+                ombro_d = (int(lm_ombro_d.x * w), int(lm_ombro_d.y * h))
+                ombro_e = (int(lm_ombro_e.x * w), int(lm_ombro_e.y * h))
+                # =======================================================
+                # O TRUQUE: Ponto Virtual
+                # Cria um ponto artificial perfeitamente abaixo do ombro (eixo Y maior)
+                # =======================================================
+                lm_vertical = PontoVirtual(lm_ombro_d.x, lm_ombro_d.y + 0.2)
                 
-                # Calcula os ângulos
-                anguloaxila = calcularangulo(lm_quadril_d, lm_ombro, lm_cotovelo_d)
-                angulocotovelo = calcularangulo(lm_ombro, lm_cotovelo_d, lm_pulso_d)
+                # O ângulo agora é calculado entre a linha reta invisível e o seu cotovelo
+                angulo_ombro = calcularangulo(lm_ombro_e, lm_ombro_d, lm_cotovelo_d)
+                angulocotovelo = calcularangulo(lm_ombro_d, lm_cotovelo_d, lm_pulso_d)
 
                 forma_correta = False
-                cor_ombro = (0, 0, 255) # Vermelho por padrão
+                cor_ombro = (0, 0, 255) # Vermelho
 
-                # 1. Checagem de Postura (Axila)
-                if anguloaxila is not None:
-                    if 45 <= anguloaxila <= 60:
+                # 1. Checagem de Postura do Ombro (Elevado ou Colado no corpo)
+                # Se o braço estiver reto pra baixo, o ângulo será perto de 0.
+                if angulo_ombro is not None:
+                    # Mude esses valores conforme o exercício. Ex: 45 a 60 para banco Scott.
+                    if 115<= angulo_ombro <= 135:
                         forma_correta = True
-                        aviso_postura = "Postura Correta!"
-                        cor_ombro = (0, 255, 0) # Verde
-                    elif anguloaxila < 45:
-                        aviso_postura = "Abra mais o braço" 
+                        aviso_postura = "Ombro na posicao correta!"
+                        cor_ombro = (0, 255, 0)
+                    elif angulo_ombro < 115:
+                        aviso_postura = "Levante mais o cotovelo!" 
                     else:
-                        aviso_postura = "Abaixe o braço"
+                        aviso_postura = "Abaixe um pouco o cotovelo!"
 
-                    cv2.putText(frame, f"Axila: {int(anguloaxila)}", (ombro_d[0] + 15, ombro_d[1]), 
+                    cv2.putText(frame, f"Ang. Ombro: {int(angulo_ombro)}", (ombro_d[0] + 15, ombro_d[1]), 
                                 cv2.FONT_HERSHEY_SIMPLEX, 0.6, cor_ombro, 2)
 
-                # 2. Lógica de Contagem de Repetições
+                # 2. Lógica de Contagem
                 if angulocotovelo is not None and contadoreps < 10:
-                    # Só conta se o aluno dobrou o braço E está com a postura correta da axila
                     if angulocotovelo < 45 and forma_correta:
                         if fase_movimento == "baixo":
                             fase_movimento = "cima"
 
-                    # Finaliza a repetição quando estica o braço
                     if angulocotovelo > 150:
                         if fase_movimento == "cima":
                             contadoreps += 1
                             fase_movimento = "baixo"
 
-                # 3. Exibir textos na tela (Contador e Avisos)
+                # 3. Textos na tela
                 cv2.putText(frame, f"Reps: {contadoreps}/10", (20, 50), cv2.FONT_HERSHEY_SIMPLEX, 1.2, (255, 0, 0), 3)
                 cv2.putText(frame, aviso_postura, (20, 90), cv2.FONT_HERSHEY_SIMPLEX, 0.8, cor_ombro, 2)
 
-                # 4. Checa se a série acabou
                 if contadoreps >= 10:
                     cv2.putText(frame, "SERIE CONCLUIDA!", (20, 150), cv2.FONT_HERSHEY_SIMPLEX, 1.2, (0, 255, 255), 3)
-                    # Opcional: Se quiser resetar automaticamente após chegar a 10, você pode fazer algo aqui
            
-            # =======================================================
-            # DESENHAR AS LINHAS E CÍRCULOS (BARRAS) NO CORPO
-            # =======================================================
+            # Desenha linhas
             for p1, p2 in CONEXOES_CORPO:
                 pt1 = pose_landmarks[p1]
                 pt2 = pose_landmarks[p2]
-                
                 if pt1.visibility > 0.5 and pt2.visibility > 0.5:
                     x1, y1 = int(pt1.x * w), int(pt1.y * h)
                     x2, y2 = int(pt2.x * w), int(pt2.y * h)
                     cv2.line(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
 
+            # Desenha círculos
             for index, landmark in enumerate(pose_landmarks):
                 if index in Pontos_corpo and landmark.visibility > 0.5:
                     x = int(landmark.x * w)
                     y = int(landmark.y * h)
                     cv2.circle(frame, (x, y), 5, (255, 0, 0), -1)
 
-    cv2.imshow('MediaPipe Pose - Esqueleto Filtrado', frame)
+    cv2.imshow('MediaPipe Pose - Esqueleto', frame)
 
-    # Aperte 'q' para fechar ou 'r' para resetar a série
     tecla = cv2.waitKey(1) & 0xFF
     if tecla == ord('q'):
         break
