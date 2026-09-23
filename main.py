@@ -64,8 +64,10 @@ options = vision.PoseLandmarkerOptions(
 )
 detector = vision.PoseLandmarker.create_from_options(options)
 
+#variaveis Pra repetição
 
-
+contadoreps = 0
+fase_movimento = "baixo"
 cap = cv2.VideoCapture(0)
 
 LARGURA_OMBRO_REAL_CM= 40.0
@@ -85,18 +87,21 @@ while cap.isOpened():
     mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb_frame)
     detection_result = detector.detect(mp_image)
 
-
+    lm_ombro = pose_landmarks[12]
     lm_cotovelo_d= pose_landmarks[14]
     lm_pulso_d= pose_landmarks[16]
+    lm_quadril_d = pose_landmarks[24]
 
-    if lm_cotovelo_d.visibility>0.5 and lm_pulso_d.visibility > 0.5 :
-        cotovelo_d= (int(lm_cotovelo_d *w),lm_cotovelo_d*h)
-        pulso_d = (int(lm_pulso_d*w),lm_pulso_d*h)
-
+    if lm_cotovelo_d.visibility>0.5 and lm_pulso_d.visibility > 0.5 and lm_quadril_d.visibility > 0.5 and lm_ombro.visibility>0.5 :
+        cotovelo_d= (int(lm_cotovelo_d *w),int(lm_cotovelo_d*h))
+        pulso_d = (int(lm_pulso_d*w),int(lm_pulso_d*h))
+        quadril_d =(int(lm_quadril_d*w),int(lm_quadril_d*h))
+        ombro_d=(int(lm_ombro*w),int(lm_ombro*h))
         distexerpx= calcular_distancia(cotovelo_d,pulso_d) #pixel
 
         distemcm= distexerpx *fator_cm_pixel #transforma em cm
 
+        anguloaxula= calcularangulo(ombro_d,cotovelo_d,quadril_d)
        
     
 
