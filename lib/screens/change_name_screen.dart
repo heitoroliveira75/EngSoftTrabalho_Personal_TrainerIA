@@ -113,6 +113,7 @@ class _ChangeNameScreenState extends State<ChangeNameScreen> {
     required TextEditingController controller,
     String? hintText,
     bool enabled = true,
+    bool isPassword = false, // Controla se oculta os carateres
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -129,27 +130,27 @@ class _ChangeNameScreenState extends State<ChangeNameScreen> {
         SizedBox(
           height: 40,
           child: TextField(
-            controller: controller,
+            controller: controller, // Associa o controlador ao campo
             enabled: enabled,
-            style: const TextStyle(color: Color(0xFF64B5F6), fontSize: 14),
+            obscureText:
+                isPassword, // Esconde os carateres se for palavra-passe
+            obscuringCharacter: '*', // Define o carater de ocultação (opcional, por padrão é '•')
+            style: const TextStyle(color: Color(0xFF2196F3), fontSize: 14),
             decoration: InputDecoration(
-              hintText: hintText,
-              hintStyle: const TextStyle(
-                color: Color(0xFF90CAF9),
-                fontSize: 13,
-              ),
+              hintText: hintText, // Exibe o texto de dica quando o campo estiver vazio
+              hintStyle: const TextStyle(color: Colors.grey, fontSize: 13),
               contentPadding: const EdgeInsets.symmetric(
                 horizontal: 10,
                 vertical: 8,
+              ),
+              border: const OutlineInputBorder(
+                borderSide: BorderSide(color: Colors.black54),
               ),
               enabledBorder: const OutlineInputBorder(
                 borderSide: BorderSide(color: Colors.black54),
               ),
               focusedBorder: const OutlineInputBorder(
                 borderSide: BorderSide(color: Color(0xFF2196F3)),
-              ),
-              disabledBorder: const OutlineInputBorder(
-                borderSide: BorderSide(color: Colors.black38),
               ),
             ),
           ),
