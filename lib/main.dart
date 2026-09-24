@@ -10,341 +10,667 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      title: 'App Treino',
       debugShowCheckedModeBanner: false,
       theme: ThemeData.dark().copyWith(
-        scaffoldBackgroundColor: const Color(0xFF0B0E14),
+        scaffoldBackgroundColor: const Color(
+          0xFF0D1117,
+        ), // Fundo escuro das imagens
+        colorScheme: const ColorScheme.dark(
+          surface: Color(0xFF161B22),
+          primary: Colors.blueAccent,
+        ),
       ),
       home: const HomeScreen(),
     );
   }
 }
 
+/* ============================================================================
+   1. TELA HOME
+   ============================================================================ */
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0B0E14),
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // 1. Header (HOME + Ícone de Usuário)
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: const Text(
+          'HOME',
+          style: TextStyle(fontWeight: FontWeight.bold, letterSpacing: 1.2),
+        ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.account_circle, size: 36),
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const ProfileScreen()),
+              );
+            },
+          ),
+          const SizedBox(width: 8),
+        ],
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            // Card Pontos Totais
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Column(
                 children: [
-                  const Text(
-                    'HOME',
+                  Text(
+                    'Pontos Totais',
                     style: TextStyle(
+                      color: Color(0xFF8A5CF5),
                       fontSize: 28,
-                      fontWeight: FontWeight.w300,
-                      letterSpacing: 2.0,
-                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
                     ),
                   ),
-                  Container(
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 2),
+                  SizedBox(height: 8),
+                  Text(
+                    '1850 pts',
+                    style: TextStyle(
+                      color: Color(0xFF2196F3),
+                      fontSize: 36,
+                      fontWeight: FontWeight.bold,
                     ),
-                    child: const CircleAvatar(
-                      radius: 20,
-                      backgroundColor: Colors.transparent,
-                      child: Icon(
-                        Icons.person_outline,
-                        color: Colors.white,
-                        size: 28,
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    '+250 pts essa semana',
+                    style: TextStyle(color: Color(0xFF64B5F6), fontSize: 16),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+
+            // 3 Métricas lado a lado
+            Row(
+              children: [
+                Expanded(
+                  child: _buildMetricCard(
+                    icon: Icons.star,
+                    iconColor: Colors.amber,
+                    value: '6',
+                    label: 'Maior\nSequência',
+                    labelColor: Colors.amber,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _buildMetricCard(
+                    icon: Icons.bolt,
+                    iconColor: Colors.amberAccent,
+                    value: '2',
+                    label: 'Sequência',
+                    labelColor: Colors.pinkAccent,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _buildMetricCard(
+                    icon: Icons.emoji_events,
+                    iconColor: Colors.amber,
+                    value: '150',
+                    label: 'Pts Hoje',
+                    labelColor: Colors.orangeAccent,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+
+            // Meta de Hoje
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFF2D3139),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    'Meta de Hoje',
+                    style: TextStyle(
+                      color: Color(0xFF00E676),
+                      fontSize: 28,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  const Align(
+                    alignment: Alignment.center,
+                    child: Text(
+                      '150/200 pts',
+                      style: TextStyle(color: Color(0xFF00E676), fontSize: 16),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: const LinearProgressIndicator(
+                      value: 150 / 200,
+                      minHeight: 16,
+                      backgroundColor: Colors.grey,
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        Color(0xFF00E676),
                       ),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 25),
+            ),
+            const SizedBox(height: 20),
 
-              // 2. Card de Nível
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFD9D9D9),
-                  borderRadius: BorderRadius.circular(4),
+            // Botão Hora de Treinar
+            InkWell(
+              onTap: () {
+                // Ação ao clicar no treino
+              },
+              borderRadius: BorderRadius.circular(24),
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  vertical: 20,
+                  horizontal: 16,
                 ),
-                child: Column(
+                decoration: BoxDecoration(
+                  color: const Color(0xFF2D3139),
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                child: Row(
                   children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      crossAxisAlignment: CrossAxisAlignment.baseline,
-                      textBaseline: TextBaseline.alphabetic,
+                    Icon(
+                      Icons.emoji_events_outlined,
+                      size: 64,
+                      color: Color(0xFF00E676),
+                    ),
+                    SizedBox(width: 16),
+                    Container(height: 50, width: 2, color: Colors.grey),
+                    SizedBox(width: 16),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        RichText(
-                          text: const TextSpan(
-                            children: [
-                              TextSpan(
-                                text: 'Nível ',
-                                style: TextStyle(
-                                  fontSize: 32,
-                                  color: Color(0xFF8A52F3),
-                                  fontWeight: FontWeight.w400,
-                                ),
-                              ),
-                              TextSpan(
-                                text: '7',
-                                style: TextStyle(
-                                  fontSize: 42,
-                                  color: Color(0xFF8A52F3),
-                                  fontWeight: FontWeight.w300,
-                                ),
-                              ),
-                            ],
+                        Text(
+                          'Hora de',
+                          style: TextStyle(
+                            color: Color(0xFF00E676),
+                            fontSize: 18,
                           ),
                         ),
-                        const Text(
-                          '300/350',
+                        Text(
+                          'Treinar',
                           style: TextStyle(
-                            fontSize: 20,
-                            color: Color(0xFF4285F4),
-                            fontWeight: FontWeight.w400,
+                            color: Color(0xFF00E676),
+                            fontSize: 32,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
                       ],
                     ),
-                    const SizedBox(height: 15),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(2),
-                      child: LinearProgressIndicator(
-                        value: 300 / 350,
-                        minHeight: 18,
-                        backgroundColor: const Color(0xFF5A5A5A),
-                        valueColor: const AlwaysStoppedAnimation<Color>(
-                          Color(0xFF3B82F6),
-                        ),
-                      ),
-                    ),
                   ],
                 ),
               ),
-              const SizedBox(height: 25),
-
-              // 3. Grid dos 3 Cards (Estrelas, Sequência, Exercícios)
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF1E1E1E),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: _buildMiniStatCard(
-                        icon: const Icon(
-                          Icons.star,
-                          color: Colors.amber,
-                          size: 55,
-                        ),
-                        value: '2',
-                        valueColor: Colors.amber,
-                        label: 'Estrelas',
-                        labelColor: Colors.amber,
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: _buildMiniStatCard(
-                        icon: const Icon(
-                          Icons.flash_on,
-                          color: Color(0xFFFFD700),
-                          size: 55,
-                        ),
-                        value: '3',
-                        valueColor: const Color(0xFFFF5252),
-                        label: 'Sequência',
-                        labelColor: const Color(0xFFFF5252),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: _buildMiniStatCard(
-                        icon: const Icon(
-                          Icons.fitness_center,
-                          color: Colors.orangeAccent,
-                          size: 45,
-                        ),
-                        value: '9',
-                        valueColor: Colors.orangeAccent,
-                        label: 'Exercícios',
-                        labelColor: Colors.orangeAccent,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 25),
-
-              // 4. Grid dos 2 Cards (Primeiro Treino e Básico Completo)
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF1E1E1E),
-                  borderRadius: BorderRadius.circular(4),
-                ),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: _buildAchievementCard(
-                        title: 'Primeiro\nTreino',
-                        subtitle: 'Tudo começa com\num único passo',
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: _buildAchievementCard(
-                        title: 'Básico\nCompleto',
-                        subtitle: 'Começamos em\nalgum lugar',
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 25),
-
-              // 5. Card Inferior ("Hora de Treinar")
-              Container(
-                padding: const EdgeInsets.all(20),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF262626),
-                  borderRadius: BorderRadius.circular(30),
-                ),
-                child: Row(
-                  children: [
-                    ShaderMask(
-                      shaderCallback: (bounds) => const LinearGradient(
-                        colors: [Color(0xFF00FF87), Color(0xFF60EFFF)],
-                        begin: Alignment.topCenter,
-                        end: Alignment.bottomCenter,
-                      ).createShader(bounds),
-                      child: const Icon(
-                        Icons.emoji_events_rounded,
-                        size: 80,
-                        color: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(width: 15),
-                    Container(height: 70, width: 1.5, color: Colors.white54),
-                    const SizedBox(width: 15),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: const [
-                          Text(
-                            'Hora de',
-                            style: TextStyle(
-                              fontSize: 22,
-                              color: Color(0xFF00FF87),
-                              fontWeight: FontWeight.w300,
-                            ),
-                          ),
-                          Text(
-                            'Treinar',
-                            style: TextStyle(
-                              fontSize: 34,
-                              color: Color(0xFF00FF87),
-                              fontWeight: FontWeight.w400,
-                              letterSpacing: 1.2,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildMiniStatCard({
-    required Widget icon,
+  static Widget _buildMetricCard({
+    required IconData icon,
+    required Color iconColor,
     required String value,
-    required Color valueColor,
     required String label,
     required Color labelColor,
   }) {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
       decoration: BoxDecoration(
-        color: const Color(0xFF2C2C2C),
-        borderRadius: BorderRadius.circular(4),
+        color: const Color(0xFF2D3139),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          SizedBox(height: 55, child: Center(child: icon)),
+          Icon(icon, size: 48, color: iconColor),
           const SizedBox(height: 8),
           Text(
             value,
             style: TextStyle(
-              fontSize: 26,
+              fontSize: 24,
               fontWeight: FontWeight.bold,
-              color: valueColor,
+              color: labelColor,
             ),
           ),
-          const SizedBox(height: 2),
+          const SizedBox(height: 4),
           Text(
             label,
-            style: TextStyle(
-              fontSize: 12,
-              color: labelColor,
-              fontWeight: FontWeight.w400,
-            ),
             textAlign: TextAlign.center,
+            style: TextStyle(fontSize: 12, color: labelColor),
           ),
         ],
+      ),
+    );
+  }
+}
+
+/* ============================================================================
+   2. TELA PERFIL
+   ============================================================================ */
+class ProfileScreen extends StatelessWidget {
+  const ProfileScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: const Text('PERFIL'),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Card Branco com Dados do Usuário
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Column(
+                children: [
+                  CircleAvatar(
+                    radius: 36,
+                    backgroundColor: Color(0xFF8A5CF5),
+                    child: Text(
+                      'J',
+                      style: TextStyle(color: Colors.white, fontSize: 32),
+                    ),
+                  ),
+                  SizedBox(height: 12),
+                  Text(
+                    'João Almeida',
+                    style: TextStyle(
+                      color: Color(0xFF2196F3),
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    'jpo.almeida@unifesp.br',
+                    style: TextStyle(color: Color(0xFF64B5F6), fontSize: 14),
+                  ),
+                  SizedBox(height: 24),
+                  Text(
+                    'Seu Desempenho',
+                    style: TextStyle(
+                      color: Color(0xFF8A5CF5),
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    '1850 pts',
+                    style: TextStyle(
+                      color: Color(0xFF2196F3),
+                      fontSize: 32,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  SizedBox(height: 16),
+                  _StatRow(label: 'Hoje', value: '150 pts'),
+                  _StatRow(label: 'Semana', value: '250 pts'),
+                  _StatRow(label: 'Sequência', value: '2 dias'),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+
+            const Text(
+              'Conta',
+              style: TextStyle(fontSize: 20, color: Colors.white),
+            ),
+            const SizedBox(height: 12),
+
+            // Botão Alterar Nome
+            _buildOptionButton(
+              title: 'Alterar o nome',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const ChangeNameScreen(),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 12),
+
+            // Botão Alterar Senha
+            _buildOptionButton(
+              title: 'Alterar a senha',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const ChangePasswordScreen(),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 24),
+
+            // Botão Deslogar
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF2D3139),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+                child: const Text(
+                  'Deslogar',
+                  style: TextStyle(color: Colors.red, fontSize: 18),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _buildAchievementCard({
+  Widget _buildOptionButton({
     required String title,
-    required String subtitle,
+    required VoidCallback onTap,
   }) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 12),
       decoration: BoxDecoration(
-        color: const Color(0xFF2C2C2C),
-        borderRadius: BorderRadius.circular(4),
+        color: const Color(0xFF2D3139),
+        borderRadius: BorderRadius.circular(8),
       ),
-      child: Column(
+      child: ListTile(
+        title: Text(
+          title,
+          style: const TextStyle(color: Colors.white, fontSize: 16),
+        ),
+        trailing: const Icon(Icons.arrow_forward, color: Colors.white),
+        onTap: onTap,
+      ),
+    );
+  }
+}
+
+class _StatRow extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _StatRow({required this.label, required this.value});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 2.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          const Icon(Icons.star, color: Colors.amber, size: 60),
-          const SizedBox(height: 12),
           Text(
-            title,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 16,
-              color: Colors.amber,
-              fontWeight: FontWeight.bold,
-              height: 1.2,
-            ),
+            label,
+            style: const TextStyle(color: Color(0xFF64B5F6), fontSize: 14),
           ),
-          const SizedBox(height: 8),
           Text(
-            subtitle,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 11,
-              color: Colors.white70,
-              height: 1.2,
-            ),
+            value,
+            style: const TextStyle(color: Color(0xFF2196F3), fontSize: 14),
           ),
         ],
       ),
     );
   }
+}
+
+/* ============================================================================
+   3. TELA ALTERAR NOME
+   ============================================================================ */
+class ChangeNameScreen extends StatelessWidget {
+  const ChangeNameScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final nameController = TextEditingController(text: 'João Pedro Almeida');
+    final newNameController = TextEditingController();
+
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: const Text('ALTERAR NOME'),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                children: [
+                  const CircleAvatar(
+                    radius: 36,
+                    backgroundColor: Color(0xFF8A5CF5),
+                    child: Text(
+                      'J',
+                      style: TextStyle(color: Colors.white, fontSize: 32),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  _buildWhiteCardTextField(
+                    label: 'Nome Atual',
+                    controller: nameController,
+                    enabled: false,
+                  ),
+                  const SizedBox(height: 16),
+                  _buildWhiteCardTextField(
+                    label: 'Novo Nome',
+                    controller: newNameController,
+                    hintText: 'Digite o seu novo nome',
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF2D3139),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+                child: const Text(
+                  'Salvar',
+                  style: TextStyle(color: Colors.white, fontSize: 18),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/* ============================================================================
+   4. TELA ALTERAR SENHA
+   ============================================================================ */
+class ChangePasswordScreen extends StatelessWidget {
+  const ChangePasswordScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final currentPassController = TextEditingController();
+    final newPassController = TextEditingController();
+    final confirmPassController = TextEditingController();
+
+    return Scaffold(
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        title: const Text('ALTERAR SENHA'),
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                children: [
+                  const CircleAvatar(
+                    radius: 36,
+                    backgroundColor: Color(0xFF8A5CF5),
+                    child: Text(
+                      'J',
+                      style: TextStyle(color: Colors.white, fontSize: 32),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  _buildWhiteCardTextField(
+                    label: 'Senha Atual',
+                    controller: currentPassController,
+                    hintText: 'Digite a sua senha',
+                    isPassword: true,
+                  ),
+                  const SizedBox(height: 16),
+                  _buildWhiteCardTextField(
+                    label: 'Nova Senha',
+                    controller: newPassController,
+                    hintText: 'Digite a nova senha',
+                    isPassword: true,
+                  ),
+                  const SizedBox(height: 16),
+                  _buildWhiteCardTextField(
+                    label: 'Confirmar Senha',
+                    controller: confirmPassController,
+                    hintText: 'Confirme a nova senha',
+                    isPassword: true,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF2D3139),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                onPressed: () {
+                  Navigator.pop(context);
+                },
+                child: const Text(
+                  'Salvar',
+                  style: TextStyle(color: Colors.white, fontSize: 18),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/* ============================================================================
+   WIDGET AUXILIAR PARA CAMPOS DE TEXTO
+   ============================================================================ */
+Widget _buildWhiteCardTextField({
+  required String label,
+  required TextEditingController controller,
+  String? hintText,
+  bool enabled = true,
+  bool isPassword = false,
+}) {
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(
+        label,
+        style: const TextStyle(
+          color: Color(0xFF2196F3),
+          fontSize: 20,
+          fontWeight: FontWeight.bold,
+        ),
+      ),
+      const SizedBox(height: 6),
+      SizedBox(
+        height: 40,
+        child: TextField(
+          controller: controller,
+          enabled: enabled,
+          obscureText: isPassword,
+          style: const TextStyle(color: Color(0xFF64B5F6), fontSize: 14),
+          decoration: InputDecoration(
+            hintText: hintText,
+            hintStyle: const TextStyle(color: Color(0xFF90CAF9), fontSize: 13),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 10,
+              vertical: 8,
+            ),
+            enabledBorder: OutlineInputBorder(
+              borderSide: const BorderSide(color: Colors.black54),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderSide: const BorderSide(color: Color(0xFF2196F3)),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            disabledBorder: OutlineInputBorder(
+              borderSide: const BorderSide(color: Colors.black38),
+              borderRadius: BorderRadius.circular(4),
+            ),
+          ),
+        ),
+      ),
+    ],
+  );
 }
