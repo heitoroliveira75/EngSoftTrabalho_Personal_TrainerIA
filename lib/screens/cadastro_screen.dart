@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import 'home_screen.dart';
 
 class CadastroScreen extends StatefulWidget {
   const CadastroScreen({super.key});
@@ -84,7 +85,13 @@ class _CadastroScreenState extends State<CadastroScreen> {
         ),
       );
       // Volta para a tela de login
-      Navigator.pop(context);
+      Navigator.pushAndRemoveUntil(                                                                                                                                               
+        context,                                                                                                                                                                  
+        MaterialPageRoute(                                                                                                                                                        
+          builder: (context) => const HomeScreen(),                                                                                                                               
+        ), 
+        (route) => false,                                                                                                                                                         
+      );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
