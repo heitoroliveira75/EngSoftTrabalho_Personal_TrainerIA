@@ -1,29 +1,60 @@
 import 'package:flutter/material.dart';
+import '../services/api_service.dart';
+import 'login_screen.dart';
+import 'treinos_screen.dart';
 
 class HomeScreen extends StatelessWidget {
-  // 1. Declaração do parâmetro
-  final VoidCallback onSecondRoute;
+  final VoidCallback? onSecondRoute;
 
-  // 2. Construtor correto da classe HomeScreen
-  const HomeScreen({super.key, required this.onSecondRoute});
+  const HomeScreen({super.key, this.onSecondRoute});
 
   @override
   Widget build(BuildContext context) {
+    final usuario = ApiService().usuarioLogado;
+    final nomeUsuario = usuario != null && usuario['nome'] != null
+        ? usuario['nome']
+        : (usuario != null && usuario['user_metadata'] != null && usuario['user_metadata']['nome'] != null)
+            ? usuario['user_metadata']['nome']
+            : null;
+
     return Scaffold(
       backgroundColor: const Color(0xFF0D1117),
+      appBar: AppBar(
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        actions: [
+          if (usuario != null)
+            IconButton(
+              icon: const Icon(Icons.logout, color: Colors.white70),
+              tooltip: 'Sair da conta',
+              onPressed: () async {
+                await ApiService().deslogar();
+                if (context.mounted) {
+                  Navigator.pushAndRemoveUntil(
+                    context,
+                    MaterialPageRoute(builder: (context) => const LoginScreen()),
+                    (route) => false,
+                  );
+                }
+              },
+            ),
+        ],
+      ),
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 32.0),
+          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 24.0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              const SizedBox(height: 40),
-              const Text(
-                'SEJA BEM-VINDO\nCAMPEÃO',
+              const SizedBox(height: 20),
+              Text(
+                nomeUsuario != null
+                    ? 'SEJA BEM-VINDO,\n${nomeUsuario.toString().toUpperCase()}'
+                    : 'SEJA BEM-VINDO\nCAMPEÃO',
                 textAlign: TextAlign.center,
-                style: TextStyle(
+                style: const TextStyle(
                   color: Colors.white,
-                  fontSize: 22,
+                  fontSize: 24,
                   fontWeight: FontWeight.w600,
                   letterSpacing: 2.0,
                   height: 1.3,
@@ -47,8 +78,17 @@ class HomeScreen extends StatelessWidget {
                 child: InkWell(
                   borderRadius: BorderRadius.circular(28.0),
                   onTap: () {
-                    // 3. Executa a função repassada
-                    onSecondRoute();
+                    if (onSecondRoute != null) {
+                      onSecondRoute!();
+                    } else {
+                      // Abre a tela de treinos
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const TreinosScreen(),
+                        ),
+                      );
+                    }
                   },
                   child: Container(
                     padding: const EdgeInsets.symmetric(

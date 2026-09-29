@@ -1,46 +1,8 @@
 import 'package:flutter/material.dart';
+import '../services/api_service.dart';
 import 'cadastro_screen.dart';
 import 'esqueceu_senha_screen.dart';
-
-void main() {
-  runApp(const MeuAppLogin());
-}
-
-class MeuAppLogin extends StatelessWidget {
-  const MeuAppLogin({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'App Login',
-      initialRoute: '/loginscreen23',
-      routes: {
-        '/loginscreen': (context) => const LoginScreen(),
-        '/cadastroscreen': (context) => const CadastroScreen(),
-        '/esqueceusenhascreen': (context) => const EsqueceuSenhaScreen(),
-      },
-    );
-  }
-}
-
-Teladecadastro(BuildContext context){
-  Navigator.push(
-    context, MaterialPageRoute(
-    settings: RouteSettings(name: '/login'),
-    builder: (context) => const CadastroScreen(),
-    )
-  );
-}
-
-Teladeesqueceusenha(BuildContext context){
-  Navigator.push(
-    context, MaterialPageRoute(
-    settings: const RouteSettings(name: '/123'),
-    builder: (context) => const EsqueceuSenhaScreen(),
-    )
-  );
-}
+import 'home_screen.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -50,14 +12,69 @@ class LoginScreen extends StatefulWidget {
 }
 
 class _LoginScreenState extends State<LoginScreen> {
-  final TextEditingController _usuarioController = TextEditingController();
+  final TextEditingController _emailController = TextEditingController();
   final TextEditingController _senhaController = TextEditingController();
+  bool _carregando = false;
 
   @override
   void dispose() {
-    _usuarioController.dispose();
+    _emailController.dispose();
     _senhaController.dispose();
     super.dispose();
+  }
+
+  Future<void> _executarLogin() async {
+    final email = _emailController.text.trim();
+    final senha = _senhaController.text.trim();
+
+    if (email.isEmpty || senha.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Preencha o e-mail e a senha.'),
+          backgroundColor: Colors.orangeAccent,
+        ),
+      );
+      return;
+    }
+
+    setState(() {
+      _carregando = true;
+    });
+
+    final resposta = await ApiService().fazerLogin(
+      email: email,
+      senha: senha,
+    );
+
+    if (!mounted) return;
+
+    setState(() {
+      _carregando = false;
+    });
+
+    if (resposta['sucesso'] == true) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(resposta['mensagem'] ?? 'Login realizado com sucesso!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+
+      // Redireciona para a tela Home
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const HomeScreen(),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(resposta['mensagem'] ?? 'Falha ao realizar login.'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+    }
   }
 
   @override
@@ -86,10 +103,11 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 const SizedBox(height: 36),
 
-                // Campo Usuário
+                // Campo E-mail / Usuário
                 _buildInputField(
-                  controller: _usuarioController,
-                  hintText: 'Usuário',
+                  controller: _emailController,
+                  hintText: 'E-mail',
+                  keyboardType: TextInputType.emailAddress,
                 ),
 
                 const SizedBox(height: 16),
@@ -103,28 +121,36 @@ class _LoginScreenState extends State<LoginScreen> {
 
                 const SizedBox(height: 16),
 
-                // Botão Continuar
+                // Botão Continuar / Login
                 ElevatedButton(
-                  onPressed: () {
-                    debugPrint('Continuar clicado: ${_usuarioController.text}');
-                  },
+                  onPressed: _carregando ? null : _executarLogin,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF030712), // Preto / quase preto
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10.0),
+                      side: const BorderSide(color: Colors.white24),
                     ),
                     elevation: 0,
                   ),
-                  child: const Text(
-                    'Continuar',
-                    style: TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w500,
-                      letterSpacing: 0.5,
-                    ),
-                  ),
+                  child: _carregando
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : const Text(
+                          'Continuar',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w500,
+                            letterSpacing: 0.5,
+                          ),
+                        ),
                 ),
 
                 const SizedBox(height: 14),
@@ -134,8 +160,12 @@ class _LoginScreenState extends State<LoginScreen> {
                   alignment: Alignment.centerRight,
                   child: GestureDetector(
                     onTap: () {
-                      debugPrint('Esqueceu a senha clicado');
-                      Teladeesqueceusenha(context);
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const EsqueceuSenhaScreen(),
+                        ),
+                      );
                     },
                     child: const Text(
                       'Esqueceu a senha?',
@@ -189,7 +219,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     size: 28,
                   ),
                   onTap: () {
-                    debugPrint('Google login');
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Login social em desenvolvimento.')),
+                    );
                   },
                 ),
 
@@ -204,7 +236,9 @@ class _LoginScreenState extends State<LoginScreen> {
                     size: 22,
                   ),
                   onTap: () {
-                    debugPrint('Apple login');
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Login social em desenvolvimento.')),
+                    );
                   },
                 ),
 
@@ -223,8 +257,12 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                     GestureDetector(
                       onTap: () {
-                        debugPrint('Crie uma conta clicado');
-                        Teladecadastro(context);
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const CadastroScreen(),
+                          ),
+                        );
                       },
                       child: const Text(
                         'Crie uma conta',
@@ -250,10 +288,12 @@ class _LoginScreenState extends State<LoginScreen> {
     required TextEditingController controller,
     required String hintText,
     bool obscureText = false,
+    TextInputType keyboardType = TextInputType.text,
   }) {
     return TextField(
       controller: controller,
       obscureText: obscureText,
+      keyboardType: keyboardType,
       style: const TextStyle(color: Colors.black87),
       decoration: InputDecoration(
         hintText: hintText,
