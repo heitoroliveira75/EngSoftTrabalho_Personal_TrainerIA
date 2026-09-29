@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 # ergase
+=======
+# flutter_application_1
+>>>>>>> origin/Banco-de-Dados
 
 A new Flutter project.
 

@@ -1,6 +1,11 @@
 {
+<<<<<<< HEAD
     "name": "ergase",
     "short_name": "ergase",
+=======
+    "name": "flutter_application_1",
+    "short_name": "flutter_application_1",
+>>>>>>> origin/Banco-de-Dados
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
