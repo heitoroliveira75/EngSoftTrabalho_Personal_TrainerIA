@@ -14,31 +14,45 @@ class DTW:
 
     def __init__(self):
         self.distancia_total = 0.0
+        self.distancia_normalizada = 0.0
         self.caminho = []
 
     def calcular(self, serie_a, serie_b):
         """
-        Calcula a distância mínima acumulada entre duas séries temporais.
+        Calcula o alinhamento temporal ótimo e as distâncias (acumulada e normalizada)
+        entre duas séries temporais (unidimensionais ou multidimensionais).
 
         Args:
-            serie_a: Lista ou array com a primeira sequência (ex: execução do usuário).
-            serie_b: Lista ou array com a segunda sequência (ex: gabarito de referência).
+            serie_a: Sequência do usuário. Shape (N,) para 1D ou (N, D) para D features/articulações.
+            serie_b: Sequência de referência. Shape (M,) para 1D ou (M, D) para D features/articulações.
 
         Returns:
             distancia_total: Custo acumulado total de alinhamento temporal.
+            distancia_normalizada: Custo médio por frame alinhado (distancia_total / len(caminho)).
             caminho: Lista de pares de índices alinhados [(idx_a, idx_b), ...].
         """
-        a = np.array(serie_a, dtype=float)
-        b = np.array(serie_b, dtype=float)
+        a = np.asarray(serie_a, dtype=float)
+        b = np.asarray(serie_b, dtype=float)
 
-        n = len(a)
-        m = len(b)
+        # Garante shape 2D (T, D), compatível tanto com 1D quanto com D dimensões
+        if a.ndim == 1:
+            a = a[:, np.newaxis]
+        if b.ndim == 1:
+            b = b[:, np.newaxis]
 
-        # matriz de custo local
+        n, dims_a = a.shape
+        m, dims_b = b.shape
+
+        if dims_a != dims_b:
+            raise ValueError(
+                f"Dimensões incompatíveis: serie_a possui {dims_a} dimensões e serie_b possui {dims_b}."
+            )
+
+        # matriz de custo local (distância Euclidiana para D dimensões)
         custo = np.zeros((n, m))
         for i in range(n):
             for j in range(m):
-                custo[i, j] = abs(a[i] - b[j])
+                custo[i, j] = np.linalg.norm(a[i] - b[j])
 
         # matriz de custo acumulado
         acumulado = np.zeros((n, m))
@@ -83,20 +97,44 @@ class DTW:
 
         self.distancia_total = float(acumulado[n - 1, m - 1])
         self.caminho = caminho
+        self.distancia_normalizada = self.distancia_total / max(1, len(caminho))
 
-        return self.distancia_total, self.caminho
+        return self.distancia_total, self.distancia_normalizada, self.caminho
 
 
 if __name__ == "__main__":
-    # Exemplo simples de uso: mesmo movimento (subida e descida do braço),
-    # porém executado com cadências (velocidades) diferentes.
-    referencia = [90, 115, 145, 165, 145, 115, 90]                # 7 frames
-    usuario = [90, 95, 110, 125, 145, 155, 165, 150, 130, 105, 90]  # 11 frames
+    # Exemplo multidimensional: cada frame contém [angulo_cotovelo, angulo_ombro]
+    # Gabarito de referência: subida e descida padrão (7 frames)
+    referencia = [
+        [90, 80],
+        [115, 105],
+        [145, 135],
+        [165, 155],
+        [145, 135],
+        [115, 105],
+        [90, 80]
+    ]
+
+    # Execução do usuário: mesmo movimento, mas executado mais lentamente (11 frames)
+    usuario_lento = [
+        [90, 80],
+        [95, 85],
+        [110, 100],
+        [125, 115],
+        [145, 135],
+        [155, 145],
+        [165, 155],
+        [150, 140],
+        [130, 120],
+        [105, 95],
+        [90, 80]
+    ]
 
     dtw = DTW()
-    dist, path = dtw.calcular(usuario, referencia)
+    dist_total, dist_norm, path = dtw.calcular(usuario_lento, referencia)
 
-    print("=== Teste DTW Inicial ===")
-    print(f"Distância Acumulada: {dist:.2f}")
+    print("=== Teste DTW Multidimensional com Normalização ===")
+    print(f"Distância Total Acumulada: {dist_total:.2f}")
+    print(f"Distância Normalizada (erro médio/frame): {dist_norm:.2f}°")
     print(f"Pares alinhados no caminho: {len(path)}")
-    print(f"Primeiros alinhamentos: {path[:4]}")
+    print(f"Primeiros alinhamentos (usuario, referencia): {path[:4]}")
