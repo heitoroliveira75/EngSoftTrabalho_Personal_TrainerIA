@@ -16,20 +16,23 @@ class DTW:
         self.distancia_total = 0.0
         self.distancia_normalizada = 0.0
         self.caminho = []
+        self.desvios_por_articulacao = {}
 
-    def calcular(self, serie_a, serie_b):
+    def calcular(self, serie_a, serie_b, nomes_articulacoes=None):
         """
-        Calcula o alinhamento temporal ótimo e as distâncias (acumulada e normalizada)
-        entre duas séries temporais (unidimensionais ou multidimensionais).
+        Calcula o alinhamento temporal ótimo, as distâncias (acumulada e normalizada)
+        e o desvio médio individual por articulação entre duas séries temporais.
 
         Args:
             serie_a: Sequência do usuário. Shape (N,) para 1D ou (N, D) para D features/articulações.
-            serie_b: Sequência de referência. Shape (M,) para 1D ou (M, D) para D features/articulações.
+            serie_b: Sequência de referência (especialista). Shape (M,) para 1D ou (M, D) para D features/articulações.
+            nomes_articulacoes: Lista opcional com os identificadores das articulações (ex: ["cotovelo", "ombro"]).
 
         Returns:
             distancia_total: Custo acumulado total de alinhamento temporal.
             distancia_normalizada: Custo médio por frame alinhado (distancia_total / len(caminho)).
             caminho: Lista de pares de índices alinhados [(idx_a, idx_b), ...].
+            desvios_por_articulacao: Dicionário com a diferença média individual de cada articulação ao longo do caminho.
         """
         a = np.asarray(serie_a, dtype=float)
         b = np.asarray(serie_b, dtype=float)
@@ -99,13 +102,35 @@ class DTW:
         self.caminho = caminho
         self.distancia_normalizada = self.distancia_total / max(1, len(caminho))
 
-        return self.distancia_total, self.distancia_normalizada, self.caminho
+        # calculo do desvio medio individual por articulacao ao longo do caminho alinhado
+        indices_a = [par[0] for par in caminho]
+        indices_b = [par[1] for par in caminho]
+        alinhado_a = a[indices_a]
+        alinhado_b = b[indices_b]
+
+        # diferenca absoluta media de cada coluna ao longo do alinhamento otimo
+        desvios_medios = np.mean(np.abs(alinhado_a - alinhado_b), axis=0)
+
+        if nomes_articulacoes and len(nomes_articulacoes) == dims_a:
+            self.desvios_por_articulacao = {
+                str(nome): round(float(desvios_medios[k]), 2)
+                for k, nome in enumerate(nomes_articulacoes)
+            }
+        else:
+            self.desvios_por_articulacao = {
+                f"articulacao_{k}": round(float(desvios_medios[k]), 2)
+                for k in range(dims_a)
+            }
+
+        return self.distancia_total, self.distancia_normalizada, self.caminho, self.desvios_por_articulacao
 
 
 if __name__ == "__main__":
-    # Exemplo multidimensional: cada frame contém [angulo_cotovelo, angulo_ombro]
-    # Gabarito de referência: subida e descida padrão (7 frames)
-    referencia = [
+    articulacoes = ["cotovelo", "ombro"]
+
+    # Gabarito gravado pelo especialista: subida e descida ideal (7 frames)
+    # Formato: [angulo_cotovelo, angulo_ombro]
+    gabarito_especialista = [
         [90, 80],
         [115, 105],
         [145, 135],
@@ -115,26 +140,35 @@ if __name__ == "__main__":
         [90, 80]
     ]
 
-    # Execução do usuário: mesmo movimento, mas executado mais lentamente (11 frames)
-    usuario_lento = [
-        [90, 80],
-        [95, 85],
-        [110, 100],
-        [125, 115],
-        [145, 135],
-        [155, 145],
-        [165, 155],
-        [150, 140],
-        [130, 120],
-        [105, 95],
-        [90, 80]
+    # Execução do usuário pela câmera:
+    # - Fez o movimento mais lento (11 frames)
+    # - O cotovelo acompanhou bem o gabarito
+    # - O ombro abriu de forma errada (valores bem abaixo do especialista)
+    usuario_camera = [
+        [90, 78],
+        [95, 82],
+        [110, 88],
+        [125, 95],
+        [145, 110],
+        [155, 118],
+        [165, 120],  # pico com cotovelo correto (~165), mas ombro muito abaixo do ideal (120 vs 155)
+        [150, 115],
+        [130, 100],
+        [105, 88],
+        [90, 78]
     ]
 
     dtw = DTW()
-    dist_total, dist_norm, path = dtw.calcular(usuario_lento, referencia)
+    dist_total, dist_norm, path, desvios = dtw.calcular(
+        usuario_camera,
+        gabarito_especialista,
+        nomes_articulacoes=articulacoes
+    )
 
-    print("=== Teste DTW Multidimensional com Normalização ===")
-    print(f"Distância Total Acumulada: {dist_total:.2f}")
-    print(f"Distância Normalizada (erro médio/frame): {dist_norm:.2f}°")
-    print(f"Pares alinhados no caminho: {len(path)}")
-    print(f"Primeiros alinhamentos (usuario, referencia): {path[:4]}")
+    print("=== Teste DTW: Diagnóstico por Articulação ===")
+    print(f"Distância Acumulada: {dist_total:.2f}")
+    print(f"Distância Normalizada (erro global médio): {dist_norm:.2f}°")
+    print(f"Frames alinhados: {len(path)}")
+    print("\nDesvio médio individual por articulação:")
+    for art, erro in desvios.items():
+        print(f"  - {art.capitalize()}: desvio médio de {erro}° em relação ao especialista")
