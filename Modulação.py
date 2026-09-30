@@ -1,4 +1,4 @@
-import pandas as pd  # <-- Correção 1 (pd)
+import pandas as pd
 import cv2
 import os
 import math
@@ -6,27 +6,24 @@ import mediapipe as mp
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 
-# <-- Adicionado a classe PontoVirtual que você usava para o ombro
-class PontoVirtual:
-    def __init__(self, x, y):
-        self.x = x
-        self.y = y
-
-def calcularangulo(p1, p2, p3):
-    vetor_1 = (p1.x - p2.x, p1.y - p2.y)
-    vetor_2 = (p3.x - p2.x, p3.y - p2.y)
-    produto_escalar = vetor_1[0] * vetor_2[0] + vetor_1[1] * vetor_2[1]
-    tamanho_1 = math.hypot(*vetor_1)
-    tamanho_2 = math.hypot(*vetor_2)
-
+# 1. Nova função matemática para cálculo em 3 Dimensões (usando X, Y e Z)
+def calcular_angulo_3d(p1, p2, p3):
+    vetor_1 = (p1.x - p2.x, p1.y - p2.y, p1.z - p2.z)
+    vetor_2 = (p3.x - p2.x, p3.y - p2.y, p3.z - p2.z)
+    
+    produto_escalar = vetor_1[0]*vetor_2[0] + vetor_1[1]*vetor_2[1] + vetor_1[2]*vetor_2[2]
+    
+    tamanho_1 = math.sqrt(vetor_1[0]**2 + vetor_1[1]**2 + vetor_1[2]**2)
+    tamanho_2 = math.sqrt(vetor_2[0]**2 + vetor_2[1]**2 + vetor_2[2]**2)
+    
     if tamanho_1 == 0 or tamanho_2 == 0:
         return None
-
+        
     cosseno = produto_escalar / (tamanho_1 * tamanho_2)
     cosseno = max(-1.0, min(1.0, cosseno))
     return math.degrees(math.acos(cosseno))
 
-# ... (Mantenha as conexões e configurações do seu detector aqui) ...
+# 2. Configuração do MediaPipe
 DIR_ATUAL = os.path.dirname(os.path.abspath(__file__))
 CAMINHO_MODELO = os.path.join(DIR_ATUAL, 'pose_landmarker_full.task')
 
@@ -37,50 +34,76 @@ options = vision.PoseLandmarkerOptions(
 )
 detector = vision.PoseLandmarker.create_from_options(options)
 
-# A Prancheta
+# 3. Preparação do Extrator
+# ATENÇÃO: Altere esta pasta para o local onde você baixar o dataset (ex: Fit3D)
+pasta_dataset = "C:/caminho/para/a/pasta/do/dataset" 
+
 dados_extraidos = []
-contador_frame = 0
 
-cap = cv2.VideoCapture("Nome.mp4")
-
-while cap.isOpened():
-    sucess, frame = cap.read()
-    if not sucess:
-        break
+# 4. Navegador inteligente de pastas e subpastas (os.walk)
+for raiz, pastas, arquivos in os.walk(pasta_dataset):
     
-    contador_frame += 1 # <-- Correção 3 (Soma 1 do jeito certo)
-
-    # <-- Correção 2: Atribuindo os resultados às variáveis corretamente
-    rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-    mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb_frame)
-    detection_result = detector.detect(mp_image)
-
-    # <-- Correção 4: O bloco que extrai o esqueleto estava faltando!
-    if detection_result.pose_landmarks:
-        for pose_landmarks in detection_result.pose_landmarks:
+    for nome_arquivo in arquivos:
+        # Aceita formatos comuns em datasets acadêmicos
+        if nome_arquivo.endswith(".mp4") or nome_arquivo.endswith(".avi"):
             
-            lm_ombro = pose_landmarks[12]
-            lm_cotovelo_d = pose_landmarks[14]
-            lm_pulso_d = pose_landmarks[16]
+            caminho_completo = os.path.join(raiz, nome_arquivo)
+            print(f"Processando vídeo: {caminho_completo}...")
             
-            # Recriando o cálculo dos ângulos
-            lm_vertical = PontoVirtual(lm_ombro.x, lm_ombro.y + 0.2)
-            angulo_ombro = calcularangulo(lm_vertical, lm_ombro, lm_cotovelo_d)
-            angulocotovelo = calcularangulo(lm_ombro, lm_cotovelo_d, lm_pulso_d)
+            contador_frame = 0
+            cap = cv2.VideoCapture(caminho_completo)
 
-            # <-- Correção 5: O dicionário deve ficar DENTRO do loop (identado)
-            linha_atual = {
-                "Frame": contador_frame,
-                "Angulo_Ombro": angulo_ombro,
-                "Angulo_Cotovelo": angulocotovelo
-            }
+            while cap.isOpened():
+                sucess, frame = cap.read()
+                if not sucess:
+                    break 
+                
+                contador_frame += 1 
 
-            dados_extraidos.append(linha_atual)
+                # 5. Downsampling: Lê apenas 1 a cada 10 frames para otimizar
+                if contador_frame % 10 == 0:
+                    
+                    rgb_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                    mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb_frame)
+                    detection_result = detector.detect(mp_image)
 
-cap.release() # É importante liberar o arquivo no final
+                    if detection_result.pose_landmarks:
+                        for pose_landmarks in detection_result.pose_landmarks:
+                            
+                            # --- LADO DIREITO ---
+                            lm_ombro_d = pose_landmarks[12]
+                            lm_cotovelo_d = pose_landmarks[14]
+                            lm_pulso_d = pose_landmarks[16]
+                            lm_quadril_d = pose_landmarks[24] # Retorno da biomecânica real
 
-# As duas últimas linhas ficam coladas na esquerda (fora do loop)
+                            angulo_ombro_dir = calcular_angulo_3d(lm_quadril_d, lm_ombro_d, lm_cotovelo_d)
+                            angulo_cotovelo_dir = calcular_angulo_3d(lm_ombro_d, lm_cotovelo_d, lm_pulso_d)
+
+                            # --- LADO ESQUERDO ---
+                            lm_ombro_e = pose_landmarks[11]
+                            lm_cotovelo_e = pose_landmarks[13]
+                            lm_pulso_e = pose_landmarks[15]
+                            lm_quadril_e = pose_landmarks[23]
+
+                            angulo_ombro_esq = calcular_angulo_3d(lm_quadril_e, lm_ombro_e, lm_cotovelo_e)
+                            angulo_cotovelo_esq = calcular_angulo_3d(lm_ombro_e, lm_cotovelo_e, lm_pulso_e)
+
+                            # 6. Salva as informações consolidadas
+                            linha_atual = {
+                                "Video_Nome": nome_arquivo, 
+                                "Frame": contador_frame,
+                                "Cotovelo_Dir": round(angulo_cotovelo_dir, 2) if angulo_cotovelo_dir else None,
+                                "Cotovelo_Esq": round(angulo_cotovelo_esq, 2) if angulo_cotovelo_esq else None,
+                                "Ombro_Dir": round(angulo_ombro_dir, 2) if angulo_ombro_dir else None,
+                                "Ombro_Esq": round(angulo_ombro_esq, 2) if angulo_ombro_esq else None
+                            }
+
+                            dados_extraidos.append(linha_atual)
+
+            cap.release()
+
+# 7. Geração do Dataset
 tabela = pd.DataFrame(dados_extraidos)
 tabela.to_csv("meu_dataset_treino.csv", index=False)
 
-print("A extração acabou! Verifique a pasta para ver o seu novo arquivo CSV.")
+print("A extração acabou! O seu arquivo meu_dataset_treino.csv foi gerado com sucesso.")
