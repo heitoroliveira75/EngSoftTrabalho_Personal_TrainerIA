@@ -593,3 +593,94 @@ Padrão de Resposta da API:
 -> Exemplo em Flutter (Dart / ApiService):
    final resposta = await ApiService().excluirTreino(treinoId);
    print(resposta['mensagem']);
+
+
+================================================================================
+5. PONTUAÇÕES / GAMIFICAÇÃO
+================================================================================
+
+--------------------------------------------------------------------------------
+5.1. Visualizar Pontuações do Usuário
+--------------------------------------------------------------------------------
+-> Rota: GET /pontuacao/{usuario_id}
+-> O que faz: Retorna a pontuação diária, semanal e total do usuário da tabela 'usuarios'.
+-> Parâmetros de URL: usuario_id (string UUID).
+-> Retorno de Sucesso:
+   {
+     "sucesso": true,
+     "usuario_id": "uuid-do-usuario",
+     "nome": "João Silva",
+     "pontuacao_diaria": 150,
+     "pontuacao_semanal": 450,
+     "pontuacao_total": 2150,
+     "pontuacoes": {
+       "pontuacao_diaria": 150,
+       "pontuacao_semanal": 450,
+       "pontuacao_total": 2150
+     }
+   }
+
+-> Exemplo em Python (requests):
+   import requests
+   usuario_id = "uuid-do-usuario"
+   resposta = requests.get(f"http://127.0.0.1:8000/pontuacao/{usuario_id}").json()
+   if resposta["sucesso"]:
+       print("Pontos Hoje:", resposta["pontuacao_diaria"])
+       print("Pontos Semana:", resposta["pontuacao_semanal"])
+       print("Pontos Total:", resposta["pontuacao_total"])
+
+-> Exemplo em Flutter (Dart / ApiService):
+   final resposta = await ApiService().verPontuacao(usuarioId);
+   if (resposta['sucesso'] == true) {
+     print('Pontos hoje: ${resposta['pontuacao_diaria']}');
+     print('Pontos semana: ${resposta['pontuacao_semanal']}');
+     print('Pontos totais: ${resposta['pontuacao_total']}');
+   }
+
+
+--------------------------------------------------------------------------------
+5.2. Adicionar Pontuação Diária
+--------------------------------------------------------------------------------
+-> Rota: POST /pontuacao/diaria
+-> O que faz: Adiciona pontos diários ao usuário e incrementa simultaneamente a pontuação semanal e a total.
+-> Payload JSON:
+   {
+     "usuario_id": "uuid-do-usuario",
+     "pontos": 50
+   }
+-> Retorno de Sucesso:
+   {
+     "sucesso": true,
+     "mensagem": "50 pontos adicionados com sucesso!",
+     "pontos_adicionados": 50,
+     "pontuacao_diaria": 200,
+     "pontuacao_semanal": 500,
+     "pontuacao_total": 2200,
+     "pontuacoes": {
+       "pontuacao_diaria": 200,
+       "pontuacao_semanal": 500,
+       "pontuacao_total": 2200
+     }
+   }
+
+-> Exemplo em Python (requests):
+   import requests
+   payload = {
+       "usuario_id": "uuid-do-usuario",
+       "pontos": 50
+   }
+   resposta = requests.post("http://127.0.0.1:8000/pontuacao/diaria", json=payload).json()
+   if resposta["sucesso"]:
+       print(resposta["mensagem"])
+       print("Novo total hoje:", resposta["pontuacao_diaria"])
+
+-> Exemplo em Flutter (Dart / ApiService):
+   final resposta = await ApiService().adicionarPontuacaoDiaria(
+     usuarioId: usuarioId,
+     pontos: 50,
+   );
+   if (resposta['sucesso'] == true) {
+     print('Pontos adicionados com sucesso!');
+     print('Total de hoje: ${resposta['pontuacao_diaria']}');
+   }
+

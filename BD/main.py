@@ -230,13 +230,21 @@ def ver_perfil(usuario_id: str) -> Dict[str, Any]:
                         "id": usuario_id,
                         "email": usuario_auth.get("email", ""),
                         "nome": nome,
+                        "pontuacao_diaria": 0,
+                        "pontuacao_semanal": 0,
+                        "pontuacao_total": 0,
                     }
                 }
             return {"sucesso": False, "mensagem": "Perfil não encontrado."}
 
+        perfil = resultado.data[0]
+        perfil["pontuacao_diaria"] = perfil.get("pontuacao_diaria") or 0
+        perfil["pontuacao_semanal"] = perfil.get("pontuacao_semanal") or 0
+        perfil["pontuacao_total"] = perfil.get("pontuacao_total") or 0
+
         return {
             "sucesso": True,
-            "perfil": resultado.data[0]
+            "perfil": perfil
         }
     except Exception as erro:
         return {"sucesso": False, "mensagem": str(erro)}
@@ -496,3 +504,158 @@ def excluir_treino(treino_id: Union[int, str]) -> Dict[str, Any]:
         return {"sucesso": True, "mensagem": "Treino excluído com sucesso!"}
     except Exception as erro:
         return {"sucesso": False, "mensagem": str(erro)}
+
+
+# ============================================================
+# 5. PONTUAÇÕES / GAMIFICAÇÃO
+# ============================================================
+
+def ver_pontuacao(usuario_id: str) -> Dict[str, Any]:
+    """
+    Consulta e retorna a pontuação diária, semanal e total do usuário na tabela 'usuarios'.
+    """
+    if not usuario_id:
+        return {
+            "sucesso": False,
+            "mensagem": "ID do usuário é obrigatório.",
+            "pontuacao_diaria": 0,
+            "pontuacao_semanal": 0,
+            "pontuacao_total": 0,
+        }
+
+    try:
+        resultado = (
+            supabase
+            .table("usuarios")
+            .select("id, nome, pontuacao_diaria, pontuacao_semanal, pontuacao_total")
+            .eq("id", usuario_id)
+            .execute()
+        )
+
+        if not resultado.data:
+            return {
+                "sucesso": False,
+                "mensagem": "Usuário não encontrado na base de dados.",
+                "usuario_id": usuario_id,
+                "pontuacao_diaria": 0,
+                "pontuacao_semanal": 0,
+                "pontuacao_total": 0,
+                "pontuacoes": {
+                    "pontuacao_diaria": 0,
+                    "pontuacao_semanal": 0,
+                    "pontuacao_total": 0,
+                }
+            }
+
+        dados = resultado.data[0]
+        diaria = dados.get("pontuacao_diaria") or 0
+        semanal = dados.get("pontuacao_semanal") or 0
+        total = dados.get("pontuacao_total") or 0
+
+        return {
+            "sucesso": True,
+            "usuario_id": usuario_id,
+            "nome": dados.get("nome"),
+            "pontuacao_diaria": diaria,
+            "pontuacao_semanal": semanal,
+            "pontuacao_total": total,
+            "pontuacoes": {
+                "pontuacao_diaria": diaria,
+                "pontuacao_semanal": semanal,
+                "pontuacao_total": total,
+            }
+        }
+    except Exception as erro:
+        return {
+            "sucesso": False,
+            "mensagem": str(erro),
+            "pontuacao_diaria": 0,
+            "pontuacao_semanal": 0,
+            "pontuacao_total": 0,
+        }
+
+
+def adicionar_pontuacao_diaria(usuario_id: str, pontos: int = 50) -> Dict[str, Any]:
+    """
+    Adiciona pontos diários ao usuário, incrementando também as pontuações semanal e total.
+    """
+    if not usuario_id:
+        return {"sucesso": False, "mensagem": "ID do usuário é obrigatório."}
+
+    if pontos is None or pontos <= 0:
+        return {"sucesso": False, "mensagem": "A quantidade de pontos deve ser maior que zero."}
+
+    try:
+        # Busca a pontuação atual do usuário
+        resultado = (
+            supabase
+            .table("usuarios")
+            .select("id, pontuacao_diaria, pontuacao_semanal, pontuacao_total")
+            .eq("id", usuario_id)
+            .execute()
+        )
+
+        if not resultado.data:
+            # Caso o usuário ainda não exista na tabela, tenta fazer upsert inicial
+            dados_novos = {
+                "id": usuario_id,
+                "pontuacao_diaria": pontos,
+                "pontuacao_semanal": pontos,
+                "pontuacao_total": pontos
+            }
+            res_upsert = supabase.table("usuarios").upsert(dados_novos).execute()
+            if res_upsert.data:
+                return {
+                    "sucesso": True,
+                    "mensagem": f"{pontos} pontos adicionados com sucesso!",
+                    "pontos_adicionados": pontos,
+                    "pontuacao_diaria": pontos,
+                    "pontuacao_semanal": pontos,
+                    "pontuacao_total": pontos,
+                    "pontuacoes": {
+                        "pontuacao_diaria": pontos,
+                        "pontuacao_semanal": pontos,
+                        "pontuacao_total": pontos
+                    }
+                }
+            return {"sucesso": False, "mensagem": "Usuário não encontrado para pontuar."}
+
+        atual = resultado.data[0]
+        atual_diaria = atual.get("pontuacao_diaria") or 0
+        atual_semanal = atual.get("pontuacao_semanal") or 0
+        atual_total = atual.get("pontuacao_total") or 0
+
+        nova_diaria = atual_diaria + pontos
+        nova_semanal = atual_semanal + pontos
+        nova_total = atual_total + pontos
+
+        res_update = (
+            supabase
+            .table("usuarios")
+            .update({
+                "pontuacao_diaria": nova_diaria,
+                "pontuacao_semanal": nova_semanal,
+                "pontuacao_total": nova_total
+            })
+            .eq("id", usuario_id)
+            .execute()
+        )
+
+        if not res_update.data:
+            return {"sucesso": False, "mensagem": "Não foi possível atualizar a pontuação."}
+
+        return {
+            "sucesso": True,
+            "mensagem": f"{pontos} pontos adicionados com sucesso!",
+            "pontos_adicionados": pontos,
+            "pontuacao_diaria": nova_diaria,
+            "pontuacao_semanal": nova_semanal,
+            "pontuacao_total": nova_total,
+            "pontuacoes": {
+                "pontuacao_diaria": nova_diaria,
+                "pontuacao_semanal": nova_semanal,
+                "pontuacao_total": nova_total
+            }
+        }
+    except Exception as erro:
+        return {"sucesso": False, "mensagem": str(erro)}

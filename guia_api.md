@@ -460,3 +460,65 @@ Todas as rotas respondem no formato JSON padronizado:
   final resposta = await ApiService().excluirTreino(treinoId);
   print(resposta['mensagem']);
   ```
+
+---
+
+## 5. 🏆 Pontuações e Gamificação
+
+### 5.1. Visualizar Pontuações (`GET /pontuacao/{usuario_id}`)
+* **O que faz:** Retorna a pontuação diária, semanal e total do usuário armazenada na tabela `usuarios`.
+* **Exemplo em Python (`requests`):**
+  ```python
+  import requests
+  usuario_id = "uuid-do-usuario"
+  res = requests.get(f"http://127.0.0.1:8000/pontuacao/{usuario_id}").json()
+  if res["sucesso"]:
+      print("Pontos Hoje:", res["pontuacao_diaria"])
+      print("Pontos Semana:", res["pontuacao_semanal"])
+      print("Pontos Totais:", res["pontuacao_total"])
+  ```
+* **Exemplo em Flutter (`ApiService`):**
+  ```dart
+  final resposta = await ApiService().verPontuacao(usuarioId);
+  if (resposta['sucesso'] == true) {
+    print('Pontos hoje: ${resposta['pontuacao_diaria']}');
+    print('Pontos semana: ${resposta['pontuacao_semanal']}');
+    print('Pontos totais: ${resposta['pontuacao_total']}');
+  }
+  ```
+
+---
+
+### 5.2. Adicionar Pontuação Diária (`POST /pontuacao/diaria`)
+* **O que faz:** Adiciona pontos diários ao usuário e incrementa simultaneamente a pontuação semanal e a pontuação total.
+* **Payload JSON:**
+  ```json
+  {
+    "usuario_id": "uuid-do-usuario",
+    "pontos": 50
+  }
+  ```
+* **Exemplo em Python (`requests`):**
+  ```python
+  import requests
+
+  payload = {
+      "usuario_id": "uuid-do-usuario",
+      "pontos": 50
+  }
+  res = requests.post("http://127.0.0.1:8000/pontuacao/diaria", json=payload).json()
+  if res["sucesso"]:
+      print(res["mensagem"])
+      print(f"Nova pontuação hoje: {res['pontuacao_diaria']} pts")
+  ```
+* **Exemplo em Flutter (`ApiService`):**
+  ```dart
+  final resposta = await ApiService().adicionarPontuacaoDiaria(
+    usuarioId: usuarioId,
+    pontos: 50,
+  );
+  if (resposta['sucesso'] == true) {
+    print('Pontos adicionados: ${resposta['mensagem']}');
+  }
+  ```
+

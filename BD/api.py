@@ -75,6 +75,10 @@ class AlterarSenhaRequest(BaseModel):
     nova_senha: str
     email: Optional[str] = None
 
+class AdicionarPontuacaoRequest(BaseModel):
+    usuario_id: str
+    pontos: int = Field(default=50, gt=0, description="Quantidade de pontos diários a adicionar")
+
 # ============================================================
 # ROTAS - STATUS DA API
 # ============================================================
@@ -213,6 +217,34 @@ def api_editar_treino(treino_id: str, req: EditarTreinoRequest):
 @app.delete("/treinos/{treino_id}")
 def api_excluir_treino(treino_id: str):
     resposta = bd.excluir_treino(treino_id)
+    return resposta
+
+# ============================================================
+# ROTAS - 5. PONTUAÇÕES / GAMIFICAÇÃO
+# ============================================================
+
+@app.get("/pontuacao/{usuario_id}")
+def api_ver_pontuacao(usuario_id: str):
+    """
+    Retorna as pontuações (diária, semanal e total) do usuário.
+    """
+    resposta = bd.ver_pontuacao(usuario_id)
+    return resposta
+
+@app.post("/pontuacao/diaria")
+def api_adicionar_pontuacao_diaria(req: AdicionarPontuacaoRequest):
+    """
+    Adiciona pontuação diária ao usuário, atualizando também a semanal e a total.
+    """
+    resposta = bd.adicionar_pontuacao_diaria(usuario_id=req.usuario_id, pontos=req.pontos)
+    return resposta
+
+@app.post("/pontuacao/{usuario_id}/adicionar-diaria")
+def api_adicionar_pontuacao_diaria_path(usuario_id: str, pontos: int = Query(50, gt=0)):
+    """
+    Endpoint alternativo com usuario_id na URL para adicionar pontos diários.
+    """
+    resposta = bd.adicionar_pontuacao_diaria(usuario_id=usuario_id, pontos=pontos)
     return resposta
 
 # ============================================================

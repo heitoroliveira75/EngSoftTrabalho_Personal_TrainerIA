@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../services/api_service.dart';
 import 'profile_screen.dart';
 import 'treinos_screen.dart';
 
@@ -16,21 +17,59 @@ class _HomeScreenState extends State<HomeScreen> {
   // ===========================================================================
   // VARIÁVEIS DE DADOS
   // ===========================================================================
-  int pontosTotais = 2000;
-  int pontosSemana = 250;
+  int pontosTotais = 0;
+  int pontosSemana = 0;
   int maiorSequencia = 6;
   int sequenciaAtual = 2;
-  int pontosHoje = 150;
+  int pontosHoje = 0;
   int metaHoje = 200;
+  bool _carregandoPontos = false;
 
-  void _iniciarTreino() {
+  @override
+  void initState() {
+    super.initState();
+    _carregarPontuacoes();
+  }
+
+  Future<void> _carregarPontuacoes() async {
+    final usuarioId = ApiService().idUsuarioAtual;
+    if (usuarioId != null) {
+      setState(() => _carregandoPontos = true);
+      final res = await ApiService().verPontuacao(usuarioId);
+      if (mounted && res['sucesso'] == true) {
+        setState(() {
+          pontosTotais = (res['pontuacao_total'] as num?)?.toInt() ?? 0;
+          pontosSemana = (res['pontuacao_semanal'] as num?)?.toInt() ?? 0;
+          pontosHoje = (res['pontuacao_diaria'] as num?)?.toInt() ?? 0;
+          _carregandoPontos = false;
+        });
+      } else if (mounted) {
+        setState(() => _carregandoPontos = false);
+      }
+    } else {
+      final userRes = await ApiService().obterUsuarioAtual();
+      if (userRes['sucesso'] == true && ApiService().idUsuarioAtual != null) {
+        final res = await ApiService().verPontuacao(ApiService().idUsuarioAtual!);
+        if (mounted && res['sucesso'] == true) {
+          setState(() {
+            pontosTotais = (res['pontuacao_total'] as num?)?.toInt() ?? 0;
+            pontosSemana = (res['pontuacao_semanal'] as num?)?.toInt() ?? 0;
+            pontosHoje = (res['pontuacao_diaria'] as num?)?.toInt() ?? 0;
+          });
+        }
+      }
+    }
+  }
+
+  void _iniciarTreino() async {
     if (widget.onSecondRoute != null) {
       widget.onSecondRoute!();
     } else {
-      Navigator.push(
+      await Navigator.push(
         context,
         MaterialPageRoute(builder: (context) => const TreinosScreen()),
       );
+      _carregarPontuacoes();
     }
   }
 
@@ -54,22 +93,37 @@ class _HomeScreenState extends State<HomeScreen> {
           IconButton(
             icon: const Icon(Icons.account_circle, size: 36, color: Colors.white),
             tooltip: 'Meu Perfil',
-            onPressed: () {
-              Navigator.push(
+            onPressed: () async {
+              await Navigator.push(
                 context,
                 MaterialPageRoute(builder: (context) => const ProfileScreen()),
               );
+              _carregarPontuacoes();
             },
           ),
           const SizedBox(width: 8),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            // 1. Card Pontos Totais
-            Container(
+      body: RefreshIndicator(
+        onRefresh: _carregarPontuacoes,
+        color: const Color(0xFF00E676),
+        backgroundColor: const Color(0xFF1E232A),
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            children: [
+              if (_carregandoPontos)
+                const Padding(
+                  padding: EdgeInsets.only(bottom: 12.0),
+                  child: LinearProgressIndicator(
+                    minHeight: 2,
+                    color: Color(0xFF00E676),
+                    backgroundColor: Colors.transparent,
+                  ),
+                ),
+              // 1. Card Pontos Totais
+              Container(
               width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
               decoration: BoxDecoration(
@@ -259,8 +313,9 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildMetricCard({
     required IconData icon,

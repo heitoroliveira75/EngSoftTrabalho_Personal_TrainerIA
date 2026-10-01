@@ -245,3 +245,59 @@ Padrão de Retorno:
          print(resposta["mensagem"])
      else:
          print("Erro ao excluir treino:", resposta["mensagem"])
+
+
+5. Pontuações e Gamificação:
+
+- ver_pontuacao(usuario_id):
+  -> O que faz: Consulta e retorna a pontuação diária, semanal e total do usuário na tabela usuarios.
+  -> Parâmetros: usuario_id (str - UUID do usuário).
+  -> Retorno: {
+       "sucesso": True,
+       "usuario_id": "...",
+       "nome": "...",
+       "pontuacao_diaria": 150,
+       "pontuacao_semanal": 450,
+       "pontuacao_total": 2150,
+       "pontuacoes": {
+         "pontuacao_diaria": 150,
+         "pontuacao_semanal": 450,
+         "pontuacao_total": 2150
+       }
+     } ou {"sucesso": False, "mensagem": "..."}
+  -> Exemplo de código e prints:
+     resposta = ver_pontuacao("a1b2c3d4-0000-0000-0000-000000000000")
+     if resposta["sucesso"]:
+         print("--- Pontuações do Usuário ---")
+         print("Pontuação Diária:", resposta["pontuacao_diaria"])
+         print("Pontuação Semanal:", resposta["pontuacao_semanal"])
+         print("Pontuação Total:", resposta["pontuacao_total"])
+     else:
+         print("Erro ao carregar pontuações:", resposta["mensagem"])
+
+- adicionar_pontuacao_diaria(usuario_id, pontos=50):
+  -> O que faz: Adiciona pontos diários ao usuário e incrementa simultaneamente a pontuação semanal e a pontuação total na tabela usuarios.
+  -> Parâmetros: usuario_id (str - UUID do usuário), pontos (int - quantidade de pontos a adicionar, padrão: 50).
+  -> Retorno: {
+       "sucesso": True,
+       "mensagem": "50 pontos adicionados com sucesso!",
+       "pontos_adicionados": 50,
+       "pontuacao_diaria": 200,
+       "pontuacao_semanal": 500,
+       "pontuacao_total": 2200,
+       "pontuacoes": {
+         "pontuacao_diaria": 200,
+         "pontuacao_semanal": 500,
+         "pontuacao_total": 2200
+       }
+     } ou {"sucesso": False, "mensagem": "..."}
+  -> Exemplo de código e prints:
+     resposta = adicionar_pontuacao_diaria("a1b2c3d4-0000-0000-0000-000000000000", pontos=50)
+     if resposta["sucesso"]:
+         print(resposta["mensagem"])
+         print(f"Nova pontuação diária: {resposta['pontuacao_diaria']} pts")
+         print(f"Nova pontuação semanal: {resposta['pontuacao_semanal']} pts")
+         print(f"Nova pontuação total: {resposta['pontuacao_total']} pts")
+     else:
+         print("Erro ao adicionar pontuação:", resposta["mensagem"])
+
