@@ -190,6 +190,33 @@ class _TreinosScreenState extends State<TreinosScreen> {
                                     ),
                                   );
                                 }),
+                              const SizedBox(height: 12),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+                                child: SizedBox(
+                                  width: double.infinity,
+                                  height: 44,
+                                  child: ElevatedButton.icon(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFF00E676),
+                                      foregroundColor: Colors.black,
+                                      shape: RoundedRectangleBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      elevation: 0,
+                                    ),
+                                    icon: const Icon(Icons.check_circle_outline, size: 20),
+                                    label: const Text(
+                                      'Concluir Treino (+50 pts)',
+                                      style: TextStyle(
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 15,
+                                      ),
+                                    ),
+                                    onPressed: () => _concluirTreino(treino['nome'] ?? 'Treino'),
+                                  ),
+                                ),
+                              ),
                               const SizedBox(height: 8),
                             ],
                           ),
@@ -198,5 +225,67 @@ class _TreinosScreenState extends State<TreinosScreen> {
                     ),
     );
   }
+
+  Future<void> _concluirTreino(String nomeTreino) async {
+    final usuarioId = ApiService().idUsuarioAtual;
+    if (usuarioId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Faça login para pontuar nos treinos.'),
+          backgroundColor: Colors.orangeAccent,
+        ),
+      );
+      return;
+    }
+
+    const pontosGanhos = 50;
+    final res = await ApiService().adicionarPontuacaoDiaria(
+      usuarioId: usuarioId,
+      pontos: pontosGanhos,
+    );
+
+    if (!mounted) return;
+
+    if (res['sucesso'] == true) {
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: const Color(0xFF1E232A),
+          title: const Row(
+            children: [
+              Icon(Icons.emoji_events, color: Colors.amber, size: 28),
+              SizedBox(width: 8),
+              Text('Treino Concluído!', style: TextStyle(color: Colors.white)),
+            ],
+          ),
+          content: Text(
+            'Parabéns! Você completou "$nomeTreino" e ganhou +$pontosGanhos pontos hoje!\n\n'
+            'Pontos Hoje: ${res['pontuacao_diaria'] ?? 0} pts\n'
+            'Pontos Semana: ${res['pontuacao_semanal'] ?? 0} pts\n'
+            'Pontos Totais: ${res['pontuacao_total'] ?? 0} pts',
+            style: const TextStyle(color: Colors.white70, fontSize: 15),
+          ),
+          actions: [
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF00E676),
+                foregroundColor: Colors.black,
+              ),
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Continuar', style: TextStyle(fontWeight: FontWeight.bold)),
+            ),
+          ],
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(res['mensagem'] ?? 'Erro ao adicionar pontos.'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+    }
+  }
 }
+
 

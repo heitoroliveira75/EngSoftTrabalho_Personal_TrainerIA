@@ -470,4 +470,103 @@ class ApiService {
       };
     }
   }
+
+  // ============================================================
+  // 5. PONTUAÇÕES / GAMIFICAÇÃO
+  // ============================================================
+
+  int get pontuacaoDiariaAtual {
+    if (usuarioLogado != null && usuarioLogado!['pontuacao_diaria'] != null) {
+      return (usuarioLogado!['pontuacao_diaria'] as num).toInt();
+    }
+    return 0;
+  }
+
+  int get pontuacaoSemanalAtual {
+    if (usuarioLogado != null && usuarioLogado!['pontuacao_semanal'] != null) {
+      return (usuarioLogado!['pontuacao_semanal'] as num).toInt();
+    }
+    return 0;
+  }
+
+  int get pontuacaoTotalAtual {
+    if (usuarioLogado != null && usuarioLogado!['pontuacao_total'] != null) {
+      return (usuarioLogado!['pontuacao_total'] as num).toInt();
+    }
+    return 0;
+  }
+
+  /// Consulta as pontuações (diária, semanal e total) de um usuário
+  Future<Map<String, dynamic>> verPontuacao(String usuarioId) async {
+    try {
+      final url = Uri.parse('$baseUrl/pontuacao/$usuarioId');
+      final response = await http
+          .get(url, headers: _headers)
+          .timeout(const Duration(seconds: 10));
+
+      final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+      if (data['sucesso'] == true) {
+        usuarioLogado ??= {};
+        if (data['pontuacao_diaria'] != null) {
+          usuarioLogado!['pontuacao_diaria'] = data['pontuacao_diaria'];
+        }
+        if (data['pontuacao_semanal'] != null) {
+          usuarioLogado!['pontuacao_semanal'] = data['pontuacao_semanal'];
+        }
+        if (data['pontuacao_total'] != null) {
+          usuarioLogado!['pontuacao_total'] = data['pontuacao_total'];
+        }
+      }
+      return data;
+    } catch (e) {
+      return {
+        'sucesso': false,
+        'mensagem': 'Erro ao buscar pontuações: $e',
+        'pontuacao_diaria': 0,
+        'pontuacao_semanal': 0,
+        'pontuacao_total': 0,
+      };
+    }
+  }
+
+  /// Adiciona pontuação diária ao usuário, atualizando também semanal e total
+  Future<Map<String, dynamic>> adicionarPontuacaoDiaria({
+    required String usuarioId,
+    int pontos = 50,
+  }) async {
+    try {
+      final url = Uri.parse('$baseUrl/pontuacao/diaria');
+      final response = await http
+          .post(
+            url,
+            headers: _headers,
+            body: jsonEncode({
+              'usuario_id': usuarioId,
+              'pontos': pontos,
+            }),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+      if (data['sucesso'] == true) {
+        usuarioLogado ??= {};
+        if (data['pontuacao_diaria'] != null) {
+          usuarioLogado!['pontuacao_diaria'] = data['pontuacao_diaria'];
+        }
+        if (data['pontuacao_semanal'] != null) {
+          usuarioLogado!['pontuacao_semanal'] = data['pontuacao_semanal'];
+        }
+        if (data['pontuacao_total'] != null) {
+          usuarioLogado!['pontuacao_total'] = data['pontuacao_total'];
+        }
+      }
+      return data;
+    } catch (e) {
+      return {
+        'sucesso': false,
+        'mensagem': 'Erro ao adicionar pontuação diária: $e',
+      };
+    }
+  }
 }
+

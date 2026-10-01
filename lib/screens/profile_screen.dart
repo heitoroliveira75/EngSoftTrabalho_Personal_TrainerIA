@@ -20,10 +20,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   late String emailUsuario;
   bool _carregando = false;
 
-  // Métricas de desempenho (futura expansão no banco)
-  int pontosTotais = 2000;
-  int pontosHoje = 150;
-  int pontosSemana = 250;
+  // Métricas de desempenho conectadas ao Supabase
+  int pontosTotais = 0;
+  int pontosHoje = 0;
+  int pontosSemana = 0;
   int diasSequencia = 2;
 
   @override
@@ -47,6 +47,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
           if (perfil['email'] != null && perfil['email'].toString().trim().isNotEmpty) {
             emailUsuario = perfil['email'].toString().trim();
           }
+          pontosTotais = (perfil['pontuacao_total'] as num?)?.toInt() ?? 0;
+          pontosHoje = (perfil['pontuacao_diaria'] as num?)?.toInt() ?? 0;
+          pontosSemana = (perfil['pontuacao_semanal'] as num?)?.toInt() ?? 0;
         });
       }
     } else {
@@ -56,6 +59,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
           nomeUsuario = ApiService().nomeUsuarioAtual;
           emailUsuario = ApiService().emailUsuarioAtual;
         });
+        if (ApiService().idUsuarioAtual != null) {
+          _carregarPerfil();
+        }
       }
     }
   }
@@ -124,13 +130,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Card com dados do utilizador
-            Container(
+      body: RefreshIndicator(
+        onRefresh: _carregarPerfil,
+        color: const Color(0xFF00E676),
+        backgroundColor: const Color(0xFF1E232A),
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Card com dados do utilizador
+              Container(
               width: double.infinity,
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
@@ -265,8 +276,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildOptionButton({
     required String title,
