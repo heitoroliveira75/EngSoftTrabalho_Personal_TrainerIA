@@ -15,8 +15,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
   // ===========================================================================
   // VARIÁVEIS DE DADOS (Substitua no futuro pelos dados vindos do banco de dados)
   // ===========================================================================
-  final nomeUsuario = ApiService().usuarioLogado?['user_metadata']?['nome'] ?? 'Usuário';
-  final emailUsuario = ApiService().usuarioLogado?['email'] ?? '';
+  final usuario = ApiService().obterUsuarioAtual();
+  // String nomeUsuario = usuario["user_metadata"].get("nome");
+  // String emailUsuario = usuario["email"];
+  String emailUsuario = "nmama";
+  String nomeUsuario = "ma,a";
   int pontosTotais = 1850;
   int pontosHoje = 150;
   int pontosSemana = 250;
