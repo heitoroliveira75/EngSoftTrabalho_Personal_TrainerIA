@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import 'home_screen.dart';
 
 class CadastroScreen extends StatefulWidget {
   const CadastroScreen({super.key});
@@ -72,20 +73,41 @@ class _CadastroScreenState extends State<CadastroScreen> {
 
     if (!mounted) return;
 
-    setState(() {
-      _carregando = false;
-    });
-
     if (resposta['sucesso'] == true) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(resposta['mensagem'] ?? 'Conta criada com sucesso! Faça login.'),
-          backgroundColor: Colors.green,
-        ),
-      );
-      // Volta para a tela de login
-      Navigator.pop(context);
+      // Tenta logar automaticamente para iniciar a sessão
+      final loginRes = await ApiService().fazerLogin(email: email, senha: senha);
+
+      if (!mounted) return;
+
+      setState(() {
+        _carregando = false;
+      });
+
+      if (loginRes['sucesso'] == true) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(resposta['mensagem'] ?? 'Conta criada com sucesso!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (context) => const HomeScreen()),
+          (route) => false,
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(resposta['mensagem'] ?? 'Conta criada com sucesso! Faça login.'),
+            backgroundColor: Colors.green,
+          ),
+        );
+        Navigator.pop(context);
+      }
     } else {
+      setState(() {
+        _carregando = false;
+      });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(resposta['mensagem'] ?? 'Falha ao criar conta.'),

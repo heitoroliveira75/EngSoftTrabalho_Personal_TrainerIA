@@ -102,6 +102,103 @@ def obter_usuario_atual() -> Optional[Dict[str, Any]]:
         return None
 
 
+def solicitar_redefinicao_senha(email: str, redirect_to: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Envia um e-mail de recuperação de senha pelo Supabase Auth contendo um link ou código.
+    """
+    if not email:
+        return {"sucesso": False, "mensagem": "E-mail é obrigatório."}
+
+    try:
+        opcoes = {}
+        if redirect_to:
+            opcoes["redirect_to"] = redirect_to
+
+        supabase.auth.reset_password_for_email(
+            email.strip(),
+            options=opcoes if opcoes else None
+        )
+
+        return {
+            "sucesso": True,
+            "mensagem": "E-mail de recuperação enviado com sucesso! Verifique sua caixa de entrada."
+        }
+    except Exception as erro:
+        return {"sucesso": False, "mensagem": str(erro)}
+
+
+def redefinir_senha_com_codigo(email: str, token: str, nova_senha: str) -> Dict[str, Any]:
+    """
+    Valida o token/código OTP recebido por e-mail e define a nova senha do usuário.
+    Ideal para aplicações desktop, mobile ou terminais CLI.
+    """
+    if not email or not token or not nova_senha:
+        return {"sucesso": False, "mensagem": "E-mail, token e nova senha são obrigatórios."}
+
+    try:
+        # 1. Valida o código/token de recuperação e estabelece uma sessão temporária
+        res_otp = supabase.auth.verify_otp({
+            "email": email.strip(),
+            "token": token.strip(),
+            "type": "recovery"
+        })
+
+        if not res_otp.user:
+            return {"sucesso": False, "mensagem": "Código de recuperação inválido ou expirado."}
+
+        # 2. Com a sessão recuperada, atualiza a senha do usuário
+        res_update = supabase.auth.update_user({
+            "password": nova_senha.strip()
+        })
+
+        if not res_update.user:
+            return {"sucesso": False, "mensagem": "Não foi possível atualizar a senha."}
+
+        return {"sucesso": True, "mensagem": "Senha redefinida com sucesso!"}
+    except Exception as erro:
+        return {"sucesso": False, "mensagem": str(erro)}
+
+
+def alterar_senha(nova_senha: str, senha_atual: Optional[str] = None, email: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Atualiza a senha do usuário atualmente autenticado ou valida com senha atual se informada.
+    """
+    if not nova_senha:
+        return {"sucesso": False, "mensagem": "A nova senha é obrigatória."}
+
+    try:
+        # Se email e senha_atual forem fornecidos, valida a senha atual antes de alterar
+        if email and senha_atual:
+            try:
+                auth_res = supabase.auth.sign_in_with_password({
+                    "email": email.strip(),
+                    "password": senha_atual.strip()
+                })
+                if not auth_res.user:
+                    return {"sucesso": False, "mensagem": "Senha atual incorreta."}
+            except Exception as auth_err:
+                return {"sucesso": False, "mensagem": f"Senha atual incorreta: {auth_err}"}
+
+        res = supabase.auth.update_user({
+            "password": nova_senha.strip()
+        })
+
+        if not res.user:
+            return {"sucesso": False, "mensagem": "Não foi possível atualizar a senha."}
+
+        return {"sucesso": True, "mensagem": "Senha alterada com sucesso!"}
+    except Exception as erro:
+        return {"sucesso": False, "mensagem": str(erro)}
+
+
+def atualizar_senha(nova_senha: str) -> Dict[str, Any]:
+    """
+    Atualiza a senha do usuário atualmente autenticado (com sessão ativa).
+    Útil caso o usuário já esteja logado ou tenha acessado via link de recuperação em app Web.
+    """
+    return alterar_senha(nova_senha=nova_senha)
+
+
 # ============================================================
 # 2. PERFIL DE USUÁRIO
 # ============================================================
@@ -123,6 +220,18 @@ def ver_perfil(usuario_id: str) -> Dict[str, Any]:
         )
 
         if not resultado.data:
+            # Fallback para os metadados do auth se a linha da tabela usuarios ainda não estiver criada
+            usuario_auth = obter_usuario_atual()
+            if usuario_auth and usuario_auth.get("id") == usuario_id:
+                nome = usuario_auth.get("user_metadata", {}).get("nome", "")
+                return {
+                    "sucesso": True,
+                    "perfil": {
+                        "id": usuario_id,
+                        "email": usuario_auth.get("email", ""),
+                        "nome": nome,
+                    }
+                }
             return {"sucesso": False, "mensagem": "Perfil não encontrado."}
 
         return {
@@ -150,6 +259,15 @@ def editar_perfil(usuario_id: str, nome: Optional[str] = None, cpf: Optional[str
         return {"sucesso": False, "mensagem": "Nenhum dado informado para atualização."}
 
     try:
+        # Atualiza metadata do auth se houver nome
+        if nome is not None and nome.strip() != "":
+            try:
+                supabase.auth.update_user({
+                    "data": {"nome": nome.strip()}
+                })
+            except Exception:
+                pass
+
         resultado = (
             supabase
             .table("usuarios")
@@ -159,6 +277,15 @@ def editar_perfil(usuario_id: str, nome: Optional[str] = None, cpf: Optional[str
         )
 
         if not resultado.data:
+            # Se ainda não existe registro na tabela usuarios, faz upsert
+            dados_atualizacao["id"] = usuario_id
+            upsert_res = supabase.table("usuarios").upsert(dados_atualizacao).execute()
+            if upsert_res.data:
+                return {
+                    "sucesso": True,
+                    "mensagem": "Perfil atualizado com sucesso!",
+                    "perfil": upsert_res.data[0]
+                }
             return {"sucesso": False, "mensagem": "Não foi possível atualizar o perfil."}
 
         return {

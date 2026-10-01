@@ -70,6 +70,11 @@ class RedefinirSenhaRequest(BaseModel):
     codigo: Optional[str] = None
     nova_senha: str
 
+class AlterarSenhaRequest(BaseModel):
+    senha_atual: Optional[str] = None
+    nova_senha: str
+    email: Optional[str] = None
+
 # ============================================================
 # ROTAS - STATUS DA API
 # ============================================================
@@ -113,36 +118,31 @@ def api_esqueceu_senha(req: RecuperarSenhaRequest):
     """
     Envia email de recuperação de senha pelo Supabase Auth.
     """
-    try:
-        supabase.auth.reset_password_for_email(req.email.strip())
-        return {
-            "sucesso": True,
-            "mensagem": f"Email de recuperação enviado para {req.email.strip()}."
-        }
-    except Exception as erro:
-        return {"sucesso": False, "mensagem": str(erro)}
+    resposta = bd.solicitar_redefinicao_senha(req.email.strip())
+    return resposta
 
 @app.post("/auth/redefinir-senha")
 def api_redefinir_senha(req: RedefinirSenhaRequest):
     """
-    Atualiza a senha do usuário.
+    Redefine a senha do usuário com código OTP ou atualiza com sessão ativa.
     """
-    try:
-        if req.codigo and req.email:
-            supabase.auth.verify_otp({
-                "email": req.email.strip(),
-                "token": req.codigo.strip(),
-                "type": "recovery"
-            })
-        supabase.auth.update_user({
-            "password": req.nova_senha.strip()
-        })
-        return {
-            "sucesso": True,
-            "mensagem": "Senha redefinida com sucesso!"
-        }
-    except Exception as erro:
-        return {"sucesso": False, "mensagem": str(erro)}
+    if req.codigo and req.email:
+        resposta = bd.redefinir_senha_com_codigo(req.email.strip(), req.codigo.strip(), req.nova_senha.strip())
+    else:
+        resposta = bd.atualizar_senha(req.nova_senha.strip())
+    return resposta
+
+@app.post("/auth/alterar-senha")
+def api_alterar_senha(req: AlterarSenhaRequest):
+    """
+    Altera a senha do usuário autenticado, validando a senha atual.
+    """
+    resposta = bd.alterar_senha(
+        nova_senha=req.nova_senha,
+        senha_atual=req.senha_atual,
+        email=req.email
+    )
+    return resposta
 
 # ============================================================
 # ROTAS - 2. PERFIL DE USUÁRIO

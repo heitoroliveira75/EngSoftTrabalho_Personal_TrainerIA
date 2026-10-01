@@ -62,6 +62,39 @@ Padrão de Retorno:
      else:
          print("Nenhum usuário logado no momento.")
 
+- solicitar_redefinicao_senha(email, redirect_to=None):
+  -> O que faz: Envia um e-mail de recuperação de senha pelo Supabase Auth contendo um link ou código OTP.
+  -> Parâmetros: email (str), redirect_to (str, opcional - URL para redirecionar o usuário no front-end web).
+  -> Retorno: {"sucesso": True, "mensagem": "E-mail de recuperação enviado com sucesso! Verifique sua caixa de entrada."} ou {"sucesso": False, "mensagem": "..."}
+  -> Exemplo de código e prints:
+     resposta = solicitar_redefinicao_senha("joao@email.com")
+     if resposta["sucesso"]:
+         print(resposta["mensagem"])
+     else:
+         print("Erro:", resposta["mensagem"])
+
+- redefinir_senha_com_codigo(email, token, nova_senha):
+  -> O que faz: Valida o código/token recebido por e-mail e redefine a senha do usuário. Ideal para apps desktop, mobile ou terminal.
+  -> Parâmetros: email (str), token (str - código recebido no e-mail), nova_senha (str).
+  -> Retorno: {"sucesso": True, "mensagem": "Senha redefinida com sucesso!"} ou {"sucesso": False, "mensagem": "..."}
+  -> Exemplo de código e prints:
+     resultado = redefinir_senha_com_codigo("joao@email.com", "123456", "novaSenha123")
+     if resultado["sucesso"]:
+         print(resultado["mensagem"])
+     else:
+         print("Erro na redefinição:", resultado["mensagem"])
+
+- atualizar_senha(nova_senha):
+  -> O que faz: Atualiza a senha do usuário atualmente autenticado (sessão ativa no Supabase). Útil para troca de senha logado ou após o redirecionamento por link no navegador.
+  -> Parâmetros: nova_senha (str).
+  -> Retorno: {"sucesso": True, "mensagem": "Senha alterada com sucesso!"} ou {"sucesso": False, "mensagem": "..."}
+  -> Exemplo de código e prints:
+     resultado = atualizar_senha("novaSenhaForte456")
+     if resultado["sucesso"]:
+         print(resultado["mensagem"])
+     else:
+         print("Falha ao alterar senha:", resultado["mensagem"])
+
 
 2. Perfil de Usuário:
 

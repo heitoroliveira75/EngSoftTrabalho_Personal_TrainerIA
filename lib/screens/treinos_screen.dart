@@ -189,7 +189,7 @@ class _TreinosScreenState extends State<TreinosScreen> {
                                       ),
                                     ),
                                   );
-                                }).toList(),
+                                }),
                               const SizedBox(height: 8),
                             ],
                           ),
@@ -199,3 +199,4 @@ class _TreinosScreenState extends State<TreinosScreen> {
     );
   }
 }
+
