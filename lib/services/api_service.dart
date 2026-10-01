@@ -13,6 +13,36 @@ class ApiService {
   String? tokenAcesso;
   Map<String, dynamic>? usuarioLogado;
 
+  String get nomeUsuarioAtual {
+    if (usuarioLogado != null) {
+      if (usuarioLogado!['nome'] != null &&
+          usuarioLogado!['nome'].toString().trim().isNotEmpty) {
+        return usuarioLogado!['nome'].toString().trim();
+      }
+      if (usuarioLogado!['user_metadata'] != null &&
+          usuarioLogado!['user_metadata'] is Map &&
+          usuarioLogado!['user_metadata']['nome'] != null &&
+          usuarioLogado!['user_metadata']['nome'].toString().trim().isNotEmpty) {
+        return usuarioLogado!['user_metadata']['nome'].toString().trim();
+      }
+    }
+    return 'Usuário';
+  }
+
+  String get emailUsuarioAtual {
+    if (usuarioLogado != null && usuarioLogado!['email'] != null) {
+      return usuarioLogado!['email'].toString().trim();
+    }
+    return '';
+  }
+
+  String? get idUsuarioAtual {
+    if (usuarioLogado != null && usuarioLogado!['id'] != null) {
+      return usuarioLogado!['id'].toString();
+    }
+    return null;
+  }
+
   Map<String, String> get _headers => {
         'Content-Type': 'application/json; charset=UTF-8',
         if (tokenAcesso != null) 'Authorization': 'Bearer $tokenAcesso',
@@ -43,6 +73,9 @@ class ApiService {
           .timeout(const Duration(seconds: 15));
 
       final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+      if (data['sucesso'] == true && data['usuario'] != null) {
+        usuarioLogado = Map<String, dynamic>.from(data['usuario'] as Map);
+      }
       return data;
     } catch (e) {
       return {
@@ -120,6 +153,9 @@ class ApiService {
           .timeout(const Duration(seconds: 10));
 
       final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+      if (data['sucesso'] == true && data['usuario'] != null) {
+        usuarioLogado = Map<String, dynamic>.from(data['usuario'] as Map);
+      }
       return data;
     } catch (e) {
       return {
@@ -181,6 +217,36 @@ class ApiService {
     }
   }
 
+  /// Altera a senha do usuário com a senha atual
+  Future<Map<String, dynamic>> alterarSenha({
+    required String senhaAtual,
+    required String novaSenha,
+    String? email,
+  }) async {
+    try {
+      final url = Uri.parse('$baseUrl/auth/alterar-senha');
+      final response = await http
+          .post(
+            url,
+            headers: _headers,
+            body: jsonEncode({
+              'senha_atual': senhaAtual,
+              'nova_senha': novaSenha,
+              if (email != null) 'email': email,
+            }),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+      return data;
+    } catch (e) {
+      return {
+        'sucesso': false,
+        'mensagem': 'Erro ao alterar senha: $e',
+      };
+    }
+  }
+
   // ============================================================
   // 2. PERFIL DE USUÁRIO
   // ============================================================
@@ -194,6 +260,13 @@ class ApiService {
           .timeout(const Duration(seconds: 10));
 
       final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+      if (data['sucesso'] == true && data['perfil'] != null) {
+        if (usuarioLogado == null) {
+          usuarioLogado = Map<String, dynamic>.from(data['perfil'] as Map);
+        } else {
+          usuarioLogado!.addAll(Map<String, dynamic>.from(data['perfil'] as Map));
+        }
+      }
       return data;
     } catch (e) {
       return {
@@ -223,6 +296,19 @@ class ApiService {
           .timeout(const Duration(seconds: 15));
 
       final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+      if (data['sucesso'] == true) {
+        if (usuarioLogado != null) {
+          if (nome != null) {
+            usuarioLogado!['nome'] = nome;
+            if (usuarioLogado!['user_metadata'] is Map) {
+              (usuarioLogado!['user_metadata'] as Map)['nome'] = nome;
+            }
+          }
+          if (cpf != null) {
+            usuarioLogado!['cpf'] = cpf;
+          }
+        }
+      }
       return data;
     } catch (e) {
       return {

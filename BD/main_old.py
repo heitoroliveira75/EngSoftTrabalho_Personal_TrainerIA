@@ -87,6 +87,134 @@ def fazer_logout():
         print(erro)
 
 
+def recuperar_senha():
+    print("\n" + "=" * 45)
+    print("           RECUPERAR SENHA")
+    print("=" * 45)
+
+    print("\n1 - Solicitar código de recuperação por e-mail")
+    print("2 - Já tenho o código e quero redefinir a senha")
+    print("0 - Voltar")
+    print("=" * 45)
+
+    opcao = input("Escolha uma opção: ").strip()
+
+    if opcao == "1":
+        email = input("\nDigite seu e-mail cadastrado: ").strip()
+        if not email:
+            print("\n[ERRO] O e-mail é obrigatório.")
+            return
+
+        try:
+            supabase.auth.reset_password_for_email(email)
+            print("\n[OK] E-mail de recuperação enviado com sucesso!")
+            print("Verifique sua caixa de entrada e copie o código/token recebido.")
+
+            prosseguir = input("\nDeseja inserir o código agora para redefinir a senha? (s/n): ").strip().lower()
+            if prosseguir == "s":
+                redefinir_senha_cli(email)
+        except Exception as erro:
+            print("\n[ERRO] Não foi possível enviar o e-mail de recuperação.")
+            print(erro)
+
+    elif opcao == "2":
+        email = input("\nDigite seu e-mail cadastrado: ").strip()
+        redefinir_senha_cli(email)
+
+    elif opcao == "0":
+        return
+
+    else:
+        print("\n[ERRO] Opção inválida.")
+
+
+def redefinir_senha_cli(email: str = ""):
+    print("\n" + "=" * 45)
+    print("          REDEFINIR SENHA")
+    print("=" * 45)
+
+    if not email:
+        email = input("E-mail: ").strip()
+
+    token = input("Código/token recebido por e-mail: ").strip()
+    nova_senha = input("Nova senha: ").strip()
+    confirma_senha = input("Confirme a nova senha: ").strip()
+
+    if not email or not token or not nova_senha:
+        print("\n[ERRO] E-mail, código e nova senha são obrigatórios.")
+        return
+
+    if nova_senha != confirma_senha:
+        print("\n[ERRO] As senhas digitadas não coincidem.")
+        return
+
+    try:
+        # 1. Valida o token e autentica temporariamente a sessão
+        res_otp = supabase.auth.verify_otp({
+            "email": email,
+            "token": token,
+            "type": "recovery"
+        })
+
+        if res_otp.user is None:
+            print("\n[ERRO] Código de recuperação inválido ou expirado.")
+            return
+
+        # 2. Atualiza a senha no Supabase
+        res_update = supabase.auth.update_user({
+            "password": nova_senha
+        })
+
+        if res_update.user is None:
+            print("\n[ERRO] Não foi possível redefinir a senha.")
+            return
+
+        print("\n[OK] Senha redefinida com sucesso!")
+        print("Agora você já pode fazer login com a sua nova senha.")
+
+    except Exception as erro:
+        print("\n[ERRO] Não foi possível redefinir a senha.")
+        print(erro)
+
+
+def alterar_senha():
+    usuario = obter_usuario_atual()
+
+    if usuario is None:
+        print("\n[ERRO] Nenhum usuário autenticado.")
+        return
+
+    print("\n" + "=" * 45)
+    print("            ALTERAR SENHA")
+    print("=" * 45)
+
+    nova_senha = input("Nova senha: ").strip()
+    confirma_senha = input("Confirme a nova senha: ").strip()
+
+    if not nova_senha:
+        print("\n[ERRO] A nova senha é obrigatória.")
+        return
+
+    if nova_senha != confirma_senha:
+        print("\n[ERRO] As senhas digitadas não coincidem.")
+        return
+
+    try:
+        res = supabase.auth.update_user({
+            "password": nova_senha
+        })
+
+        if res.user is None:
+            print("\n[ERRO] Não foi possível alterar a senha.")
+            return
+
+        print("\n[OK] Senha alterada com sucesso!")
+
+    except Exception as erro:
+        print("\n[ERRO] Não foi possível alterar a senha.")
+        print(erro)
+
+
 # ============================================================
 # FUNÇÕES DE PERFIL
 # ============================================================
@@ -222,8 +350,9 @@ def menu_usuario(usuario):
 
         print("\n1 - Ver meu perfil")
         print("2 - Editar meu perfil")
-        print("3 - Treinos")
-        print("4 - Logout")
+        print("3 - Alterar minha senha")
+        print("4 - Treinos")
+        print("5 - Logout")
         print("0 - Sair")
 
         print("=" * 45)
@@ -240,6 +369,10 @@ def menu_usuario(usuario):
 
         elif opcao == "3":
 
+            alterar_senha()
+
+        elif opcao == "4":
+
             print("\n" + "=" * 45)
             print("                TREINOS")
             print("=" * 45)
@@ -247,7 +380,7 @@ def menu_usuario(usuario):
             print("\nAinda vamos implementar essa parte.")
             print("Por enquanto, o CRUD de usuários está sendo desenvolvido.")
 
-        elif opcao == "4":
+        elif opcao == "5":
 
             fazer_logout()
             return "logout"
@@ -277,6 +410,7 @@ def tela_inicial():
 
         print("\n1 - Criar conta")
         print("2 - Fazer login")
+        print("3 - Esqueci minha senha / Recuperar")
         print("0 - Sair")
 
         print("=" * 45)
@@ -299,6 +433,12 @@ def tela_inicial():
 
                 if resultado == "sair":
                     break
+
+        elif opcao == "3":
+
+            recuperar_senha()
+
+            input("\nPressione ENTER para continuar...")
 
         elif opcao == "0":
 

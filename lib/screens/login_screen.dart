@@ -60,12 +60,13 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
       );
 
-      // Redireciona para a tela Home
-      Navigator.pushReplacement(
+      // Redireciona para a tela Home limpando a pilha de telas
+      Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(
           builder: (context) => const HomeScreen(),
         ),
+        (route) => false,
       );
     } else {
       ScaffoldMessenger.of(context).showSnackBar(

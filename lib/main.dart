@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
 import 'screens/cadastro_screen.dart';
+import 'screens/change_name_screen.dart';
+import 'screens/change_password_screen.dart';
 import 'screens/esqueceu_senha_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/login_screen.dart';
+import 'screens/profile_screen.dart';
+import 'screens/redefinir_senha_screen.dart';
 import 'screens/treinos_screen.dart';
 
 void main() {
@@ -33,8 +37,12 @@ class MeuAppTreino extends StatelessWidget {
         '/login': (context) => const LoginScreen(),
         '/cadastro': (context) => const CadastroScreen(),
         '/esqueceu-senha': (context) => const EsqueceuSenhaScreen(),
+        '/redefinir-senha': (context) => const RedefinirSenhaScreen(),
         '/home': (context) => const HomeScreen(),
         '/treinos': (context) => const TreinosScreen(),
+        '/perfil': (context) => const ProfileScreen(),
+        '/alterar-nome': (context) => const ChangeNameScreen(),
+        '/alterar-senha': (context) => const ChangePasswordScreen(),
       },
     );
   }
