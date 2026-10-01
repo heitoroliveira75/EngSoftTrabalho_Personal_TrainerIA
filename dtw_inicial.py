@@ -12,16 +12,23 @@ class DTW:
     Classe responsável pelo cálculo do DTW
     """
 
-    def __init__(self):
+    def __init__(self, tolerancia=15.0):
+        """
+        Args:
+            tolerancia: Fator de escala (em graus) para a conversão de distância em score.
+                        Quanto maior o valor, mais tolerante é a pontuação a pequenas variações.
+        """
+        self.tolerancia = float(tolerancia)
         self.distancia_total = 0.0
         self.distancia_normalizada = 0.0
+        self.score_similaridade = 0.0
         self.caminho = []
         self.desvios_por_articulacao = {}
 
     def calcular(self, serie_a, serie_b, nomes_articulacoes=None):
         """
-        Calcula o alinhamento temporal ótimo, as distâncias (acumulada e normalizada)
-        e o desvio médio individual por articulação entre duas séries temporais.
+        Calcula o alinhamento temporal ótimo, as distâncias (acumulada e normalizada),
+        o score de similaridade percentual e o desvio médio individual por articulação.
 
         Args:
             serie_a: Sequência do usuário. Shape (N,) para 1D ou (N, D) para D features/articulações.
@@ -31,6 +38,7 @@ class DTW:
         Returns:
             distancia_total: Custo acumulado total de alinhamento temporal.
             distancia_normalizada: Custo médio por frame alinhado (distancia_total / len(caminho)).
+            score_similaridade: Score percentual de técnica de 0 a 100%.
             caminho: Lista de pares de índices alinhados [(idx_a, idx_b), ...].
             desvios_por_articulacao: Dicionário com a diferença média individual de cada articulação ao longo do caminho.
         """
@@ -102,6 +110,11 @@ class DTW:
         self.caminho = caminho
         self.distancia_normalizada = self.distancia_total / max(1, len(caminho))
 
+        # calculo do score percentual de similaridade técnica (0 a 100%)
+        # decaimento exponencial: score diminui suavemente conforme o erro médio aumenta
+        score = 100.0 * np.exp(-self.distancia_normalizada / max(1e-6, self.tolerancia))
+        self.score_similaridade = round(float(np.clip(score, 0.0, 100.0)), 2)
+
         # calculo do desvio medio individual por articulacao ao longo do caminho alinhado
         indices_a = [par[0] for par in caminho]
         indices_b = [par[1] for par in caminho]
@@ -122,7 +135,13 @@ class DTW:
                 for k in range(dims_a)
             }
 
-        return self.distancia_total, self.distancia_normalizada, self.caminho, self.desvios_por_articulacao
+        return (
+            self.distancia_total,
+            self.distancia_normalizada,
+            self.score_similaridade,
+            self.caminho,
+            self.desvios_por_articulacao,
+        )
 
 
 if __name__ == "__main__":
@@ -158,16 +177,17 @@ if __name__ == "__main__":
         [90, 78]
     ]
 
-    dtw = DTW()
-    dist_total, dist_norm, path, desvios = dtw.calcular(
+    dtw = DTW(tolerancia=15.0)
+    dist_total, dist_norm, score, path, desvios = dtw.calcular(
         usuario_camera,
         gabarito_especialista,
         nomes_articulacoes=articulacoes
     )
 
-    print("=== Teste DTW: Diagnóstico por Articulação ===")
-    print(f"Distância Acumulada: {dist_total:.2f}")
+    print("=== Teste DTW: Diagnóstico com Score Percentual ===")
+    print(f"Similaridade Técnica: {score:.1f}%")
     print(f"Distância Normalizada (erro global médio): {dist_norm:.2f}°")
+    print(f"Distância Total Acumulada: {dist_total:.2f}")
     print(f"Frames alinhados: {len(path)}")
     print("\nDesvio médio individual por articulação:")
     for art, erro in desvios.items():
