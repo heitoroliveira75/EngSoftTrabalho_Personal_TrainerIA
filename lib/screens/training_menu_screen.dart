@@ -49,7 +49,7 @@ class TrainingMenuScreen extends StatelessWidget {
             ),
 
             // Espaçamento padrão
-            const SizedBox(height: spacing + 20),
+            const SizedBox(height: spacing + 40),
 
             // 1. Card Meus Treinos
             InkWell(
