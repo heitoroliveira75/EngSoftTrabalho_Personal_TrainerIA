@@ -1,6 +1,6 @@
 {
-    "name": "pagina_home_app",
-    "short_name": "pagina_home_app",
+    "name": "PersonAI",
+    "short_name": "PersonAI",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",

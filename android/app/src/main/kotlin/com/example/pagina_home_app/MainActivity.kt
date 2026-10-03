@@ -1,4 +1,4 @@
-package com.example.pagina_home_app
+package com.example.PersonAI
 
 import io.flutter.embedding.android.FlutterActivity
 
