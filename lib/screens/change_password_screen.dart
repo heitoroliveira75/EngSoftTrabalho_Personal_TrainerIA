@@ -106,12 +106,12 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                   ),
                   const SizedBox(height: 20),
 
-                  // Campo 1: Senha Atual
+                  // Campo 1: Código
                   _buildInputField(
-                    label: 'Senha Atual',
+                    label: 'Código enviado no email',
                     controller: _currentPassController,
-                    hintText: 'Digite a sua senha',
-                    isPassword: true,
+                    hintText: 'Código',
+                    isPassword: false,
                   ),
                   const SizedBox(height: 16),
 

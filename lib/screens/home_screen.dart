@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'training_menu_screen.dart';
 import 'profile_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -185,7 +186,10 @@ class _HomeScreenState extends State<HomeScreen> {
             // 4. Botão Hora de Treinar
             InkWell(
               onTap: () {
-                // Ação para iniciar o treino
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => TrainingMenuScreen()),
+                );
               },
               borderRadius: BorderRadius.circular(24),
               child: Container(
