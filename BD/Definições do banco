@@ -29,3 +29,11 @@ Triggers:
 13/09:
 Finalizados CRUD das entidades do banco.
 
+Atualização do Esquema (Tabela 'usuarios'):
+- Foram integradas as seguintes variáveis/colunas de pontuação e gamificação:
+  -> pontuacao_diaria (INTEGER, DEFAULT 0): Pontos acumulados no dia atual.
+  -> pontuacao_semanal (INTEGER, DEFAULT 0): Pontos acumulados na semana.
+  -> pontuacao_total (INTEGER, DEFAULT 0): Pontuação total acumulada histórica.
+  -> sequencia (INTEGER, DEFAULT 0): Indica quantos dias a pessoa usou o app / streak de uso diário.
+  -> maior_sequencia (INTEGER, DEFAULT 0): Recorde histórico / maior sequência de dias consecutivos de uso do app atingida pelo usuário.
+  -> checagem (BOOLEAN, DEFAULT FALSE): Flag booleana que é alterada para True quando alguma pontuação é computada, controlando o ciclo de pontuação e validação diária.

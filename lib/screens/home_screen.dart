@@ -19,8 +19,8 @@ class _HomeScreenState extends State<HomeScreen> {
   // ===========================================================================
   int pontosTotais = 0;
   int pontosSemana = 0;
-  int maiorSequencia = 6;
-  int sequenciaAtual = 2;
+  int maiorSequencia = 0;
+  int sequenciaAtual = 0;
   int pontosHoje = 0;
   int metaHoje = 200;
   bool _carregandoPontos = false;
@@ -41,6 +41,15 @@ class _HomeScreenState extends State<HomeScreen> {
           pontosTotais = (res['pontuacao_total'] as num?)?.toInt() ?? 0;
           pontosSemana = (res['pontuacao_semanal'] as num?)?.toInt() ?? 0;
           pontosHoje = (res['pontuacao_diaria'] as num?)?.toInt() ?? 0;
+          sequenciaAtual = (res['sequencia'] as num?)?.toInt() ??
+              (res['pontuacoes'] is Map ? (res['pontuacoes']['sequencia'] as num?)?.toInt() : null) ??
+              ApiService().sequenciaAtual;
+          maiorSequencia = (res['maior_sequencia'] as num?)?.toInt() ??
+              (res['pontuacoes'] is Map ? (res['pontuacoes']['maior_sequencia'] as num?)?.toInt() : null) ??
+              ApiService().maiorSequenciaAtual;
+          if (sequenciaAtual > maiorSequencia) {
+            maiorSequencia = sequenciaAtual;
+          }
           _carregandoPontos = false;
         });
       } else if (mounted) {
@@ -55,6 +64,15 @@ class _HomeScreenState extends State<HomeScreen> {
             pontosTotais = (res['pontuacao_total'] as num?)?.toInt() ?? 0;
             pontosSemana = (res['pontuacao_semanal'] as num?)?.toInt() ?? 0;
             pontosHoje = (res['pontuacao_diaria'] as num?)?.toInt() ?? 0;
+            sequenciaAtual = (res['sequencia'] as num?)?.toInt() ??
+                (res['pontuacoes'] is Map ? (res['pontuacoes']['sequencia'] as num?)?.toInt() : null) ??
+                ApiService().sequenciaAtual;
+            maiorSequencia = (res['maior_sequencia'] as num?)?.toInt() ??
+                (res['pontuacoes'] is Map ? (res['pontuacoes']['maior_sequencia'] as num?)?.toInt() : null) ??
+                ApiService().maiorSequenciaAtual;
+            if (sequenciaAtual > maiorSequencia) {
+              maiorSequencia = sequenciaAtual;
+            }
           });
         }
       }

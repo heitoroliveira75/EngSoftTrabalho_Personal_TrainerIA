@@ -24,13 +24,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
   int pontosTotais = 0;
   int pontosHoje = 0;
   int pontosSemana = 0;
-  int diasSequencia = 2;
+  int diasSequencia = 0;
 
   @override
   void initState() {
     super.initState();
     nomeUsuario = ApiService().nomeUsuarioAtual;
     emailUsuario = ApiService().emailUsuarioAtual;
+    diasSequencia = ApiService().sequenciaAtual;
     _carregarPerfil();
   }
 
@@ -50,6 +51,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           pontosTotais = (perfil['pontuacao_total'] as num?)?.toInt() ?? 0;
           pontosHoje = (perfil['pontuacao_diaria'] as num?)?.toInt() ?? 0;
           pontosSemana = (perfil['pontuacao_semanal'] as num?)?.toInt() ?? 0;
+          diasSequencia = (perfil['sequencia'] as num?)?.toInt() ?? ApiService().sequenciaAtual;
         });
       }
     } else {
@@ -58,6 +60,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         setState(() {
           nomeUsuario = ApiService().nomeUsuarioAtual;
           emailUsuario = ApiService().emailUsuarioAtual;
+          diasSequencia = ApiService().sequenciaAtual;
         });
         if (ApiService().idUsuarioAtual != null) {
           _carregarPerfil();
@@ -203,7 +206,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   const SizedBox(height: 16),
                   _buildStatRow('Hoje', '$pontosHoje pts'),
                   _buildStatRow('Semana', '$pontosSemana pts'),
-                  _buildStatRow('Sequência', '$diasSequencia dias'),
+                  _buildStatRow('Sequência', '$diasSequencia ${diasSequencia == 1 ? "dia" : "dias"}'),
                 ],
               ),
             ),
