@@ -276,11 +276,14 @@ class ApiService {
     }
   }
 
-  /// Atualiza nome e/ou CPF do usuário
+  /// Atualiza nome, CPF, sequência, maior sequência e/ou checagem do usuário
   Future<Map<String, dynamic>> editarPerfil(
     String usuarioId, {
     String? nome,
     String? cpf,
+    int? sequencia,
+    int? maiorSequencia,
+    bool? checagem,
   }) async {
     try {
       final url = Uri.parse('$baseUrl/perfil/$usuarioId');
@@ -291,6 +294,9 @@ class ApiService {
             body: jsonEncode({
               if (nome != null) 'nome': nome,
               if (cpf != null) 'cpf': cpf,
+              if (sequencia != null) 'sequencia': sequencia,
+              if (maiorSequencia != null) 'maior_sequencia': maiorSequencia,
+              if (checagem != null) 'checagem': checagem,
             }),
           )
           .timeout(const Duration(seconds: 15));
@@ -306,6 +312,15 @@ class ApiService {
           }
           if (cpf != null) {
             usuarioLogado!['cpf'] = cpf;
+          }
+          if (sequencia != null) {
+            usuarioLogado!['sequencia'] = sequencia;
+          }
+          if (maiorSequencia != null) {
+            usuarioLogado!['maior_sequencia'] = maiorSequencia;
+          }
+          if (checagem != null) {
+            usuarioLogado!['checagem'] = checagem;
           }
         }
       }
@@ -496,7 +511,28 @@ class ApiService {
     return 0;
   }
 
-  /// Consulta as pontuações (diária, semanal e total) de um usuário
+  int get sequenciaAtual {
+    if (usuarioLogado != null && usuarioLogado!['sequencia'] != null) {
+      return (usuarioLogado!['sequencia'] as num).toInt();
+    }
+    return 0;
+  }
+
+  int get maiorSequenciaAtual {
+    if (usuarioLogado != null && usuarioLogado!['maior_sequencia'] != null) {
+      return (usuarioLogado!['maior_sequencia'] as num).toInt();
+    }
+    return 0;
+  }
+
+  bool get checagemAtual {
+    if (usuarioLogado != null && usuarioLogado!['checagem'] != null) {
+      return usuarioLogado!['checagem'] == true;
+    }
+    return false;
+  }
+
+  /// Consulta as pontuações (diária, semanal e total), sequência, maior sequência e checagem de um usuário
   Future<Map<String, dynamic>> verPontuacao(String usuarioId) async {
     try {
       final url = Uri.parse('$baseUrl/pontuacao/$usuarioId');
@@ -516,6 +552,15 @@ class ApiService {
         if (data['pontuacao_total'] != null) {
           usuarioLogado!['pontuacao_total'] = data['pontuacao_total'];
         }
+        if (data['sequencia'] != null) {
+          usuarioLogado!['sequencia'] = data['sequencia'];
+        }
+        if (data['maior_sequencia'] != null) {
+          usuarioLogado!['maior_sequencia'] = data['maior_sequencia'];
+        }
+        if (data['checagem'] != null) {
+          usuarioLogado!['checagem'] = data['checagem'];
+        }
       }
       return data;
     } catch (e) {
@@ -525,14 +570,18 @@ class ApiService {
         'pontuacao_diaria': 0,
         'pontuacao_semanal': 0,
         'pontuacao_total': 0,
+        'sequencia': 0,
+        'maior_sequencia': 0,
+        'checagem': false,
       };
     }
   }
 
-  /// Adiciona pontuação diária ao usuário, atualizando também semanal e total
+  /// Adiciona pontuação diária ao usuário, atualizando semanal, total, checagem, sequência e maior sequência
   Future<Map<String, dynamic>> adicionarPontuacaoDiaria({
     required String usuarioId,
     int pontos = 50,
+    bool? incrementarSequencia,
   }) async {
     try {
       final url = Uri.parse('$baseUrl/pontuacao/diaria');
@@ -543,6 +592,8 @@ class ApiService {
             body: jsonEncode({
               'usuario_id': usuarioId,
               'pontos': pontos,
+              if (incrementarSequencia != null)
+                'incrementar_sequencia': incrementarSequencia,
             }),
           )
           .timeout(const Duration(seconds: 15));
@@ -559,12 +610,142 @@ class ApiService {
         if (data['pontuacao_total'] != null) {
           usuarioLogado!['pontuacao_total'] = data['pontuacao_total'];
         }
+        if (data['sequencia'] != null) {
+          usuarioLogado!['sequencia'] = data['sequencia'];
+        }
+        if (data['maior_sequencia'] != null) {
+          usuarioLogado!['maior_sequencia'] = data['maior_sequencia'];
+        }
+        if (data['checagem'] != null) {
+          usuarioLogado!['checagem'] = data['checagem'];
+        }
       }
       return data;
     } catch (e) {
       return {
         'sucesso': false,
         'mensagem': 'Erro ao adicionar pontuação diária: $e',
+      };
+    }
+  }
+
+  /// Atualiza diretamente a quantidade de dias da sequência do usuário
+  Future<Map<String, dynamic>> atualizarSequencia({
+    required String usuarioId,
+    required int sequencia,
+  }) async {
+    try {
+      final url = Uri.parse('$baseUrl/pontuacao/sequencia');
+      final response = await http
+          .post(
+            url,
+            headers: _headers,
+            body: jsonEncode({
+              'usuario_id': usuarioId,
+              'sequencia': sequencia,
+            }),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+      if (data['sucesso'] == true) {
+        usuarioLogado ??= {};
+        usuarioLogado!['sequencia'] = sequencia;
+        if (data['maior_sequencia'] != null) {
+          usuarioLogado!['maior_sequencia'] = data['maior_sequencia'];
+        }
+      }
+      return data;
+    } catch (e) {
+      return {
+        'sucesso': false,
+        'mensagem': 'Erro ao atualizar sequência: $e',
+      };
+    }
+  }
+
+  /// Atualiza diretamente o recorde de maior sequência em dias do usuário
+  Future<Map<String, dynamic>> atualizarMaiorSequencia({
+    required String usuarioId,
+    required int maiorSequencia,
+  }) async {
+    try {
+      final url = Uri.parse('$baseUrl/pontuacao/maior-sequencia');
+      final response = await http
+          .post(
+            url,
+            headers: _headers,
+            body: jsonEncode({
+              'usuario_id': usuarioId,
+              'maior_sequencia': maiorSequencia,
+            }),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+      if (data['sucesso'] == true) {
+        usuarioLogado ??= {};
+        usuarioLogado!['maior_sequencia'] = maiorSequencia;
+      }
+      return data;
+    } catch (e) {
+      return {
+        'sucesso': false,
+        'mensagem': 'Erro ao atualizar maior sequência: $e',
+      };
+    }
+  }
+
+  /// Atualiza diretamente o valor booleano da checagem
+  Future<Map<String, dynamic>> atualizarChecagem({
+    required String usuarioId,
+    required bool checagem,
+  }) async {
+    try {
+      final url = Uri.parse('$baseUrl/pontuacao/checagem');
+      final response = await http
+          .post(
+            url,
+            headers: _headers,
+            body: jsonEncode({
+              'usuario_id': usuarioId,
+              'checagem': checagem,
+            }),
+          )
+          .timeout(const Duration(seconds: 15));
+
+      final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+      if (data['sucesso'] == true) {
+        usuarioLogado ??= {};
+        usuarioLogado!['checagem'] = checagem;
+      }
+      return data;
+    } catch (e) {
+      return {
+        'sucesso': false,
+        'mensagem': 'Erro ao atualizar checagem: $e',
+      };
+    }
+  }
+
+  /// Reseta a checagem diária do usuário para false
+  Future<Map<String, dynamic>> resetarChecagem(String usuarioId) async {
+    try {
+      final url = Uri.parse('$baseUrl/pontuacao/$usuarioId/resetar-checagem');
+      final response = await http
+          .post(url, headers: _headers)
+          .timeout(const Duration(seconds: 15));
+
+      final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+      if (data['sucesso'] == true) {
+        usuarioLogado ??= {};
+        usuarioLogado!['checagem'] = false;
+      }
+      return data;
+    } catch (e) {
+      return {
+        'sucesso': false,
+        'mensagem': 'Erro ao resetar checagem: $e',
       };
     }
   }

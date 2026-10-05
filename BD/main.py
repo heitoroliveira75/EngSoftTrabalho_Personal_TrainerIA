@@ -233,6 +233,9 @@ def ver_perfil(usuario_id: str) -> Dict[str, Any]:
                         "pontuacao_diaria": 0,
                         "pontuacao_semanal": 0,
                         "pontuacao_total": 0,
+                        "sequencia": 0,
+                        "maior_sequencia": 0,
+                        "checagem": False,
                     }
                 }
             return {"sucesso": False, "mensagem": "Perfil não encontrado."}
@@ -241,6 +244,9 @@ def ver_perfil(usuario_id: str) -> Dict[str, Any]:
         perfil["pontuacao_diaria"] = perfil.get("pontuacao_diaria") or 0
         perfil["pontuacao_semanal"] = perfil.get("pontuacao_semanal") or 0
         perfil["pontuacao_total"] = perfil.get("pontuacao_total") or 0
+        perfil["sequencia"] = perfil.get("sequencia") if perfil.get("sequencia") is not None else 0
+        perfil["maior_sequencia"] = perfil.get("maior_sequencia") if perfil.get("maior_sequencia") is not None else 0
+        perfil["checagem"] = bool(perfil.get("checagem")) if perfil.get("checagem") is not None else False
 
         return {
             "sucesso": True,
@@ -250,9 +256,16 @@ def ver_perfil(usuario_id: str) -> Dict[str, Any]:
         return {"sucesso": False, "mensagem": str(erro)}
 
 
-def editar_perfil(usuario_id: str, nome: Optional[str] = None, cpf: Optional[str] = None) -> Dict[str, Any]:
+def editar_perfil(
+    usuario_id: str,
+    nome: Optional[str] = None,
+    cpf: Optional[str] = None,
+    sequencia: Optional[int] = None,
+    maior_sequencia: Optional[int] = None,
+    checagem: Optional[bool] = None
+) -> Dict[str, Any]:
     """
-    Atualiza os dados de nome e/ou CPF do usuário na tabela 'usuarios'.
+    Atualiza os dados de nome, CPF, sequência, maior sequência e/ou checagem do usuário na tabela 'usuarios'.
     """
     if not usuario_id:
         return {"sucesso": False, "mensagem": "ID do usuário é obrigatório."}
@@ -262,6 +275,12 @@ def editar_perfil(usuario_id: str, nome: Optional[str] = None, cpf: Optional[str
         dados_atualizacao["nome"] = nome.strip()
     if cpf is not None and cpf.strip() != "":
         dados_atualizacao["cpf"] = cpf.strip()
+    if sequencia is not None:
+        dados_atualizacao["sequencia"] = int(sequencia)
+    if maior_sequencia is not None:
+        dados_atualizacao["maior_sequencia"] = int(maior_sequencia)
+    if checagem is not None:
+        dados_atualizacao["checagem"] = bool(checagem)
 
     if not dados_atualizacao:
         return {"sucesso": False, "mensagem": "Nenhum dado informado para atualização."}
@@ -512,7 +531,7 @@ def excluir_treino(treino_id: Union[int, str]) -> Dict[str, Any]:
 
 def ver_pontuacao(usuario_id: str) -> Dict[str, Any]:
     """
-    Consulta e retorna a pontuação diária, semanal e total do usuário na tabela 'usuarios'.
+    Consulta e retorna a pontuação diária, semanal e total, além da sequência, maior sequência e checagem do usuário na tabela 'usuarios'.
     """
     if not usuario_id:
         return {
@@ -521,13 +540,16 @@ def ver_pontuacao(usuario_id: str) -> Dict[str, Any]:
             "pontuacao_diaria": 0,
             "pontuacao_semanal": 0,
             "pontuacao_total": 0,
+            "sequencia": 0,
+            "maior_sequencia": 0,
+            "checagem": False,
         }
 
     try:
         resultado = (
             supabase
             .table("usuarios")
-            .select("id, nome, pontuacao_diaria, pontuacao_semanal, pontuacao_total")
+            .select("id, nome, pontuacao_diaria, pontuacao_semanal, pontuacao_total, sequencia, maior_sequencia, checagem")
             .eq("id", usuario_id)
             .execute()
         )
@@ -540,10 +562,16 @@ def ver_pontuacao(usuario_id: str) -> Dict[str, Any]:
                 "pontuacao_diaria": 0,
                 "pontuacao_semanal": 0,
                 "pontuacao_total": 0,
+                "sequencia": 0,
+                "maior_sequencia": 0,
+                "checagem": False,
                 "pontuacoes": {
                     "pontuacao_diaria": 0,
                     "pontuacao_semanal": 0,
                     "pontuacao_total": 0,
+                    "sequencia": 0,
+                    "maior_sequencia": 0,
+                    "checagem": False,
                 }
             }
 
@@ -551,6 +579,9 @@ def ver_pontuacao(usuario_id: str) -> Dict[str, Any]:
         diaria = dados.get("pontuacao_diaria") or 0
         semanal = dados.get("pontuacao_semanal") or 0
         total = dados.get("pontuacao_total") or 0
+        sequencia = dados.get("sequencia") if dados.get("sequencia") is not None else 0
+        maior_sequencia = dados.get("maior_sequencia") if dados.get("maior_sequencia") is not None else 0
+        checagem = bool(dados.get("checagem")) if dados.get("checagem") is not None else False
 
         return {
             "sucesso": True,
@@ -559,10 +590,16 @@ def ver_pontuacao(usuario_id: str) -> Dict[str, Any]:
             "pontuacao_diaria": diaria,
             "pontuacao_semanal": semanal,
             "pontuacao_total": total,
+            "sequencia": sequencia,
+            "maior_sequencia": maior_sequencia,
+            "checagem": checagem,
             "pontuacoes": {
                 "pontuacao_diaria": diaria,
                 "pontuacao_semanal": semanal,
                 "pontuacao_total": total,
+                "sequencia": sequencia,
+                "maior_sequencia": maior_sequencia,
+                "checagem": checagem,
             }
         }
     except Exception as erro:
@@ -572,12 +609,20 @@ def ver_pontuacao(usuario_id: str) -> Dict[str, Any]:
             "pontuacao_diaria": 0,
             "pontuacao_semanal": 0,
             "pontuacao_total": 0,
+            "sequencia": 0,
+            "maior_sequencia": 0,
+            "checagem": False,
         }
 
 
-def adicionar_pontuacao_diaria(usuario_id: str, pontos: int = 50) -> Dict[str, Any]:
+def adicionar_pontuacao_diaria(
+    usuario_id: str,
+    pontos: int = 50,
+    incrementar_sequencia: Optional[bool] = None
+) -> Dict[str, Any]:
     """
-    Adiciona pontos diários ao usuário, incrementando também as pontuações semanal e total.
+    Adiciona pontos diários ao usuário, incrementa as pontuações semanal e total,
+    atualiza a flag de 'checagem' para True, atualiza a 'sequencia' e calcula a 'maior_sequencia'.
     """
     if not usuario_id:
         return {"sucesso": False, "mensagem": "ID do usuário é obrigatório."}
@@ -586,22 +631,26 @@ def adicionar_pontuacao_diaria(usuario_id: str, pontos: int = 50) -> Dict[str, A
         return {"sucesso": False, "mensagem": "A quantidade de pontos deve ser maior que zero."}
 
     try:
-        # Busca a pontuação atual do usuário
+        # Busca a pontuação e status atuais do usuário
         resultado = (
             supabase
             .table("usuarios")
-            .select("id, pontuacao_diaria, pontuacao_semanal, pontuacao_total")
+            .select("id, pontuacao_diaria, pontuacao_semanal, pontuacao_total, sequencia, maior_sequencia, checagem")
             .eq("id", usuario_id)
             .execute()
         )
 
         if not resultado.data:
             # Caso o usuário ainda não exista na tabela, tenta fazer upsert inicial
+            nova_seq = 1
             dados_novos = {
                 "id": usuario_id,
                 "pontuacao_diaria": pontos,
                 "pontuacao_semanal": pontos,
-                "pontuacao_total": pontos
+                "pontuacao_total": pontos,
+                "sequencia": nova_seq,
+                "maior_sequencia": nova_seq,
+                "checagem": True
             }
             res_upsert = supabase.table("usuarios").upsert(dados_novos).execute()
             if res_upsert.data:
@@ -612,10 +661,16 @@ def adicionar_pontuacao_diaria(usuario_id: str, pontos: int = 50) -> Dict[str, A
                     "pontuacao_diaria": pontos,
                     "pontuacao_semanal": pontos,
                     "pontuacao_total": pontos,
+                    "sequencia": nova_seq,
+                    "maior_sequencia": nova_seq,
+                    "checagem": True,
                     "pontuacoes": {
                         "pontuacao_diaria": pontos,
                         "pontuacao_semanal": pontos,
-                        "pontuacao_total": pontos
+                        "pontuacao_total": pontos,
+                        "sequencia": nova_seq,
+                        "maior_sequencia": nova_seq,
+                        "checagem": True
                     }
                 }
             return {"sucesso": False, "mensagem": "Usuário não encontrado para pontuar."}
@@ -624,10 +679,28 @@ def adicionar_pontuacao_diaria(usuario_id: str, pontos: int = 50) -> Dict[str, A
         atual_diaria = atual.get("pontuacao_diaria") or 0
         atual_semanal = atual.get("pontuacao_semanal") or 0
         atual_total = atual.get("pontuacao_total") or 0
+        atual_sequencia = atual.get("sequencia") if atual.get("sequencia") is not None else 0
+        atual_maior_sequencia = atual.get("maior_sequencia") if atual.get("maior_sequencia") is not None else 0
+        atual_checagem = bool(atual.get("checagem")) if atual.get("checagem") is not None else False
 
         nova_diaria = atual_diaria + pontos
         nova_semanal = atual_semanal + pontos
         nova_total = atual_total + pontos
+
+        # Define nova sequência: se checagem ainda não estava ativa (ou forçado), incrementa sequência
+        if incrementar_sequencia is True:
+            nova_sequencia = atual_sequencia + 1
+        elif incrementar_sequencia is False:
+            nova_sequencia = atual_sequencia
+        else:
+            # Se for a primeira pontuação do ciclo (checagem == False), incrementa
+            nova_sequencia = atual_sequencia + 1 if not atual_checagem else atual_sequencia
+
+        # Garantir ao menos 1 se for a primeira pontuação e a sequência estava zerada
+        if nova_sequencia == 0:
+            nova_sequencia = 1
+
+        novo_maior_sequencia = max(atual_maior_sequencia, nova_sequencia)
 
         res_update = (
             supabase
@@ -635,7 +708,10 @@ def adicionar_pontuacao_diaria(usuario_id: str, pontos: int = 50) -> Dict[str, A
             .update({
                 "pontuacao_diaria": nova_diaria,
                 "pontuacao_semanal": nova_semanal,
-                "pontuacao_total": nova_total
+                "pontuacao_total": nova_total,
+                "sequencia": nova_sequencia,
+                "maior_sequencia": novo_maior_sequencia,
+                "checagem": True
             })
             .eq("id", usuario_id)
             .execute()
@@ -651,11 +727,130 @@ def adicionar_pontuacao_diaria(usuario_id: str, pontos: int = 50) -> Dict[str, A
             "pontuacao_diaria": nova_diaria,
             "pontuacao_semanal": nova_semanal,
             "pontuacao_total": nova_total,
+            "sequencia": nova_sequencia,
+            "maior_sequencia": novo_maior_sequencia,
+            "checagem": True,
             "pontuacoes": {
                 "pontuacao_diaria": nova_diaria,
                 "pontuacao_semanal": nova_semanal,
-                "pontuacao_total": nova_total
+                "pontuacao_total": nova_total,
+                "sequencia": nova_sequencia,
+                "maior_sequencia": novo_maior_sequencia,
+                "checagem": True
             }
         }
     except Exception as erro:
-        return {"sucesso": False, "mensagem": str(erro)}
+        return {"sucesso": False, "mensagem": str(erro)}
+
+
+def atualizar_sequencia(usuario_id: str, sequencia: int) -> Dict[str, Any]:
+    """
+    Atualiza diretamente o número de dias de sequência do usuário na tabela 'usuarios',
+    ajustando automaticamente a maior sequência se a nova sequência for superior.
+    """
+    if not usuario_id:
+        return {"sucesso": False, "mensagem": "ID do usuário é obrigatório."}
+
+    if sequencia is None or sequencia < 0:
+        return {"sucesso": False, "mensagem": "A sequência deve ser um valor maior ou igual a zero."}
+
+    try:
+        # Busca maior_sequencia atual
+        res_atual = supabase.table("usuarios").select("maior_sequencia").eq("id", usuario_id).execute()
+        maior_atual = 0
+        if res_atual.data:
+            maior_atual = res_atual.data[0].get("maior_sequencia") or 0
+
+        novo_maior = max(maior_atual, int(sequencia))
+
+        resultado = (
+            supabase
+            .table("usuarios")
+            .update({
+                "sequencia": int(sequencia),
+                "maior_sequencia": novo_maior
+            })
+            .eq("id", usuario_id)
+            .execute()
+        )
+
+        if not resultado.data:
+            return {"sucesso": False, "mensagem": "Usuário não encontrado para atualizar a sequência."}
+
+        return {
+            "sucesso": True,
+            "mensagem": "Sequência atualizada com sucesso!",
+            "usuario_id": usuario_id,
+            "sequencia": int(sequencia),
+            "maior_sequencia": novo_maior
+        }
+    except Exception as erro:
+        return {"sucesso": False, "mensagem": str(erro)}
+
+
+def atualizar_maior_sequencia(usuario_id: str, maior_sequencia: int) -> Dict[str, Any]:
+    """
+    Atualiza diretamente o recorde de maior sequência em dias do usuário na tabela 'usuarios'.
+    """
+    if not usuario_id:
+        return {"sucesso": False, "mensagem": "ID do usuário é obrigatório."}
+
+    if maior_sequencia is None or maior_sequencia < 0:
+        return {"sucesso": False, "mensagem": "A maior sequência deve ser um valor maior ou igual a zero."}
+
+    try:
+        resultado = (
+            supabase
+            .table("usuarios")
+            .update({"maior_sequencia": int(maior_sequencia)})
+            .eq("id", usuario_id)
+            .execute()
+        )
+
+        if not resultado.data:
+            return {"sucesso": False, "mensagem": "Usuário não encontrado para atualizar maior sequência."}
+
+        return {
+            "sucesso": True,
+            "mensagem": "Maior sequência atualizada com sucesso!",
+            "usuario_id": usuario_id,
+            "maior_sequencia": int(maior_sequencia)
+        }
+    except Exception as erro:
+        return {"sucesso": False, "mensagem": str(erro)}
+
+
+def atualizar_checagem(usuario_id: str, checagem: bool) -> Dict[str, Any]:
+    """
+    Atualiza o estado da checagem booleana do usuário na tabela 'usuarios'.
+    """
+    if not usuario_id:
+        return {"sucesso": False, "mensagem": "ID do usuário é obrigatório."}
+
+    try:
+        resultado = (
+            supabase
+            .table("usuarios")
+            .update({"checagem": bool(checagem)})
+            .eq("id", usuario_id)
+            .execute()
+        )
+
+        if not resultado.data:
+            return {"sucesso": False, "mensagem": "Usuário não encontrado para atualizar checagem."}
+
+        return {
+            "sucesso": True,
+            "mensagem": "Checagem atualizada com sucesso!",
+            "usuario_id": usuario_id,
+            "checagem": bool(checagem)
+        }
+    except Exception as erro:
+        return {"sucesso": False, "mensagem": str(erro)}
+
+
+def resetar_checagem_diaria(usuario_id: str) -> Dict[str, Any]:
+    """
+    Reseta o campo checagem do usuário para False (para novo ciclo diário).
+    """
+    return atualizar_checagem(usuario_id, checagem=False)

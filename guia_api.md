@@ -250,7 +250,7 @@ Todas as rotas respondem no formato JSON padronizado:
 ## 2. 👤 Perfil de Usuário
 
 ### 2.1. Visualizar Perfil (`GET /perfil/{usuario_id}`)
-* **O que faz:** Retorna os dados da tabela `usuarios` vinculados ao ID do usuário.
+* **O que faz:** Retorna os dados da tabela `usuarios` vinculados ao ID do usuário, incluindo pontuações, sequência, maior sequência e status de checagem.
 * **Exemplo em Python (`requests`):**
   ```python
   import requests
@@ -258,24 +258,33 @@ Todas as rotas respondem no formato JSON padronizado:
   res = requests.get(f"http://127.0.0.1:8000/perfil/{usuario_id}").json()
   if res["sucesso"]:
       print("Nome:", res["perfil"]["nome"])
+      print("Sequência:", res["perfil"].get("sequencia"), "dias")
+      print("Maior Sequência:", res["perfil"].get("maior_sequencia"), "dias")
+      print("Checagem:", res["perfil"].get("checagem"))
   ```
 * **Exemplo em Flutter (`ApiService`):**
   ```dart
   final resposta = await ApiService().verPerfil(usuarioId);
   if (resposta['sucesso'] == true) {
     print('Nome: ${resposta['perfil']['nome']}');
+    print('Sequência: ${resposta['perfil']['sequencia']} dias');
+    print('Maior Sequência: ${resposta['perfil']['maior_sequencia']} dias');
+    print('Checagem: ${resposta['perfil']['checagem']}');
   }
   ```
 
 ---
 
 ### 2.2. Editar Perfil (`PUT /perfil/{usuario_id}`)
-* **O que faz:** Atualiza os dados de nome e/ou CPF do usuário no banco.
+* **O que faz:** Atualiza os dados de nome, CPF, sequência, maior sequência e/ou checagem do usuário no banco.
 * **Payload JSON:**
   ```json
   {
     "nome": "João Pedro Silva",
-    "cpf": "123.456.789-00"
+    "cpf": "123.456.789-00",
+    "sequencia": 5,
+    "maior_sequencia": 8,
+    "checagem": true
   }
   ```
 * **Exemplo em Python (`requests`):**
@@ -284,7 +293,10 @@ Todas as rotas respondem no formato JSON padronizado:
   usuario_id = "uuid-do-usuario"
   res = requests.put(f"http://127.0.0.1:8000/perfil/{usuario_id}", json={
       "nome": "João Pedro Silva",
-      "cpf": "123.456.789-00"
+      "cpf": "123.456.789-00",
+      "sequencia": 5,
+      "maior_sequencia": 8,
+      "checagem": True
   }).json()
   print(res["mensagem"])
   ```
@@ -294,6 +306,9 @@ Todas as rotas respondem no formato JSON padronizado:
     usuarioId,
     nome: 'João Pedro Silva',
     cpf: '123.456.789-00',
+    sequencia: 5,
+    maiorSequencia: 8,
+    checagem: true,
   );
   print(resposta['mensagem']);
   ```
@@ -466,7 +481,7 @@ Todas as rotas respondem no formato JSON padronizado:
 ## 5. 🏆 Pontuações e Gamificação
 
 ### 5.1. Visualizar Pontuações (`GET /pontuacao/{usuario_id}`)
-* **O que faz:** Retorna a pontuação diária, semanal e total do usuário armazenada na tabela `usuarios`.
+* **O que faz:** Retorna a pontuação diária, semanal e total, além da sequência de dias de uso e status de checagem do usuário.
 * **Exemplo em Python (`requests`):**
   ```python
   import requests
@@ -476,6 +491,8 @@ Todas as rotas respondem no formato JSON padronizado:
       print("Pontos Hoje:", res["pontuacao_diaria"])
       print("Pontos Semana:", res["pontuacao_semanal"])
       print("Pontos Totais:", res["pontuacao_total"])
+      print("Sequência:", res["sequencia"], "dias")
+      print("Checagem:", res["checagem"])
   ```
 * **Exemplo em Flutter (`ApiService`):**
   ```dart
@@ -484,18 +501,21 @@ Todas as rotas respondem no formato JSON padronizado:
     print('Pontos hoje: ${resposta['pontuacao_diaria']}');
     print('Pontos semana: ${resposta['pontuacao_semanal']}');
     print('Pontos totais: ${resposta['pontuacao_total']}');
+    print('Sequência: ${resposta['sequencia']} dias');
+    print('Checagem ativa: ${resposta['checagem']}');
   }
   ```
 
 ---
 
 ### 5.2. Adicionar Pontuação Diária (`POST /pontuacao/diaria`)
-* **O que faz:** Adiciona pontos diários ao usuário e incrementa simultaneamente a pontuação semanal e a pontuação total.
+* **O que faz:** Adiciona pontos diários ao usuário, incrementa simultaneamente a pontuação semanal e a total, define `checagem = True` e atualiza a `sequencia` de dias.
 * **Payload JSON:**
   ```json
   {
     "usuario_id": "uuid-do-usuario",
-    "pontos": 50
+    "pontos": 50,
+    "incrementar_sequencia": null
   }
   ```
 * **Exemplo em Python (`requests`):**
@@ -510,6 +530,8 @@ Todas as rotas respondem no formato JSON padronizado:
   if res["sucesso"]:
       print(res["mensagem"])
       print(f"Nova pontuação hoje: {res['pontuacao_diaria']} pts")
+      print(f"Sequência atual: {res['sequencia']} dias")
+      print(f"Checagem: {res['checagem']}")
   ```
 * **Exemplo em Flutter (`ApiService`):**
   ```dart
@@ -519,6 +541,38 @@ Todas as rotas respondem no formato JSON padronizado:
   );
   if (resposta['sucesso'] == true) {
     print('Pontos adicionados: ${resposta['mensagem']}');
+    print('Nova sequência: ${resposta['sequencia']} dias');
   }
   ```
+
+---
+
+### 5.3. Atualizar Sequência (`PUT /pontuacao/{usuario_id}/sequencia` ou `POST /pontuacao/sequencia`)
+* **O que faz:** Atualiza diretamente o valor numérico de dias consecutivos que a pessoa usou o app.
+* **Payload JSON (`POST /pontuacao/sequencia`):**
+  ```json
+  {
+    "usuario_id": "uuid-do-usuario",
+    "sequencia": 7
+  }
+  ```
+* **Exemplo em Flutter (`ApiService`):**
+  ```dart
+  final resposta = await ApiService().atualizarSequencia(
+    usuarioId: usuarioId,
+    sequencia: 7,
+  );
+  print(resposta['mensagem']);
+  ```
+
+---
+
+### 5.4. Atualizar / Resetar Checagem Diária (`POST /pontuacao/{usuario_id}/resetar-checagem`)
+* **O que faz:** Reseta o estado booleano de `checagem` para `false` no início de um novo dia/ciclo.
+* **Exemplo em Flutter (`ApiService`):**
+  ```dart
+  final resposta = await ApiService().resetarChecagem(usuarioId);
+  print(resposta['mensagem']);
+  ```
+
 

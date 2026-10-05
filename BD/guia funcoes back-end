@@ -99,9 +99,9 @@ Padrão de Retorno:
 2. Perfil de Usuário:
 
 - ver_perfil(usuario_id):
-  -> O que faz: Consulta e retorna os dados cadastrais da tabela usuarios referentes ao ID informado.
+  -> O que faz: Consulta e retorna os dados cadastrais da tabela usuarios referentes ao ID informado, incluindo pontuações, sequência, maior sequência e checagem.
   -> Parâmetros: usuario_id (str - UUID do usuário).
-  -> Retorno: {"sucesso": True, "perfil": {"id": "...", "nome": "...", "cpf": "...", "created_at": "..."}} ou {"sucesso": False, "mensagem": "..."}
+  -> Retorno: {"sucesso": True, "perfil": {"id": "...", "nome": "...", "cpf": "...", "pontuacao_diaria": 0, "pontuacao_semanal": 0, "pontuacao_total": 0, "sequencia": 2, "maior_sequencia": 6, "checagem": True, "created_at": "..."}} ou {"sucesso": False, "mensagem": "..."}
   -> Exemplo de código e prints:
      resposta = ver_perfil("a1b2c3d4-0000-0000-0000-000000000000")
      if resposta["sucesso"]:
@@ -110,20 +110,26 @@ Padrão de Retorno:
          print("ID:", perfil["id"])
          print("Nome:", perfil["nome"])
          print("CPF:", perfil.get("cpf", "Não informado"))
+         print("Sequência:", perfil.get("sequencia", 0), "dias")
+         print("Maior Sequência:", perfil.get("maior_sequencia", 0), "dias")
+         print("Checagem:", perfil.get("checagem", False))
          print("Data de Criação:", perfil.get("created_at"))
      else:
          print("Erro ao carregar perfil:", resposta["mensagem"])
 
-- editar_perfil(usuario_id, nome=None, cpf=None):
-  -> O que faz: Atualiza os dados de nome e/ou CPF do usuário na tabela usuarios.
-  -> Parâmetros: usuario_id (str), nome (str, opcional), cpf (str, opcional).
+- editar_perfil(usuario_id, nome=None, cpf=None, sequencia=None, maior_sequencia=None, checagem=None):
+  -> O que faz: Atualiza os dados de nome, CPF, sequência, maior sequência e/ou checagem do usuário na tabela usuarios.
+  -> Parâmetros: usuario_id (str), nome (str, opcional), cpf (str, opcional), sequencia (int, opcional), maior_sequencia (int, opcional), checagem (bool, opcional).
   -> Retorno: {"sucesso": True, "mensagem": "Perfil atualizado com sucesso!", "perfil": {...}} ou {"sucesso": False, "mensagem": "..."}
   -> Exemplo de código e prints:
-     resposta = editar_perfil("a1b2c3d4-0000-0000-0000-000000000000", nome="João da Silva", cpf="123.456.789-00")
+     resposta = editar_perfil("a1b2c3d4-0000-0000-0000-000000000000", nome="João da Silva", cpf="123.456.789-00", sequencia=5, maior_sequencia=8, checagem=True)
      if resposta["sucesso"]:
          print(resposta["mensagem"])
          print("Nome atualizado:", resposta["perfil"]["nome"])
          print("CPF atualizado:", resposta["perfil"]["cpf"])
+         print("Sequência:", resposta["perfil"].get("sequencia"))
+         print("Maior Sequência:", resposta["perfil"].get("maior_sequencia"))
+         print("Checagem:", resposta["perfil"].get("checagem"))
      else:
          print("Erro ao editar perfil:", resposta["mensagem"])
 
@@ -250,7 +256,7 @@ Padrão de Retorno:
 5. Pontuações e Gamificação:
 
 - ver_pontuacao(usuario_id):
-  -> O que faz: Consulta e retorna a pontuação diária, semanal e total do usuário na tabela usuarios.
+  -> O que faz: Consulta e retorna a pontuação diária, semanal e total, além da sequência (dias de uso), maior sequência (recorde histórico) e checagem do usuário na tabela usuarios.
   -> Parâmetros: usuario_id (str - UUID do usuário).
   -> Retorno: {
        "sucesso": True,
@@ -259,10 +265,16 @@ Padrão de Retorno:
        "pontuacao_diaria": 150,
        "pontuacao_semanal": 450,
        "pontuacao_total": 2150,
+       "sequencia": 3,
+       "maior_sequencia": 6,
+       "checagem": True,
        "pontuacoes": {
          "pontuacao_diaria": 150,
          "pontuacao_semanal": 450,
-         "pontuacao_total": 2150
+         "pontuacao_total": 2150,
+         "sequencia": 3,
+         "maior_sequencia": 6,
+         "checagem": True
        }
      } ou {"sucesso": False, "mensagem": "..."}
   -> Exemplo de código e prints:
@@ -272,12 +284,18 @@ Padrão de Retorno:
          print("Pontuação Diária:", resposta["pontuacao_diaria"])
          print("Pontuação Semanal:", resposta["pontuacao_semanal"])
          print("Pontuação Total:", resposta["pontuacao_total"])
+         print("Sequência:", resposta["sequencia"], "dias")
+         print("Maior Sequência:", resposta["maior_sequencia"], "dias")
+         print("Checagem:", resposta["checagem"])
      else:
          print("Erro ao carregar pontuações:", resposta["mensagem"])
 
-- adicionar_pontuacao_diaria(usuario_id, pontos=50):
-  -> O que faz: Adiciona pontos diários ao usuário e incrementa simultaneamente a pontuação semanal e a pontuação total na tabela usuarios.
-  -> Parâmetros: usuario_id (str - UUID do usuário), pontos (int - quantidade de pontos a adicionar, padrão: 50).
+- adicionar_pontuacao_diaria(usuario_id, pontos=50, incrementar_sequencia=None):
+  -> O que faz: Adiciona pontos diários ao usuário, incrementa simultaneamente a pontuação semanal e a pontuação total, altera a checagem para True, atualiza a sequência de dias de uso do app e ajusta a maior sequência automaticamente se a nova sequência superar o recorde.
+  -> Parâmetros: 
+     - usuario_id (str): UUID do usuário.
+     - pontos (int, opcional): Quantidade de pontos a adicionar (padrão: 50).
+     - incrementar_sequencia (bool, opcional): Força incremento (True/False). Se None (padrão), incrementa automaticamente na primeira pontuação do dia (quando checagem era False).
   -> Retorno: {
        "sucesso": True,
        "mensagem": "50 pontos adicionados com sucesso!",
@@ -285,10 +303,16 @@ Padrão de Retorno:
        "pontuacao_diaria": 200,
        "pontuacao_semanal": 500,
        "pontuacao_total": 2200,
+       "sequencia": 4,
+       "maior_sequencia": 6,
+       "checagem": True,
        "pontuacoes": {
          "pontuacao_diaria": 200,
          "pontuacao_semanal": 500,
-         "pontuacao_total": 2200
+         "pontuacao_total": 2200,
+         "sequencia": 4,
+         "maior_sequencia": 6,
+         "checagem": True
        }
      } ou {"sucesso": False, "mensagem": "..."}
   -> Exemplo de código e prints:
@@ -298,6 +322,35 @@ Padrão de Retorno:
          print(f"Nova pontuação diária: {resposta['pontuacao_diaria']} pts")
          print(f"Nova pontuação semanal: {resposta['pontuacao_semanal']} pts")
          print(f"Nova pontuação total: {resposta['pontuacao_total']} pts")
+         print(f"Sequência atual: {resposta['sequencia']} dias")
+         print(f"Maior sequência: {resposta['maior_sequencia']} dias")
+         print(f"Checagem ativa: {resposta['checagem']}")
      else:
          print("Erro ao adicionar pontuação:", resposta["mensagem"])
+
+- atualizar_sequencia(usuario_id, sequencia):
+  -> O que faz: Atualiza diretamente a quantidade de dias da sequência do usuário na tabela usuarios e ajusta a maior_sequencia se a nova sequência for superior.
+  -> Parâmetros: usuario_id (str), sequencia (int - dias de uso >= 0).
+  -> Retorno: {"sucesso": True, "mensagem": "Sequência atualizada com sucesso!", "usuario_id": "...", "sequencia": 5, "maior_sequencia": 6} ou {"sucesso": False, "mensagem": "..."}
+  -> Exemplo:
+     resposta = atualizar_sequencia("a1b2c3d4-0000-0000-0000-000000000000", sequencia=7)
+     print(resposta["mensagem"], "Nova sequência:", resposta.get("sequencia"), "Maior sequência:", resposta.get("maior_sequencia"))
+
+- atualizar_maior_sequencia(usuario_id, maior_sequencia):
+  -> O que faz: Atualiza diretamente a maior sequência (recorde histórico de dias de uso) do usuário na tabela usuarios.
+  -> Parâmetros: usuario_id (str), maior_sequencia (int - recorde de dias >= 0).
+  -> Retorno: {"sucesso": True, "mensagem": "Maior sequência atualizada com sucesso!", "usuario_id": "...", "maior_sequencia": 10} ou {"sucesso": False, "mensagem": "..."}
+  -> Exemplo:
+     resposta = atualizar_maior_sequencia("a1b2c3d4-0000-0000-0000-000000000000", maior_sequencia=10)
+     print(resposta["mensagem"], "Maior sequência:", resposta.get("maior_sequencia"))
+
+- atualizar_checagem(usuario_id, checagem):
+  -> O que faz: Atualiza o status booleano do campo checagem do usuário.
+  -> Parâmetros: usuario_id (str), checagem (bool).
+  -> Retorno: {"sucesso": True, "mensagem": "Checagem atualizada com sucesso!", "usuario_id": "...", "checagem": True} ou {"sucesso": False, "mensagem": "..."}
+
+- resetar_checagem_diaria(usuario_id):
+  -> O que faz: Reseta a checagem do usuário para False para permitir nova validação diária.
+  -> Parâmetros: usuario_id (str).
+  -> Retorno: {"sucesso": True, "mensagem": "Checagem atualizada com sucesso!", "usuario_id": "...", "checagem": False} ou {"sucesso": False, "mensagem": "..."}
 

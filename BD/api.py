@@ -43,6 +43,9 @@ class LoginRequest(BaseModel):
 class EditarPerfilRequest(BaseModel):
     nome: Optional[str] = None
     cpf: Optional[str] = None
+    sequencia: Optional[int] = None
+    maior_sequencia: Optional[int] = None
+    checagem: Optional[bool] = None
 
 class ExercicioTreinoItem(BaseModel):
     exercicio_id: int
@@ -78,6 +81,19 @@ class AlterarSenhaRequest(BaseModel):
 class AdicionarPontuacaoRequest(BaseModel):
     usuario_id: str
     pontos: int = Field(default=50, gt=0, description="Quantidade de pontos diários a adicionar")
+    incrementar_sequencia: Optional[bool] = Field(default=None, description="Forçar incremento da sequência (opcional)")
+
+class AtualizarSequenciaRequest(BaseModel):
+    usuario_id: str
+    sequencia: int = Field(ge=0, description="Novo valor de sequência em dias")
+
+class AtualizarMaiorSequenciaRequest(BaseModel):
+    usuario_id: str
+    maior_sequencia: int = Field(ge=0, description="Novo recorde de maior sequência em dias")
+
+class AtualizarChecagemRequest(BaseModel):
+    usuario_id: str
+    checagem: bool = Field(description="Status booleano da checagem")
 
 # ============================================================
 # ROTAS - STATUS DA API
@@ -159,7 +175,14 @@ def api_ver_perfil(usuario_id: str):
 
 @app.put("/perfil/{usuario_id}")
 def api_editar_perfil(usuario_id: str, req: EditarPerfilRequest):
-    resposta = bd.editar_perfil(usuario_id, nome=req.nome, cpf=req.cpf)
+    resposta = bd.editar_perfil(
+        usuario_id=usuario_id,
+        nome=req.nome,
+        cpf=req.cpf,
+        sequencia=req.sequencia,
+        maior_sequencia=req.maior_sequencia,
+        checagem=req.checagem
+    )
     return resposta
 
 # ============================================================
@@ -226,7 +249,7 @@ def api_excluir_treino(treino_id: str):
 @app.get("/pontuacao/{usuario_id}")
 def api_ver_pontuacao(usuario_id: str):
     """
-    Retorna as pontuações (diária, semanal e total) do usuário.
+    Retorna as pontuações (diária, semanal e total), além da sequência e checagem do usuário.
     """
     resposta = bd.ver_pontuacao(usuario_id)
     return resposta
@@ -234,17 +257,85 @@ def api_ver_pontuacao(usuario_id: str):
 @app.post("/pontuacao/diaria")
 def api_adicionar_pontuacao_diaria(req: AdicionarPontuacaoRequest):
     """
-    Adiciona pontuação diária ao usuário, atualizando também a semanal e a total.
+    Adiciona pontuação diária ao usuário, atualizando também a semanal, a total, checagem e sequência.
     """
-    resposta = bd.adicionar_pontuacao_diaria(usuario_id=req.usuario_id, pontos=req.pontos)
+    resposta = bd.adicionar_pontuacao_diaria(
+        usuario_id=req.usuario_id,
+        pontos=req.pontos,
+        incrementar_sequencia=req.incrementar_sequencia
+    )
     return resposta
 
 @app.post("/pontuacao/{usuario_id}/adicionar-diaria")
-def api_adicionar_pontuacao_diaria_path(usuario_id: str, pontos: int = Query(50, gt=0)):
+def api_adicionar_pontuacao_diaria_path(
+    usuario_id: str,
+    pontos: int = Query(50, gt=0),
+    incrementar_sequencia: Optional[bool] = Query(None)
+):
     """
     Endpoint alternativo com usuario_id na URL para adicionar pontos diários.
     """
-    resposta = bd.adicionar_pontuacao_diaria(usuario_id=usuario_id, pontos=pontos)
+    resposta = bd.adicionar_pontuacao_diaria(
+        usuario_id=usuario_id,
+        pontos=pontos,
+        incrementar_sequencia=incrementar_sequencia
+    )
+    return resposta
+
+@app.put("/pontuacao/{usuario_id}/sequencia")
+def api_atualizar_sequencia_path(usuario_id: str, sequencia: int = Query(..., ge=0)):
+    """
+    Atualiza diretamente o valor da sequência de dias de um usuário.
+    """
+    resposta = bd.atualizar_sequencia(usuario_id=usuario_id, sequencia=sequencia)
+    return resposta
+
+@app.post("/pontuacao/sequencia")
+def api_atualizar_sequencia(req: AtualizarSequenciaRequest):
+    """
+    Atualiza diretamente a sequência de dias através de JSON payload.
+    """
+    resposta = bd.atualizar_sequencia(usuario_id=req.usuario_id, sequencia=req.sequencia)
+    return resposta
+
+@app.put("/pontuacao/{usuario_id}/maior-sequencia")
+def api_atualizar_maior_sequencia_path(usuario_id: str, maior_sequencia: int = Query(..., ge=0)):
+    """
+    Atualiza diretamente o recorde de maior sequência de dias de um usuário.
+    """
+    resposta = bd.atualizar_maior_sequencia(usuario_id=usuario_id, maior_sequencia=maior_sequencia)
+    return resposta
+
+@app.post("/pontuacao/maior-sequencia")
+def api_atualizar_maior_sequencia(req: AtualizarMaiorSequenciaRequest):
+    """
+    Atualiza diretamente a maior sequência de dias através de JSON payload.
+    """
+    resposta = bd.atualizar_maior_sequencia(usuario_id=req.usuario_id, maior_sequencia=req.maior_sequencia)
+    return resposta
+
+@app.put("/pontuacao/{usuario_id}/checagem")
+def api_atualizar_checagem_path(usuario_id: str, checagem: bool = Query(...)):
+    """
+    Atualiza o status de checagem do usuário.
+    """
+    resposta = bd.atualizar_checagem(usuario_id=usuario_id, checagem=checagem)
+    return resposta
+
+@app.post("/pontuacao/checagem")
+def api_atualizar_checagem(req: AtualizarChecagemRequest):
+    """
+    Atualiza o status de checagem através de JSON payload.
+    """
+    resposta = bd.atualizar_checagem(usuario_id=req.usuario_id, checagem=req.checagem)
+    return resposta
+
+@app.post("/pontuacao/{usuario_id}/resetar-checagem")
+def api_resetar_checagem(usuario_id: str):
+    """
+    Reseta a checagem diária do usuário para False.
+    """
+    resposta = bd.resetar_checagem_diaria(usuario_id=usuario_id)
     return resposta
 
 # ============================================================

@@ -44,13 +44,17 @@ A. Criação do Arquivo 'BD/api.py':
      * POST /auth/esqueceu-senha     -> Recuperação de senha no Supabase Auth
      * POST /auth/redefinir-senha    -> Redefinição de senha no Supabase Auth
      * GET  /perfil/{usuario_id}     -> Chama ver_perfil(usuario_id)
-     * PUT  /perfil/{usuario_id}     -> Chama editar_perfil(...)
+     * PUT  /perfil/{usuario_id}     -> Chama editar_perfil(...) [com suporte a sequencia e checagem]
      * GET  /exercicios              -> Chama listar_exercicios(grupo_muscular)
      * GET  /treinos/pre-montados    -> Chama ver_treinos_premont()
      * GET  /treinos/usuario/{id}    -> Chama listar_treinos(usuario_id)
      * POST /treinos                 -> Chama criar_treino(...)
      * PUT  /treinos/{treino_id}     -> Chama editar_treino(...)
      * DELETE /treinos/{treino_id}   -> Chama excluir_treino(...)
+     * GET  /pontuacao/{usuario_id}  -> Chama ver_pontuacao(...) [pontuações, sequencia e checagem]
+     * POST /pontuacao/diaria        -> Chama adicionar_pontuacao_diaria(...) [pontuações, checagem=True e sequencia]
+     * POST /pontuacao/sequencia     -> Chama atualizar_sequencia(...)
+     * POST /pontuacao/checagem      -> Chama atualizar_checagem(...)
 
 B. Criação do Arquivo 'BD/requirements.txt':
    - Lista todas as dependências Python necessárias para rodar o back-end:
@@ -60,9 +64,9 @@ B. Criação do Arquivo 'BD/requirements.txt':
      * python-dotenv
      * pydantic
 
-C. Preservação do 'BD/main.py' e 'BD/supabase_client.py':
-   - As funções originais de manipulação do Supabase foram mantidas intactas,
-     garantindo a integridade dos testes e regras pré-existentes.
+C. Preservação e Evolução do 'BD/main.py' e 'BD/supabase_client.py':
+   - As funções originais de manipulação do Supabase foram preservadas e expandidas
+     para receber e manipular as variáveis 'sequencia' e 'checagem' na tabela 'usuarios'.
 
 
 --------------------------------------------------------------------------------
@@ -85,6 +89,7 @@ C. Criação da Camada de Serviços ('lib/services/api_service.dart'):
      métodos de comunicação com a API Python.
    - Converte os dados em JSON (jsonEncode) e decodifica as respostas (jsonDecode).
    - Gerencia o token JWT e a sessão do usuário autenticado na memória.
+   - Getters e métodos reativos para pontuação diária, semanal, total, sequência de dias e checagem.
 
 D. Centralização e Conexão das Telas ('lib/screens/'):
    - Migração definitiva de todas as telas para a pasta principal do projeto.
@@ -101,15 +106,19 @@ D. Centralização e Conexão das Telas ('lib/screens/'):
      * Fluxo completo para solicitar código de recuperação e definir nova senha.
    - HomeScreen ('lib/screens/home_screen.dart'):
      * Exibe o nome do usuário logado dinamicamente.
-     * Botão no cabeçalho para deslogar (logout).
-     * Botão "Começar o Treino" redireciona para a lista de treinos.
+     * Carrega pontuações reais (hoje, semana e total) e a sequência de dias de uso diretamente da API/Supabase.
+     * Botão "Hora de Treinar" redireciona para a lista de treinos.
+   - ProfileScreen ('lib/screens/profile_screen.dart'):
+     * Exibe o desempenho completo do usuário com pontuações e sequência em dias vindas da base de dados.
+     * Permite alterar o nome de perfil, senha e deslogar.
    - TreinosScreen ('lib/screens/treinos_screen.dart'):
      * Tela com listagem dinâmica dos treinos pré-montados e seus respectivos
        exercícios (séries, repetições e grupos musculares) vindos do Supabase.
+     * Botão "Concluir Treino (+50 pts)" que adiciona pontuação, atualiza a sequência e ativa a checagem no banco.
 
 E. Ponto de Entrada ('lib/main.dart'):
    - Configuração de tema escuro moderno e sistema de rotas nomeadas:
-     '/login', '/cadastro', '/esqueceu-senha', '/home', '/treinos'.
+     '/login', '/cadastro', '/esqueceu-senha', '/home', '/treinos', '/perfil'.
 
 
 --------------------------------------------------------------------------------

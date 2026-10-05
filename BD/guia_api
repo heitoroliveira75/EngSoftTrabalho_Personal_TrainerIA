@@ -304,6 +304,11 @@ Padrão de Resposta da API:
        "id": "uuid-do-usuario",
        "nome": "João Silva",
        "cpf": "123.456.789-00",
+       "pontuacao_diaria": 150,
+       "pontuacao_semanal": 450,
+       "pontuacao_total": 2150,
+       "sequencia": 3,
+       "checagem": true,
        "created_at": "2026-09-30T21:00:00Z"
      }
    }
@@ -315,6 +320,8 @@ Padrão de Resposta da API:
    if resposta["sucesso"]:
        print("Nome:", resposta["perfil"]["nome"])
        print("CPF:", resposta["perfil"].get("cpf"))
+       print("Sequência:", resposta["perfil"].get("sequencia"), "dias")
+       print("Checagem:", resposta["perfil"].get("checagem"))
 
 -> Exemplo em Flutter (Dart / ApiService):
    final resposta = await ApiService().verPerfil(usuarioId);
@@ -322,6 +329,8 @@ Padrão de Resposta da API:
      final perfil = resposta['perfil'];
      print('Nome: ${perfil['nome']}');
      print('CPF: ${perfil['cpf']}');
+     print('Sequência: ${perfil['sequencia']} dias');
+     print('Checagem: ${perfil['checagem']}');
    }
 
 
@@ -329,12 +338,14 @@ Padrão de Resposta da API:
 2.2. Editar Perfil
 --------------------------------------------------------------------------------
 -> Rota: PUT /perfil/{usuario_id}
--> O que faz: Atualiza os dados de nome e/ou CPF do usuário na tabela 'usuarios'.
+-> O que faz: Atualiza os dados de nome, CPF, sequência e/ou checagem do usuário na tabela 'usuarios'.
 -> Parâmetros de URL: usuario_id (string UUID).
 -> Payload JSON:
    {
      "nome": "João Pedro Silva",
-     "cpf": "123.456.789-00"
+     "cpf": "123.456.789-00",
+     "sequencia": 5,
+     "checagem": true
    }
 -> Retorno de Sucesso:
    {
@@ -348,7 +359,9 @@ Padrão de Resposta da API:
    usuario_id = "uuid-do-usuario"
    payload = {
        "nome": "João Pedro Silva",
-       "cpf": "123.456.789-00"
+       "cpf": "123.456.789-00",
+       "sequencia": 5,
+       "checagem": True
    }
    resposta = requests.put(f"http://127.0.0.1:8000/perfil/{usuario_id}", json=payload).json()
    print(resposta["mensagem"])
@@ -358,6 +371,8 @@ Padrão de Resposta da API:
      usuarioId,
      nome: 'João Pedro Silva',
      cpf: '123.456.789-00',
+     sequencia: 5,
+     checagem: true,
    );
    print(resposta['mensagem']);
 
@@ -603,7 +618,7 @@ Padrão de Resposta da API:
 5.1. Visualizar Pontuações do Usuário
 --------------------------------------------------------------------------------
 -> Rota: GET /pontuacao/{usuario_id}
--> O que faz: Retorna a pontuação diária, semanal e total do usuário da tabela 'usuarios'.
+-> O que faz: Retorna a pontuação diária, semanal e total, além da sequência e checagem do usuário da tabela 'usuarios'.
 -> Parâmetros de URL: usuario_id (string UUID).
 -> Retorno de Sucesso:
    {
@@ -613,10 +628,14 @@ Padrão de Resposta da API:
      "pontuacao_diaria": 150,
      "pontuacao_semanal": 450,
      "pontuacao_total": 2150,
+     "sequencia": 3,
+     "checagem": true,
      "pontuacoes": {
        "pontuacao_diaria": 150,
        "pontuacao_semanal": 450,
-       "pontuacao_total": 2150
+       "pontuacao_total": 2150,
+       "sequencia": 3,
+       "checagem": true
      }
    }
 
@@ -628,6 +647,8 @@ Padrão de Resposta da API:
        print("Pontos Hoje:", resposta["pontuacao_diaria"])
        print("Pontos Semana:", resposta["pontuacao_semanal"])
        print("Pontos Total:", resposta["pontuacao_total"])
+       print("Sequência:", resposta["sequencia"], "dias")
+       print("Checagem:", resposta["checagem"])
 
 -> Exemplo em Flutter (Dart / ApiService):
    final resposta = await ApiService().verPontuacao(usuarioId);
@@ -635,6 +656,8 @@ Padrão de Resposta da API:
      print('Pontos hoje: ${resposta['pontuacao_diaria']}');
      print('Pontos semana: ${resposta['pontuacao_semanal']}');
      print('Pontos totais: ${resposta['pontuacao_total']}');
+     print('Sequência: ${resposta['sequencia']} dias');
+     print('Checagem: ${resposta['checagem']}');
    }
 
 
@@ -642,11 +665,12 @@ Padrão de Resposta da API:
 5.2. Adicionar Pontuação Diária
 --------------------------------------------------------------------------------
 -> Rota: POST /pontuacao/diaria
--> O que faz: Adiciona pontos diários ao usuário e incrementa simultaneamente a pontuação semanal e a total.
+-> O que faz: Adiciona pontos diários ao usuário, incrementa simultaneamente a pontuação semanal e a total, define checagem como True e atualiza a sequência de dias de uso do app.
 -> Payload JSON:
    {
      "usuario_id": "uuid-do-usuario",
-     "pontos": 50
+     "pontos": 50,
+     "incrementar_sequencia": null
    }
 -> Retorno de Sucesso:
    {
@@ -656,10 +680,14 @@ Padrão de Resposta da API:
      "pontuacao_diaria": 200,
      "pontuacao_semanal": 500,
      "pontuacao_total": 2200,
+     "sequencia": 4,
+     "checagem": true,
      "pontuacoes": {
        "pontuacao_diaria": 200,
        "pontuacao_semanal": 500,
-       "pontuacao_total": 2200
+       "pontuacao_total": 2200,
+       "sequencia": 4,
+       "checagem": true
      }
    }
 
@@ -673,6 +701,8 @@ Padrão de Resposta da API:
    if resposta["sucesso"]:
        print(resposta["mensagem"])
        print("Novo total hoje:", resposta["pontuacao_diaria"])
+       print("Sequência:", resposta["sequencia"], "dias")
+       print("Checagem:", resposta["checagem"])
 
 -> Exemplo em Flutter (Dart / ApiService):
    final resposta = await ApiService().adicionarPontuacaoDiaria(
@@ -682,5 +712,37 @@ Padrão de Resposta da API:
    if (resposta['sucesso'] == true) {
      print('Pontos adicionados com sucesso!');
      print('Total de hoje: ${resposta['pontuacao_diaria']}');
+     print('Sequência atual: ${resposta['sequencia']} dias');
    }
+
+
+--------------------------------------------------------------------------------
+5.3. Atualizar Sequência
+--------------------------------------------------------------------------------
+-> Rota: PUT /pontuacao/{usuario_id}/sequencia ou POST /pontuacao/sequencia
+-> O que faz: Atualiza diretamente a quantidade de dias da sequência do usuário.
+-> Payload JSON:
+   {
+     "usuario_id": "uuid-do-usuario",
+     "sequencia": 7
+   }
+
+-> Exemplo em Flutter (Dart / ApiService):
+   final resposta = await ApiService().atualizarSequencia(
+     usuarioId: usuarioId,
+     sequencia: 7,
+   );
+   print(resposta['mensagem']);
+
+
+--------------------------------------------------------------------------------
+5.4. Resetar Checagem Diária
+--------------------------------------------------------------------------------
+-> Rota: POST /pontuacao/{usuario_id}/resetar-checagem
+-> O que faz: Reseta a checagem diária para false.
+
+-> Exemplo em Flutter (Dart / ApiService):
+   final resposta = await ApiService().resetarChecagem(usuarioId);
+   print(resposta['mensagem']);
+
 

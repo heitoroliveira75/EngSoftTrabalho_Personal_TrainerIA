@@ -262,7 +262,8 @@ class _TreinosScreenState extends State<TreinosScreen> {
             'Parabéns! Você completou "$nomeTreino" e ganhou +$pontosGanhos pontos hoje!\n\n'
             'Pontos Hoje: ${res['pontuacao_diaria'] ?? 0} pts\n'
             'Pontos Semana: ${res['pontuacao_semanal'] ?? 0} pts\n'
-            'Pontos Totais: ${res['pontuacao_total'] ?? 0} pts',
+            'Pontos Totais: ${res['pontuacao_total'] ?? 0} pts\n'
+            'Sequência: ${res['sequencia'] ?? ApiService().sequenciaAtual} ${((res['sequencia'] ?? ApiService().sequenciaAtual) == 1) ? "dia" : "dias"} 🔥',
             style: const TextStyle(color: Colors.white70, fontSize: 15),
           ),
           actions: [
