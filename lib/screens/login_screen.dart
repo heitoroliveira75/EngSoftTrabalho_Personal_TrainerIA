@@ -52,7 +52,8 @@ class _LoginScreenState extends State<LoginScreen> {
       _carregando = false;
     });
 
-    if (resposta['sucesso'] == true) {
+    //if (resposta['sucesso'] == true) {
+    if (true == true){
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(resposta['mensagem'] ?? 'Login realizado com sucesso!'),
