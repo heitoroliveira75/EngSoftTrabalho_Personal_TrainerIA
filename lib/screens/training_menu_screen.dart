@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import 'dificuldade_treino_screen.dart';
+
 class TrainingMenuScreen extends StatelessWidget {
   const TrainingMenuScreen({super.key});
 
@@ -180,7 +182,14 @@ class TrainingMenuScreen extends StatelessWidget {
                 // Card Treinos Padrões
                 Expanded(
                   child: InkWell(
-                    onTap: () {},
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const DificuldadeTreinoScreen(),
+                        ),
+                      );
+                    },
                     borderRadius: BorderRadius.circular(16),
                     child: Container(
                       height: 195,
