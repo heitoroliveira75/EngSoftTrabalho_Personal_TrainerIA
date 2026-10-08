@@ -1,0 +1,372 @@
+[
+  {
+    "frame": 10,
+    "tempo": 0.3365695792880259,
+    "estado": {
+      "Ombro esquerdo": "ANGULO_MINIMO",
+      "Ombro direito": "ANGULO_MINIMO",
+      "Cotovelo esquerdo": "ANGULO_MINIMO",
+      "Cotovelo direito": "ANGULO_MINIMO"
+    },
+    "articulacoes": {
+      "Ombro esquerdo": {
+        "anterior": null,
+        "atual": 30.348486603167554,
+        "posterior": 30.60201043789103,
+        "estado": "ANGULO_MINIMO"
+      },
+      "Ombro direito": {
+        "anterior": null,
+        "atual": 22.812684119887837,
+        "posterior": 21.86739289756679,
+        "estado": "ANGULO_MINIMO"
+      },
+      "Cotovelo esquerdo": {
+        "anterior": null,
+        "atual": 99.24309923679446,
+        "posterior": 96.71874928438426,
+        "estado": "ANGULO_MINIMO"
+      },
+      "Cotovelo direito": {
+        "anterior": null,
+        "atual": 103.78945345745335,
+        "posterior": 101.15058534507251,
+        "estado": "ANGULO_MINIMO"
+      }
+    },
+    "distancias": {}
+  },
+  {
+    "frame": 20,
+    "tempo": 0.6731391585760518,
+    "estado": {
+      "Ombro esquerdo": "TRANSICAO",
+      "Ombro direito": "VALE_DO_MOVIMENTO",
+      "Cotovelo esquerdo": "VALE_DO_MOVIMENTO",
+      "Cotovelo direito": "VALE_DO_MOVIMENTO"
+    },
+    "articulacoes": {
+      "Ombro esquerdo": {
+        "anterior": 30.348486603167554,
+        "atual": 30.60201043789103,
+        "posterior": 51.956248749621025,
+        "estado": "TRANSICAO"
+      },
+      "Ombro direito": {
+        "anterior": 22.812684119887837,
+        "atual": 21.86739289756679,
+        "posterior": 65.55560508433474,
+        "estado": "VALE_DO_MOVIMENTO"
+      },
+      "Cotovelo esquerdo": {
+        "anterior": 99.24309923679446,
+        "atual": 96.71874928438426,
+        "posterior": 108.20482718493925,
+        "estado": "VALE_DO_MOVIMENTO"
+      },
+      "Cotovelo direito": {
+        "anterior": 103.78945345745335,
+        "atual": 101.15058534507251,
+        "posterior": 138.11390208410387,
+        "estado": "VALE_DO_MOVIMENTO"
+      }
+    },
+    "distancias": {}
+  },
+  {
+    "frame": 30,
+    "tempo": 1.0097087378640777,
+    "estado": {
+      "Ombro esquerdo": "ANGULO_AUMENTANDO",
+      "Ombro direito": "ANGULO_AUMENTANDO",
+      "Cotovelo esquerdo": "ANGULO_AUMENTANDO",
+      "Cotovelo direito": "ANGULO_AUMENTANDO"
+    },
+    "articulacoes": {
+      "Ombro esquerdo": {
+        "anterior": 30.60201043789103,
+        "atual": 51.956248749621025,
+        "posterior": 103.78979387677593,
+        "estado": "ANGULO_AUMENTANDO"
+      },
+      "Ombro direito": {
+        "anterior": 21.86739289756679,
+        "atual": 65.55560508433474,
+        "posterior": 114.36627316189352,
+        "estado": "ANGULO_AUMENTANDO"
+      },
+      "Cotovelo esquerdo": {
+        "anterior": 96.71874928438426,
+        "atual": 108.20482718493925,
+        "posterior": 166.56711159653707,
+        "estado": "ANGULO_AUMENTANDO"
+      },
+      "Cotovelo direito": {
+        "anterior": 101.15058534507251,
+        "atual": 138.11390208410387,
+        "posterior": 158.56920806461284,
+        "estado": "ANGULO_AUMENTANDO"
+      }
+    },
+    "distancias": {}
+  },
+  {
+    "frame": 40,
+    "tempo": 1.3462783171521036,
+    "estado": {
+      "Ombro esquerdo": "ANGULO_AUMENTANDO",
+      "Ombro direito": "ANGULO_AUMENTANDO",
+      "Cotovelo esquerdo": "PICO_DO_MOVIMENTO",
+      "Cotovelo direito": "PICO_DO_MOVIMENTO"
+    },
+    "articulacoes": {
+      "Ombro esquerdo": {
+        "anterior": 51.956248749621025,
+        "atual": 103.78979387677593,
+        "posterior": 112.02574566653124,
+        "estado": "ANGULO_AUMENTANDO"
+      },
+      "Ombro direito": {
+        "anterior": 65.55560508433474,
+        "atual": 114.36627316189352,
+        "posterior": 124.24273941317846,
+        "estado": "ANGULO_AUMENTANDO"
+      },
+      "Cotovelo esquerdo": {
+        "anterior": 108.20482718493925,
+        "atual": 166.56711159653707,
+        "posterior": 159.69973610066157,
+        "estado": "PICO_DO_MOVIMENTO"
+      },
+      "Cotovelo direito": {
+        "anterior": 138.11390208410387,
+        "atual": 158.56920806461284,
+        "posterior": 155.86774432796497,
+        "estado": "PICO_DO_MOVIMENTO"
+      }
+    },
+    "distancias": {}
+  },
+  {
+    "frame": 50,
+    "tempo": 1.6828478964401294,
+    "estado": {
+      "Ombro esquerdo": "PICO_DO_MOVIMENTO",
+      "Ombro direito": "PICO_DO_MOVIMENTO",
+      "Cotovelo esquerdo": "VALE_DO_MOVIMENTO",
+      "Cotovelo direito": "VALE_DO_MOVIMENTO"
+    },
+    "articulacoes": {
+      "Ombro esquerdo": {
+        "anterior": 103.78979387677593,
+        "atual": 112.02574566653124,
+        "posterior": 76.89385304326707,
+        "estado": "PICO_DO_MOVIMENTO"
+      },
+      "Ombro direito": {
+        "anterior": 114.36627316189352,
+        "atual": 124.24273941317846,
+        "posterior": 88.45755427646671,
+        "estado": "PICO_DO_MOVIMENTO"
+      },
+      "Cotovelo esquerdo": {
+        "anterior": 166.56711159653707,
+        "atual": 159.69973610066157,
+        "posterior": 161.78807124595832,
+        "estado": "VALE_DO_MOVIMENTO"
+      },
+      "Cotovelo direito": {
+        "anterior": 158.56920806461284,
+        "atual": 155.86774432796497,
+        "posterior": 157.54400469509258,
+        "estado": "VALE_DO_MOVIMENTO"
+      }
+    },
+    "distancias": {}
+  },
+  {
+    "frame": 60,
+    "tempo": 2.0194174757281553,
+    "estado": {
+      "Ombro esquerdo": "ANGULO_DIMINUINDO",
+      "Ombro direito": "ANGULO_DIMINUINDO",
+      "Cotovelo esquerdo": "PICO_DO_MOVIMENTO",
+      "Cotovelo direito": "PICO_DO_MOVIMENTO"
+    },
+    "articulacoes": {
+      "Ombro esquerdo": {
+        "anterior": 112.02574566653124,
+        "atual": 76.89385304326707,
+        "posterior": 54.9199089484245,
+        "estado": "ANGULO_DIMINUINDO"
+      },
+      "Ombro direito": {
+        "anterior": 124.24273941317846,
+        "atual": 88.45755427646671,
+        "posterior": 70.15748001352044,
+        "estado": "ANGULO_DIMINUINDO"
+      },
+      "Cotovelo esquerdo": {
+        "anterior": 159.69973610066157,
+        "atual": 161.78807124595832,
+        "posterior": 103.80923808983948,
+        "estado": "PICO_DO_MOVIMENTO"
+      },
+      "Cotovelo direito": {
+        "anterior": 155.86774432796497,
+        "atual": 157.54400469509258,
+        "posterior": 130.45497514984095,
+        "estado": "PICO_DO_MOVIMENTO"
+      }
+    },
+    "distancias": {}
+  },
+  {
+    "frame": 70,
+    "tempo": 2.355987055016181,
+    "estado": {
+      "Ombro esquerdo": "ANGULO_DIMINUINDO",
+      "Ombro direito": "ANGULO_DIMINUINDO",
+      "Cotovelo esquerdo": "ANGULO_DIMINUINDO",
+      "Cotovelo direito": "ANGULO_DIMINUINDO"
+    },
+    "articulacoes": {
+      "Ombro esquerdo": {
+        "anterior": 76.89385304326707,
+        "atual": 54.9199089484245,
+        "posterior": 40.32086858544666,
+        "estado": "ANGULO_DIMINUINDO"
+      },
+      "Ombro direito": {
+        "anterior": 88.45755427646671,
+        "atual": 70.15748001352044,
+        "posterior": 39.6989764258137,
+        "estado": "ANGULO_DIMINUINDO"
+      },
+      "Cotovelo esquerdo": {
+        "anterior": 161.78807124595832,
+        "atual": 103.80923808983948,
+        "posterior": 92.71343316317763,
+        "estado": "ANGULO_DIMINUINDO"
+      },
+      "Cotovelo direito": {
+        "anterior": 157.54400469509258,
+        "atual": 130.45497514984095,
+        "posterior": 97.9576066891733,
+        "estado": "ANGULO_DIMINUINDO"
+      }
+    },
+    "distancias": {}
+  },
+  {
+    "frame": 80,
+    "tempo": 2.692556634304207,
+    "estado": {
+      "Ombro esquerdo": "ANGULO_DIMINUINDO",
+      "Ombro direito": "ANGULO_DIMINUINDO",
+      "Cotovelo esquerdo": "ANGULO_DIMINUINDO",
+      "Cotovelo direito": "ANGULO_DIMINUINDO"
+    },
+    "articulacoes": {
+      "Ombro esquerdo": {
+        "anterior": 54.9199089484245,
+        "atual": 40.32086858544666,
+        "posterior": 36.239619134564684,
+        "estado": "ANGULO_DIMINUINDO"
+      },
+      "Ombro direito": {
+        "anterior": 70.15748001352044,
+        "atual": 39.6989764258137,
+        "posterior": 29.920441045778166,
+        "estado": "ANGULO_DIMINUINDO"
+      },
+      "Cotovelo esquerdo": {
+        "anterior": 103.80923808983948,
+        "atual": 92.71343316317763,
+        "posterior": 91.78723622657047,
+        "estado": "ANGULO_DIMINUINDO"
+      },
+      "Cotovelo direito": {
+        "anterior": 130.45497514984095,
+        "atual": 97.9576066891733,
+        "posterior": 97.91473080517135,
+        "estado": "ANGULO_DIMINUINDO"
+      }
+    },
+    "distancias": {}
+  },
+  {
+    "frame": 90,
+    "tempo": 3.029126213592233,
+    "estado": {
+      "Ombro esquerdo": "ANGULO_DIMINUINDO",
+      "Ombro direito": "ANGULO_DIMINUINDO",
+      "Cotovelo esquerdo": "VALE_DO_MOVIMENTO",
+      "Cotovelo direito": "VALE_DO_MOVIMENTO"
+    },
+    "articulacoes": {
+      "Ombro esquerdo": {
+        "anterior": 40.32086858544666,
+        "atual": 36.239619134564684,
+        "posterior": 34.727178038439234,
+        "estado": "ANGULO_DIMINUINDO"
+      },
+      "Ombro direito": {
+        "anterior": 39.6989764258137,
+        "atual": 29.920441045778166,
+        "posterior": 25.255700436013168,
+        "estado": "ANGULO_DIMINUINDO"
+      },
+      "Cotovelo esquerdo": {
+        "anterior": 92.71343316317763,
+        "atual": 91.78723622657047,
+        "posterior": 96.58001507718261,
+        "estado": "VALE_DO_MOVIMENTO"
+      },
+      "Cotovelo direito": {
+        "anterior": 97.9576066891733,
+        "atual": 97.91473080517135,
+        "posterior": 100.8738285907559,
+        "estado": "VALE_DO_MOVIMENTO"
+      }
+    },
+    "distancias": {}
+  },
+  {
+    "frame": 100,
+    "tempo": 3.365695792880259,
+    "estado": {
+      "Ombro esquerdo": "ANGULO_MINIMO",
+      "Ombro direito": "ANGULO_MINIMO",
+      "Cotovelo esquerdo": "ANGULO_MINIMO",
+      "Cotovelo direito": "ANGULO_MINIMO"
+    },
+    "articulacoes": {
+      "Ombro esquerdo": {
+        "anterior": 36.239619134564684,
+        "atual": 34.727178038439234,
+        "posterior": null,
+        "estado": "ANGULO_MINIMO"
+      },
+      "Ombro direito": {
+        "anterior": 29.920441045778166,
+        "atual": 25.255700436013168,
+        "posterior": null,
+        "estado": "ANGULO_MINIMO"
+      },
+      "Cotovelo esquerdo": {
+        "anterior": 91.78723622657047,
+        "atual": 96.58001507718261,
+        "posterior": null,
+        "estado": "ANGULO_MINIMO"
+      },
+      "Cotovelo direito": {
+        "anterior": 97.91473080517135,
+        "atual": 100.8738285907559,
+        "posterior": null,
+        "estado": "ANGULO_MINIMO"
+      }
+    },
+    "distancias": {}
+  }
+]
