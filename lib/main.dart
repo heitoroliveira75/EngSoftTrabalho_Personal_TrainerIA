@@ -4,6 +4,7 @@ import 'screens/esqueceu_senha_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/treinos_screen.dart';
+import 'screens/criar_exercicio_screen.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -28,13 +29,14 @@ class MeuAppTreino extends StatelessWidget {
           surface: Color(0xFF1E232A),
         ),
       ),
-      initialRoute: '/login',
+      initialRoute: '/criar',
       routes: {
         '/login': (context) => const LoginScreen(),
         '/cadastro': (context) => const CadastroScreen(),
         '/esqueceu-senha': (context) => const EsqueceuSenhaScreen(),
         '/home': (context) => const HomeScreen(),
         '/treinos': (context) => const TreinosScreen(),
+        '/criar' : (context) => const criar_exercicio_screen(),
       },
     );
   }
