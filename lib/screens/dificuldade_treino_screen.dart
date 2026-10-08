@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 
-class DificuldadeTreinoScreen extends StatelessWidget {
-  const DificuldadeTreinoScreen({super.key});
+import 'opcao_treinos_screen.dart';
+
+class DificuldadeScreen extends StatelessWidget {
+  const DificuldadeScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -24,7 +26,7 @@ class DificuldadeTreinoScreen extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: 10),
+            const SizedBox(height: 12),
             const Text(
               'Qual dificuldade de treino?',
               style: TextStyle(
@@ -33,86 +35,84 @@ class DificuldadeTreinoScreen extends StatelessWidget {
                 fontWeight: FontWeight.w600,
               ),
             ),
-            const SizedBox(height: 80), //espaçamento entre título e botão 1
-            // Card Iniciante (Borda Verde)
-            _buildDificuldadeCard(
+            const SizedBox(height: 80),
+
+            _buildCardDificuldade(
               context,
               titulo: 'INICIANTE',
               descricao: 'Para aqueles que querem começar a se exercitar',
-              corBorda: const Color(0xFF00E676),
-              onTap: () {
-                // Ação ao selecionar Iniciante
-              },
+              corTema: const Color(0xFF00E676),
+              flagDificuldade: 'iniciante',
             ),
+            const SizedBox(height: 40),
 
-            const SizedBox(height: 40), // espaço entre b1 e b2
-            // Card Intermediário (Borda Azul)
-            _buildDificuldadeCard(
+            _buildCardDificuldade(
               context,
               titulo: 'INTERMEDIÁRIO',
               descricao: 'Quem já possui experiência e quer melhorar',
-              corBorda: const Color(0xFF29B6F6),
-              onTap: () {
-                // Ação ao selecionar Intermediário
-              },
+              corTema: const Color(0xFF29B6F6),
+              flagDificuldade: 'intermediario',
             ),
+            const SizedBox(height: 40),
 
-            const SizedBox(height: 40), //espaçamento entre b2 eb3
-            // Card Avançado (Borda Roxa/Neon)
-            _buildDificuldadeCard(
+            _buildCardDificuldade(
               context,
               titulo: 'AVANÇADO',
               descricao:
                   'Recomendado apenas para quem busca o máximo de desempenho',
-              corBorda: const Color(0xFF9E7AFF),
-              onTap: () {
-                // Ação ao selecionar Avançado
-              },
+              corTema: const Color(0xFF9E7AFF),
+              flagDificuldade: 'avancado',
             ),
 
             const Spacer(),
 
-            // Card informativo de sequência
             _buildSequenceCard(),
-            const SizedBox(
-              height: 200,
-            ), //espaçameno entre card final e o fim do celular
+            const SizedBox(height: 80),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildDificuldadeCard(
+  Widget _buildCardDificuldade(
     BuildContext context, {
     required String titulo,
     required String descricao,
-    required Color corBorda,
-    required VoidCallback onTap,
+    required Color corTema,
+    required String flagDificuldade,
   }) {
     return InkWell(
-      onTap: onTap,
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) =>
+                OpcaoTreinosScreen(dificuldadeFlag: flagDificuldade),
+          ),
+        );
+      },
       borderRadius: BorderRadius.circular(12),
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+        padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
         decoration: BoxDecoration(
           color: const Color(0xFF161B22),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: corBorda, width: 1.8),
+          border: Border.all(color: corTema, width: 1.8),
         ),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Text(
               titulo,
               style: TextStyle(
-                color: corBorda,
+                color: corTema,
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
                 letterSpacing: 1.1,
               ),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 8),
             Text(
               descricao,
               textAlign: TextAlign.center,
@@ -133,6 +133,7 @@ class DificuldadeTreinoScreen extends StatelessWidget {
         border: Border.all(color: Colors.grey.shade800),
       ),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           const Icon(Icons.flash_on, color: Colors.amber, size: 32),
           const SizedBox(width: 12),
