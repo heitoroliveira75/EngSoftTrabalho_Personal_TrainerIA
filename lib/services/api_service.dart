@@ -164,8 +164,8 @@ class ApiService {
             url,
             headers: _headers,
             body: jsonEncode({
-              if (email != null) 'email': email,
-              if (codigo != null) 'codigo': codigo,
+              'email': ?email,
+              'codigo': ?codigo,
               'nova_senha': novaSenha,
             }),
           )
@@ -216,8 +216,8 @@ class ApiService {
             url,
             headers: _headers,
             body: jsonEncode({
-              if (nome != null) 'nome': nome,
-              if (cpf != null) 'cpf': cpf,
+              'nome': ?nome,
+              'cpf': ?cpf,
             }),
           )
           .timeout(const Duration(seconds: 15));
@@ -317,11 +317,11 @@ class ApiService {
             url,
             headers: _headers,
             body: jsonEncode({
-              if (usuarioId != null) 'usuario_id': usuarioId,
+              'usuario_id': ?usuarioId,
               'nome': nome,
               'descricao': descricao ?? '',
               'pre_montado': preMontado,
-              if (exercicios != null) 'exercicios': exercicios,
+              'exercicios': ?exercicios,
             }),
           )
           .timeout(const Duration(seconds: 15));
@@ -350,9 +350,9 @@ class ApiService {
             url,
             headers: _headers,
             body: jsonEncode({
-              if (nome != null) 'nome': nome,
-              if (descricao != null) 'descricao': descricao,
-              if (exercicios != null) 'exercicios': exercicios,
+              'nome': ?nome,
+              'descricao': ?descricao,
+              'exercicios': ?exercicios,
             }),
           )
           .timeout(const Duration(seconds: 15));
