@@ -12,12 +12,7 @@ class _HomeScreenState extends State<criar_exercicio_screen> {
   // ===========================================================================
   // VARIÁVEIS DE DADOS (Substitua no futuro pelos dados vindos do banco de dados)
   // ===========================================================================
-  int pontosTotais = 1850;
-  int pontosSemana = 250;
-  int maiorSequencia = 6;
-  int sequenciaAtual = 2;
-  int pontosHoje = 150;
-  int metaHoje = 200;
+  int pontosTreino = 1850;
   final TextEditingController _nomeexercicio = TextEditingController();
 
   @override
@@ -42,72 +37,55 @@ class _HomeScreenState extends State<criar_exercicio_screen> {
         child: Column(
           children: [
 
-            const SizedBox(height: 36),
+            //const SizedBox(height: 36),
 
-            // Campo E-mail / Usuário
+            // 1 Campo Nome do exercicio
             _buildInputField(
               controller: _nomeexercicio,
               hintText: 'Dê um nome ao seu treino',
               keyboardType: TextInputType.text,
             ),
             
-            const SizedBox(height: 36),
+            //const SizedBox(height: 36),
 
-            
-            // 1. Card Meta de Hoje
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-              decoration: BoxDecoration(
-                color: const Color(0xFF2D3139),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Center(
-                    child: Text(
-                      'Meta de Hoje',
-                      style: TextStyle(
-                        color: Color(0xFF00E676),
-                        fontSize: 28,
+            // 2 Texto de pontos
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text.rich(
+                textAlign: TextAlign.start,
+                TextSpan(
+                  text: 'Total de pontos: ',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w600,
+                    letterSpacing: 1.5,
+                  ),
+                  children: [
+                    TextSpan(
+                      text: '$pontosTreino',
+                      style: const TextStyle(
+                        color: Color(0xFF2196F3),
                         fontWeight: FontWeight.bold,
                       ),
-                    )
-                  ),
-                  const SizedBox(height: 12),
-                  Align(
-                    alignment: Alignment.center,
-                    child: Text(
-                      '$pontosHoje/$metaHoje pts',
-                      style: const TextStyle(
-                        color: Color(0xFF00E676),
-                        fontSize: 16,
-                      ),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
-                    child: LinearProgressIndicator(
-                      value: metaHoje > 0
-                          ? (pontosHoje / metaHoje).clamp(0.0, 1.0)
-                          : 0,
-                      minHeight: 16,
-                      backgroundColor: Colors.grey,
-                      valueColor: const AlwaysStoppedAnimation<Color>(
-                        Color(0xFF00E676),
-                      ),
-                    ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
+
+            const SizedBox(height: 36),
+
+
+            
 
             //espaçamento
             //const SizedBox(height: 32),
 
           ],
+
+          // Botão de salvar o treino
+
         ),
       ),
     );
@@ -124,7 +102,8 @@ class _HomeScreenState extends State<criar_exercicio_screen> {
       controller: controller,
       obscureText: obscureText,
       keyboardType: keyboardType,
-      style: const TextStyle(color: Colors.black87),
+      textAlign: TextAlign.center,
+      style: const TextStyle(color: Colors.white),
       decoration: InputDecoration(
         hintText: hintText,
         hintStyle: const TextStyle(color: Colors.white, fontSize: 14),
