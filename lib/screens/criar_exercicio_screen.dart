@@ -32,12 +32,10 @@ class _HomeScreenState extends State<criar_exercicio_screen> {
         ),
       ),
 
-      body: SingleChildScrollView(
+      body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-
-            //const SizedBox(height: 36),
 
             // 1 Campo Nome do exercicio
             _buildInputField(
@@ -46,7 +44,7 @@ class _HomeScreenState extends State<criar_exercicio_screen> {
               keyboardType: TextInputType.text,
             ),
             
-            //const SizedBox(height: 36),
+            const SizedBox(height: 6),
 
             // 2 Texto de pontos
             Align(
@@ -74,18 +72,111 @@ class _HomeScreenState extends State<criar_exercicio_screen> {
               ),
             ),
 
-            const SizedBox(height: 36),
+            const SizedBox(height: 16),
 
+            // 3 exercicios
+            Expanded(
+              child: SingleChildScrollView(
+                child: Column(
+                  children: [
+                    // Exemplo de exercício na lista
+                    Material(
+                      color: const Color(0xFF2D3139),
+                      borderRadius: BorderRadius.circular(12),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(12),
+                        onTap: () {
+                          print('Exercício selecionado!');
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(16),
+                          child: const Row(
+                            children: [
+                              Icon(Icons.fitness_center, color: Colors.white),
+                              SizedBox(width: 12),
+                              Text('Supino Reto', style: TextStyle(color: Colors.white)),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
 
+            const SizedBox(height: 16),
+
+            // ==========================================
+            // DOIS BOTÕES NO FIM DA TELA (Fininhos e discretos - Opção B)
+            // ==========================================
             
+            // 1º Botão (Adicionar)
+            Material(
+              color: const Color(0xFF2D3139),
+              borderRadius: BorderRadius.circular(10),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(10),
+                onTap: () {
+                  print('Adicionar exercício clicado');
+                },
+                child: Container(
+                  width: double.infinity,
+                  height: 38, // Altura fininha e discreta (38px)
+                  alignment: Alignment.center,
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.add, color: Colors.white, size: 18),
+                      SizedBox(width: 6),
+                      Text(
+                        'Salvar Treino',
+                        style: TextStyle(
+                          color: Color(0xFF22C55E),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
 
-            //espaçamento
-            //const SizedBox(height: 32),
+            const SizedBox(height: 8), // Espaçamento compacto
 
+            // 2º Botão (Salvar Treino)
+            Material(
+              color: const Color(0xFF2D3139),
+              borderRadius: BorderRadius.circular(10),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(10),
+                onTap: () {
+                  print('Salvar treino clicado');
+                },
+                child: Container(
+                  width: double.infinity,
+                  height: 38, // Mesma altura de 38px
+                  alignment: Alignment.center,
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.check, color: Colors.white, size: 18),
+                      SizedBox(width: 6),
+                      Text(
+                        'Excluir treino',
+                        style: TextStyle(
+                          color: Color.fromARGB(255, 195, 18, 18),
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
           ],
-
-          // Botão de salvar o treino
-
         ),
       ),
     );
