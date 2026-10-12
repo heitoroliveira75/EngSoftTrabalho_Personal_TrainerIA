@@ -369,6 +369,23 @@ final Map<String, List<Map<String, dynamic>>> bancoDeTreinos = {
       ],
     },
   ],
+  'meus_treinos': [
+    {
+      'id': 'm1',
+      'titulo': 'Corpo completo',
+      'dificuldade': 'Personalizado',
+      'exerciciosCount': 8,
+      'duracaoMinutos': 40,
+      'pontosTotais': 200,
+      'corTema': const Color(0xFF29B6F6),
+      'exercicios': [
+        {'nome': 'Polichinelo', 'series': 3, 'repeticoes': 12, 'pontos': 20},
+        {'nome': 'Polichinelo', 'series': 3, 'repeticoes': 12, 'pontos': 20},
+        {'nome': 'Polichinelo', 'series': 3, 'repeticoes': 12, 'pontos': 20},
+        {'nome': 'Polichinelo', 'series': 3, 'repeticoes': 12, 'pontos': 20},
+      ],
+    },
+  ],
 };
 
 class OpcaoTreinosScreen extends StatelessWidget {
@@ -384,6 +401,8 @@ class OpcaoTreinosScreen extends StatelessWidget {
         return const Color(0xFF29B6F6);
       case 'avancado':
         return const Color(0xFF9E7AFF);
+      case 'meus_treinos':
+        return const Color(0xFF29B6F6);
       default:
         return const Color(0xFF00E676);
     }
@@ -397,6 +416,8 @@ class OpcaoTreinosScreen extends StatelessWidget {
         return 'INTERMEDIÁRIO';
       case 'avancado':
         return 'AVANÇADO';
+      case 'meus_treinos':
+        return 'MEUS TREINOS';
       default:
         return 'TREINOS';
     }
@@ -441,7 +462,7 @@ class OpcaoTreinosScreen extends StatelessWidget {
             child: treinosDoNivel.isEmpty
                 ? const Center(
                     child: Text(
-                      'Nenhum treino disponível para este nível.',
+                      'Você ainda não possui treinos salvos.',
                       style: TextStyle(color: Colors.grey),
                     ),
                   )

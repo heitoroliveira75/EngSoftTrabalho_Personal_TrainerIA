@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'dificuldade_treino_screen.dart';
+import 'opcao_treinos_screen.dart';
 
 class TrainingMenuScreen extends StatelessWidget {
   const TrainingMenuScreen({super.key});
@@ -55,7 +56,17 @@ class TrainingMenuScreen extends StatelessWidget {
 
             // 1. Card Meus Treinos
             InkWell(
-              onTap: () {},
+              onTap: () {
+                // A navegação acontece aqui, quando qualquer parte do card for pressionada
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const OpcaoTreinosScreen(
+                      dificuldadeFlag: 'meus_treinos', // Passando a nova flag
+                    ),
+                  ),
+                );
+              },
               borderRadius: BorderRadius.circular(16),
               child: Container(
                 padding: const EdgeInsets.all(20),
@@ -93,6 +104,7 @@ class TrainingMenuScreen extends StatelessWidget {
                                 color: Color(0xFF2196F3),
                                 size: 24,
                               ),
+                              // O 'onTap' do Icon foi removido daqui
                             ],
                           ),
                           const SizedBox(height: 8),
