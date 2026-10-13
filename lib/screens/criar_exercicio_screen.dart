@@ -54,7 +54,7 @@ class _CriarExercicioScreenState extends State<criar_exercicio_screen> {
       {'id': '27', 'nome': 'Mergulho no Banco', 'pontosSerie': 40, 'pontosRep': 4},
     ],
     'Abdômen': [
-      {'id': '28', 'nome': 'Abdominal Suprapergumta, com', 'pontosSerie': 40, 'pontosRep': 3},
+      {'id': '28', 'nome': 'Abdominal Supra', 'pontosSerie': 40, 'pontosRep': 3},
       {'id': '29', 'nome': 'Prancha Abdominal', 'pontosSerie': 50, 'pontosRep': 5},
       {'id': '30', 'nome': 'Elevação de Pernas', 'pontosSerie': 45, 'pontosRep': 4},
     ],
@@ -289,9 +289,10 @@ class _CriarExercicioScreenState extends State<criar_exercicio_screen> {
                           ),
                         ],
                       ),
+
                       const SizedBox(height: 16),
 
-                      // 1. SELEÇÃO DO GRUPO MUSCULAR (CHIPS)
+                      // Texto
                       const Text(
                         '1. Grupo Muscular',
                         style: TextStyle(
@@ -300,7 +301,10 @@ class _CriarExercicioScreenState extends State<criar_exercicio_screen> {
                           fontWeight: FontWeight.w600,
                         ),
                       ),
+
                       const SizedBox(height: 8),
+
+                      // Grupos para selecionar
                       SingleChildScrollView(
                         scrollDirection: Axis.horizontal,
                         child: Row(
@@ -340,9 +344,10 @@ class _CriarExercicioScreenState extends State<criar_exercicio_screen> {
                           }).toList(),
                         ),
                       ),
+
                       const SizedBox(height: 16),
 
-                      // 2. SELEÇÃO DO EXERCÍCIO (DROPDOWN)
+                      // Texto
                       const Text(
                         '2. Exercício Pré-definido',
                         style: TextStyle(
@@ -351,7 +356,10 @@ class _CriarExercicioScreenState extends State<criar_exercicio_screen> {
                           fontWeight: FontWeight.w600,
                         ),
                       ),
+
                       const SizedBox(height: 8),
+
+                      // Seleção de exercicio
                       Container(
                         decoration: BoxDecoration(
                           color: const Color(0xFF2D3139),
@@ -401,9 +409,10 @@ class _CriarExercicioScreenState extends State<criar_exercicio_screen> {
                           ),
                         ),
                       ),
+
                       const SizedBox(height: 16),
 
-                      // 3. SELETOR DE SÉRIES E REPETIÇÕES
+                      // Series e repetições
                       Row(
                         children: [
                           Expanded(
@@ -429,9 +438,10 @@ class _CriarExercicioScreenState extends State<criar_exercicio_screen> {
                           ),
                         ],
                       ),
+
                       const SizedBox(height: 14),
 
-                      // 4. RESUMO DE PONTOS DO EXERCÍCIO
+                      // Resumo
                       Container(
                         width: double.infinity,
                         padding: const EdgeInsets.all(12),
@@ -452,7 +462,9 @@ class _CriarExercicioScreenState extends State<criar_exercicio_screen> {
                                         color: Colors.white, fontWeight: FontWeight.bold)),
                               ],
                             ),
+
                             const SizedBox(height: 4),
+
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
@@ -490,9 +502,10 @@ class _CriarExercicioScreenState extends State<criar_exercicio_screen> {
                           ],
                         ),
                       ),
+
                       const SizedBox(height: 18),
 
-                      // 5. BOTÃO ADICIONAR AO TREINO
+                      // Botão de adicionar
                       SizedBox(
                         width: double.infinity,
                         height: 44,
@@ -532,6 +545,34 @@ class _CriarExercicioScreenState extends State<criar_exercicio_screen> {
           },
         );
       },
+    );
+  }
+
+  
+
+  Widget _buildInputField({
+    required TextEditingController controller,
+    required String hintText,
+    bool obscureText = false,
+    TextInputType keyboardType = TextInputType.text,
+  }) {
+    return TextField(
+      controller: controller,
+      obscureText: obscureText,
+      keyboardType: keyboardType,
+      textAlign: TextAlign.center,
+      style: const TextStyle(color: Colors.white),
+      decoration: InputDecoration(
+        hintText: hintText,
+        hintStyle: const TextStyle(color: Colors.white54, fontSize: 14),
+        filled: true,
+        fillColor: const Color(0xFF2D3139),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10.0),
+          borderSide: BorderSide.none,
+        ),
+      ),
     );
   }
 
@@ -701,7 +742,7 @@ class _CriarExercicioScreenState extends State<criar_exercicio_screen> {
                       itemBuilder: (context, index) {
                         final item = _exerciciosTreino[index];
 
-                        // Montagem lista deexercicios
+                        // Montagem lista de exercicios
                         return Container(
                           margin: const EdgeInsets.only(bottom: 12),
                           decoration: BoxDecoration(
@@ -728,6 +769,7 @@ class _CriarExercicioScreenState extends State<criar_exercicio_screen> {
                                     size: 24,
                                   ),
                                 ),
+
                                 const SizedBox(width: 14),
 
                                 // Detalhes do Exercício
@@ -751,7 +793,9 @@ class _CriarExercicioScreenState extends State<criar_exercicio_screen> {
                                           fontSize: 12,
                                         ),
                                       ),
+
                                       const SizedBox(height: 6),
+
                                       // Informações de Séries, Reps e Total de Reps
                                       Row(
                                         children: [
@@ -773,7 +817,9 @@ class _CriarExercicioScreenState extends State<criar_exercicio_screen> {
                                               ),
                                             ),
                                           ),
+
                                           const SizedBox(width: 6),
+
                                           Text(
                                             '(${item.totalRepeticoes} totais)',
                                             style: const TextStyle(
@@ -783,7 +829,9 @@ class _CriarExercicioScreenState extends State<criar_exercicio_screen> {
                                           ),
                                         ],
                                       ),
+
                                       const SizedBox(height: 4),
+                                      
                                       // Pontuação calculada
                                       Text(
                                         '+${item.totalPontos} pts (${item.pontosSeries} pts séries + ${item.pontosRepeticoes} pts reps)',
@@ -895,29 +943,4 @@ class _CriarExercicioScreenState extends State<criar_exercicio_screen> {
   );
   }
 
-  Widget _buildInputField({
-    required TextEditingController controller,
-    required String hintText,
-    bool obscureText = false,
-    TextInputType keyboardType = TextInputType.text,
-  }) {
-    return TextField(
-      controller: controller,
-      obscureText: obscureText,
-      keyboardType: keyboardType,
-      textAlign: TextAlign.center,
-      style: const TextStyle(color: Colors.white),
-      decoration: InputDecoration(
-        hintText: hintText,
-        hintStyle: const TextStyle(color: Colors.white54, fontSize: 14),
-        filled: true,
-        fillColor: const Color(0xFF2D3139),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(10.0),
-          borderSide: BorderSide.none,
-        ),
-      ),
-    );
-  }
 }
