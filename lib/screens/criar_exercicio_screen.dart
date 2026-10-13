@@ -11,11 +11,56 @@ class criar_exercicio_screen extends StatefulWidget {
 
 class _CriarExercicioScreenState extends State<criar_exercicio_screen> {
   final TextEditingController _nomeTreinoController = TextEditingController();
-  final TextEditingController _descricaoController = TextEditingController();
 
-  // ===========================================================================
-  // LISTA PADRÃO DE EXERCÍCIOS (List do Dart)
-  // ===========================================================================
+  // Catálogo de exercícios pré-definidos organizados por grupo muscular
+  static const Map<String, List<Map<String, dynamic>>> _catalogoExercicios = {
+    'Peitoral': [
+      {'id': '1', 'nome': 'Supino Reto', 'pontosSerie': 50, 'pontosRep': 5},
+      {'id': '2', 'nome': 'Supino Inclinado', 'pontosSerie': 50, 'pontosRep': 5},
+      {'id': '3', 'nome': 'Crucifixo Reto', 'pontosSerie': 45, 'pontosRep': 4},
+      {'id': '4', 'nome': 'Crossover na Polia', 'pontosSerie': 45, 'pontosRep': 4},
+      {'id': '5', 'nome': 'Flexão de Braço', 'pontosSerie': 40, 'pontosRep': 4},
+    ],
+    'Costas': [
+      {'id': '6', 'nome': 'Puxada Frontal', 'pontosSerie': 50, 'pontosRep': 5},
+      {'id': '7', 'nome': 'Remada Baixa', 'pontosSerie': 50, 'pontosRep': 5},
+      {'id': '8', 'nome': 'Remada Curvada', 'pontosSerie': 55, 'pontosRep': 5},
+      {'id': '9', 'nome': 'Barra Fixa', 'pontosSerie': 60, 'pontosRep': 6},
+      {'id': '10', 'nome': 'Pulldown', 'pontosSerie': 45, 'pontosRep': 4},
+    ],
+    'Pernas': [
+      {'id': '11', 'nome': 'Agachamento Livre', 'pontosSerie': 60, 'pontosRep': 6},
+      {'id': '12', 'nome': 'Leg Press 45°', 'pontosSerie': 55, 'pontosRep': 5},
+      {'id': '13', 'nome': 'Cadeira Extensora', 'pontosSerie': 45, 'pontosRep': 4},
+      {'id': '14', 'nome': 'Mesa Flexora', 'pontosSerie': 45, 'pontosRep': 4},
+      {'id': '15', 'nome': 'Panturrilha em Pé', 'pontosSerie': 40, 'pontosRep': 4},
+    ],
+    'Ombros': [
+      {'id': '16', 'nome': 'Desenvolvimento com Halteres', 'pontosSerie': 50, 'pontosRep': 5},
+      {'id': '17', 'nome': 'Elevação Lateral', 'pontosSerie': 45, 'pontosRep': 4},
+      {'id': '18', 'nome': 'Elevação Frontal', 'pontosSerie': 40, 'pontosRep': 4},
+      {'id': '19', 'nome': 'Crucifixo Invertido', 'pontosSerie': 45, 'pontosRep': 4},
+    ],
+    'Bíceps': [
+      {'id': '20', 'nome': 'Rosca Direta', 'pontosSerie': 45, 'pontosRep': 4},
+      {'id': '21', 'nome': 'Rosca Alternada', 'pontosSerie': 45, 'pontosRep': 4},
+      {'id': '22', 'nome': 'Rosca Martelo', 'pontosSerie': 45, 'pontosRep': 4},
+      {'id': '23', 'nome': 'Rosca Scott', 'pontosSerie': 50, 'pontosRep': 5},
+    ],
+    'Tríceps': [
+      {'id': '24', 'nome': 'Tríceps Corda', 'pontosSerie': 45, 'pontosRep': 4},
+      {'id': '25', 'nome': 'Tríceps Pulley', 'pontosSerie': 45, 'pontosRep': 4},
+      {'id': '26', 'nome': 'Tríceps Testa', 'pontosSerie': 50, 'pontosRep': 5},
+      {'id': '27', 'nome': 'Mergulho no Banco', 'pontosSerie': 40, 'pontosRep': 4},
+    ],
+    'Abdômen': [
+      {'id': '28', 'nome': 'Abdominal Suprapergumta, com', 'pontosSerie': 40, 'pontosRep': 3},
+      {'id': '29', 'nome': 'Prancha Abdominal', 'pontosSerie': 50, 'pontosRep': 5},
+      {'id': '30', 'nome': 'Elevação de Pernas', 'pontosSerie': 45, 'pontosRep': 4},
+    ],
+  };
+
+  // Lista inicial de exercicios
   final List<ExercicioTreino> _exerciciosTreino = [
     ExercicioTreino(
       id: '1',
@@ -27,9 +72,9 @@ class _CriarExercicioScreenState extends State<criar_exercicio_screen> {
       pontosPorRepeticao: 5,
     ),
     ExercicioTreino(
-      id: '2',
+      id: '6',
       nome: 'Puxada Frontal',
-      grupoMuscular: 'Dorsal',
+      grupoMuscular: 'Costas',
       series: 3,
       repeticoes: 12,
       pontosPorSerie: 50,
@@ -42,7 +87,6 @@ class _CriarExercicioScreenState extends State<criar_exercicio_screen> {
   @override
   void dispose() {
     _nomeTreinoController.dispose();
-    _descricaoController.dispose();
     super.dispose();
   }
 
@@ -122,7 +166,7 @@ class _CriarExercicioScreenState extends State<criar_exercicio_screen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Por favor, informe o nome do treino.'),
-          backgroundColor: Colors.orangeAccent,
+          backgroundColor: Color(0xFF8B0000),
         ),
       );
       return;
@@ -132,7 +176,7 @@ class _CriarExercicioScreenState extends State<criar_exercicio_screen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Adicione ao menos um exercício antes de salvar.'),
-          backgroundColor: Colors.orangeAccent,
+          backgroundColor: Color(0xFF8B0000),
         ),
       );
       return;
@@ -141,12 +185,12 @@ class _CriarExercicioScreenState extends State<criar_exercicio_screen> {
     setState(() => _salvando = true);
 
     final listaExerciciosJson =
-        _exerciciosTreino.map((e) => e.toJson()).toList();
+        _exerciciosTreino.map((exercicio) => exercicio.toJson()).toList();
 
     try {
       final resposta = await ApiService().criarTreino(
         nome: nome,
-        descricao: _descricaoController.text.trim(),
+        descricao: '',
         exercicios: listaExerciciosJson,
       );
 
@@ -164,19 +208,18 @@ class _CriarExercicioScreenState extends State<criar_exercicio_screen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              resposta['mensagem'] ??
-                  'Treino configurado com sucesso! ($_pontosTotaisTreino pts computados).',
+              resposta['mensagem'] ?? 'Erro ao salvar treino no servidor.',
             ),
-            backgroundColor: const Color(0xFF2196F3),
+            backgroundColor: const Color(0xFF8B0000),
           ),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Treino pronto localmente: $_pontosTotaisTreino pts calculados.'),
-            backgroundColor: const Color(0xFF2196F3),
+          const SnackBar(
+            content: Text('Falha de conexão: não foi possível salvar o treino no servidor.'),
+            backgroundColor: Color(0xFF8B0000),
           ),
         );
       }
@@ -189,22 +232,12 @@ class _CriarExercicioScreenState extends State<criar_exercicio_screen> {
 
   /// Abre o modal para configurar e adicionar um exercício com séries, reps e pontos
   void _abrirModalAdicionarExercicio() {
-    final nomeCtrl = TextEditingController();
-    final grupoCtrl = TextEditingController(text: 'Geral');
+    final grupos = _catalogoExercicios.keys.toList();
+    String grupoSelecionado = grupos.first;
+    Map<String, dynamic> exercicioSelecionado = _catalogoExercicios[grupoSelecionado]!.first;
+
     int series = 3;
     int repeticoes = 10;
-    int pontosPorSerie = 50;
-    int pontosPorRepeticao = 5;
-
-    // Sugestões rápidas de exercícios
-    final sugestoes = [
-      {'nome': 'Supino Reto', 'grupo': 'Peitoral'},
-      {'nome': 'Agachamento Livre', 'grupo': 'Pernas'},
-      {'nome': 'Puxada Frontal', 'grupo': 'Costas'},
-      {'nome': 'Desenvolvimento', 'grupo': 'Ombros'},
-      {'nome': 'Rosca Direta', 'grupo': 'Bíceps'},
-      {'nome': 'Tríceps Corda', 'grupo': 'Tríceps'},
-    ];
 
     showModalBottomSheet(
       context: context,
@@ -216,10 +249,14 @@ class _CriarExercicioScreenState extends State<criar_exercicio_screen> {
       builder: (ctx) {
         return StatefulBuilder(
           builder: (context, setModalState) {
+            final pontosPorSerie = (exercicioSelecionado['pontosSerie'] as int?) ?? 50;
+            final pontosPorRepeticao = (exercicioSelecionado['pontosRep'] as int?) ?? 5;
             final totalRepsCalculado = series * repeticoes;
             final pontosSeriesCalculado = series * pontosPorSerie;
             final pontosRepsCalculado = totalRepsCalculado * pontosPorRepeticao;
             final pontosTotalCalculado = pontosSeriesCalculado + pontosRepsCalculado;
+
+            final exerciciosDoGrupo = _catalogoExercicios[grupoSelecionado]!;
 
             return SafeArea(
               child: Padding(
@@ -252,77 +289,123 @@ class _CriarExercicioScreenState extends State<criar_exercicio_screen> {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 12),
+                      const SizedBox(height: 16),
 
-                      // Chips de sugestões rápidas
+                      // 1. SELEÇÃO DO GRUPO MUSCULAR (CHIPS)
                       const Text(
-                        'Sugestões rápidas:',
-                        style: TextStyle(color: Colors.white60, fontSize: 13),
+                        '1. Grupo Muscular',
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 8),
                       SingleChildScrollView(
                         scrollDirection: Axis.horizontal,
                         child: Row(
-                          children: sugestoes.map((sugestao) {
+                          children: grupos.map((grupo) {
+                            final selecionado = grupo == grupoSelecionado;
                             return Padding(
                               padding: const EdgeInsets.only(right: 8.0),
-                              child: ActionChip(
-                                backgroundColor: const Color(0xFF2D3139),
+                              child: ChoiceChip(
                                 label: Text(
-                                  sugestao['nome']!,
-                                  style: const TextStyle(color: Colors.white, fontSize: 12),
+                                  grupo,
+                                  style: TextStyle(
+                                    color: selecionado ? Colors.black : Colors.white70,
+                                    fontWeight: selecionado ? FontWeight.bold : FontWeight.normal,
+                                    fontSize: 13,
+                                  ),
                                 ),
-                                onPressed: () {
-                                  setModalState(() {
-                                    nomeCtrl.text = sugestao['nome']!;
-                                    grupoCtrl.text = sugestao['grupo']!;
-                                  });
+                                selected: selecionado,
+                                selectedColor: const Color(0xFF00E676),
+                                backgroundColor: const Color(0xFF2D3139),
+                                showCheckmark: false,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(8),
+                                  side: BorderSide(
+                                    color: selecionado ? const Color(0xFF00E676) : Colors.transparent,
+                                  ),
+                                ),
+                                onSelected: (val) {
+                                  if (val) {
+                                    setModalState(() {
+                                      grupoSelecionado = grupo;
+                                      exercicioSelecionado = _catalogoExercicios[grupo]!.first;
+                                    });
+                                  }
                                 },
                               ),
                             );
                           }).toList(),
                         ),
                       ),
-                      const SizedBox(height: 14),
+                      const SizedBox(height: 16),
 
-                      // Campo de Nome
-                      TextField(
-                        controller: nomeCtrl,
-                        style: const TextStyle(color: Colors.white),
-                        decoration: InputDecoration(
-                          labelText: 'Nome do Exercício',
-                          labelStyle: const TextStyle(color: Colors.white60),
-                          filled: true,
-                          fillColor: const Color(0xFF2D3139),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            borderSide: BorderSide.none,
-                          ),
+                      // 2. SELEÇÃO DO EXERCÍCIO (DROPDOWN)
+                      const Text(
+                        '2. Exercício Pré-definido',
+                        style: TextStyle(
+                          color: Colors.white70,
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
                         ),
                       ),
-                      const SizedBox(height: 12),
-
-                      // Campo de Grupo Muscular
-                      TextField(
-                        controller: grupoCtrl,
-                        style: const TextStyle(color: Colors.white),
-                        decoration: InputDecoration(
-                          labelText: 'Grupo Muscular',
-                          labelStyle: const TextStyle(color: Colors.white60),
-                          filled: true,
-                          fillColor: const Color(0xFF2D3139),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(10),
-                            borderSide: BorderSide.none,
+                      const SizedBox(height: 8),
+                      Container(
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF2D3139),
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 14),
+                        child: DropdownButtonHideUnderline(
+                          child: DropdownButton<String>(
+                            value: exercicioSelecionado['id'].toString(),
+                            dropdownColor: const Color(0xFF252830),
+                            icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF00E676)),
+                            isExpanded: true,
+                            style: const TextStyle(color: Colors.white, fontSize: 15),
+                            items: exerciciosDoGrupo.map((item) {
+                              return DropdownMenuItem<String>(
+                                value: item['id'].toString(),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      item['nome'] as String,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w500,
+                                      ),
+                                    ),
+                                    Text(
+                                      '+${item['pontosSerie']} pts/série',
+                                      style: const TextStyle(
+                                        color: Color(0xFF64B5F6),
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              );
+                            }).toList(),
+                            onChanged: (novoId) {
+                              if (novoId != null) {
+                                setModalState(() {
+                                  exercicioSelecionado = exerciciosDoGrupo.firstWhere(
+                                    (item) => item['id'].toString() == novoId,
+                                  );
+                                });
+                              }
+                            },
                           ),
                         ),
                       ),
                       const SizedBox(height: 16),
 
-                      // Seletor de Séries e Repetições
+                      // 3. SELETOR DE SÉRIES E REPETIÇÕES
                       Row(
                         children: [
-                          // Séries
                           Expanded(
                             child: _buildContadorCard(
                               titulo: 'Séries',
@@ -334,7 +417,6 @@ class _CriarExercicioScreenState extends State<criar_exercicio_screen> {
                             ),
                           ),
                           const SizedBox(width: 12),
-                          // Repetições por série
                           Expanded(
                             child: _buildContadorCard(
                               titulo: 'Reps/Série',
@@ -349,7 +431,7 @@ class _CriarExercicioScreenState extends State<criar_exercicio_screen> {
                       ),
                       const SizedBox(height: 14),
 
-                      // Card de Resumo de Pontos do Exercício
+                      // 4. RESUMO DE PONTOS DO EXERCÍCIO
                       Container(
                         width: double.infinity,
                         padding: const EdgeInsets.all(12),
@@ -410,7 +492,7 @@ class _CriarExercicioScreenState extends State<criar_exercicio_screen> {
                       ),
                       const SizedBox(height: 18),
 
-                      // Botão Confirmar Inserção
+                      // 5. BOTÃO ADICIONAR AO TREINO
                       SizedBox(
                         width: double.infinity,
                         height: 44,
@@ -423,23 +505,10 @@ class _CriarExercicioScreenState extends State<criar_exercicio_screen> {
                             ),
                           ),
                           onPressed: () {
-                            final nome = nomeCtrl.text.trim();
-                            if (nome.isEmpty) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Digite o nome do exercício.'),
-                                  backgroundColor: Colors.orangeAccent,
-                                ),
-                              );
-                              return;
-                            }
-
                             final novoExercicio = ExercicioTreino(
-                              id: DateTime.now().millisecondsSinceEpoch.toString(),
-                              nome: nome,
-                              grupoMuscular: grupoCtrl.text.trim().isEmpty
-                                  ? 'Geral'
-                                  : grupoCtrl.text.trim(),
+                              id: exercicioSelecionado['id'].toString(),
+                              nome: exercicioSelecionado['nome'] as String,
+                              grupoMuscular: grupoSelecionado,
                               series: series,
                               repeticoes: repeticoes,
                               pontosPorSerie: pontosPorSerie,
@@ -517,6 +586,8 @@ class _CriarExercicioScreenState extends State<criar_exercicio_screen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF0D1117),
+
+      // Botão de voltar canto superior
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -540,11 +611,14 @@ class _CriarExercicioScreenState extends State<criar_exercicio_screen> {
             ),
         ],
       ),
+
+      // Corpo da tela
       body: SafeArea(
         child: Padding(
           padding: const EdgeInsets.all(16.0),
           child: Column(
           children: [
+
             // 1. Campo Nome do Treino
             _buildInputField(
               controller: _nomeTreinoController,
@@ -592,6 +666,7 @@ class _CriarExercicioScreenState extends State<criar_exercicio_screen> {
             // 3. PARTE ESCROLÁVEL: LISTA DE EXERCÍCIOS COM LISTVIEW.BUILDER
             Expanded(
               child: _exerciciosTreino.isEmpty
+              //se vacio mostrar que n tem exercicio
                   ? Center(
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -620,11 +695,13 @@ class _CriarExercicioScreenState extends State<criar_exercicio_screen> {
                         ],
                       ),
                     )
+                  //se não estiver vazio mostra a lista
                   : ListView.builder(
                       itemCount: _exerciciosTreino.length,
                       itemBuilder: (context, index) {
                         final item = _exerciciosTreino[index];
 
+                        // Montagem lista deexercicios
                         return Container(
                           margin: const EdgeInsets.only(bottom: 12),
                           decoration: BoxDecoration(
@@ -739,9 +816,7 @@ class _CriarExercicioScreenState extends State<criar_exercicio_screen> {
 
             const SizedBox(height: 12),
 
-            // ==========================================
-            // BOTÕES DE AÇÃO NO RODAPÉ DA TELA
-            // ==========================================
+            // Botões no roda pé
 
             // 1º Botão: Adicionar Exercício
             Material(
