@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../services/api_service.dart';
 import 'change_name_screen.dart';
 import 'change_password_screen.dart';
 
@@ -14,8 +15,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   // ===========================================================================
   // VARIÁVEIS DE DADOS (Substitua no futuro pelos dados vindos do banco de dados)
   // ===========================================================================
-  String nomeUsuario = 'João Almeida';
-  String emailUsuario = 'jpo.almeida@unifesp.br';
+  final usuario = ApiService().obterUsuarioAtual();
+  String nomeUsuario = "joão";
+  String emailUsuario = "joão@gmail.com";
   int pontosTotais = 1850;
   int pontosHoje = 150;
   int pontosSemana = 250;

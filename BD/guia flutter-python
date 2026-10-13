@@ -1,0 +1,169 @@
+================================================================================
+GUIA DE INTEGRAÇÃO FLUTTER <-> PYTHON (BACK-END E BANCO DE DADOS)
+Projeto: Personal Trainer IA - Engenharia de Software
+================================================================================
+
+Este documento descreve detalhadamente as modificações implementadas no projeto,
+a arquitetura adotada, as mudanças no código Python e no Flutter, e o passo a
+passo de como funciona a comunicação entre as duas tecnologias.
+
+--------------------------------------------------------------------------------
+1. POR QUE UMA API REST ENTRE FLUTTER E PYTHON?
+--------------------------------------------------------------------------------
+O Flutter (Dart) roda diretamente no dispositivo do usuário (Android, iOS, Web
+ou Windows), enquanto as funções do banco de dados foram escritas em Python 
+(utilizando o SDK da biblioteca supabase-py).
+
+Em projetos de Engenharia de Software com arquitetura cliente-servidor:
+1. O Flutter atua como a camada de FRONT-END (interface gráfica).
+2. O Python atua como a camada de BACK-END (regras de negócio e acesso ao banco).
+3. A comunicação ocorre por meio de uma API REST (requisições HTTP trocando
+   mensagens no formato JSON).
+
+Dessa forma, foi criado o servidor FastAPI (BD/api.py), que atua como ponte,
+recebendo as requisições do aplicativo e chamando as funções do BD/main.py.
+
+
+--------------------------------------------------------------------------------
+2. MODIFICAÇÕES REALIZADAS NO BACK-END (PYTHON)
+--------------------------------------------------------------------------------
+
+A. Criação do Arquivo 'BD/api.py':
+   - Implementação de um servidor REST moderno e assíncrono utilizando FastAPI
+     e Uvicorn.
+   - Configuração de CORS (Cross-Origin Resource Sharing) com 'allow_origins=["*"]',
+     permitindo que requisições vindas do Flutter Web, Emuladores e Dispositivos
+     Físicos sejam aceitas sem bloqueios de segurança.
+   - Criação de Schemas Pydantic (CriarContaRequest, LoginRequest, etc.) para
+     validar e tipar os dados JSON enviados pelo Flutter.
+   - Exposição de rotas REST para todas as funções presentes em 'BD/main.py':
+     * POST /auth/criar-conta        -> Chama criar_conta(nome, email, senha)
+     * POST /auth/login              -> Chama fazer_login(email, senha)
+     * POST /auth/logout             -> Chama deslogar_perfil()
+     * GET  /auth/usuario-atual      -> Chama obter_usuario_atual()
+     * POST /auth/esqueceu-senha     -> Recuperação de senha no Supabase Auth
+     * POST /auth/redefinir-senha    -> Redefinição de senha no Supabase Auth
+     * GET  /perfil/{usuario_id}     -> Chama ver_perfil(usuario_id)
+     * PUT  /perfil/{usuario_id}     -> Chama editar_perfil(...)
+     * GET  /exercicios              -> Chama listar_exercicios(grupo_muscular)
+     * GET  /treinos/pre-montados    -> Chama ver_treinos_premont()
+     * GET  /treinos/usuario/{id}    -> Chama listar_treinos(usuario_id)
+     * POST /treinos                 -> Chama criar_treino(...)
+     * PUT  /treinos/{treino_id}     -> Chama editar_treino(...)
+     * DELETE /treinos/{treino_id}   -> Chama excluir_treino(...)
+
+B. Criação do Arquivo 'BD/requirements.txt':
+   - Lista todas as dependências Python necessárias para rodar o back-end:
+     * fastapi
+     * uvicorn
+     * supabase
+     * python-dotenv
+     * pydantic
+
+C. Preservação do 'BD/main.py' e 'BD/supabase_client.py':
+   - As funções originais de manipulação do Supabase foram mantidas intactas,
+     garantindo a integridade dos testes e regras pré-existentes.
+
+
+--------------------------------------------------------------------------------
+3. MODIFICAÇÕES REALIZADAS NO FRONT-END (FLUTTER)
+--------------------------------------------------------------------------------
+
+A. Atualização do 'pubspec.yaml':
+   - Adicionada a dependência oficial 'http: ^1.2.0' para realização de chamadas
+     HTTP assíncronas (POST, GET, PUT, DELETE).
+
+B. Criação da Camada de Configuração ('lib/config/api_config.dart'):
+   - Cria a classe ApiConfig com a propriedade estática 'baseUrl'.
+   - Identifica automaticamente o ambiente de execução:
+     * Emulador Android: utiliza 'http://10.0.2.2:8000' (alias para o localhost do PC).
+     * Windows / Web / iOS: utiliza 'http://127.0.0.1:8000'.
+     * Celular físico via Wi-Fi: permite configurar facilmente o IP da máquina local.
+
+C. Criação da Camada de Serviços ('lib/services/api_service.dart'):
+   - Implementação de uma classe Singleton 'ApiService' que centraliza todos os
+     métodos de comunicação com a API Python.
+   - Converte os dados em JSON (jsonEncode) e decodifica as respostas (jsonDecode).
+   - Gerencia o token JWT e a sessão do usuário autenticado na memória.
+
+D. Centralização e Conexão das Telas ('lib/screens/'):
+   - Migração definitiva de todas as telas para a pasta principal do projeto.
+   - LoginScreen ('lib/screens/login_screen.dart'):
+     * Conectada a ApiService().fazerLogin(email, senha).
+     * Indicador visual de carregamento (CircularProgressIndicator) no botão.
+     * Exibição de mensagens de sucesso ou erro através de SnackBars.
+     * Redirecionamento automático para a HomeScreen em caso de sucesso.
+   - CadastroScreen ('lib/screens/cadastro_screen.dart'):
+     * Campos de Nome Completo, E-mail, Senha e Confirmação de Senha.
+     * Validações de campos obrigatórios, senhas coincidentes e tamanho mínimo.
+     * Conectada a ApiService().criarConta(...).
+   - EsqueceuSenhaScreen e RedefinirSenhaScreen:
+     * Fluxo completo para solicitar código de recuperação e definir nova senha.
+   - HomeScreen ('lib/screens/home_screen.dart'):
+     * Exibe o nome do usuário logado dinamicamente.
+     * Botão no cabeçalho para deslogar (logout).
+     * Botão "Começar o Treino" redireciona para a lista de treinos.
+   - TreinosScreen ('lib/screens/treinos_screen.dart'):
+     * Tela com listagem dinâmica dos treinos pré-montados e seus respectivos
+       exercícios (séries, repetições e grupos musculares) vindos do Supabase.
+
+E. Ponto de Entrada ('lib/main.dart'):
+   - Configuração de tema escuro moderno e sistema de rotas nomeadas:
+     '/login', '/cadastro', '/esqueceu-senha', '/home', '/treinos'.
+
+
+--------------------------------------------------------------------------------
+4. PASSO A PASSO: COMO FUNCIONA A CONEXÃO FLUTTER <-> PYTHON
+--------------------------------------------------------------------------------
+
+Abaixo está o ciclo de vida completo de uma operação (exemplo: Login do usuário):
+
+1. INTERAÇÃO NA TELA (Flutter):
+   - O usuário digita seu e-mail e senha no 'LoginScreen' e clica em "Continuar".
+
+2. VALIDAÇÃO E DISPARO (Flutter):
+   - O estado da tela ativa o indicador de carregamento (_carregando = true).
+   - O método 'ApiService().fazerLogin(email: email, senha: senha)' é chamado.
+
+3. REQUISIÇÃO HTTP (Rede):
+   - O pacote 'http' do Flutter empacota os dados em JSON:
+     POST http://127.0.0.1:8000/auth/login
+     Body: {"email": "usuario@email.com", "senha": "123"}
+   - A requisição é transmitida via rede local para a porta 8000.
+
+4. RECEBIMENTO E VALIDAÇÃO (Python - FastAPI):
+   - O FastAPI em 'BD/api.py' intercepta a rota '/auth/login'.
+   - O Pydantic valida se os campos 'email' e 'senha' foram fornecidos no formato correto.
+
+5. EXECUÇÃO DA LÓGICA DE BANCO (Python - Supabase):
+   - O FastAPI chama a função 'fazer_login(email, senha)' de 'BD/main.py'.
+   - O 'supabase_client.py' se comunica com os servidores na nuvem do Supabase Auth.
+
+6. RETORNO DO BANCO PARA O PYTHON:
+   - O Supabase valida a senha criptografada e retorna os dados do usuário + tokens JWT.
+   - A função 'fazer_login' monta um dicionário de resposta:
+     {"sucesso": True, "mensagem": "Login realizado com sucesso!", "usuario": {...}, "sessao": {...}}
+
+7. RESPOSTA HTTP PARA O FLUTTER:
+   - O FastAPI devolve essa resposta serializada em JSON para o Flutter (Status 200 OK).
+
+8. ATUALIZAÇÃO DA INTERFACE (Flutter):
+   - O 'ApiService' recebe o JSON e salva os dados do usuário logado na memória.
+   - O 'LoginScreen' desativa o carregamento (_carregando = false).
+   - Se sucesso: exibe SnackBar verde e faz 'Navigator.pushReplacement' para a HomeScreen.
+   - Se erro: exibe SnackBar vermelha com a mensagem explicativa retornada pelo back-end.
+
+
+--------------------------------------------------------------------------------
+5. GUIA RÁPIDO DE EXECUÇÃO
+--------------------------------------------------------------------------------
+
+Terminal 1 - Iniciar Back-end Python:
+  cd BD
+  python api.py
+  (O servidor ficará escutando em http://localhost:8000)
+
+Terminal 2 - Iniciar Aplicativo Flutter:
+  flutter pub get
+  flutter run
+================================================================================

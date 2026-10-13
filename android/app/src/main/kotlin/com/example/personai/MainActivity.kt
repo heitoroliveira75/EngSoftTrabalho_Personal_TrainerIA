@@ -1,4 +1,4 @@
-package com.example.PersonAI
+package com.example.personai
 
 import io.flutter.embedding.android.FlutterActivity
 

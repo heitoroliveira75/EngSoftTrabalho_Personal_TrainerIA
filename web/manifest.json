@@ -1,6 +1,6 @@
 {
-    "name": "PersonAI",
-    "short_name": "PersonAI",
+    "name": "personai",
+    "short_name": "personai",
     "start_url": ".",
     "display": "standalone",
     "background_color": "#0175C2",
