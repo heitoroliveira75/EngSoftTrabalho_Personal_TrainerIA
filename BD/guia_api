@@ -470,11 +470,57 @@ Padrão de Resposta da API:
 
 
 --------------------------------------------------------------------------------
-4.2. Listar Treinos do Usuário
+4.2. Obter Treinos Padrão por Dificuldade
+--------------------------------------------------------------------------------
+-> Rota: GET /treinos/dificuldade/{dificuldade}
+-> O que faz: Retorna treinos padrão recomendados para o nível de dificuldade selecionado:
+   "iniciante", "intermediario" ou "avancado".
+-> Parâmetros de URL:
+   - dificuldade: 'iniciante' | 'intermediario' | 'avancado'
+-> Retorno de Sucesso:
+   {
+     "sucesso": true,
+     "dificuldade": "iniciante",
+     "total": 3,
+     "treinos": [
+       {
+         "id": "1",
+         "titulo": "Corpo completo A",
+         "dificuldade": "Iniciante",
+         "exerciciosCount": 8,
+         "duracaoMinutos": 40,
+         "pontosTotais": 200,
+         "corTema": "#00E676",
+         "exercicios": [
+           { "nome": "Polichinelo", "series": 3, "repeticoes": 12, "pontos": 20 },
+           ...
+         ]
+       }
+     ]
+   }
+
+-> Exemplo em Python (requests):
+   import requests
+   dificuldade = "iniciante"
+   resposta = requests.get(f"http://127.0.0.1:8000/treinos/dificuldade/{dificuldade}").json()
+   if resposta["sucesso"]:
+       for t in resposta["treinos"]:
+           print(f"Treino: {t['titulo']} (+{t['pontosTotais']} pts, {t['duracaoMinutos']} min)")
+
+-> Exemplo em Flutter (Dart / ApiService):
+   final resposta = await ApiService().obterTreinosPorDificuldade('iniciante');
+   if (resposta['sucesso'] == true) {
+     final treinos = resposta['treinos'] as List;
+     print('Treinos encontrados para iniciante: ${treinos.length}');
+   }
+
+
+--------------------------------------------------------------------------------
+4.3. Listar Treinos do Usuário
 --------------------------------------------------------------------------------
 -> Rota: GET /treinos/usuario/{usuario_id}
--> O que faz: Retorna todos os treinos criados por um usuário específico.
--> Parâmetros de URL: usuario_id (string UUID).
+-> O que faz: Retorna todos os treinos criados por um usuário específico (ou usuário logado).
+-> Parâmetros de URL: usuario_id (string UUID opcional na ApiService).
 
 -> Exemplo em Python (requests):
    import requests
@@ -484,7 +530,8 @@ Padrão de Resposta da API:
        print(f"Treinos encontrados: {len(resposta['treinos'])}")
 
 -> Exemplo em Flutter (Dart / ApiService):
-   final resposta = await ApiService().listarTreinosUsuario(usuarioId);
+   // Se omitir usuarioId, ApiService utiliza automaticamente o ID do usuário atualmente logado
+   final resposta = await ApiService().listarTreinosUsuario();
    if (resposta['sucesso'] == true) {
      final meusTreinos = resposta['treinos'] as List;
      print('Meus treinos: ${meusTreinos.length}');
@@ -492,28 +539,29 @@ Padrão de Resposta da API:
 
 
 --------------------------------------------------------------------------------
-4.3. Criar Novo Treino
+4.4. Criar Novo Treino (com Exercícios e Metadados)
 --------------------------------------------------------------------------------
 -> Rota: POST /treinos
--> O que faz: Registra um novo treino e vincula seus exercícios com ordem, séries e repetições.
+-> O que faz: Registra um novo treino e vincula seus exercícios com ordem, séries, repetições e pontuações calculadas.
 -> Payload JSON:
    {
-     "usuario_id": "uuid-do-usuario",
+     "usuario_id": "uuid-do-usuario (opcional se logado)",
      "nome": "Treino Personalizado B",
      "descricao": "Foco em membros inferiores",
      "pre_montado": false,
+     "dificuldade": "Personalizado",
+     "duracao_minutos": 30,
+     "pontos_totais": 250,
      "exercicios": [
        {
-         "exercicio_id": 1,
-         "ordem": 1,
+         "exercicio_id": "1",
+         "nome": "Supino Reto",
+         "grupo_muscular": "Peitoral",
          "series": 4,
-         "repeticoes": 12
-       },
-       {
-         "exercicio_id": 2,
-         "ordem": 2,
-         "series": 3,
-         "repeticoes": 15
+         "repeticoes": 10,
+         "pontos_series": 200,
+         "pontos_repeticoes": 200,
+         "pontos_totais": 400
        }
      ]
    }
@@ -554,7 +602,7 @@ Padrão de Resposta da API:
 
 
 --------------------------------------------------------------------------------
-4.4. Editar Treino
+4.5. Editar Treino
 --------------------------------------------------------------------------------
 -> Rota: PUT /treinos/{treino_id}
 -> O que faz: Atualiza o nome, descrição e/ou a lista de exercícios vinculados.
@@ -593,7 +641,7 @@ Padrão de Resposta da API:
 
 
 --------------------------------------------------------------------------------
-4.5. Excluir Treino
+4.6. Excluir Treino
 --------------------------------------------------------------------------------
 -> Rota: DELETE /treinos/{treino_id}
 -> O que faz: Remove o treino e desvincula os exercícios associados.

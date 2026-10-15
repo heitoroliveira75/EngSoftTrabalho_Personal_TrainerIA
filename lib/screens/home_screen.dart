@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../services/api_service.dart';
 import 'profile_screen.dart';
-import 'treinos_screen.dart';
+import 'training_menu_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final VoidCallback? onSecondRoute;
@@ -85,7 +85,7 @@ class _HomeScreenState extends State<HomeScreen> {
     } else {
       await Navigator.push(
         context,
-        MaterialPageRoute(builder: (context) => const TreinosScreen()),
+        MaterialPageRoute(builder: (context) => const TrainingMenuScreen()),
       );
       _carregarPontuacoes();
     }

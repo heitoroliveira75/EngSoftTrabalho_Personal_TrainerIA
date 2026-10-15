@@ -48,22 +48,37 @@ class EditarPerfilRequest(BaseModel):
     checagem: Optional[bool] = None
 
 class ExercicioTreinoItem(BaseModel):
-    exercicio_id: int
+    exercicio_id: Union[int, str]
     ordem: Optional[int] = 1
     series: Optional[int] = 3
     repeticoes: Optional[int] = 10
+    nome: Optional[str] = None
+    grupo_muscular: Optional[str] = None
+    pontos_series: Optional[int] = None
+    pontos_repeticoes: Optional[int] = None
+    pontos_totais: Optional[int] = None
+    total_repeticoes: Optional[int] = None
+
+    model_config = {"extra": "allow"}
 
 class CriarTreinoRequest(BaseModel):
     usuario_id: Optional[str] = None
     nome: str
     descricao: Optional[str] = ""
     pre_montado: Optional[bool] = False
+    dificuldade: Optional[str] = None
+    duracao_minutos: Optional[int] = None
+    pontos_totais: Optional[int] = None
     exercicios: Optional[List[ExercicioTreinoItem]] = None
+
+    model_config = {"extra": "allow"}
 
 class EditarTreinoRequest(BaseModel):
     nome: Optional[str] = None
     descricao: Optional[str] = None
     exercicios: Optional[List[ExercicioTreinoItem]] = None
+
+    model_config = {"extra": "allow"}
 
 class RecuperarSenhaRequest(BaseModel):
     email: str
@@ -203,6 +218,15 @@ def api_ver_treinos_premont():
     resposta = bd.ver_treinos_premont()
     return resposta
 
+@app.get("/treinos/dificuldade/{dificuldade}")
+def api_ver_treinos_por_dificuldade(dificuldade: str):
+    """
+    Retorna os treinos padrão de acordo com o nível de dificuldade selecionado:
+    'iniciante', 'intermediario', 'avancado'.
+    """
+    resposta = bd.ver_treinos_por_dificuldade(dificuldade)
+    return resposta
+
 @app.get("/treinos/usuario/{usuario_id}")
 def api_listar_treinos_usuario(usuario_id: str):
     resposta = bd.listar_treinos(usuario_id)
@@ -210,16 +234,25 @@ def api_listar_treinos_usuario(usuario_id: str):
 
 @app.post("/treinos")
 def api_criar_treino(req: CriarTreinoRequest):
+    usuario_id = req.usuario_id
+    if not usuario_id and not req.pre_montado:
+        usuario_atual = bd.obter_usuario_atual()
+        if usuario_atual and usuario_atual.get("id"):
+            usuario_id = str(usuario_atual["id"])
+
     exercicios_dict = None
     if req.exercicios:
         exercicios_dict = [item.model_dump() for item in req.exercicios]
     
     resposta = bd.criar_treino(
-        usuario_id=req.usuario_id,
+        usuario_id=usuario_id,
         nome=req.nome,
         descricao=req.descricao or "",
         pre_montado=req.pre_montado or False,
-        exercicios=exercicios_dict
+        exercicios=exercicios_dict,
+        dificuldade=req.dificuldade,
+        duracao_minutos=req.duracao_minutos,
+        pontos_totais=req.pontos_totais
     )
     return resposta
 

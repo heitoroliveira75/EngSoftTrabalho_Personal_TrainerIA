@@ -2,11 +2,15 @@ import 'package:flutter/material.dart';
 import 'screens/cadastro_screen.dart';
 import 'screens/change_name_screen.dart';
 import 'screens/change_password_screen.dart';
+import 'screens/criar_exercicio_screen.dart';
+import 'screens/dificuldade_treino_screen.dart';
 import 'screens/esqueceu_senha_screen.dart';
 import 'screens/home_screen.dart';
 import 'screens/login_screen.dart';
+import 'screens/opcao_treinos_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/redefinir_senha_screen.dart';
+import 'screens/training_menu_screen.dart';
 import 'screens/treinos_screen.dart';
 
 void main() {
@@ -40,6 +44,14 @@ class MeuAppTreino extends StatelessWidget {
         '/redefinir-senha': (context) => const RedefinirSenhaScreen(),
         '/home': (context) => const HomeScreen(),
         '/treinos': (context) => const TreinosScreen(),
+        '/treino-menu': (context) => const TrainingMenuScreen(),
+        '/dificuldade': (context) => const DificuldadeScreen(),
+        '/criar-treino': (context) => const CriarExercicioScreen(),
+        '/criar': (context) => const CriarExercicioScreen(),
+        '/opcao-treinos': (context) =>
+            const OpcaoTreinosScreen(dificuldadeFlag: 'iniciante'),
+        '/meus-treinos': (context) =>
+            const OpcaoTreinosScreen(dificuldadeFlag: 'meus_treinos'),
         '/perfil': (context) => const ProfileScreen(),
         '/alterar-nome': (context) => const ChangeNameScreen(),
         '/alterar-senha': (context) => const ChangePasswordScreen(),
