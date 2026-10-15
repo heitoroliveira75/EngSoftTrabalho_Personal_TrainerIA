@@ -1,30 +1,66 @@
 """
-Módulo de Extração de Ângulos a partir de Vídeo
+Módulo de Extração de Ângulos a partir de Vídeo (MediaPipe Tasks API)
 
-Responsável por abrir arquivos de vídeo (.mp4, .avi) ou fluxo de câmera,
-detectar poses corporais com MediaPipe e gerar séries temporais de ângulos articulares.
+Compatível com as versões mais recentes do MediaPipe (que descontinuaram o 'mp.solutions').
+Utiliza o detector moderno PoseLandmarker da biblioteca mediapipe.tasks.
 """
 
+import os
+import urllib.request
 from typing import List, Dict, Any, Optional
 import cv2
 import mediapipe as mp
+from mediapipe.tasks import python
+from mediapipe.tasks.python import vision
 
 from calculo_angulos import extrair_angulos_ombro_e_cotovelo
+
+
+# URL oficial do modelo leve (.task) hospedado pelo Google
+MODELO_URL_PADRAO = (
+    "https://storage.googleapis.com/mediapipe-models/pose_landmarker/"
+    "pose_landmarker_lite/float16/latest/pose_landmarker_lite.task"
+)
+MODELO_ARQUIVO_PADRAO = "pose_landmarker_lite.task"
+
+
+def garantir_modelo_pose(caminho_modelo: str = MODELO_ARQUIVO_PADRAO) -> str:
+    """
+    Verifica se o arquivo de pesos do modelo do MediaPipe existe localmente.
+    Se não existir, faz o download automático (~9 MB) do repositório oficial do Google.
+    """
+    if not os.path.exists(caminho_modelo):
+        print(f"Baixando modelo oficial do MediaPipe Tasks ({caminho_modelo})...")
+        urllib.request.urlretrieve(MODELO_URL_PADRAO, caminho_modelo)
+        print("Download do modelo concluído com sucesso!")
+    return caminho_modelo
 
 
 class ExtratorVideo:
     """
     Processa arquivos de vídeo frame a frame e extrai os ângulos articulares
-    necessários para a análise biomecânica.
+    utilizando a moderna API de Tarefas do MediaPipe (PoseLandmarker).
     """
 
-    def __init__(self, lado: str = "direito"):
+    def __init__(self, lado: str = "direito", caminho_modelo: str = MODELO_ARQUIVO_PADRAO):
         """
         Args:
             lado: 'direito' ou 'esquerdo' (define qual braço monitorar).
+            caminho_modelo: Caminho para o arquivo do modelo (.task).
         """
         self.lado = lado
-        self.mp_pose = mp.solutions.pose
+        self.caminho_modelo = garantir_modelo_pose(caminho_modelo)
+
+        # Configuração do detector PoseLandmarker da nova API
+        base_options = python.BaseOptions(model_asset_path=self.caminho_modelo)
+        options = vision.PoseLandmarkerOptions(
+            base_options=base_options,
+            running_mode=vision.RunningMode.IMAGE,
+            num_poses=1,
+            min_pose_detection_confidence=0.5,
+            min_tracking_confidence=0.5
+        )
+        self.detector = vision.PoseLandmarker.create_from_options(options)
 
     def extrair_serie_temporal(self, caminho_video: str) -> List[Dict[str, Any]]:
         """
@@ -50,67 +86,58 @@ class ExtratorVideo:
         ombro_anterior = None
         frame_idx = 0
 
-        # Inicializa o estimador de pose do MediaPipe
-        with self.mp_pose.Pose(
-            static_image_mode=False,
-            model_complexity=1,
-            min_detection_confidence=0.5,
-            min_tracking_confidence=0.5
-        ) as pose:
+        while cap.isOpened():
+            sucesso, frame = cap.read()
+            if not sucesso:
+                break  # Fim do vídeo
 
-            while cap.isOpened():
-                sucesso, frame = cap.read()
-                if not sucesso:
-                    break  # Fim do vídeo
+            # O OpenCV lê em BGR; o MediaPipe necessita de RGB
+            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
-                # O OpenCV lê em BGR; o MediaPipe necessita de RGB
-                frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                resultado = pose.process(frame_rgb)
+            # Converte para a estrutura de imagem exigida pelo MediaPipe Tasks
+            mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=frame_rgb)
 
-                if resultado.pose_landmarks:
-                    # 1. Calcula os ângulos das articulações no frame atual
-                    angulos = extrair_angulos_ombro_e_cotovelo(
-                        landmarks=resultado.pose_landmarks.landmark,
-                        lado=self.lado
-                    )
+            # Executa a inferência de pose no frame atual
+            resultado = self.detector.detect(mp_image)
 
-                    # 2. Calcula a variação (delta) entre frames consecutivos
-                    c_atual = angulos["cotovelo"]
-                    o_atual = angulos["ombro"]
+            # Se encontrou pelo menos uma pessoa no frame
+            if resultado.pose_landmarks and len(resultado.pose_landmarks) > 0:
+                landmarks = resultado.pose_landmarks[0]
 
-                    if cotovelo_anterior is None:
-                        delta_c = 0.0
-                        delta_o = 0.0
-                    else:
-                        delta_c = round(c_atual - cotovelo_anterior, 2)
-                        delta_o = round(o_atual - ombro_anterior, 2)
+                # 1. Calcula os ângulos das articulações no frame atual
+                angulos = extrair_angulos_ombro_e_cotovelo(
+                    landmarks=landmarks,
+                    lado=self.lado
+                )
 
-                    cotovelo_anterior = c_atual
-                    ombro_anterior = o_atual
+                # 2. Calcula a variação (delta) entre frames consecutivos
+                c_atual = angulos["cotovelo"]
+                o_atual = angulos["ombro"]
 
-                    frames_processados.append({
-                        "frame": frame_idx,
-                        "angulos": angulos,
-                        "deltas": {"cotovelo": delta_c, "ombro": delta_o}
-                    })
+                if cotovelo_anterior is None:
+                    delta_c = 0.0
+                    delta_o = 0.0
+                else:
+                    delta_c = round(c_atual - cotovelo_anterior, 2)
+                    delta_o = round(o_atual - ombro_anterior, 2)
 
-                frame_idx += 1
+                cotovelo_anterior = c_atual
+                ombro_anterior = o_atual
+
+                frames_processados.append({
+                    "frame": frame_idx,
+                    "angulos": angulos,
+                    "deltas": {"cotovelo": delta_c, "ombro": delta_o}
+                })
+
+            frame_idx += 1
 
         cap.release()
         return frames_processados
 
 
 if __name__ == "__main__":
-    # Exemplo didático de uso:
-    print("=== Módulo ExtratorVideo ===")
-    print("Para processar um vídeo real, instale as dependências com:")
-    print("  pip install opencv-python mediapipe\n")
-    print("Exemplo de código:")
-    print("""
-    from extrator_video import ExtratorVideo
-
-    extrator = ExtratorVideo(lado='direito')
-    dados = extrator.extrair_serie_temporal('meu_video.mp4')
-    print(f'Total de frames analisados: {len(dados)}')
-    print('Primeiro frame:', dados[0])
-    """)
+    # Teste rápido: instancia o detector e assegura que o modelo baixa corretamente
+    print("=== Testando ExtratorVideo com a nova API MediaPipe Tasks ===")
+    extrator = ExtratorVideo(lado="direito")
+    print("Extrator inicializado com sucesso!")
