@@ -11,6 +11,7 @@ class ApiService {
 
   // Dados em memória da sessão atual
   String? tokenAcesso;
+  String? idUsuarioLogado;
   Map<String, dynamic>? usuarioLogado;
 
   String get nomeUsuarioAtual {
@@ -37,6 +38,9 @@ class ApiService {
   }
 
   String? get idUsuarioAtual {
+    if (idUsuarioLogado != null && idUsuarioLogado!.trim().isNotEmpty) {
+      return idUsuarioLogado!.trim();
+    }
     if (usuarioLogado != null && usuarioLogado!['id'] != null) {
       return usuarioLogado!['id'].toString();
     }
@@ -75,6 +79,9 @@ class ApiService {
       final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
       if (data['sucesso'] == true && data['usuario'] != null) {
         usuarioLogado = Map<String, dynamic>.from(data['usuario'] as Map);
+        if (data['usuario']['id'] != null) {
+          idUsuarioLogado = data['usuario']['id'].toString();
+        }
       }
       return data;
     } catch (e) {
@@ -106,7 +113,12 @@ class ApiService {
       final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
 
       if (data['sucesso'] == true) {
-        usuarioLogado = data['usuario'];
+        if (data['usuario'] != null) {
+          usuarioLogado = Map<String, dynamic>.from(data['usuario'] as Map);
+          if (data['usuario']['id'] != null) {
+            idUsuarioLogado = data['usuario']['id'].toString();
+          }
+        }
         if (data['sessao'] != null && data['sessao']['access_token'] != null) {
           tokenAcesso = data['sessao']['access_token'];
         }
@@ -131,12 +143,14 @@ class ApiService {
 
       tokenAcesso = null;
       usuarioLogado = null;
+      idUsuarioLogado = null;
 
       final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
       return data;
     } catch (e) {
       tokenAcesso = null;
       usuarioLogado = null;
+      idUsuarioLogado = null;
       return {
         'sucesso': false,
         'mensagem': 'Erro ao comunicar logout: $e',
@@ -155,6 +169,9 @@ class ApiService {
       final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
       if (data['sucesso'] == true && data['usuario'] != null) {
         usuarioLogado = Map<String, dynamic>.from(data['usuario'] as Map);
+        if (data['usuario']['id'] != null) {
+          idUsuarioLogado = data['usuario']['id'].toString();
+        }
       }
       return data;
     } catch (e) {
@@ -261,6 +278,10 @@ class ApiService {
 
       final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
       if (data['sucesso'] == true && data['perfil'] != null) {
+        idUsuarioLogado ??= usuarioId;
+        if (data['perfil']['id'] != null) {
+          idUsuarioLogado = data['perfil']['id'].toString();
+        }
         if (usuarioLogado == null) {
           usuarioLogado = Map<String, dynamic>.from(data['perfil'] as Map);
         } else {
@@ -384,10 +405,37 @@ class ApiService {
     }
   }
 
-  /// Retorna os treinos criados por um determinado usuário
-  Future<Map<String, dynamic>> listarTreinosUsuario(String usuarioId) async {
+  /// Retorna os treinos padrão categorizados por dificuldade ('iniciante', 'intermediario', 'avancado')
+  Future<Map<String, dynamic>> obterTreinosPorDificuldade(String dificuldade) async {
     try {
-      final url = Uri.parse('$baseUrl/treinos/usuario/$usuarioId');
+      final url = Uri.parse('$baseUrl/treinos/dificuldade/$dificuldade');
+      final response = await http
+          .get(url, headers: _headers)
+          .timeout(const Duration(seconds: 10));
+
+      final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+      return data;
+    } catch (e) {
+      return {
+        'sucesso': false,
+        'mensagem': 'Erro ao buscar treinos por dificuldade: $e',
+        'treinos': [],
+      };
+    }
+  }
+
+  /// Retorna os treinos criados por um determinado usuário (ou o usuário logado se omitido)
+  Future<Map<String, dynamic>> listarTreinosUsuario([String? usuarioId]) async {
+    try {
+      final id = usuarioId ?? idUsuarioAtual;
+      if (id == null || id.isEmpty) {
+        return {
+          'sucesso': false,
+          'mensagem': 'ID do usuário não fornecido e nenhum usuário autenticado.',
+          'treinos': [],
+        };
+      }
+      final url = Uri.parse('$baseUrl/treinos/usuario/$id');
       final response = await http
           .get(url, headers: _headers)
           .timeout(const Duration(seconds: 10));
@@ -403,25 +451,38 @@ class ApiService {
     }
   }
 
-  /// Cria um novo treino com lista opcional de exercícios
+  /// Cria um novo treino com lista opcional de exercícios e metadados
   Future<Map<String, dynamic>> criarTreino({
     String? usuarioId,
     required String nome,
     String? descricao,
     bool preMontado = false,
+    String? dificuldade,
+    int? duracaoMinutos,
+    int? pontosTotais,
     List<Map<String, dynamic>>? exercicios,
   }) async {
     try {
+      var id = usuarioId ?? idUsuarioAtual;
+      if (id == null && !preMontado) {
+        final resAtual = await obterUsuarioAtual();
+        if (resAtual['sucesso'] == true && resAtual['usuario'] != null) {
+          id = resAtual['usuario']['id']?.toString();
+        }
+      }
       final url = Uri.parse('$baseUrl/treinos');
       final response = await http
           .post(
             url,
             headers: _headers,
             body: jsonEncode({
-              if (usuarioId != null) 'usuario_id': usuarioId,
+              if (id != null && id.isNotEmpty) 'usuario_id': id,
               'nome': nome,
               'descricao': descricao ?? '',
               'pre_montado': preMontado,
+              if (dificuldade != null) 'dificuldade': dificuldade,
+              if (duracaoMinutos != null) 'duracao_minutos': duracaoMinutos,
+              if (pontosTotais != null) 'pontos_totais': pontosTotais,
               if (exercicios != null) 'exercicios': exercicios,
             }),
           )
@@ -542,7 +603,11 @@ class ApiService {
 
       final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
       if (data['sucesso'] == true) {
-        usuarioLogado ??= {};
+        idUsuarioLogado ??= usuarioId;
+        usuarioLogado ??= {'id': usuarioId};
+        if (usuarioLogado!['id'] == null) {
+          usuarioLogado!['id'] = usuarioId;
+        }
         if (data['pontuacao_diaria'] != null) {
           usuarioLogado!['pontuacao_diaria'] = data['pontuacao_diaria'];
         }
