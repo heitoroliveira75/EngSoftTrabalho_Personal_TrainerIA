@@ -73,8 +73,6 @@ O projeto foi construído sobre uma arquitetura moderna, desacoplada e segura em
    ```bash
    uvicorn api:app --host 0.0.0.0 --port 8000 --reload
    ```
-   > 💡 A documentação interativa estará disponível em [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs).
-
 ---
 
 ### 2. Executando o Aplicativo (Flutter)
