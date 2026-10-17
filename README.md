@@ -10,7 +10,7 @@ O **PersonAI** nasceu para ser mais do que apenas uma lista digital de exercíci
 
 ---
 
-## ✨ O Que Torna o Personal Trainer IA Especial?
+## ✨ O Que Torna o PersonAI Especial?
 
 * 🔥 **Constância que Motiva (Streaks & Gamificação):** Mantenha sua sequência de dias ativos, desafie-se a bater sua maior sequência e acumule pontos a cada exercício finalizado.
 * 🎯 **Treinos Sob Medida:** Escolha treinos pré-montados pensados para o seu nível (**Iniciante**, **Intermediário** ou **Avançado**) ou crie suas próprias rotinas personalizadas com séries, repetições e grupos musculares específicos.
