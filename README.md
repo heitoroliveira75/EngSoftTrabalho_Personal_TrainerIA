@@ -1,8 +1,8 @@
-# 💪 PersonAI
+# PersonAI
 
 ---
 
-## 🌟 Sobre o Projeto
+##  Sobre o Projeto
 
 Manter a disciplina nos treinos é um dos maiores desafios do dia a dia. A vontade de mudar de vida existe, mas a falta de acompanhamento, o desânimo e a rotina corrida muitas vezes falam mais alto. 
 
@@ -10,17 +10,17 @@ O **PersonAI** nasceu para ser mais do que apenas uma lista digital de exercíci
 
 ---
 
-## ✨ O Que Torna o PersonAI Especial?
+##  O Que Torna o PersonAI Especial?
 
-* 🔥 **Constância que Motiva (Streaks & Gamificação):** Mantenha sua sequência de dias ativos, desafie-se a bater sua maior sequência e acumule pontos a cada exercício finalizado.
-* 🎯 **Treinos Sob Medida:** Escolha treinos pré-montados pensados para o seu nível (**Iniciante**, **Intermediário** ou **Avançado**) ou crie suas próprias rotinas personalizadas com séries, repetições e grupos musculares específicos.
-* ⚡ **Execução Fluida em Tempo Real:** Marque suas séries enquanto treina, acompanhe o progresso imediato e sinta o impacto de cada repetição sem distrações.
-* 🛡️ **Segurança e Perfil Individual:** Acesso pessoal protegido com login, recuperação de senha e um painel completo para acompanhar sua pontuação total, semanal e recordes.
-* 🎨 **Visual Moderno e Focado:** Design intuitivo com tema escuro (*Dark Mode*) e detalhes em verde neon, pensado para não cansar a vista e manter a energia alta na academia ou em casa.
+*  **Constância que Motiva (Streaks & Gamificação):** Mantenha sua sequência de dias ativos, desafie-se a bater sua maior sequência e acumule pontos a cada exercício finalizado.
+*  **Treinos Sob Medida:** Escolha treinos pré-montados pensados para o seu nível (**Iniciante**, **Intermediário** ou **Avançado**) ou crie suas próprias rotinas personalizadas com séries, repetições e grupos musculares específicos.
+*  **Execução Fluida em Tempo Real:** Marque suas séries enquanto treina, acompanhe o progresso imediato e sinta o impacto de cada repetição sem distrações.
+*  **Segurança e Perfil Individual:** Acesso pessoal protegido com login, recuperação de senha e um painel completo para acompanhar sua pontuação total, semanal e recordes.
+*  **Visual Moderno e Focado:** Design intuitivo com tema escuro (*Dark Mode*) e detalhes em verde neon, pensado para não cansar a vista e manter a energia alta na academia ou em casa.
 
 ---
 
-## 🏛️ Arquitetura do Sistema
+##  Arquitetura do Sistema
 
 O projeto foi construído sobre uma arquitetura moderna, desacoplada e segura em três camadas:
 
@@ -33,7 +33,7 @@ O projeto foi construído sobre uma arquitetura moderna, desacoplada e segura em
 
 ---
 
-## 🚀 Como Começar
+##  Como Começar
 
 ### Pré-requisitos
 * [Flutter SDK](https://flutter.dev/docs/get-started/install) (versão ^3.13)
@@ -86,11 +86,11 @@ O projeto foi construído sobre uma arquitetura moderna, desacoplada e segura em
    ```bash
    flutter run
    ```
-   > 💡 O aplicativo detecta automaticamente o ambiente (Desktop, Emulador Android em `10.0.2.2` ou Web) via [`lib/config/api_config.dart`](lib/config/api_config.dart).
+   >  O aplicativo detecta automaticamente o ambiente (Desktop, Emulador Android em `10.0.2.2` ou Web) via [`lib/config/api_config.dart`](lib/config/api_config.dart).
 
 ---
 
-## 🛠️ Tecnologias Utilizadas
+##  Tecnologias Utilizadas
 
 * **Mobile / Frontend:** [Flutter](https://flutter.dev/) & [Dart](https://dart.dev/)
 * **Backend:** [Python](https://www.python.org/) & [FastAPI](https://fastapi.tiangolo.com/)
