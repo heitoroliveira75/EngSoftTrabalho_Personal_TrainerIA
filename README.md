@@ -100,6 +100,6 @@ O projeto foi construído sobre uma arquitetura moderna, desacoplada e segura em
 
 ---
 
-## 🎓 Contexto do Projeto
+## Contexto do Projeto
 
 Este projeto está sendo desenvolvido no âmbito da disciplina de **Engenharia de Software**, com foco na aplicação prática de padrões arquiteturais modernos, desenvolvimento ágil, separação de responsabilidades e entrega contínua de valor centrado no usuário.
