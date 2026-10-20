@@ -1,22 +1,22 @@
 """
-Módulo de Extração de Ângulos a partir de Vídeo (MediaPipe Tasks API)
-
-Compatível com as versões mais recentes do MediaPipe (que descontinuaram o 'mp.solutions').
-Utiliza o detector moderno PoseLandmarker da biblioteca mediapipe.tasks.
+Módulo de Extração de Ângulos e Geração de Gabaritos a partir de Vídeo.
+Permite processar vídeos gravados de especialistas para qualquer exercício do catálogo.
 """
 
+import argparse
 import os
 import urllib.request
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any
 import cv2
 import mediapipe as mp
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 
-from calculo_angulos import extrair_angulos_ombro_e_cotovelo
+from calculo_angulos import extrair_angulos_exercicio
+from buffer_repeticao import BufferRepeticao
+from gabarito import GabaritoExercicio
+from exercicios_fsm import CATALOGO_EXERCICIOS
 
-
-# URL oficial do modelo leve (.task) hospedado pelo Google
 MODELO_URL_PADRAO = (
     "https://storage.googleapis.com/mediapipe-models/pose_landmarker/"
     "pose_landmarker_lite/float16/latest/pose_landmarker_lite.task"
@@ -25,109 +25,73 @@ MODELO_ARQUIVO_PADRAO = "pose_landmarker_lite.task"
 
 
 def garantir_modelo_pose(caminho_modelo: str = MODELO_ARQUIVO_PADRAO) -> str:
-    """
-    Verifica se o arquivo de pesos do modelo do MediaPipe existe localmente.
-    Se não existir, faz o download automático (~9 MB) do repositório oficial do Google.
-    """
+    """Garante que o ficheiro .task do MediaPipe existe localmente."""
     if not os.path.exists(caminho_modelo):
-        print(f"Baixando modelo oficial do MediaPipe Tasks ({caminho_modelo})...")
+        print(f"A transferir modelo oficial do MediaPipe Tasks ({caminho_modelo})...")
         urllib.request.urlretrieve(MODELO_URL_PADRAO, caminho_modelo)
-        print("Download do modelo concluído com sucesso!")
+        print("Transferência concluída com sucesso!")
     return caminho_modelo
 
 
 class ExtratorVideo:
-    """
-    Processa arquivos de vídeo frame a frame e extrai os ângulos articulares
-    utilizando a moderna API de Tarefas do MediaPipe (PoseLandmarker).
-    """
-
-    def __init__(self, lado: str = "direito", caminho_modelo: str = MODELO_ARQUIVO_PADRAO):
-        """
-        Args:
-            lado: 'direito' ou 'esquerdo' (define qual braço monitorar).
-            caminho_modelo: Caminho para o arquivo do modelo (.task).
-        """
+    def __init__(
+        self,
+        articulacoes: List[str],
+        lado: str = "direito",
+        caminho_modelo: str = MODELO_ARQUIVO_PADRAO
+    ):
+        self.articulacoes = articulacoes
         self.lado = lado
         self.caminho_modelo = garantir_modelo_pose(caminho_modelo)
 
-        # Configuração do detector PoseLandmarker da nova API
         base_options = python.BaseOptions(model_asset_path=self.caminho_modelo)
         options = vision.PoseLandmarkerOptions(
             base_options=base_options,
             running_mode=vision.RunningMode.IMAGE,
             num_poses=1,
             min_pose_detection_confidence=0.5,
-            min_tracking_confidence=0.5
+            min_tracking_confidence=0.5,
         )
         self.detector = vision.PoseLandmarker.create_from_options(options)
 
     def extrair_serie_temporal(self, caminho_video: str) -> List[Dict[str, Any]]:
-        """
-        Lê um arquivo de vídeo do início ao fim e extrai os ângulos de cada frame.
-
-        Args:
-            caminho_video: Caminho do arquivo de vídeo (.mp4, .avi, etc.).
-
-        Returns:
-            Lista de dicionários, onde cada item contém:
-            - 'frame': número do frame
-            - 'angulos': dict com {'cotovelo': float, 'ombro': float}
-            - 'deltas': dict com a variação em relação ao frame anterior
-        """
         cap = cv2.VideoCapture(caminho_video)
-
         if not cap.isOpened():
-            raise FileNotFoundError(f"Não foi possível abrir o arquivo de vídeo: {caminho_video}")
+            raise FileNotFoundError(f"Não foi possível abrir o vídeo: {caminho_video}")
 
         frames_processados: List[Dict[str, Any]] = []
-
-        cotovelo_anterior = None
-        ombro_anterior = None
+        angulos_anteriores: Dict[str, float] = {}
         frame_idx = 0
 
         while cap.isOpened():
             sucesso, frame = cap.read()
             if not sucesso:
-                break  # Fim do vídeo
+                break
 
-            # O OpenCV lê em BGR; o MediaPipe necessita de RGB
             frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-
-            # Converte para a estrutura de imagem exigida pelo MediaPipe Tasks
             mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=frame_rgb)
-
-            # Executa a inferência de pose no frame atual
             resultado = self.detector.detect(mp_image)
 
-            # Se encontrou pelo menos uma pessoa no frame
             if resultado.pose_landmarks and len(resultado.pose_landmarks) > 0:
                 landmarks = resultado.pose_landmarks[0]
-
-                # 1. Calcula os ângulos das articulações no frame atual
-                angulos = extrair_angulos_ombro_e_cotovelo(
+                angulos, _ = extrair_angulos_exercicio(
                     landmarks=landmarks,
-                    lado=self.lado
+                    articulacoes=self.articulacoes,
+                    lado=self.lado,
                 )
 
-                # 2. Calcula a variação (delta) entre frames consecutivos
-                c_atual = angulos["cotovelo"]
-                o_atual = angulos["ombro"]
-
-                if cotovelo_anterior is None:
-                    delta_c = 0.0
-                    delta_o = 0.0
-                else:
-                    delta_c = round(c_atual - cotovelo_anterior, 2)
-                    delta_o = round(o_atual - ombro_anterior, 2)
-
-                cotovelo_anterior = c_atual
-                ombro_anterior = o_atual
+                deltas: Dict[str, float] = {}
+                for art, valor_atual in angulos.items():
+                    if art not in angulos_anteriores:
+                        deltas[art] = 0.0
+                    else:
+                        deltas[art] = round(valor_atual - angulos_anteriores[art], 2)
+                    angulos_anteriores[art] = valor_atual
 
                 frames_processados.append({
                     "frame": frame_idx,
                     "angulos": angulos,
-                    "deltas": {"cotovelo": delta_c, "ombro": delta_o}
+                    "deltas": deltas,
                 })
 
             frame_idx += 1
@@ -136,8 +100,42 @@ class ExtratorVideo:
         return frames_processados
 
 
+def gerar_gabarito_de_video_especialista(
+    tecla_exercicio: str,
+    caminho_video: str,
+    lado: str = "direito"
+) -> str:
+    """Extrai a primeira repetição completa de um vídeo de especialista e salva o JSON."""
+    if tecla_exercicio not in CATALOGO_EXERCICIOS:
+        raise ValueError(f"Exercício '{tecla_exercicio}' inválido. Escolha entre {list(CATALOGO_EXERCICIOS.keys())}.")
+
+    config = CATALOGO_EXERCICIOS[tecla_exercicio]
+    extrator = ExtratorVideo(articulacoes=config["articulacoes"], lado=lado)
+    frames = extrator.extrair_serie_temporal(caminho_video)
+
+    fsm = config["classe_fsm"]()
+    buffer = BufferRepeticao(fsm=fsm, articulacoes=config["articulacoes"])
+
+    for f in frames:
+        dados_rep, _ = buffer.processar_frame(angulos=f["angulos"], angulos_deltas=f["deltas"])
+        if dados_rep is not None:
+            gabarito = GabaritoExercicio(
+                nome_exercicio=config["id"],
+                articulacoes=config["articulacoes"],
+                dados=dados_rep,
+                descricao=f"Extraído do vídeo '{caminho_video}'",
+            )
+            gabarito.salvar_json(config["arquivo_gabarito"])
+            print(f"Gabarito salvo em '{config['arquivo_gabarito']}' ({gabarito.total_frames} frames).")
+            return config["arquivo_gabarito"]
+
+    raise ValueError("Nenhuma repetição completa foi detetada no vídeo informado.")
+
+
 if __name__ == "__main__":
-    # Teste rápido: instancia o detector e assegura que o modelo baixa corretamente
-    print("=== Testando ExtratorVideo com a nova API MediaPipe Tasks ===")
-    extrator = ExtratorVideo(lado="direito")
-    print("Extrator inicializado com sucesso!")
+    parser = argparse.ArgumentParser(description="Extrai gabarito JSON de um vídeo de especialista.")
+    parser.add_argument("video", help="Caminho do ficheiro de vídeo do especialista")
+    parser.add_argument("--exercicio", default="1", help="1=Ombro, 2=Agachamento, 3=Rosca Bíceps")
+    parser.add_argument("--lado", default="direito", choices=["direito", "esquerdo"])
+    args = parser.parse_args()
+    gerar_gabarito_de_video_especialista(args.exercicio, args.video, args.lado)
