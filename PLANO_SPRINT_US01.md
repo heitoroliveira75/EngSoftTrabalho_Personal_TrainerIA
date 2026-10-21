@@ -88,57 +88,62 @@ Nenhum consumidor calcula deltas, DTW ou notas manualmente.
 
 ## 4. Decomposição em Tasks Atômicas (1 Task = 1 Commit Semântico)
 
-### `[TASK-00]` Documentação Base, Contexto e Plano da Sprint
+### `[TASK-00]` Documentação Base, Contexto e Plano da Sprint — **[CONCLUÍDA]**
+- **Status:** ✅ **Concluída** (Commit `0afd9ee` — `adiciona planejamento da sprint, skills, contexto e log`)
 - **Objetivo:** Versionar a documentação de contexto da branch `IA`, regras de engenharia de software e o plano da `US-01`.
 - **Artefatos:** `CONTEXTO_IA.md`, `DIRETRIZES_DESENVOLVIMENTO.md`, `DEVLOG.md`, `AGENTS.md`, `PLANO_SPRINT_US01.md`.
 - **Critério de Pronto (DoD):** Arquivos versionados na raiz do repositório.
-- **Commit:** `docs(ia): adiciona contexto, diretrizes, devlog e plano da US-01`
+- **Commit Realizado:** `0afd9ee` / `adiciona planejamento da sprint, skills, contexto e log`
 
-### `[TASK-01]` Limpeza de Legados, Duplicatas e Configuração de Dependências
-- **Objetivo:** Higienizar o repositório eliminando duplicatas com acento e arquivos legados quebrados, unificando os imports nos consumidores.
-- **Escopo Técnico:**
-  - Remover `exercícios_fsm.py` (cópia com acento), `Modularização.py` (importa módulo deletado) e `dev_ombro-inicial.py`.
-  - Atualizar os imports em `comparar_exercicio.py` e `exemplo_integracao.py` para usar `from exercicios_fsm import DesenvolvimentoOmbro`.
-  - Atualizar `.gitignore` (`__pycache__/`, `.venv/`, `venv/`, `.pytest_cache/`, `*.mp4`, `*.avi`, `gabarito_especialista_gerado.json`).
-  - Criar `requirements.txt` com versões (`numpy`, `opencv-python`, `mediapipe>=0.10.0`, `pytest`).
-  - Remover a pasta local aninhada não rastreada `EngSoftTrabalho_Personal_TrainerIA/`.
-- **Critério de Pronto (DoD):** `git status` limpo de arquivos com acento ou legados; `python exemplo_integracao.py` executa sem erros de importação.
-- **Commit:** `chore(repo): remove fsm e scripts legados e padroniza gitignore e requirements`
+### `[TASK-01]` Configuração de Dependências, Proteção do Repositório e Guia Didático — **[CONCLUÍDA]**
+- **Status:** ✅ **Concluída** (Commit `c340b65` — `chore(repo): configura dependencias em requirements.txt e atualiza gitignore`)
+- **Objetivo:** Padronizar dependências, proteger o repositório contra arquivos pesados/temporários e disponibilizar guia explicativo didático da IA.
+- **Escopo Executado:**
+  - Criado `requirements.txt` com versões (`numpy>=1.24.0`, `opencv-python>=4.8.0`, `mediapipe>=0.10.0`, `pytest>=7.4.0`).
+  - Atualizado `.gitignore` para ignorar `__pycache__/`, `.venv/`, `venv/`, `.pytest_cache/`, `*.mp4`, `*.avi`, `gabarito_especialista_gerado.json` e a pasta aninhada `EngSoftTrabalho_Personal_TrainerIA/`.
+  - Versionado o documento didático `EXPLICACAO_IA.md`.
+  - *Decisão de Engenharia:* Atendendo à diretriz explícita do usuário, os arquivos legados (`exercícios_fsm.py`, `Modularização.py`, `dev_ombro-inicial.py`, `dtw_inicial.py`) foram mantidos intactos no repositório até que os novos módulos unificados sejam desenvolvidos e testados.
+- **Critério de Pronto (DoD):** Dependências e gitignore configurados; workspace protegido.
+- **Commit Realizado:** `c340b65` / `chore(repo): configura dependencias em requirements.txt e atualiza gitignore`
 
-### `[TASK-02]` Centralização de Deltas com Âncora de Ruído (`calculo_angulos.py`)
+### `[TASK-02]` Centralização de Deltas com Âncora de Ruído (`calculo_angulos.py`) — **[CONCLUÍDA]**
+- **Status:** ✅ **Concluída** (Commit `7151ad3` — `correção cálculo de ângulos`)
 - **Objetivo:** Corrigir a perda de detecção em movimentos lentos e padronizar o cálculo de deltas em uma única fonte de verdade geométrica.
-- **Escopo Técnico:**
-  - Adicionar em `calculo_angulos.py`:
+- **Escopo Executado:**
+  - Adicionada em `calculo_angulos.py` a função pura com tipagem explícita:
     ```python
     def calcular_deltas_angulares(angulos: Dict[str, float], referencia: Dict[str, float], limiar_graus: float = 1.2) -> Dict[str, float]
     ```
-    Atualiza `referencia[art]` **apenas quando** `abs(diff) >= limiar_graus`, acumulando variações lentas sem zerar transições legítimas.
-  - Iniciar a suíte de testes `tests/test_pipeline_pontuacao.py` validando o comportamento com variações lentas e rejeição de jitter.
-- **Critério de Pronto (DoD):** `pytest tests/test_pipeline_pontuacao.py` aprovado.
-- **Commit:** `fix(angulos): adiciona calculo de deltas com ancora de ruido para movimentos lentos`
+    que atualiza a referência da articulação apenas quando `abs(diff) >= limiar_graus`, acumulando variações lentas com precisão.
+  - Criado `pytest.ini` e iniciada a suíte de testes `tests/test_pipeline_pontuacao.py` cobrindo geometria básica, rejeição de jitter e acumulação em cadências lentas.
+- **Critério de Pronto (DoD):** `python -m pytest tests/test_pipeline_pontuacao.py` aprovado (5 testes com 100% de sucesso).
+- **Commit Realizado:** `7151ad3` / `correção cálculo de ângulos`
 
-### `[TASK-03]` Generalização da FSM com Acúmulo de Erros por Repetição (`exercicios_fsm.py`)
+### `[TASK-03]` Generalização da FSM com Acúmulo de Erros por Repetição (`exercicios_fsm.py`) — **[CONCLUÍDA]**
+- **Status:** ✅ **Concluída** (Commit `f085106` — `acumula erros por repeticao e define penalidades por exercicio`)
 - **Objetivo:** Capacitar `ExercicioBaseFSM` a reter todos os erros ocorridos durante o ciclo e suportar qualquer novo exercício extensível via herança e dicionário de penalidades.
-- **Escopo Técnico:**
+- **Escopo Executado:**
   - Em `ExercicioBaseFSM`:
-    - Adicionar lista `erros_repeticao_atual: List[str]` (reiniciada na transição `0 -> 1`), método `consumir_erros_repeticao() -> List[str]` e atributo de classe `PENALIDADES_ERRO: Dict[str, float]`.
+    - Adicionada lista `erros_repeticao_atual: List[str]`, métodos `registrar_erro()`, `consumir_erros_repeticao() -> List[str]` e atributo de classe `PENALIDADES_ERRO: Dict[str, float]`.
   - Nas subclasses (`DesenvolvimentoOmbro`, `Agachamento`, `RoscaBiceps`):
-    - Configurar `PENALIDADES_ERRO` específicas.
-    - Trocar cadeias `elif` por verificações `if` independentes para registrar erros simultâneos sem mascaramento.
-    - Manter retorno de `classificar()` como o 1º erro para retrocompatibilidade imediata.
-  - Adicionar testes de unidade em `tests/test_pipeline_pontuacao.py` validando a retenção de erros até o retorno ao repouso.
-- **Critério de Pronto (DoD):** Testes de FSM passando com sucesso no `pytest`.
-- **Commit:** `feat(fsm): acumula erros por repeticao e define penalidades por exercicio`
+    - Configuradas `PENALIDADES_ERRO` específicas (Incompletude: 25 pts, Postural: 15 pts).
+    - Trocadas cadeias `elif` por verificações `if` independentes para registrar múltiplos erros simultâneos ou transientes sem mascaramento.
+    - Adicionada função utilitária `obter_config_exercicio(identificador)` no catálogo.
+  - Adicionados testes de unidade em `tests/test_pipeline_pontuacao.py` validando retenção de erros transientes até o retorno ao repouso e consumo limpo do buffer da repetição.
+- **Critério de Pronto (DoD):** `python -m pytest` aprovado (9 testes com 100% de sucesso).
+- **Commit Realizado:** `f085106` / `acumula erros por repeticao e define penalidades por exercicio`
 
-### `[TASK-04]` Padronização do Motor DTW Único e Vetorizado (`dtw_evaluator.py`)
+### `[TASK-04]` Padronização do Motor DTW Único e Vetorizado (`dtw_evaluator.py`) — **[PENDENTE]**
+- **Status:** ⏳ **Pendente** (Próxima da fila ao retomar)
 - **Objetivo:** Adotar o `DTWComparator` (vetorizado em NumPy e com suporte a restrição temporal) como o único motor de alinhamento matemático do projeto.
 - **Escopo Técnico:**
   - Versionar `dtw_evaluator.py` (atualmente untracked).
   - Adicionar testes em `tests/test_pipeline_pontuacao.py` cobrindo cálculo exato de distâncias, invariância com séries de diferentes tamanhos e validação dimensional.
 - **Critério de Pronto (DoD):** Testes unitários do DTW aprovados no `pytest`.
-- **Commit:** `feat(dtw): versiona DTWComparator como motor unico de alinhamento`
+- **Commit Previsto:** `feat(dtw): versiona DTWComparator como motor unico de alinhamento`
 
-### `[TASK-05]` Segmentador Canônico e Recorte Uniforme de Gabaritos (`buffer_repeticao.py`, `gabarito.py`, `extrator_video.py`)
+### `[TASK-05]` Segmentador Canônico e Recorte Uniforme de Gabaritos (`buffer_repeticao.py`, `gabarito.py`, `extrator_video.py`) — **[PENDENTE]**
+- **Status:** ⏳ **Pendente**
 - **Objetivo:** Garantir que o gabarito padrão e as repetições do usuário passem exatamente pelo mesmo recorte temporal da FSM, eliminando a penalidade espúria em movimentos perfeitos.
 - **Escopo Técnico:**
   - Criar função utilitária em `buffer_repeticao.py`:
@@ -150,10 +155,11 @@ Nenhum consumidor calcula deltas, DTW ou notas manualmente.
   - Regenerar os 3 arquivos `gabarito_especialista_*.json`.
   - Adicionar teste em `tests/test_pipeline_pontuacao.py` comprovando que o gabarito confrontado contra si mesmo atinge `score == 100.0%`.
 - **Critério de Pronto (DoD):** Execução ideal resulta em nota máxima 100 no teste automatizado.
-- **Commit:** `fix(gabarito): recorta gabaritos com o mesmo segmentador da execucao do aluno`
+- **Commit Previsto:** `fix(gabarito): recorta gabaritos com o mesmo segmentador da execucao do aluno`
 
-### `[TASK-06]` Implementação do Motor de Pontuação e Orquestrador de Sessão Multi-Exercício (`avaliador_pontuacao.py`)
-- **Objetivo:** Entregar o núcleo da `US-01`: cálculo padronizado da pontuação e gerenciamento desacoplado da sessão de treino para qualquer exercício do catálogo.
+### `[TASK-06]` Implementação do Motor de Pontuação e Orquestrador de Sessão Multi-Exercício (`avaliador_pontuacao.py`) — **[PENDENTE]**
+- **Status:** ⏳ **Pendente**
+- **Objetivo:** Entregar o núcleo da `US-01`: cálculo padronizado da pontuação e gerenciamento desacoplado da sessão de treino para qualquer exercício do catálogo, com suporte nativo a processamento fotograma por fotograma enviado por outros módulos do projeto.
 - **Escopo Técnico:**
   - Criar `avaliador_pontuacao.py`:
     - `@dataclass ResultadoPontuacaoRepeticao`: nota final, score DTW, penalidade, lista de erros, mensagens traduzidas, desvios por articulação, amplitudes, cadência, classificação e feedback motivacional/biomecânico.
@@ -164,9 +170,10 @@ Nenhum consumidor calcula deltas, DTW ou notas manualmente.
     - Método `gerar_resumo_sessao() -> ResumoPontuacaoSessao`.
   - Adicionar testes de pontuação e orquestração em `tests/test_pipeline_pontuacao.py`.
 - **Critério de Pronto (DoD):** Orquestrador processa fluxos completos de repetições com testes automatizados passando.
-- **Commit:** `feat(pontuacao): cria avaliador_pontuacao com regra de nota e orquestrador de sessao`
+- **Commit Previsto:** `feat(pontuacao): cria avaliador_pontuacao com regra de nota e orquestrador de sessao`
 
-### `[TASK-07]` Integração no Comparador de Vídeo CLI (`comparar_exercicio.py`, `extrator_video.py`)
+### `[TASK-07]` Integração no Comparador de Vídeo CLI (`comparar_exercicio.py`, `extrator_video.py`) — **[PENDENTE]**
+- **Status:** ⏳ **Pendente**
 - **Objetivo:** Corrigir o defeito de assinatura do extrator de vídeo e conectar a CLI de comparação ao `OrquestradorSessao`.
 - **Escopo Técnico:**
   - Em `extrator_video.py`: ajustar `extrair_serie_temporal` para retornar `angulos` e `visivel` por frame (delegando deltas ao orquestrador).
@@ -175,29 +182,32 @@ Nenhum consumidor calcula deltas, DTW ou notas manualmente.
     - Adicionar argumento CLI `--exercicio` permitindo avaliar qualquer exercício do catálogo.
     - Utilizar `OrquestradorSessao` e exibir o laudo padronizado via `ResultadoPontuacaoRepeticao` e `ResumoPontuacaoSessao`.
 - **Critério de Pronto (DoD):** `python comparar_exercicio.py` (modo simulado) e `python comparar_exercicio.py video.mp4 --exercicio 1` executam sem exceções exibindo relatório completo.
-- **Commit:** `fix(cli): corrige extrator e integra comparar_exercicio ao orquestrador`
+- **Commit Previsto:** `fix(cli): corrige extrator e integra comparar_exercicio ao orquestrador`
 
-### `[TASK-08]` Integração no Script de Demonstração e Remoção de Wrappers Obsoletos (`exemplo_integracao.py`, `dtw_evaluator.py`)
+### `[TASK-08]` Integração no Script de Demonstração e Remoção de Wrappers Obsoletos (`exemplo_integracao.py`, `dtw_evaluator.py`) — **[PENDENTE]**
+- **Status:** ⏳ **Pendente**
 - **Objetivo:** Refatorar a demonstração arquitetural para usar o `OrquestradorSessao` oficial e remover classes redundantes de DTW.
 - **Escopo Técnico:**
   - Em `exemplo_integracao.py`: substituir a classe local `SessionOrchestrator` pelo `OrquestradorSessao` oficial, demonstrando os cenários Ideal, Lento e Incompleto.
   - Em `dtw_evaluator.py`: remover as classes `MovementTemplate` e `ExerciseDTWEvaluator` que foram substituídas diretamente por `GabaritoExercicio` e `DTWComparator`.
   - Versionar `exemplo_integracao.py`.
 - **Critério de Pronto (DoD):** `python exemplo_integracao.py` executa e demonstra os 3 cenários com vereditos corretos.
-- **Commit:** `refactor(demo): migra exemplo_integracao para o orquestrador e remove wrappers DTW`
+- **Commit Previsto:** `refactor(demo): migra exemplo_integracao para o orquestrador e remove wrappers DTW`
 
-### `[TASK-09]` Integração na Aplicação em Tempo Real (Webcam) e Aposentadoria de `dtw_inicial.py` (`app_tempo_real.py`)
-- **Objetivo:** Conectar a webcam ao pipeline unificado e remover o módulo legado `dtw_inicial.py`.
+### `[TASK-09]` Integração na Aplicação em Tempo Real (Webcam) e Aposentadoria de `dtw_inicial.py` (`app_tempo_real.py`) — **[PENDENTE]**
+- **Status:** ⏳ **Pendente**
+- **Objetivo:** Conectar a webcam ao pipeline unificado e aposentar o módulo legado `dtw_inicial.py`.
 - **Escopo Técnico:**
   - Em `app_tempo_real.py`:
     - Substituir o controle manual de FSM, buffer, cálculo manual de deltas e DTW pelo `OrquestradorSessao`.
     - Exibir no HUD o `score_final`, o `feedback_principal` da última repetição e a média da série.
-  - Remover `dtw_inicial.py` do repositório (sem dependências ativas restantes).
+  - Com todos os novos módulos e testes aprovados, proceder com a remoção segura de `dtw_inicial.py`.
 - **Critério de Pronto (DoD):**
   - Execução e checklist manual registrado no DEVLOG: alternância entre exercícios `[1]`, `[2]`, `[3]`, contagem fluida de repetições e exibição correta do HUD.
-- **Commit:** `refactor(webcam): integra app_tempo_real ao orquestrador e remove dtw_inicial`
+- **Commit Previsto:** `refactor(webcam): integra app_tempo_real ao orquestrador e remove dtw_inicial`
 
-### `[TASK-10]` Suíte de Testes Automatizados End-to-End dos Critérios de Aceite (`tests/test_pipeline_pontuacao.py`)
+### `[TASK-10]` Suíte de Testes Automatizados End-to-End dos Critérios de Aceite (`tests/test_pipeline_pontuacao.py`) — **[PENDENTE]**
+- **Status:** ⏳ **Pendente**
 - **Objetivo:** Garantir regressão zero e validação integral dos critérios de aceite da História de Usuário `US-01` e extensibilidade para novos exercícios.
 - **Escopo Técnico:**
   - Consolidar em `tests/test_pipeline_pontuacao.py` os testes para:
@@ -209,29 +219,31 @@ Nenhum consumidor calcula deltas, DTW ou notas manualmente.
     - **AC6:** Verificação estática de ausência de duplicação de regras ou DTW nos consumidores.
     - **AC7:** Teste de extensão criando um novo exercício sintético no catálogo sem alterar classes centrais (Princípio Aberto/Fechado).
 - **Critério de Pronto (DoD):** 100% dos testes passando no `pytest`.
-- **Commit:** `test(pontuacao): adiciona testes de aceite AC1 a AC7 da US-01`
+- **Commit Previsto:** `test(pontuacao): adiciona testes de aceite AC1 a AC7 da US-01`
 
-### `[TASK-11]` Atualização Final de Contexto e Fechamento no Devlog (`CONTEXTO_IA.md`, `DEVLOG.md`)
+### `[TASK-11]` Atualização Final de Contexto e Fechamento no Devlog (`CONTEXTO_IA.md`, `DEVLOG.md`) — **[EM ANDAMENTO / PARCIAL]**
+- **Status:** 🔄 **Parcialmente realizada nas pausas de desenvolvimento** (Commit `1c6ccf6` — `atualização de logs e contexto`)
 - **Objetivo:** Manter a documentação viva sincronizada com o código entregue e registrar o histórico completo de commits da sprint.
-- **Artefatos:** `CONTEXTO_IA.md`, `DEVLOG.md`.
+- **Artefatos:** `CONTEXTO_IA.md`, `DEVLOG.md`, `PLANO_SPRINT_US01.md`.
 - **Critério de Pronto (DoD):** `CONTEXTO_IA.md` refletindo o pipeline único e débitos técnicos zerados; `DEVLOG.md` com entrada formal da US-01.
-- **Commit:** `docs(devlog): registra entrega da US-01 e atualiza contexto`
+- **Commit Previsto (Fechamento):** `docs(devlog): registra entrega final da US-01 e atualiza contexto`
 
 ---
 
-## 5. Resumo da Sequência de Commits Incrementais
+## 5. Resumo da Sequência de Commits Incrementais e Estado Atual
 
-| Ordem | Task | Mensagem Semântica do Commit | Impacto nos Arquivos |
-| :---: | :---: | :--- | :--- |
-| **1º** | `TASK-00` | `docs(ia): adiciona contexto, diretrizes, devlog e plano da US-01` | Versionamento de `*.md` na raiz |
-| **2º** | `TASK-01` | `chore(repo): remove fsm e scripts legados e padroniza gitignore e requirements` | `.gitignore`, `requirements.txt`, `-exercícios_fsm.py`, `-Modularização.py`, `-dev_ombro-inicial.py` |
-| **3º** | `TASK-02` | `fix(angulos): adiciona calculo de deltas com ancora de ruido para movimentos lentos` | `calculo_angulos.py`, criação de `tests/test_pipeline_pontuacao.py` |
-| **4º** | `TASK-03` | `feat(fsm): acumula erros por repeticao e define penalidades por exercicio` | `exercicios_fsm.py`, incremento em `tests/` |
-| **5º** | `TASK-04` | `feat(dtw): versiona DTWComparator como motor unico de alinhamento` | `dtw_evaluator.py`, incremento em `tests/` |
-| **6º** | `TASK-05` | `fix(gabarito): recorta gabaritos com o mesmo segmentador da execucao do aluno` | `buffer_repeticao.py`, `extrator_video.py`, `gabarito.py`, `*.json`, testes |
-| **7º** | `TASK-06` | `feat(pontuacao): cria avaliador_pontuacao com regra de nota e orquestrador de sessao` | criação de `avaliador_pontuacao.py`, testes |
-| **8º** | `TASK-07` | `fix(cli): corrige extrator e integra comparar_exercicio ao orquestrador` | `comparar_exercicio.py`, `extrator_video.py` |
-| **9º** | `TASK-08` | `refactor(demo): migra exemplo_integracao para o orquestrador e remove wrappers DTW` | `exemplo_integracao.py`, limpeza em `dtw_evaluator.py` |
-| **10º** | `TASK-09` | `refactor(webcam): integra app_tempo_real ao orquestrador e remove dtw_inicial` | `app_tempo_real.py`, `-dtw_inicial.py` |
-| **11º** | `TASK-10` | `test(pontuacao): adiciona testes de aceite AC1 a AC7 da US-01` | consolidação de `tests/test_pipeline_pontuacao.py` |
-| **12º** | `TASK-11` | `docs(devlog): registra entrega da US-01 e atualiza contexto` | `CONTEXTO_IA.md`, `DEVLOG.md` |
+| Ordem | Task | Status | Hash | Mensagem do Commit Realizado / Previsto | Impacto Concreto nos Arquivos |
+| :---: | :---: | :---: | :---: | :--- | :--- |
+| **1º** | `TASK-00` | ✅ Concluída | `0afd9ee` | `adiciona planejamento da sprint, skills, contexto e log` | Versionamento de `CONTEXTO_IA.md`, `DIRETRIZES_DESENVOLVIMENTO.md`, `DEVLOG.md`, `AGENTS.md`, `PLANO_SPRINT_US01.md` |
+| **2º** | `TASK-01` | ✅ Concluída | `c340b65` | `chore(repo): configura dependencias em requirements.txt e atualiza gitignore` | `requirements.txt`, `.gitignore` (ignora venv, caches, vídeos, pasta aninhada) e `EXPLICACAO_IA.md` (legados mantidos por diretriz) |
+| **3º** | `TASK-02` | ✅ Concluída | `7151ad3` | `correção cálculo de ângulos` | `calculo_angulos.py` (`calcular_deltas_angulares`), criação de `pytest.ini` e `tests/test_pipeline_pontuacao.py` (5 testes unitários) |
+| **4º** | `TASK-03` | ✅ Concluída | `f085106` | `acumula erros por repeticao e define penalidades por exercicio` | `exercicios_fsm.py` (acumulador, penalidades, sem mascaramento `elif`, `obter_config_exercicio`), expansão em `tests/` (9 testes no total) |
+| **—** | *Doc/Log* | ✅ Concluída | `1c6ccf6` | `atualização de logs e contexto` | Sincronização de `DEVLOG.md` (`[Entrada #002]`) e `CONTEXTO_IA.md` na pausa de sprint |
+| **5º** | `TASK-04` | ⏳ Pendente | — | `feat(dtw): versiona DTWComparator como motor unico de alinhamento` | `dtw_evaluator.py`, incremento em `tests/` |
+| **6º** | `TASK-05` | ⏳ Pendente | — | `fix(gabarito): recorta gabaritos com o mesmo segmentador da execucao do aluno` | `buffer_repeticao.py`, `extrator_video.py`, `gabarito.py`, `*.json`, testes |
+| **7º** | `TASK-06` | ⏳ Pendente | — | `feat(pontuacao): cria avaliador_pontuacao com regra de nota e orquestrador de sessao` | criação de `avaliador_pontuacao.py` com interface frame a frame, testes |
+| **8º** | `TASK-07` | ⏳ Pendente | — | `fix(cli): corrige extrator e integra comparar_exercicio ao orquestrador` | `comparar_exercicio.py`, `extrator_video.py` |
+| **9º** | `TASK-08` | ⏳ Pendente | — | `refactor(demo): migra exemplo_integracao para o orquestrador e remove wrappers DTW` | `exemplo_integracao.py`, limpeza em `dtw_evaluator.py` |
+| **10º** | `TASK-09` | ⏳ Pendente | — | `refactor(webcam): integra app_tempo_real ao orquestrador e remove dtw_inicial` | `app_tempo_real.py`, aposentadoria de `dtw_inicial.py` |
+| **11º** | `TASK-10` | ⏳ Pendente | — | `test(pontuacao): adiciona testes de aceite AC1 a AC7 da US-01` | consolidação de `tests/test_pipeline_pontuacao.py` |
+| **12º** | `TASK-11` | 🔄 Parcial | `1c6ccf6` / — | `docs(devlog): registra entrega da US-01 e atualiza contexto` | `CONTEXTO_IA.md`, `DEVLOG.md`, `PLANO_SPRINT_US01.md` |

@@ -146,10 +146,11 @@ Como testes automatizados não podem depender de uma pessoa real fazendo exercí
   4. **Execução com Compensação Postural:** Deve acionar o alerta biomecânico imediato (`OMBRO_CAIDO`, `DESCIDA_EXCESSIVA`, `TRONCO_MUITO_INCLINADO`, `OMBRO_INSTAVEL`) e reter a penalidade ao final do ciclo.
   5. **Extensibilidade (AC7):** Deve instanciar um novo exercício registrado dinamicamente no catálogo para provar que o motor avalia qualquer exercício sem alteração de código central.
 
-### 5.4. Gestão de Documentação e Rastreabilidade (`DEVLOG.md` e `CONTEXTO_IA.md`)
+### 5.4. Gestão de Documentação e Rastreabilidade (`DEVLOG.md`, `CONTEXTO_IA.md` e `PLANO_SPRINT_*.md`)
+- **Sincronização Viva do Planejamento da Sprint (`PLANO_SPRINT_*.md`):** O documento de planejamento da sprint não é estático. A cada commit incremental realizado, o desenvolvedor/agente deve atualizar o plano marcando as tasks correspondentes como `[CONCLUÍDA]`, registrando o hash do commit e atualizando a tabela resumo com o status real do repositório (`git log`).
 - **Atualização do `DEVLOG.md`:** Ao concluir uma História de Usuário (ou sessão de desenvolvimento), adicione uma nova entrada no topo da seção cronológica do [`DEVLOG.md`](./DEVLOG.md) contendo:
   - Data, Identificador da US/Demanda e Resumo do Objetivo.
   - Lista de Tasks Atômicas executadas e Artefatos gerados/modificados.
   - Hashes/Mensagens dos commits incrementais realizados.
   - Decisões técnicas tomadas, problemas encontrados e próximos passos sugeridos.
-- **Atualização do `CONTEXTO_IA.md`:** Sempre que novos arquivos forem criados, arquivos legados forem removidos, novos exercícios forem adicionados ao catálogo ou débitos técnicos forem sanados, atualize a tabela correspondente em [`CONTEXTO_IA.md`](./CONTEXTO_IA.md) para que o próximo agente encontre a fotografia exata do projeto.
+- **Atualização do `CONTEXTO_IA.md`:** Sempre que novos arquivos forem criados, arquivos legados forem modificados/removidos, novos exercícios forem adicionados ao catálogo ou débitos técnicos forem sanados, atualize a tabela correspondente em [`CONTEXTO_IA.md`](./CONTEXTO_IA.md) para que o próximo agente encontre a fotografia exata do projeto.
