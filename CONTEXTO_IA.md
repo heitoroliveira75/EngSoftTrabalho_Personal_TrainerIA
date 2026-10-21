@@ -61,53 +61,92 @@ flowchart TD
 
 ---
 
-## 3. Mapeamento Completo dos Arquivos do Repositório
+## 3. Mapeamento Completo e Taxonomia dos Arquivos do Repositório
 
-### 3.1. Núcleo Ativo — Pipeline Multi-Exercício em Tempo Real e Extração
+> [!IMPORTANT]
+> **Portabilidade Multiplataforma & Caminhos Relativos:**
+> O desenvolvimento deste projeto é compartilhado entre diferentes máquinas e sistemas operacionais (Windows, Linux, macOS). **Todos os arquivos, imports e referências devem ser manipulados estritamente através de caminhos relativos à raiz do repositório** (ex.: `./calculo_angulos.py`, `tests/test_pipeline_pontuacao.py`). Nunca utilize caminhos absolutos locais de sistema de arquivos.
 
-Estes arquivos formam a versão mais recente, coesa e funcional do sistema (consolidada no commit `c992f15`):
+### 3.1. Núcleo em Desenvolvimento Ativo (Sprint Atual `US-01`)
 
-| Arquivo | Responsabilidade Principal | Classes / Funções-Chave | Status |
+Estes arquivos compõem a frente de trabalho imediata da branch, recebendo testes automatizados e evolução direta de contratos:
+
+| Arquivo Relativo | Responsabilidade Principal | Classes / Funções-Chave | Status Atual |
 | :--- | :--- | :--- | :--- |
-| `app_tempo_real.py` | Aplicação principal com webcam (OpenCV), MediaPipe em modo `VIDEO`, desenho de esqueleto, HUD interativo e avaliação híbrida (FSM + DTW) ao vivo. | `main()`, `inicializar_sessao_exercicio()`, `desenhar_esqueleto()`, `desenhar_painel_hud()` | **Ativo (Produção)** |
-| `calculo_angulos.py` | Cálculo vetorial 2D (`arctan2`) de ângulos articulares em $[0^\circ, 180^\circ]$ para lados direito e esquerdo, validação de `visibility` mínima dos *landmarks*, e cálculo de deltas angulares com âncora de ruído (`calcular_deltas_angulares`). | `MAPA_ARTICULACOES`, `calcular_angulo()`, `extrair_angulos_exercicio()`, `calcular_deltas_angulares()` | **Ativo (Produção)** |
-| `exercicios_fsm.py` | Contrato base e implementações das Máquinas de Estados Finitos para 3 exercícios com acúmulo de erros por repetição (`consumir_erros_repeticao`), penalidades (`PENALIDADES_ERRO`), checagens sem mascaramento e catálogo extensível. | `ExercicioBaseFSM`, `DesenvolvimentoOmbro`, `Agachamento`, `RoscaBiceps`, `CATALOGO_EXERCICIOS`, `obter_config_exercicio()` | **Ativo (Produção)** |
-| `tests/test_pipeline_pontuacao.py` | Suíte de testes automatizados unitários e de integração (`pytest`) para geometria, deltas com acúmulo lento, FSMs e integridade do catálogo. | Testes unitários com `pytest` | **Ativo (Testes Automatizados)** |
-| `buffer_repeticao.py` | Acumula os vetores de ângulos frame a frame enquanto o usuário está fora do repouso (`fase != 0`) e entrega a matriz numpy $(T \times D)$ quando uma repetição se completa. | `BufferRepeticao`, `processar_frame()` | **Ativo (Produção)** |
-| `dtw_inicial.py` | Implementação direta do Dynamic Time Warping multidimensional por programação dinâmica, retornando distância total, normalizada, score percentual, *path* e desvios por articulação. | `DTW`, `DTW.calcular()` | **Ativo (Produção)** |
-| `gabarito.py` | Persistência (leitura/escrita em JSON) das séries temporais de referência e geração de curvas senoidais padrão ouro caso os JSONs não existam. | `GabaritoExercicio`, `garantir_gabaritos_padrao()` | **Ativo (Produção)** |
-| `extrator_video.py` | Processa vídeos `.mp4` em modo `IMAGE`, extrai séries temporais de ângulos/deltas e gera automaticamente arquivos JSON de gabarito a partir da 1ª repetição de um especialista. | `ExtratorVideo`, `gerar_gabarito_de_video_especialista()`, `garantir_modelo_pose()` | **Ativo (Produção)** |
+| [`./calculo_angulos.py`](./calculo_angulos.py) | Cálculo vetorial 2D de ângulos articulares em $[0^\circ, 180^\circ]$, checagem de visibilidade de marcos e **cálculo de deltas angulares com âncora de ruído** (`calcular_deltas_angulares`), eliminando a perda de detecção em cadências lentas. | `MAPA_ARTICULACOES`, `calcular_angulo()`, `extrair_angulos_exercicio()`, `calcular_deltas_angulares()` | **Em Desenvolvimento Ativo (Concluído na `TASK-02`)** |
+| [`./exercicios_fsm.py`](./exercicios_fsm.py) | Máquinas de Estados Finitos com **acumulador de erros por repetição** (`consumir_erros_repeticao`), penalidades por exercício (`PENALIDADES_ERRO`), checagens sem mascaramento e catálogo extensível (`obter_config_exercicio`). | `ExercicioBaseFSM`, `DesenvolvimentoOmbro`, `Agachamento`, `RoscaBiceps`, `CATALOGO_EXERCICIOS`, `obter_config_exercicio()` | **Em Desenvolvimento Ativo (Concluído na `TASK-03`)** |
+| [`tests/test_pipeline_pontuacao.py`](tests/test_pipeline_pontuacao.py) | Suíte de testes automatizados com `pytest` cobrindo geometria, deltas acumulados em repetições lentas, transições de fase e memória de erros posturais transientes. | Testes unitários puros sem dependência de hardware | **Em Desenvolvimento Ativo (9 testes aprovados)** |
+| [`./pytest.ini`](./pytest.ini) | Configuração de execução do `pytest` com inclusão automática do diretório raiz no `pythonpath`. | Configuração de testes | **Ativo** |
+| [`./requirements.txt`](./requirements.txt) | Especificação das dependências oficiais da branch `IA` (`numpy`, `opencv-python`, `mediapipe`, `pytest`). | Gerenciamento de ambiente | **Ativo** |
 
-### 3.2. Arquivos de Dados, Modelos e Gabaritos JSON
+---
 
-| Arquivo | Descrição | Status |
+### 3.2. Módulos Funcionais em Fila de Unificação / Refatoração Imediata
+
+Módulos existentes no repositório que serão integrados e padronizados nas próximas tasks da sprint:
+
+| Arquivo Relativo | Responsabilidade no Pipeline | Próxima Task da Sprint | Observações Técnicas |
+| :--- | :--- | :--- | :--- |
+| [`./dtw_evaluator.py`](./dtw_evaluator.py) | Implementação avançada e orientada a objetos do DTW vetorizada em NumPy, com janela de Sakoe-Chiba. | **`[TASK-04]`** | Será adotado como o motor único matemático de alinhamento temporal do projeto. |
+| [`./buffer_repeticao.py`](./buffer_repeticao.py) | Acumulador de vetores de ângulos durante as fases ativas da FSM (`fase != 0`). | **`[TASK-05]`** | Receberá a função utilitária `extrair_primeira_repeticao()` para corte canônico. |
+| [`./gabarito.py`](./gabarito.py) | Persistência e geração sintética de curvas de referência JSON. | **`[TASK-05]`** | Terá suas curvas recortadas pelo mesmo segmentador do aluno para garantir nota 100.0 em execuções ideais. |
+| [`./avaliador_pontuacao.py`](./avaliador_pontuacao.py) *(a ser criado)* | Motor central de pontuação (`ResultadoPontuacaoRepeticao`) e `OrquestradorSessao` com interface de processamento **frame a frame**. | **`[TASK-06]`** | Núcleo da US-01: unifica FSM, DTW e notas para consumo de outros módulos externos. |
+| [`./comparar_exercicio.py`](./comparar_exercicio.py) | CLI para avaliar vídeos gravados (`.mp4`) contra especialista. | **`[TASK-07]`** | Terá o bug de assinatura de `ExtratorVideo` corrigido e migrará para o orquestrador. |
+| [`./exemplo_integracao.py`](./exemplo_integracao.py) | Script de demonstração sintética sem webcam. | **`[TASK-08]`** | Migrará para o `OrquestradorSessao` oficial. |
+| [`./app_tempo_real.py`](./app_tempo_real.py) | Aplicação em tempo real com webcam, desenho de esqueleto e HUD OpenCV. | **`[TASK-09]`** | Migrará do loop manual para o orquestrador unificado frame a frame. |
+| [`./extrator_video.py`](./extrator_video.py) | Extrai séries temporais de vídeos `.mp4` em modo `IMAGE`. | **`[TASK-05]` e `[TASK-07]`** | Utilizará o segmentador canônico. |
+
+---
+
+### 3.3. Arquivos de Dados, Modelos e Gabaritos JSON Oficiais
+
+| Arquivo Relativo | Descrição | Status no Repositório |
 | :--- | :--- | :--- |
-| `gabarito_especialista_ombro.json` | Curva padrão ouro para Desenvolvimento de Ombro (40 frames, features: `["cotovelo", "ombro"]`). | **Ativo (Versionado)** |
-| `gabarito_especialista_agachamento.json` | Curva padrão ouro para Agachamento Livre (40 frames, features: `["joelho", "quadril"]`). | **Ativo (Versionado)** |
-| `gabarito_especialista_rosca.json` | Curva padrão ouro para Rosca Direta de Bíceps (40 frames, features: `["cotovelo", "ombro"]`). | **Ativo (Versionado)** |
-| `gabarito_especialista_gerado.json` | Gabarito extraído de vídeo real (`especialista.mp4`, 41 frames) para desenvolvimento de ombro. | **Untracked (Gerado em teste)** |
-| `pose_landmarker_lite.task` | Modelo oficial MediaPipe Pose Landmarker Lite (~5.8 MB), usado por padrão em `extrator_video.py` e `app_tempo_real.py`. Baixado automaticamente se ausente. | **Ativo (Versionado)** |
-| `pose_landmarker_full.task` | Modelo oficial MediaPipe Pose Landmarker Full (~9.4 MB), mais pesado e preciso, usado anteriormente em `Modularização.py`. | **Versionado** |
+| [`./gabarito_especialista_ombro.json`](./gabarito_especialista_ombro.json) | Curva padrão ouro para Desenvolvimento de Ombro (features: `["cotovelo", "ombro"]`). | **Ativo (Versionado)** |
+| [`./gabarito_especialista_agachamento.json`](./gabarito_especialista_agachamento.json) | Curva padrão ouro para Agachamento Livre (features: `["joelho", "quadril"]`). | **Ativo (Versionado)** |
+| [`./gabarito_especialista_rosca.json`](./gabarito_especialista_rosca.json) | Curva padrão ouro para Rosca Direta de Bíceps (features: `["cotovelo", "ombro"]`). | **Ativo (Versionado)** |
+| [`./pose_landmarker_lite.task`](./pose_landmarker_lite.task) | Modelo oficial MediaPipe Pose Landmarker Lite (~5.8 MB), padrão para tempo real e CLI. | **Ativo (Versionado)** |
+| [`./pose_landmarker_full.task`](./pose_landmarker_full.task) | Modelo MediaPipe Pose Landmarker Full (~9.4 MB), alta precisão. | **Versionado** |
 
-### 3.3. Módulos Complementares / Protótipos de Integração e Comparação Offline
+---
 
-| Arquivo | Descrição e Contexto | Status e Observações Técnicas |
+### 3.4. Arquivos Legados Preservados (NÃO DELETAR até Validação Completa)
+
+> [!CAUTION]
+> **Política Inegociável de Legados:**
+> Em conformidade com a diretriz de engenharia de software do projeto, **nenhum arquivo legado ou protótipo deve ser removido ou descartado prematuramente**. Eles devem permanecer preservados como referência e salvaguarda até que todos os novos módulos substitutos estejam completamente implementados, integrados e validados por suítes de testes automatizados (`TASK-09` e `TASK-10`).
+
+| Arquivo Relativo | Papel Histórico / Diagnóstico Técnico | Política de Tratamento |
 | :--- | :--- | :--- |
-| `dtw_evaluator.py` | Implementação avançada e orientada a objetos do DTW, com cálculo de matriz de custo vetorizado no NumPy, suporte a restrição temporal **Janela de Sakoe-Chiba** (`window_ratio`) e dataclasses estruturadas. | **Untracked (Protótipo OO avançado)**. Possui arquitetura superior ao `dtw_inicial.py`, sendo ótimo candidato para unificação futura. |
-| `exemplo_integracao.py` | Script de demonstração arquitetural que conecta `dev_ombro-inicial.py` ao `dtw_evaluator.py` através de um `SessionOrchestrator`, simulando 3 cenários (execução ideal, lenta e incompleta). | **Untracked (Script de validação/demo)**. Roda de forma autônoma sem webcam. |
-| `comparar_exercicio.py` | CLI para comparar vídeo de aluno (`.mp4`) contra vídeo/JSON de especialista e imprimir um laudo detalhado no terminal. | **Versionado, porém com quebra de contrato parcial** (ver seção 5 de Débitos Técnicos: chama `ExtratorVideo(lado=lado)` sem passar `articulacoes`). |
-| `dev_ombro-inicial.py` | Primeira versão isolada da FSM de `DesenvolvimentoOmbro`. | **Legado funcional**. Foi evoluída e incorporada dentro de `exercicios_fsm.py` herdando de `ExercicioBaseFSM`, mas ainda é importada por `comparar_exercicio.py` e `exemplo_integracao.py`. |
+| [`./exercícios_fsm.py`](./exercícios_fsm.py) (com acento) | Cópia idêntica de `exercicios_fsm.py` criada antes da correção do nome em ASCII puro. | **Legado Preservado:** Manter intacto no repositório até a limpeza final da sprint. |
+| [`./dev_ombro-inicial.py`](./dev_ombro-inicial.py) | Primeira versão isolada da FSM de Desenvolvimento de Ombro. | **Legado Preservado:** Manter intacto enquanto houver scripts antigos referenciando-o. |
+| [`./dtw_inicial.py`](./dtw_inicial.py) | Primeira versão do DTW por loops manuais em Python puro. | **Legado Preservado:** Permanece em uso em `app_tempo_real.py` até a conclusão da `TASK-09`. |
+| [`./Modularização.py`](./Modularização.py) | Protótipo antigo de extração pontual `min/max` com classificador tabular scikit-learn. | **Legado Preservado:** Mantido apenas como referência histórica. |
+| [`./dataset_pronto_para_ia.csv`](./dataset_pronto_para_ia.csv) e [`./relatorio_avaliacoes_ia.csv`](./relatorio_avaliacoes_ia.csv) | Datasets tabulares gerados durante os experimentos com `Modularização.py`. | **Legado Preservado.** |
 
-### 3.4. Arquivos Legados, Duplicados ou Fora do Escopo de IA
+---
 
-| Arquivo / Diretório | Contexto Histórico e Diagnóstico | Recomendação |
-| :--- | :--- | :--- |
-| `exercícios_fsm.py` (com acento) | Cópia idêntica de `exercicios_fsm.py` criada no commit `65b5a83` antes da correção do nome sem acento em `c992f15`. | **Remover do git** para evitar duplicidade e problemas de encoding entre sistemas operacionais. |
-| `Modularização.py` | Script da abordagem antiga (commit `435c481`) que extraía apenas `cotovelo_min`, `cotovelo_max` e `ombro_variacao` a cada 10 frames e usava um classificador tabular `meu_personal_trainer_ia.pkl` + `maquina_estados.py` (ambos já removidos no commit `65b5a83`). | **Legado depreciado / quebrado** (`import maquina_estados` falha pois o módulo foi deletado). Manter apenas como referência histórica ou remover em limpeza. |
-| `dataset_pronto_para_ia.csv` e `relatorio_avaliacoes_ia.csv` | Datasets tabulares gerados durante a fase antiga de testes com `Modularização.py` sobre vídeos genéricos (`band_pull_apart.mp4`, `warmup_1.mp4`, etc.). | **Legado da abordagem anterior**. |
-| `devombro.mp4`, `especialista.mp4`, `ex.mp4` | Vídeos locais de teste para extração e comparação de exercícios. | **Untracked**. Úteis para testes locais do pipeline de vídeo; não devem ser commitados se forem pesados, salvo definição de fixtures leves. |
-| `EngSoftTrabalho_Personal_TrainerIA/` (subpasta) | Clone/cópia aninhada não rastreada do projeto Flutter dentro da própria raiz. | **Untracked (Artefato acidental)**. Deve ser removida ou ignorada. |
-| `android/`, `windows/`, `pubspec.yaml`, `README.md` | Resquícios do template inicial Flutter na raiz do repositório (a maior parte do código Flutter de `lib/`, `ios/`, `web/`, `linux/`, `macos/` foi removida desta branch no commit `65b5a83` para focar em IA). | Fora do escopo da branch `IA` (integração com o app ocorrerá em etapa posterior). |
+### 3.5. Governança, Diretrizes e Documentação Viva
+
+| Arquivo Relativo | Função e Responsabilidade |
+| :--- | :--- |
+| [`./AGENTS.md`](./AGENTS.md) | Ponto de entrada obrigatório para agentes autônomos de IA, contendo as regras inegociáveis do repositório. |
+| [`./CONTEXTO_IA.md`](./CONTEXTO_IA.md) | *(Este documento)* Fotografia arquitetural completa, contratos de classes e taxonomia de arquivos. |
+| [`./DIRETRIZES_DESENVOLVIMENTO.md`](./DIRETRIZES_DESENVOLVIMENTO.md) | Protocolo de Engenharia de Software (SOLID, testes automatizados, commits incrementais, portabilidade). |
+| [`./PLANO_SPRINT_US01.md`](./PLANO_SPRINT_US01.md) | Plano técnico da sprint atual (`US-01`) com detalhamento de tasks, critérios de aceite e status por commit. |
+| [`./DEVLOG.md`](./DEVLOG.md) | Diário de bordo cronológico das alterações, decisões técnicas tomadas e histórico de commits. |
+| [`./EXPLICACAO_IA.md`](./EXPLICACAO_IA.md) | Guia didático acessível para humanos, membros da equipe, avaliadores e professores. |
+| [`./README.md`](./README.md) | Página inicial do repositório da branch `IA` com instruções de instalação, testes e mapa de documentação. |
+
+---
+
+### 3.6. Arquivos e Diretórios Fora do Escopo da IA
+
+| Diretório / Arquivo | Contexto |
+| :--- | :--- |
+| `android/`, `windows/`, `pubspec.yaml`, `pubspec.lock` | Resquícios do template Flutter original na raiz (a ser integrado posteriormente). |
+| `EngSoftTrabalho_Personal_TrainerIA/` | Cópia aninhada não rastreada do app Flutter (ignorada via `.gitignore`). |
+| `*.mp4`, `*.avi`, `gabarito_especialista_gerado.json` | Vídeos locais pesados e artefatos temporários de teste (ignorados via `.gitignore`). |
 
 ---
 

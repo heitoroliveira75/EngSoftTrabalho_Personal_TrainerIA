@@ -136,6 +136,9 @@ Todos os commits incrementais devem seguir o padrão semântico em português:
     - Documentar classes e funções indicando claramente a unidade matemática dos parâmetros (ex.: ângulos em graus no intervalo `[0.0, 180.0]`, coordenadas normalizadas `[0.0, 1.0]`, tempo em `ms`).
 4. **Encoding UTF-8 Explícito:**
     - Sempre especificar `encoding="utf-8"` ao abrir arquivos (`open(..., encoding="utf-8")`) e `ensure_ascii=False` no `json.dump()` para preservar a acentuação correta nos relatórios e JSONs em máquinas Windows e Linux.
+5. **Portabilidade Multiplataforma e Uso Estrito de Caminhos Relativos:**
+    - **Proibido** registrar caminhos absolutos locais de máquina (ex.: `C:\Users\...`, `/home/...`, `/tmp/...`) em código, testes, docstrings ou documentação.
+    - Utilize sempre referências relativas baseadas na raiz do repositório (ex.: `./calculo_angulos.py`, `tests/test_pipeline_pontuacao.py`, `./gabarito.py`) para garantir interoperabilidade transparente entre diferentes sistemas operacionais e máquinas de desenvolvimento.
 
 ### 5.3. Estratégia de Testes e Validação Biomecânica
 Como testes automatizados não podem depender de uma pessoa real fazendo exercícios na frente da webcam a cada commit:
@@ -154,4 +157,5 @@ Como testes automatizados não podem depender de uma pessoa real fazendo exercí
   - Hashes/Mensagens dos commits incrementais realizados.
   - Decisões técnicas tomadas, problemas encontrados e próximos passos sugeridos.
 - **Atualização do `CONTEXTO_IA.md`:** Sempre que novos arquivos forem criados, arquivos legados forem modificados/removidos, novos exercícios forem adicionados ao catálogo ou débitos técnicos forem sanados, atualize a tabela correspondente em [`CONTEXTO_IA.md`](./CONTEXTO_IA.md) para que o próximo agente encontre a fotografia exata do projeto.
+- **Política Inegociável de Preservação de Legados:** Nenhum arquivo classificado como legado ou protótipo histórico (`exercícios_fsm.py`, `dev_ombro-inicial.py`, `dtw_inicial.py`, `Modularização.py`, datasets `.csv`) deve ser deletado prematuramente. Eles devem permanecer intactos como salvaguarda e referência comparativa até que os módulos unificados estejam completamente implementados, integrados e aprovados pela suíte de testes de aceite.
 - **Atualização Contínua do Guia Explicativo (`EXPLICACAO_IA.md`):** É regra obrigatória atualizar [`EXPLICACAO_IA.md`](./EXPLICACAO_IA.md) ao término de cada entrega ou pausa de desenvolvimento. Este arquivo traduz a evolução técnica do código para uma linguagem humana, didática e transparente, documentando as melhorias do pipeline, novos testes disponíveis e o progresso da sprint para colegas de equipe, professores e avaliadores.

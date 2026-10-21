@@ -9,7 +9,17 @@ Para garantir continuidade imediata de contexto e rigor de Engenharia de Softwar
 2. **[`DIRETRIZES_DESENVOLVIMENTO.md`](./DIRETRIZES_DESENVOLVIMENTO.md)** — Leia para seguir o protocolo obrigatório de engenharia de software do projeto.
 3. **[`DEVLOG.md`](./DEVLOG.md)** — Leia as entradas mais recentes para saber o que foi feito na última sessão e qual o estado atual da branch.
 
-## 2. Regras Inegociáveis de Desenvolvimento
+## 2. Regras Inegociáveis de Desenvolvimento (Skills do Agente)
+- **Portabilidade Multiplataforma e Uso Estrito de Caminhos Relativos:**
+  - O projeto é desenvolvido e testado de forma colaborativa em múltiplas máquinas e sistemas operacionais distintos (Windows, Linux, macOS).
+  - É **terminantemente proibido** registrar ou utilizar caminhos absolutos locais de máquina (ex.: `C:\Users\...`, `/home/...`, `/tmp/...`) em documentações, códigos, docstrings, testes ou comandos.
+  - Utilize sempre caminhos relativos baseados na raiz do repositório (ex.: `./calculo_angulos.py`, `tests/test_pipeline_pontuacao.py`, `./gabarito.py`).
+- **Identificação da Estrutura de Arquivos e Política de Legados:**
+  - Antes de alterar ou criar arquivos, consulte a taxonomia detalhada na Seção 3 de **[`CONTEXTO_IA.md`](./CONTEXTO_IA.md)** para identificar o status de cada artefato:
+    1. **Em Desenvolvimento Ativo:** arquivos foco da sprint atual (`calculo_angulos.py`, `exercicios_fsm.py`, `tests/test_pipeline_pontuacao.py`, `pytest.ini`, `requirements.txt`).
+    2. **Em Fila de Unificação:** módulos funcionais a serem integrados nas próximas tasks (`dtw_evaluator.py`, `buffer_repeticao.py`, `gabarito.py`, `avaliador_pontuacao.py`, `comparar_exercicio.py`, `app_tempo_real.py`, `exemplo_integracao.py`).
+    3. **Gabaritos e Modelos:** arquivos JSON de referência e modelos `.task` do MediaPipe.
+    4. **Legados Preservados:** arquivos históricos (`exercícios_fsm.py`, `dev_ombro-inicial.py`, `dtw_inicial.py`, `Modularização.py`, datasets `.csv`). É **proibido deletar ou descartar** esses arquivos antes que toda a nova arquitetura esteja 100% implementada e aprovada por testes de regressão.
 - **Orientação a Histórias de Usuário e Estado Atual:** Sempre parta da História de Usuário (User Story) fornecida e confronte-a com o estado real mapeado em `CONTEXTO_IA.md`.
 - **Decomposição em Tasks Factíveis, Atômicas e com Artefatos:** Antes de codificar, quebre a demanda em tasks pequenas, isoladas e testáveis (`[TASK-XX.Y]`). **Cada task deve gerar ou atualizar pelo menos um artefato de desenvolvimento concreto** (módulo `.py`, gabarito `.json`, teste automatizado/simulação sintética ou documentação).
 - **Planejamento Técnico e Commits Incrementais:** Planeje a sequência de implementação (Bottom-Up / Contract-First) para que sejam feitos **commits incrementais e semânticos** (`feat`, `fix`, `refactor`, `test`, `docs`, `chore`) a cada task concluída e validada, mantendo a branch sempre funcional até a execução da ideia final.
