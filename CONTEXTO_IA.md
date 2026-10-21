@@ -2,7 +2,7 @@
 
 > **Propósito deste documento:** Permitir que qualquer agente de IA ou desenvolvedor recupere imediatamente 100% do contexto técnico, arquitetural e histórico da frente de **Inteligência Artificial e Visão Computacional** do projeto **Personal Trainer IA**.
 >
-> **Última atualização:** 2026-10-20 (Commit base: `c992f15` na branch `IA`)
+> **Última atualização:** 2026-10-21 (Commit base: `f085106` na branch `IA`)
 
 ---
 
@@ -70,8 +70,9 @@ Estes arquivos formam a versão mais recente, coesa e funcional do sistema (cons
 | Arquivo | Responsabilidade Principal | Classes / Funções-Chave | Status |
 | :--- | :--- | :--- | :--- |
 | `app_tempo_real.py` | Aplicação principal com webcam (OpenCV), MediaPipe em modo `VIDEO`, desenho de esqueleto, HUD interativo e avaliação híbrida (FSM + DTW) ao vivo. | `main()`, `inicializar_sessao_exercicio()`, `desenhar_esqueleto()`, `desenhar_painel_hud()` | **Ativo (Produção)** |
-| `calculo_angulos.py` | Cálculo vetorial 2D (`arctan2`) de ângulos articulares em $[0^\circ, 180^\circ]$ para lados direito e esquerdo, além de validação de `visibility` mínima dos *landmarks*. | `MAPA_ARTICULACOES`, `calcular_angulo()`, `extrair_angulos_exercicio()` | **Ativo (Produção)** |
-| `exercicios_fsm.py` | Contrato base e implementações das Máquinas de Estados Finitos para 3 exercícios, além do catálogo central de configuração. | `ExercicioBaseFSM`, `DesenvolvimentoOmbro`, `Agachamento`, `RoscaBiceps`, `CATALOGO_EXERCICIOS` | **Ativo (Produção)** |
+| `calculo_angulos.py` | Cálculo vetorial 2D (`arctan2`) de ângulos articulares em $[0^\circ, 180^\circ]$ para lados direito e esquerdo, validação de `visibility` mínima dos *landmarks*, e cálculo de deltas angulares com âncora de ruído (`calcular_deltas_angulares`). | `MAPA_ARTICULACOES`, `calcular_angulo()`, `extrair_angulos_exercicio()`, `calcular_deltas_angulares()` | **Ativo (Produção)** |
+| `exercicios_fsm.py` | Contrato base e implementações das Máquinas de Estados Finitos para 3 exercícios com acúmulo de erros por repetição (`consumir_erros_repeticao`), penalidades (`PENALIDADES_ERRO`), checagens sem mascaramento e catálogo extensível. | `ExercicioBaseFSM`, `DesenvolvimentoOmbro`, `Agachamento`, `RoscaBiceps`, `CATALOGO_EXERCICIOS`, `obter_config_exercicio()` | **Ativo (Produção)** |
+| `tests/test_pipeline_pontuacao.py` | Suíte de testes automatizados unitários e de integração (`pytest`) para geometria, deltas com acúmulo lento, FSMs e integridade do catálogo. | Testes unitários com `pytest` | **Ativo (Testes Automatizados)** |
 | `buffer_repeticao.py` | Acumula os vetores de ângulos frame a frame enquanto o usuário está fora do repouso (`fase != 0`) e entrega a matriz numpy $(T \times D)$ quando uma repetição se completa. | `BufferRepeticao`, `processar_frame()` | **Ativo (Produção)** |
 | `dtw_inicial.py` | Implementação direta do Dynamic Time Warping multidimensional por programação dinâmica, retornando distância total, normalizada, score percentual, *path* e desvios por articulação. | `DTW`, `DTW.calcular()` | **Ativo (Produção)** |
 | `gabarito.py` | Persistência (leitura/escrita em JSON) das séries temporais de referência e geração de curvas senoidais padrão ouro caso os JSONs não existam. | `GabaritoExercicio`, `garantir_gabaritos_padrao()` | **Ativo (Produção)** |
