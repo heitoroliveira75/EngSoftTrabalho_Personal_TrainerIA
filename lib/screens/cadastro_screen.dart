@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../services/api_service.dart';
 import 'home_screen.dart';
 
@@ -13,7 +14,8 @@ class _CadastroScreenState extends State<CadastroScreen> {
   final TextEditingController _nomeController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _senhaController = TextEditingController();
-  final TextEditingController _confirmarSenhaController = TextEditingController();
+  final TextEditingController _confirmarSenhaController =
+      TextEditingController();
   bool _carregando = false;
 
   @override
@@ -31,7 +33,10 @@ class _CadastroScreenState extends State<CadastroScreen> {
     final senha = _senhaController.text.trim();
     final confirmarSenha = _confirmarSenhaController.text.trim();
 
-    if (nome.isEmpty || email.isEmpty || senha.isEmpty || confirmarSenha.isEmpty) {
+    if (nome.isEmpty ||
+        email.isEmpty ||
+        senha.isEmpty ||
+        confirmarSenha.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Por favor, preencha todos os campos.'),
@@ -75,7 +80,10 @@ class _CadastroScreenState extends State<CadastroScreen> {
 
     if (resposta['sucesso'] == true) {
       // Tenta logar automaticamente para iniciar a sessão
-      final loginRes = await ApiService().fazerLogin(email: email, senha: senha);
+      final loginRes = await ApiService().fazerLogin(
+        email: email,
+        senha: senha,
+      );
 
       if (!mounted) return;
 
@@ -98,7 +106,9 @@ class _CadastroScreenState extends State<CadastroScreen> {
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(resposta['mensagem'] ?? 'Conta criada com sucesso! Faça login.'),
+            content: Text(
+              resposta['mensagem'] ?? 'Conta criada com sucesso! Faça login.',
+            ),
             backgroundColor: Colors.green,
           ),
         );
@@ -132,7 +142,10 @@ class _CadastroScreenState extends State<CadastroScreen> {
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 28.0, vertical: 12.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 28.0,
+              vertical: 12.0,
+            ),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -155,6 +168,7 @@ class _CadastroScreenState extends State<CadastroScreen> {
                 _buildInputField(
                   controller: _nomeController,
                   hintText: 'Nome Completo',
+                  textInputAction: TextInputAction.next,
                 ),
 
                 const SizedBox(height: 14),
@@ -164,6 +178,7 @@ class _CadastroScreenState extends State<CadastroScreen> {
                   controller: _emailController,
                   hintText: 'E-mail',
                   keyboardType: TextInputType.emailAddress,
+                  textInputAction: TextInputAction.next,
                 ),
 
                 const SizedBox(height: 14),
@@ -173,6 +188,7 @@ class _CadastroScreenState extends State<CadastroScreen> {
                   controller: _senhaController,
                   hintText: 'Senha (mínimo 6 caracteres)',
                   obscureText: true,
+                  textInputAction: TextInputAction.next,
                 ),
 
                 const SizedBox(height: 14),
@@ -182,6 +198,10 @@ class _CadastroScreenState extends State<CadastroScreen> {
                   controller: _confirmarSenhaController,
                   hintText: 'Confirme a senha',
                   obscureText: true,
+                  textInputAction: TextInputAction.done,
+                  onSubmitted: (_) {
+                    _executarCadastro();
+                  },
                 ),
 
                 const SizedBox(height: 20),
@@ -190,7 +210,9 @@ class _CadastroScreenState extends State<CadastroScreen> {
                 ElevatedButton(
                   onPressed: _carregando ? null : _executarCadastro,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF030712), // Preto / quase preto
+                    backgroundColor: const Color(
+                      0xFF030712,
+                    ), // Preto / quase preto
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
@@ -224,26 +246,17 @@ class _CadastroScreenState extends State<CadastroScreen> {
                 Row(
                   children: const [
                     Expanded(
-                      child: Divider(
-                        color: Colors.white38,
-                        thickness: 1,
-                      ),
+                      child: Divider(color: Colors.white38, thickness: 1),
                     ),
                     Padding(
                       padding: EdgeInsets.symmetric(horizontal: 12.0),
                       child: Text(
                         'ou',
-                        style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: 13,
-                        ),
+                        style: TextStyle(color: Colors.white70, fontSize: 13),
                       ),
                     ),
                     Expanded(
-                      child: Divider(
-                        color: Colors.white38,
-                        thickness: 1,
-                      ),
+                      child: Divider(color: Colors.white38, thickness: 1),
                     ),
                   ],
                 ),
@@ -260,7 +273,9 @@ class _CadastroScreenState extends State<CadastroScreen> {
                   ),
                   onTap: () {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Cadastro social em desenvolvimento.')),
+                      const SnackBar(
+                        content: Text('Cadastro social em desenvolvimento.'),
+                      ),
                     );
                   },
                 ),
@@ -270,14 +285,12 @@ class _CadastroScreenState extends State<CadastroScreen> {
                 // Botão Continuar com Apple
                 _buildSocialButton(
                   text: 'Continuar com a Apple',
-                  icon: const Icon(
-                    Icons.apple,
-                    color: Colors.black,
-                    size: 22,
-                  ),
+                  icon: const Icon(Icons.apple, color: Colors.black, size: 22),
                   onTap: () {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Cadastro social em desenvolvimento.')),
+                      const SnackBar(
+                        content: Text('Cadastro social em desenvolvimento.'),
+                      ),
                     );
                   },
                 ),
@@ -290,10 +303,7 @@ class _CadastroScreenState extends State<CadastroScreen> {
                   children: [
                     const Text(
                       'Já possui uma conta? ',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 13,
-                      ),
+                      style: TextStyle(color: Colors.white, fontSize: 13),
                     ),
                     GestureDetector(
                       onTap: () {
@@ -324,18 +334,25 @@ class _CadastroScreenState extends State<CadastroScreen> {
     required String hintText,
     bool obscureText = false,
     TextInputType keyboardType = TextInputType.text,
+    TextInputAction? textInputAction,
+    ValueChanged<String>? onSubmitted,
   }) {
     return TextField(
       controller: controller,
       obscureText: obscureText,
       keyboardType: keyboardType,
+      textInputAction: textInputAction ?? TextInputAction.next,
+      onSubmitted: onSubmitted,
       style: const TextStyle(color: Colors.black87),
       decoration: InputDecoration(
         hintText: hintText,
         hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
         filled: true,
         fillColor: Colors.white,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10.0),
           borderSide: BorderSide.none,
@@ -368,10 +385,7 @@ class _CadastroScreenState extends State<CadastroScreen> {
           const SizedBox(width: 8),
           Text(
             text,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-            ),
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
           ),
         ],
       ),

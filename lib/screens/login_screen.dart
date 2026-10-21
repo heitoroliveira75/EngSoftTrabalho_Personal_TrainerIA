@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../services/api_service.dart';
 import 'cadastro_screen.dart';
 import 'esqueceu_senha_screen.dart';
@@ -41,10 +42,7 @@ class _LoginScreenState extends State<LoginScreen> {
       _carregando = true;
     });
 
-    final resposta = await ApiService().fazerLogin(
-      email: email,
-      senha: senha,
-    );
+    final resposta = await ApiService().fazerLogin(email: email, senha: senha);
 
     if (!mounted) return;
 
@@ -63,9 +61,7 @@ class _LoginScreenState extends State<LoginScreen> {
       // Redireciona para a tela Home limpando a pilha de telas
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(
-          builder: (context) => const HomeScreen(),
-        ),
+        MaterialPageRoute(builder: (context) => const HomeScreen()),
         (route) => false,
       );
     } else {
@@ -85,7 +81,10 @@ class _LoginScreenState extends State<LoginScreen> {
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 28.0, vertical: 24.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 28.0,
+              vertical: 24.0,
+            ),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -109,6 +108,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   controller: _emailController,
                   hintText: 'E-mail',
                   keyboardType: TextInputType.emailAddress,
+                  textInputAction: TextInputAction.next,
                 ),
 
                 const SizedBox(height: 16),
@@ -118,6 +118,10 @@ class _LoginScreenState extends State<LoginScreen> {
                   controller: _senhaController,
                   hintText: 'Senha',
                   obscureText: true,
+                  textInputAction: TextInputAction.done,
+                  onSubmitted: (_) {
+                    _executarLogin();
+                  },
                 ),
 
                 const SizedBox(height: 16),
@@ -126,7 +130,9 @@ class _LoginScreenState extends State<LoginScreen> {
                 ElevatedButton(
                   onPressed: _carregando ? null : _executarLogin,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF030712), // Preto / quase preto
+                    backgroundColor: const Color(
+                      0xFF030712,
+                    ), // Preto / quase preto
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
@@ -185,26 +191,17 @@ class _LoginScreenState extends State<LoginScreen> {
                 Row(
                   children: const [
                     Expanded(
-                      child: Divider(
-                        color: Colors.white38,
-                        thickness: 1,
-                      ),
+                      child: Divider(color: Colors.white38, thickness: 1),
                     ),
                     Padding(
                       padding: EdgeInsets.symmetric(horizontal: 12.0),
                       child: Text(
                         'ou',
-                        style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: 13,
-                        ),
+                        style: TextStyle(color: Colors.white70, fontSize: 13),
                       ),
                     ),
                     Expanded(
-                      child: Divider(
-                        color: Colors.white38,
-                        thickness: 1,
-                      ),
+                      child: Divider(color: Colors.white38, thickness: 1),
                     ),
                   ],
                 ),
@@ -221,7 +218,9 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   onTap: () {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Login social em desenvolvimento.')),
+                      const SnackBar(
+                        content: Text('Login social em desenvolvimento.'),
+                      ),
                     );
                   },
                 ),
@@ -231,14 +230,12 @@ class _LoginScreenState extends State<LoginScreen> {
                 // Botão Continuar com Apple
                 _buildSocialButton(
                   text: 'Continuar com a Apple',
-                  icon: const Icon(
-                    Icons.apple,
-                    color: Colors.black,
-                    size: 22,
-                  ),
+                  icon: const Icon(Icons.apple, color: Colors.black, size: 22),
                   onTap: () {
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Login social em desenvolvimento.')),
+                      const SnackBar(
+                        content: Text('Login social em desenvolvimento.'),
+                      ),
                     );
                   },
                 ),
@@ -251,10 +248,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   children: [
                     const Text(
                       'Não possui uma conta? ',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 13,
-                      ),
+                      style: TextStyle(color: Colors.white, fontSize: 13),
                     ),
                     GestureDetector(
                       onTap: () {
@@ -290,18 +284,25 @@ class _LoginScreenState extends State<LoginScreen> {
     required String hintText,
     bool obscureText = false,
     TextInputType keyboardType = TextInputType.text,
+    TextInputAction? textInputAction,
+    ValueChanged<String>? onSubmitted,
   }) {
     return TextField(
       controller: controller,
       obscureText: obscureText,
       keyboardType: keyboardType,
+      textInputAction: textInputAction ?? TextInputAction.next,
+      onSubmitted: onSubmitted,
       style: const TextStyle(color: Colors.black87),
       decoration: InputDecoration(
         hintText: hintText,
         hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
         filled: true,
         fillColor: Colors.white,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10.0),
           borderSide: BorderSide.none,
@@ -334,10 +335,7 @@ class _LoginScreenState extends State<LoginScreen> {
           const SizedBox(width: 8),
           Text(
             text,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-            ),
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
           ),
         ],
       ),

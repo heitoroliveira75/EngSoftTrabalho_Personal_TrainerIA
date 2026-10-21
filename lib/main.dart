@@ -38,7 +38,7 @@ class MeuAppTreino extends StatelessWidget {
           surface: Color(0xFF1E232A),
         ),
       ),
-      initialRoute: '/camera-treino',
+      initialRoute: '/login',
       routes: {
         '/login': (context) => const LoginScreen(),
         '/cadastro': (context) => const CadastroScreen(),
