@@ -46,3 +46,21 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+
+# Python & Virtual Environments
+__pycache__/
+*.py[cod]
+*$py.class
+.venv/
+venv/
+env/
+.pytest_cache/
+
+# Local video files & generated test fixtures
+*.mp4
+*.avi
+gabarito_especialista_gerado.json
+
+# Nested workspace clone
+EngSoftTrabalho_Personal_TrainerIA/
