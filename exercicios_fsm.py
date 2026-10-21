@@ -1,10 +1,10 @@
 """
 Módulo de Máquinas de Estados Finitos (FSM) por Exercício.
 Todas as classes seguem o mesmo contrato para integração transparente
-com o BufferRepeticao e com a interface em tempo real.
+com o BufferRepeticao, com o avaliador de pontuação e com a interface em tempo real.
 """
 
-from typing import Dict, Any, Optional
+from typing import Dict, Any, Optional, List
 
 
 class ExercicioBaseFSM:
@@ -17,11 +17,13 @@ class ExercicioBaseFSM:
         3: "Retorno",
     }
     MENSAGENS_ERRO: Dict[str, str] = {}
+    PENALIDADES_ERRO: Dict[str, float] = {}
 
     def __init__(self):
         self.fases = [0, 0]  # [fase_anterior, fase_atual]
         self.repeticoes = 0
-        self.erros = []
+        self.erros: List[str] = []
+        self.erros_repeticao_atual: List[str] = []
 
     @property
     def nome_fase_atual(self) -> str:
@@ -31,6 +33,18 @@ class ExercicioBaseFSM:
         if not codigo_erro:
             return "Movimento dentro dos parametros."
         return self.MENSAGENS_ERRO.get(codigo_erro, codigo_erro)
+
+    def registrar_erro(self, codigo_erro: str) -> None:
+        """Registra erro no histórico global e na repetição atual (sem duplicatas na repetição)."""
+        self.erros.append(codigo_erro)
+        if codigo_erro not in self.erros_repeticao_atual:
+            self.erros_repeticao_atual.append(codigo_erro)
+
+    def consumir_erros_repeticao(self) -> List[str]:
+        """Retorna todos os erros ocorridos durante a repetição concluída e limpa o buffer da rep."""
+        erros = list(self.erros_repeticao_atual)
+        self.erros_repeticao_atual = []
+        return erros
 
     def identificar_fase(self, angulos: dict, posicoes: dict, angulos_deltas: dict) -> int:
         raise NotImplementedError
@@ -58,6 +72,12 @@ class DesenvolvimentoOmbro(ExercicioBaseFSM):
         "OMBRO_CAIDO": "Mantenha os ombros alinhados acima de 60 graus durante a execucao.",
     }
 
+    PENALIDADES_ERRO = {
+        "REPETICAO_INCOMPLETA": 25.0,
+        "DESCIDA_EXCESSIVA": 15.0,
+        "OMBRO_CAIDO": 15.0,
+    }
+
     def identificar_fase(self, angulos: dict, posicoes: dict, angulos_deltas: dict) -> int:
         cotovelo = angulos.get("cotovelo", 0.0)
         delta_cotovelo = angulos_deltas.get("cotovelo", 0.0)
@@ -66,6 +86,7 @@ class DesenvolvimentoOmbro(ExercicioBaseFSM):
         if fase == 0:
             if cotovelo > 100.0 and delta_cotovelo > 0:
                 fase = 1
+                self.erros_repeticao_atual = []
         elif fase == 1:
             if cotovelo >= 150.0:
                 fase = 2
@@ -88,18 +109,18 @@ class DesenvolvimentoOmbro(ExercicioBaseFSM):
         self.fases[0] = fase_anterior
         self.fases[1] = fase_atual
 
-        erro_detectado = None
+        erros_no_frame = []
         if self.fases[0] == 1 and self.fases[1] == 3:
-            erro_detectado = "REPETICAO_INCOMPLETA"
-        elif self.fases[1] == 3 and angulos.get("cotovelo", 100.0) < 70.0:
-            erro_detectado = "DESCIDA_EXCESSIVA"
-        elif self.fases[1] in (1, 2, 3) and angulos.get("ombro", 90.0) < 60.0:
-            erro_detectado = "OMBRO_CAIDO"
+            erros_no_frame.append("REPETICAO_INCOMPLETA")
+        if self.fases[1] == 3 and angulos.get("cotovelo", 100.0) < 70.0:
+            erros_no_frame.append("DESCIDA_EXCESSIVA")
+        if self.fases[1] in (1, 2, 3) and angulos.get("ombro", 90.0) < 60.0:
+            erros_no_frame.append("OMBRO_CAIDO")
 
-        if erro_detectado:
-            self.erros.append(erro_detectado)
+        for err in erros_no_frame:
+            self.registrar_erro(err)
 
-        return erro_detectado
+        return erros_no_frame[0] if erros_no_frame else None
 
 
 class Agachamento(ExercicioBaseFSM):
@@ -120,6 +141,11 @@ class Agachamento(ExercicioBaseFSM):
         "TRONCO_MUITO_INCLINADO": "Quadril fechou demasiado (< 55 graus); mantenha o peito aberto.",
     }
 
+    PENALIDADES_ERRO = {
+        "AGACHAMENTO_CURTO": 25.0,
+        "TRONCO_MUITO_INCLINADO": 15.0,
+    }
+
     def identificar_fase(self, angulos: dict, posicoes: dict, angulos_deltas: dict) -> int:
         joelho = angulos.get("joelho", 180.0)
         delta_joelho = angulos_deltas.get("joelho", 0.0)
@@ -128,6 +154,7 @@ class Agachamento(ExercicioBaseFSM):
         if fase == 0:
             if joelho < 155.0 and delta_joelho < 0:
                 fase = 1
+                self.erros_repeticao_atual = []
         elif fase == 1:
             if joelho <= 105.0:
                 fase = 2
@@ -150,16 +177,16 @@ class Agachamento(ExercicioBaseFSM):
         self.fases[0] = fase_anterior
         self.fases[1] = fase_atual
 
-        erro_detectado = None
+        erros_no_frame = []
         if self.fases[0] == 1 and self.fases[1] == 3:
-            erro_detectado = "AGACHAMENTO_CURTO"
-        elif self.fases[1] in (1, 2, 3) and angulos.get("quadril", 180.0) < 55.0:
-            erro_detectado = "TRONCO_MUITO_INCLINADO"
+            erros_no_frame.append("AGACHAMENTO_CURTO")
+        if self.fases[1] in (1, 2, 3) and angulos.get("quadril", 180.0) < 55.0:
+            erros_no_frame.append("TRONCO_MUITO_INCLINADO")
 
-        if erro_detectado:
-            self.erros.append(erro_detectado)
+        for err in erros_no_frame:
+            self.registrar_erro(err)
 
-        return erro_detectado
+        return erros_no_frame[0] if erros_no_frame else None
 
 
 class RoscaBiceps(ExercicioBaseFSM):
@@ -180,6 +207,11 @@ class RoscaBiceps(ExercicioBaseFSM):
         "OMBRO_INSTAVEL": "Evite projetar o ombro (> 40 graus); mantenha o cotovelo fixo ao tronco.",
     }
 
+    PENALIDADES_ERRO = {
+        "SUBIDA_INCOMPLETA": 25.0,
+        "OMBRO_INSTAVEL": 15.0,
+    }
+
     def identificar_fase(self, angulos: dict, posicoes: dict, angulos_deltas: dict) -> int:
         cotovelo = angulos.get("cotovelo", 180.0)
         delta_cotovelo = angulos_deltas.get("cotovelo", 0.0)
@@ -188,6 +220,7 @@ class RoscaBiceps(ExercicioBaseFSM):
         if fase == 0:
             if cotovelo < 145.0 and delta_cotovelo < 0:
                 fase = 1
+                self.erros_repeticao_atual = []
         elif fase == 1:
             if cotovelo <= 65.0:
                 fase = 2
@@ -210,19 +243,19 @@ class RoscaBiceps(ExercicioBaseFSM):
         self.fases[0] = fase_anterior
         self.fases[1] = fase_atual
 
-        erro_detectado = None
+        erros_no_frame = []
         if self.fases[0] == 1 and self.fases[1] == 3:
-            erro_detectado = "SUBIDA_INCOMPLETA"
-        elif self.fases[1] in (1, 2, 3) and angulos.get("ombro", 15.0) > 40.0:
-            erro_detectado = "OMBRO_INSTAVEL"
+            erros_no_frame.append("SUBIDA_INCOMPLETA")
+        if self.fases[1] in (1, 2, 3) and angulos.get("ombro", 15.0) > 40.0:
+            erros_no_frame.append("OMBRO_INSTAVEL")
 
-        if erro_detectado:
-            self.erros.append(erro_detectado)
+        for err in erros_no_frame:
+            self.registrar_erro(err)
 
-        return erro_detectado
+        return erros_no_frame[0] if erros_no_frame else None
 
 
-# Catálogo central que liga as teclas de atalho aos componentes de cada exercício
+# Catálogo central que liga as teclas de atalho ou IDs aos componentes de cada exercício
 CATALOGO_EXERCICIOS: Dict[str, Dict[str, Any]] = {
     "1": {
         "id": "desenvolvimento_ombro",
@@ -246,3 +279,20 @@ CATALOGO_EXERCICIOS: Dict[str, Dict[str, Any]] = {
         "arquivo_gabarito": "gabarito_especialista_rosca.json",
     },
 }
+
+
+def obter_config_exercicio(identificador: str) -> Dict[str, Any]:
+    """
+    Busca a configuração do exercício por chave numérica ('1', '2', '3')
+    ou por identificador de texto ('desenvolvimento_ombro', 'agachamento', 'rosca_biceps').
+    """
+    chave = str(identificador).strip().lower()
+    if chave in CATALOGO_EXERCICIOS:
+        return CATALOGO_EXERCICIOS[chave]
+
+    for item in CATALOGO_EXERCICIOS.values():
+        if item["id"].lower() == chave:
+            return item
+
+    opcoes = list(CATALOGO_EXERCICIOS.keys()) + [item["id"] for item in CATALOGO_EXERCICIOS.values()]
+    raise ValueError(f"Exercício '{identificador}' não encontrado. Opções disponíveis: {opcoes}")
