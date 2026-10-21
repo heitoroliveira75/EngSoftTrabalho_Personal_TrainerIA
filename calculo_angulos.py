@@ -85,3 +85,37 @@ def extrair_angulos_exercicio(
         angulos[nome_art] = calcular_angulo(ponto_a, ponto_b, ponto_c)
 
     return angulos, visivel
+
+
+
+def calcular_deltas_angulares(
+    angulos: Dict[str, float],
+    referencia: Dict[str, float],
+    limiar_graus: float = 1.2
+) -> Dict[str, float]:
+    """
+    Calcula os deltas de variação angular em graus em relação a um dicionário de referência (âncora).
+    Atualiza a referência da articulação APENAS quando a diferença absoluta for maior ou igual a limiar_graus.
+    Isso impede que variações lentas (graduais) sejam zeradas e perdidas ao longo dos fotogramas.
+
+    Args:
+        angulos: Dicionário com os ângulos atuais {nome_art: valor_graus}.
+        referencia: Dicionário mutável {nome_art: valor_referencia_graus} mantido ao longo da sessão.
+        limiar_graus: Limiar mínimo em graus para registrar movimento (rejeição de ruído/jitter).
+
+    Returns:
+        Dicionário {nome_art: delta_graus}.
+    """
+    deltas: Dict[str, float] = {}
+    for art, valor in angulos.items():
+        if art not in referencia:
+            referencia[art] = float(valor)
+            deltas[art] = 0.0
+        else:
+            diff = float(valor) - referencia[art]
+            if abs(diff) >= limiar_graus:
+                deltas[art] = round(diff, 2)
+                referencia[art] = float(valor)
+            else:
+                deltas[art] = 0.0
+    return deltas
