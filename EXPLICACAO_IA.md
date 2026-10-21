@@ -80,19 +80,31 @@ O catálogo central (`CATALOGO_EXERCICIOS`) já suporta **3 exercícios clássic
 * Todos os exercícios contam com alternância de lado (**Direito** ou **Esquerdo**).
 
 ### 3.2. Módulos Ativos do Sistema
-* [`app_tempo_real.py`](file:///c:/Users/aihon/Desktop/EngSoftTrabalho_Personal_TrainerIA/app_tempo_real.py): Aplicação completa com webcam (OpenCV), desenho do esqueleto na tela, painel HUD superior com contagem de repetições, fase atual, ângulos ao vivo, alertas vermelhos de erro e veredito final da última repetição com score DTW.
-* [`calculo_angulos.py`](file:///c:/Users/aihon/Desktop/EngSoftTrabalho_Personal_TrainerIA/calculo_angulos.py): Motor geométrico que calcula ângulos articulares e checa se as articulações estão visíveis no enquadramento da câmera.
-* [`exercicios_fsm.py`](file:///c:/Users/aihon/Desktop/EngSoftTrabalho_Personal_TrainerIA/exercicios_fsm.py): Contrato base `ExercicioBaseFSM` e implementação das máquinas de estado dos 3 exercícios.
-* [`buffer_repeticao.py`](file:///c:/Users/aihon/Desktop/EngSoftTrabalho_Personal_TrainerIA/buffer_repeticao.py): Coletor e recortador automático de repetições completas.
-* [`dtw_inicial.py`](file:///c:/Users/aihon/Desktop/EngSoftTrabalho_Personal_TrainerIA/dtw_inicial.py): Implementação funcional do DTW com cálculo de desvios por articulação.
+* [`calculo_angulos.py`](file:///c:/Users/aihon/Desktop/EngSoftTrabalho_Personal_TrainerIA/calculo_angulos.py): Motor geométrico que calcula ângulos articulares em 2D, verifica visibilidade dos marcos e possui o novo **cálculo de deltas angulares com âncora de ruído** (`calcular_deltas_angulares`), que preserva a detecção de movimentos realizados em cadências muito lentas e controladas sem sofrer com ruído de câmera.
+* [`exercicios_fsm.py`](file:///c:/Users/aihon/Desktop/EngSoftTrabalho_Personal_TrainerIA/exercicios_fsm.py): Contrato base `ExercicioBaseFSM` e máquinas de estado dos 3 exercícios. Agora conta com **memória isolada de erros por repetição** (`consumir_erros_repeticao`), checagens sem mascaramento (`if` independentes) e dicionário formal de penalidades (`PENALIDADES_ERRO`), além de busca inteligente no catálogo (`obter_config_exercicio`).
+* [`buffer_repeticao.py`](file:///c:/Users/aihon/Desktop/EngSoftTrabalho_Personal_TrainerIA/buffer_repeticao.py): Coletor e recortador automático de repetições completas guiado pelas fases da FSM.
+* [`dtw_inicial.py`](file:///c:/Users/aihon/Desktop/EngSoftTrabalho_Personal_TrainerIA/dtw_inicial.py) e [`dtw_evaluator.py`](file:///c:/Users/aihon/Desktop/EngSoftTrabalho_Personal_TrainerIA/dtw_evaluator.py): Motores de Dynamic Time Warping (versão inicial em produção e versão avançada vetorizada em NumPy com janela Sakoe-Chiba em fase de padronização).
 * [`gabarito.py`](file:///c:/Users/aihon/Desktop/EngSoftTrabalho_Personal_TrainerIA/gabarito.py): Sistema de persistência em JSON e gerador automático de gabaritos padrão caso os arquivos ainda não existam.
 * [`extrator_video.py`](file:///c:/Users/aihon/Desktop/EngSoftTrabalho_Personal_TrainerIA/extrator_video.py): Ferramenta CLI para processar vídeos gravados de especialistas e extrair automaticamente a primeira repetição perfeita para salvar como arquivo JSON de referência.
+* [`app_tempo_real.py`](file:///c:/Users/aihon/Desktop/EngSoftTrabalho_Personal_TrainerIA/app_tempo_real.py): Aplicação completa com webcam (OpenCV), desenho do esqueleto na tela, painel HUD superior com contagem de repetições, fase atual, ângulos ao vivo, alertas vermelhos de erro e veredito final da última repetição com score DTW.
+* [`tests/test_pipeline_pontuacao.py`](file:///c:/Users/aihon/Desktop/EngSoftTrabalho_Personal_TrainerIA/tests/test_pipeline_pontuacao.py): Nova suíte de testes unitários automatizados com `pytest`, garantindo que fórmulas geométricas, tolerâncias de ruído e transições de fase funcionem com regressão zero.
 * **Gabaritos JSON oficiais:** [`gabarito_especialista_ombro.json`](file:///c:/Users/aihon/Desktop/EngSoftTrabalho_Personal_TrainerIA/gabarito_especialista_ombro.json), [`gabarito_especialista_agachamento.json`](file:///c:/Users/aihon/Desktop/EngSoftTrabalho_Personal_TrainerIA/gabarito_especialista_agachamento.json) e [`gabarito_especialista_rosca.json`](file:///c:/Users/aihon/Desktop/EngSoftTrabalho_Personal_TrainerIA/gabarito_especialista_rosca.json).
 
 ### 3.3. Como um Humano Pode Testar Hoje no Computador
 Se você clonar o repositório e tiver Python instalado:
 
-1. **Testar com a Webcam em Tempo Real:**
+1. **Instalar Dependências Oficiais:**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+2. **Executar a Suíte de Testes Automatizados (Sem Câmera):**
+   ```bash
+   pytest
+   ```
+   *Roda todos os 9 testes automatizados de cálculo de ângulos, âncora de ruído para repetições lentas, transições de fase e memória de erros da FSM.*
+
+3. **Testar com a Webcam em Tempo Real:**
    ```bash
    python app_tempo_real.py
    ```
@@ -104,60 +116,69 @@ Se você clonar o repositório e tiver Python instalado:
    * `R`: Reinicia a contagem e os erros da sessão.
    * `Q`: Fecha o programa.
 
-2. **Gerar ou Validar os Gabaritos JSON:**
+4. **Gerar ou Validar os Gabaritos JSON:**
    ```bash
    python gabarito.py
    ```
 
-3. **Simular o Fluxo de Integração (Sem Câmera):**
+5. **Simular o Fluxo de Integração com Cenários Sintéticos:**
    ```bash
    python exemplo_integracao.py
    ```
-   Roda 3 cenários sintéticos demonstrando a resposta da FSM e do DTW em execuções ideais, lentas e com falhas.
+   Roda 3 cenários demonstrando a resposta da FSM e do DTW em execuções ideais, lentas e com falhas.
 
 ---
 
-## 4. O Diagnóstico: Por que Precisamos Padronizar o Pipeline?
+## 4. O Diagnóstico: O Que Já Foi Corrigido e O Que Estamos Unificando?
 
-Embora as partes principais já existam, **elas foram construídas por desenvolvedores diferentes em momentos diferentes e possuem "pontas soltas" que ainda não se conversam perfeitamente**:
+O desenvolvimento desta sprint foi planejado sob uma premissa arquitetural essencial: **os outros módulos do projeto (como o aplicativo Flutter e o backend FastAPI) enviarão cada fotograma da gravação do usuário sequencialmente para o nosso motor de IA**.
 
-1. **Duas implementações de DTW separadas:**
-   * Existe o `dtw_inicial.py` (usado na webcam) e o `dtw_evaluator.py` (uma versão orientada a objetos mais moderna, mais rápida e com restrição de janela Sakoe-Chiba, mas que não lê os arquivos JSON de gabarito).
-2. **Duas FSMs de Ombro:**
-   * O arquivo `dev_ombro-inicial.py` foi feito no início do projeto e ainda é importado por alguns scripts antigos, enquanto `exercicios_fsm.py` tem a versão mais recente e completa.
-3. **Pequena quebra no comparador de vídeo gravado (`comparar_exercicio.py`):**
-   * Ao ser atualizado para múltiplos exercícios, o extrator de vídeo passou a exigir a lista de articulações, mas o script de comparação de vídeo ainda chamava a versão antiga, causando erro de execução quando tentamos passar um `.mp4`.
-4. **Falta de um Motor Central de Pontuação:**
-   * Hoje o DTW dá uma nota de similaridade da curva, e a FSM apenas diz se houve erro ou não. Ainda não existia uma regra única e matemática que combinasse: `Nota Final = Técnica da Curva (DTW) - Penalidades Biomecânicas (FSM)`.
+Por isso, o sistema foi estruturado para ser totalmente desacoplado de webcam física ou leituras em lote, operando no modelo **frame a frame**:
+
+### 4.1. Problemas Já Diagnosticados e Corrigidos Nesta Sprint:
+1. **O Bug da Cadência Lenta (Resolvido na `TASK-02`):**
+   * *O problema:* Ao fazer repetições lentas e controladas, a variação de ângulo por fotograma era pequena (< 1.2°). O código anterior atualizava o ângulo de referência a cada frame, zerando o delta continuamente. Resultado: o sistema "congelava" e não contava a repetição.
+   * *A solução:* Criamos a função `calcular_deltas_angulares` com **âncora de ruído**. A referência só avança quando o acumulado atinge o limiar, detectando movimentos lentos perfeitamente.
+2. **A Perda de Erros da FSM (Resolvido na `TASK-03`):**
+   * *O problema:* Se o usuário cometesse um erro no topo do movimento (ex.: ombro caído), esse alerta aparecia naquele frame, mas quando ele voltava ao repouso (fase 0), a repetição era fechada e o erro era esquecido! Além disso, a cadeia `elif` mascarava erros simultâneos.
+   * *A solução:* A `ExercicioBaseFSM` agora possui memória (`erros_repeticao_atual`), checagens independentes e entrega a lista completa de infrações via `consumir_erros_repeticao()` para desconto justo na nota final.
+3. **Ausência de Testes Automatizados (Iniciado nas `TASK-02` e `TASK-03`):**
+   * Agora temos uma suíte formal com `pytest` e 9 testes cobrindo geometria e lógica de estados sem depender de câmera aberta.
+
+### 4.2. O Que Está Sendo Unificado a Seguir:
+1. **Padronização do DTW Vetorizado (`dtw_evaluator.py`):**
+   * Aposentar o algoritmo com loops manuais e adotar a versão orientada a objetos vetorizada em NumPy com suporte à restrição de Sakoe-Chiba.
+2. **Segmentador Canônico de Gabaritos:**
+   * Garantir que as curvas de referência salvas em JSON sejam recortadas com o mesmíssimo critério de início/fim das repetições do aluno, garantindo nota 100 em execuções perfeitas.
+3. **Motor Central de Pontuação e Orquestrador de Sessão Frame a Frame (`avaliador_pontuacao.py`):**
+   * O orquestrador central que recebe cada frame do usuário (ângulos ou imagem), aplica as penalidades biomecânicas da FSM sobre o score DTW e entrega notas, diagnósticos detalhados e resumos da série para o aplicativo.
 
 ---
 
-## 5. O Que Está Planejado para Ser Feito (Sprint Atual e Próximos Passos)
+## 5. O Que Está Planejado e o Progresso da Sprint (`US-01`)
 
 ### 5.1. A História de Usuário da Sprint Atual (`US-01`)
-> *"Usuário quer ter uma pontuação a partir da comparação de exercícios"*
+> *"Como usuário praticante de atividades físicas, quero receber uma pontuação clara e justa a partir da comparação da minha execução com a referência de um especialista, para que eu saiba quão correto foi meu movimento em cada repetição e ao final da série."*
 
-Para atender a essa demanda e resolver de vez a fragmentação do código, criamos o plano detalhado em [`PLANO_SPRINT_US01.md`](file:///c:/Users/aihon/Desktop/EngSoftTrabalho_Personal_TrainerIA/PLANO_SPRINT_US01.md), dividido em **tasks atômicas com commits incrementais**:
+O plano técnico detalhado está registrado em [`PLANO_SPRINT_US01.md`](file:///c:/Users/aihon/Desktop/EngSoftTrabalho_Personal_TrainerIA/PLANO_SPRINT_US01.md). Abaixo está o estado de progresso atual com base nos commits realizados:
 
-1. **`TASK-00` (Concluída no Workspace):** Documentação técnica, arquitetura, diretrizes de engenharia, devlog e este guia explicativo.
-2. **`TASK-01` (Limpeza e Padronização):** Remover arquivos duplicados com acentos (`exercícios_fsm.py`), subpastas acidentais e padronizar o `.gitignore` e `requirements.txt`.
-3. **`TASK-02` (Geometria Centralizada):** Colocar todos os filtros de ruído de movimento e métricas de amplitude máxima/mínima dentro de `calculo_angulos.py`.
-4. **`TASK-03` (Unificação das FSMs e Memória de Erros):** Fazer o `BufferRepeticao` guardar **todos** os erros posturais ocorridos durante aquela repetição específica, para que eles sejam considerados na pontuação final.
-5. **`TASK-04` (Unificação do DTW):** Integrar a versão rápida e moderna do DTW (`dtw_evaluator.py`) diretamente com os gabaritos JSON de `gabarito.py`.
-6. **`TASK-05` (Motor Unificado de Pontuação):** Criar o módulo `avaliador_pontuacao.py`, que aplica a fórmula oficial de pontuação:
-   * **Score de Trajetória (DTW)**: de 0 a 100%.
-   * **Descontos Biomecânicos da FSM**: desconta pontos se o aluno encurtou o movimento ou compensou com postura torta.
-   * **Veredito Claro**: `EXCELENTE` ($\ge 85$), `BOM` ($\ge 70$), `REGULAR` ($\ge 50$) ou `INCORRETO` ($< 50$).
-   * **Diagnóstico da Articulação Crítica**: aponta exatamente qual membro errou mais.
-   * **Consolidação da Série**: nota média de todas as repetições do treino.
-7. **`TASK-06` (Integração nos Modos Vídeo e Tempo Real):** Fazer a webcam (`app_tempo_real.py`) e o analisador de arquivos (`comparar_exercicio.py`) usarem exatamente o mesmo motor de pontuação.
-8. **`TASK-07` (Testes Automatizados):** Criar bateria de testes sintéticos garantindo que uma execução perfeita tire nota alta, uma execução lenta não seja punida e execuções erradas tirem notas proporcionais à falha.
-9. **`TASK-08` (Fechamento e Devlog):** Atualizar o `DEVLOG.md` e o `CONTEXTO_IA.md` com a entrega completa.
+* [x] **`[TASK-00]` Base Documental e Contexto:** `CONTEXTO_IA.md`, `DEVLOG.md`, `DIRETRIZES_DESENVOLVIMENTO.md`, `AGENTS.md` e `PLANO_SPRINT_US01.md` criados e versionados *(Commit `0afd9ee`)*.
+* [x] **`[TASK-01]` Dependências e Proteção do Repositório:** `requirements.txt`, `.gitignore` atualizado e criação deste guia didático `EXPLICACAO_IA.md`. *Nota: Módulos legados mantidos intactos por diretriz até a conclusão e teste dos novos módulos* *(Commit `c340b65`)*.
+* [x] **`[TASK-02]` Geometria com Âncora de Ruído:** Função `calcular_deltas_angulares()` em `calculo_angulos.py` e primeiros testes automatizados em `tests/test_pipeline_pontuacao.py` *(Commit `7151ad3`)*.
+* [x] **`[TASK-03]` Memória de Erros e Penalidades na FSM:** Evolução de `ExercicioBaseFSM` em `exercicios_fsm.py` com acumulador de erros por repetição, penalidades por exercício e 9 testes no `pytest` *(Commit `f085106`)*.
+* [ ] **`[TASK-04]` Padronização do DTW Único:** Versionamento e validação de `dtw_evaluator.py` como motor oficial *(Pendente)*.
+* [ ] **`[TASK-05]` Recorte Uniforme dos Gabaritos:** Alinhamento dos JSONs com o mesmo segmentador do aluno *(Pendente)*.
+* [ ] **`[TASK-06]` Motor de Pontuação e Orquestrador Frame a Frame:** Criação de `avaliador_pontuacao.py` unificando notas e sessão *(Pendente)*.
+* [ ] **`[TASK-07]` Integração no Comparador de Vídeo CLI:** Correção de chamadas em `comparar_exercicio.py` *(Pendente)*.
+* [ ] **`[TASK-08]` Demonstração Arquitetural:** Atualização de `exemplo_integracao.py` com o novo motor *(Pendente)*.
+* [ ] **`[TASK-09]` Integração Webcam em Tempo Real:** Conexão de `app_tempo_real.py` ao orquestrador e aposentadoria segura de `dtw_inicial.py` *(Pendente)*.
+* [ ] **`[TASK-10]` Bateria de Testes End-to-End:** Validação dos critérios de aceite AC1 a AC7 *(Pendente)*.
+* [x] **`[TASK-11]` Gestão Viva de Logs e Contexto:** Devlog, contexto e plano da sprint mantidos rigorosamente sincronizados a cada commit *(Em andamento contínuo)*.
 
 ### 5.2. O Que Fica no Horizonte Futuro (Pós-Sprint)
-* **Novos Exercícios no Catálogo:** Adicionar Elevação Lateral, Tríceps, Levantamento Terra, etc. (bastando criar uma nova classe na FSM e gravar o gabarito JSON).
-* **Integração com o Aplicativo Mobile (Flutter):** Enviar o resultado da avaliação (repetições, score final, erros detectados) para a interface do aplicativo móvel ou salvar no banco de dados do usuário.
-* **Filtros Avançados de Câmera:** Suavização One-Euro Filter para webcams com muito ruído em ambientes com pouca luz.
+* **Novos Exercícios no Catálogo:** Adicionar Elevação Lateral, Tríceps, Levantamento Terra, etc. (bastando criar uma nova classe na FSM e gravar o gabarito JSON, sem alterar o motor central).
+* **Integração com o Aplicativo Mobile (Flutter):** Enviar o resultado de cada repetição e da sessão (score final, erros detectados, pontos de gamificação) para o app móvel e banco Supabase.
+* **Filtros Avançados de Câmera:** Suavização One-Euro Filter para webcams com alto ruído em baixa luminosidade.
 
 ---
 
