@@ -1,10 +1,11 @@
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any, Union
 import uvicorn
 import sys
 from pathlib import Path
+from datetime import datetime
 
 # Garantir que o diretório BD esteja no sys.path
 sys.path.append(str(Path(__file__).resolve().parent))
@@ -372,6 +373,105 @@ def api_resetar_checagem(usuario_id: str):
     return resposta
 
 # ============================================================
+# ============================================================
+# ROTAS DE IA / VISÃO COMPUTACIONAL (CÂMERA)
+# ============================================================
+
+PASTA_FRAMES = Path(__file__).resolve().parent / "frames_salvos"
+PASTA_FRAMES.mkdir(parents=True, exist_ok=True)
+
+@app.post("/ia/processar-frame")
+async def api_processar_frame(
+    frame: UploadFile = File(...),
+    usuario_id: Optional[str] = Form(None),
+    timestamp: Optional[str] = Form(None)
+):
+    """
+    Recebe um frame capturado da câmera de treino, salva em disco para inspeção
+    e simula a resposta da IA.
+    """
+    conteudo = await frame.read()
+    tamanho_kb = round(len(conteudo) / 1024, 2)
+
+    # Gera nome de arquivo único com timestamp legível
+    timestamp_formatado = datetime.now().strftime("%Y%m%d_%H%M%S_%f")[:19]
+    user_tag = usuario_id if (usuario_id and usuario_id.strip()) else "anonimo"
+    nome_salvo = f"{user_tag}_{timestamp_formatado}.jpg"
+    caminho_arquivo = PASTA_FRAMES / nome_salvo
+
+    # Salva o arquivo no disco
+    with open(caminho_arquivo, "wb") as f:
+        f.write(conteudo)
+
+    print(f"[CAMERA/IA] Frame recebido ({tamanho_kb} KB) -> Salvo em: frames_salvos/{nome_salvo}")
+
+    return {
+        "sucesso": True,
+        "mensagem": "Frame recebido e salvo com sucesso!",
+        "detalhes": {
+            "arquivo_original": frame.filename,
+            "arquivo_salvo": nome_salvo,
+            "caminho_completo": str(caminho_arquivo.resolve()),
+            "tamanho_kb": tamanho_kb,
+            "usuario_id": usuario_id,
+            "timestamp": timestamp,
+            "status_postura": "ok",
+        }
+    }
+
+@app.get("/ia/frames")
+def api_listar_frames_salvos(limite: int = 20):
+    """
+    Lista os frames salvos mais recentes na pasta BD/frames_salvos.
+    """
+    if not PASTA_FRAMES.exists():
+        return {"total": 0, "frames": []}
+
+    arquivos = sorted(
+        PASTA_FRAMES.glob("*.jpg"),
+        key=lambda p: p.stat().st_mtime,
+        reverse=True
+    )
+
+    lista = []
+    for arq in arquivos[:limite]:
+        stat = arq.stat()
+        lista.append({
+            "nome": arq.name,
+            "tamanho_kb": round(stat.st_size / 1024, 2),
+            "data_modificacao": datetime.fromtimestamp(stat.st_mtime).strftime("%d/%m/%Y %H:%M:%S")
+        })
+
+    return {
+        "total_arquivos": len(arquivos),
+        "limite_exibido": limite,
+        "diretorio": str(PASTA_FRAMES.resolve()),
+        "frames": lista
+    }
+
+@app.delete("/ia/frames")
+def api_limpar_frames_salvos():
+    """
+    Exclui todos os frames salvos na pasta BD/frames_salvos para liberar espaço.
+    """
+    if not PASTA_FRAMES.exists():
+        return {"sucesso": True, "mensagem": "Nenhum frame para excluir.", "removidos": 0}
+
+    removidos = 0
+    for arq in PASTA_FRAMES.glob("*.jpg"):
+        try:
+            arq.unlink()
+            removidos += 1
+        except Exception:
+            pass
+
+    return {
+        "sucesso": True,
+        "mensagem": f"{removidos} frames excluídos com sucesso!",
+        "removidos": removidos
+    }
+
+
 # EXECUÇÃO DIRETA
 # ============================================================
 if __name__ == "__main__":

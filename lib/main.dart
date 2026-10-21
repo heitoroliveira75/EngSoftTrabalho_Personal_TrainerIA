@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+
 import 'screens/cadastro_screen.dart';
+import 'screens/camera_treino_screen.dart';
 import 'screens/change_name_screen.dart';
 import 'screens/change_password_screen.dart';
 import 'screens/criar_exercicio_screen.dart';
@@ -36,7 +38,7 @@ class MeuAppTreino extends StatelessWidget {
           surface: Color(0xFF1E232A),
         ),
       ),
-      initialRoute: '/login',
+      initialRoute: '/camera-treino',
       routes: {
         '/login': (context) => const LoginScreen(),
         '/cadastro': (context) => const CadastroScreen(),
@@ -55,6 +57,7 @@ class MeuAppTreino extends StatelessWidget {
         '/perfil': (context) => const ProfileScreen(),
         '/alterar-nome': (context) => const ChangeNameScreen(),
         '/alterar-senha': (context) => const ChangePasswordScreen(),
+        '/camera-treino': (context) => const CameraTreinoScreen(),
       },
     );
   }
