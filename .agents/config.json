@@ -1,0 +1,26 @@
+{
+  "$schema": "https://antigravity.cli/schema.json",
+  "skills": [
+    {
+      "name": "ai-context",
+      "path": "./.agents/skills/ai-context/SKILL.md"
+    },
+    {
+      "name": "human-context",
+      "path": "./.agents/skills/human-context/SKILL.md"
+    }
+  ],
+  "agents": [
+    {
+      "name": "context-navigator",
+      "config": "./.agents/agents/context-navigator/agent.md",
+      "enabled": true,
+      "auto_run_on_boot": true
+    },
+    {
+      "name": "code-architect",
+      "config": "./.agents/agents/code-architect/agent.md",
+      "enabled": true
+    }
+  ]
+}
