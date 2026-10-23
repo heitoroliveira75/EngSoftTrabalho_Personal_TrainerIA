@@ -142,3 +142,118 @@ class TestExerciciosFSM:
 
         with pytest.raises(ValueError):
             obter_config_exercicio("inexistente")
+
+
+
+from dtw_evaluator import DTWComparator, DTWResult, DTW
+
+
+class TestDTWEvaluator:
+    def test_dtw_series_identicas(self):
+        t = np.linspace(0, np.pi, 30)
+        serie = np.column_stack((90.0 + 75.0 * np.sin(t), 80.0 + 75.0 * np.sin(t)))
+
+        dtw = DTWComparator(tolerancia=15.0)
+        res = dtw.compute(serie, serie, nomes_articulacoes=["cotovelo", "ombro"])
+
+        assert isinstance(res, DTWResult)
+        assert res.valido is True
+        assert pytest.approx(res.distancia_total, abs=1e-3) == 0.0
+        assert pytest.approx(res.distancia_normalizada, abs=1e-3) == 0.0
+        assert res.score_similaridade == 100.0
+        assert res.desvios_por_articulacao == {"cotovelo": 0.0, "ombro": 0.0}
+        assert len(res.caminho) == 30
+
+    def test_dtw_invariancia_temporal_cadencia(self):
+        # Mesma curva motora percorrida em velocidades diferentes (25 frames vs 50 frames)
+        t_rapido = np.linspace(0, np.pi, 25)
+        t_lento = np.linspace(0, np.pi, 50)
+        serie_rapida = 90.0 + 75.0 * np.sin(t_rapido)
+        serie_lenta = 90.0 + 75.0 * np.sin(t_lento)
+
+        dtw = DTWComparator(tolerancia=15.0)
+        res = dtw.compute(serie_rapida, serie_lenta)
+
+        assert res.valido is True
+        # Conforme Critério AC2 do PLANO_SPRINT_US01: cadência lenta mantém score >= 85.0%
+        assert res.score_similaridade >= 85.0
+        assert res.distancia_normalizada < 2.0
+
+    def test_dtw_multivariado_com_nomes(self):
+        # Valida mapeamento nominal e cálculo exato de desvios médios por articulação
+        aluno = np.column_stack((np.full(25, 90.0), np.full(25, 90.0)))
+        gabarito = np.column_stack((np.full(25, 90.0), np.full(25, 80.0)))
+
+        dtw = DTWComparator(tolerancia=15.0)
+        res = dtw.compute(aluno, gabarito, nomes_articulacoes=["cotovelo", "ombro"])
+
+        assert res.valido is True
+        assert set(res.desvios_por_articulacao.keys()) == {"cotovelo", "ombro"}
+        assert pytest.approx(res.desvios_por_articulacao["cotovelo"], abs=1e-2) == 0.0
+        assert pytest.approx(res.desvios_por_articulacao["ombro"], abs=1e-2) == 10.0
+
+    def test_dtw_desempacotamento_tupla_e_indexacao(self):
+        dtw = DTWComparator(tolerancia=15.0)
+        t = np.linspace(0, np.pi, 20)
+        serie = 90.0 + 50.0 * np.sin(t)
+        res = dtw.compute(serie, serie)
+
+        # 1. Desempacotamento de 5 elementos compatível com legado
+        d_tot, d_norm, score, caminho, desvios = res
+        assert d_tot == res.distancia_total
+        assert d_norm == res.distancia_normalizada
+        assert score == res.score_similaridade
+        assert caminho == res.caminho
+        assert desvios == res.desvios_por_articulacao
+
+        # 2. Indexação posicional (resultado[2] -> score)
+        assert res[2] == res.score_similaridade
+
+    def test_dtw_restricao_sakoe_chiba(self):
+        t = np.linspace(0, np.pi, 30)
+        serie_a = 90.0 + 60.0 * np.sin(t)
+        serie_b = 90.0 + 55.0 * np.sin(t)
+
+        # Teste com janela percentual relativa (0.20 = 20%)
+        dtw_rel = DTWComparator(janela=0.20)
+        res_rel = dtw_rel.compute(serie_a, serie_b)
+        assert res_rel.valido is True
+        assert res_rel.score_similaridade >= 85.0
+
+        # Teste com janela absoluta em frames (janela = 5)
+        dtw_abs = DTWComparator(janela=5)
+        res_abs = dtw_abs.compute(serie_a, serie_b)
+        assert res_abs.valido is True
+
+    def test_dtw_degradacao_graciosa_vs_excecao(self):
+        dtw = DTWComparator()
+        serie_valida = [[10.0, 20.0], [15.0, 25.0], [20.0, 30.0], [25.0, 35.0]]
+        serie_curta = [[10.0, 20.0]]  # Apenas 1 frame (< 3)
+        serie_dim_incompativel = [[10.0, 20.0, 30.0], [15.0, 25.0, 35.0], [20.0, 30.0, 40.0]]
+
+        # 1. Comprimento insuficiente - Degradação Graciosa (padrão)
+        res_curta = dtw.compute(serie_valida, serie_curta)
+        assert res_curta.valido is False
+        assert res_curta.score_similaridade == 0.0
+        assert "comprimento insuficiente" in res_curta.mensagem_erro.lower()
+
+        # 2. Dimensões incompatíveis - Degradação Graciosa
+        res_dim = dtw.compute(serie_valida, serie_dim_incompativel)
+        assert res_dim.valido is False
+        assert res_dim.score_similaridade == 0.0
+        assert "dimensões incompatíveis" in res_dim.mensagem_erro.lower()
+
+        # 3. Com lancar_excecao=True deve disparar ValueError
+        with pytest.raises(ValueError, match="comprimento insuficiente"):
+            dtw.compute(serie_valida, serie_curta, lancar_excecao=True)
+
+        with pytest.raises(ValueError, match="Dimensões incompatíveis"):
+            dtw.compute(serie_valida, serie_dim_incompativel, lancar_excecao=True)
+
+    def test_dtw_alias_calcular(self):
+        # Valida que o alias .calcular() e classe DTW funcionam de forma idêntica
+        t = np.linspace(0, np.pi, 20)
+        serie = 90.0 + 50.0 * np.sin(t)
+        dtw = DTW()
+        res = dtw.calcular(serie, serie)
+        assert res.score_similaridade == 100.0

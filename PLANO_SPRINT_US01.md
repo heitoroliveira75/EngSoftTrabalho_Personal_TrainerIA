@@ -133,17 +133,20 @@ Nenhum consumidor calcula deltas, DTW ou notas manualmente.
 - **Critério de Pronto (DoD):** `python -m pytest` aprovado (9 testes com 100% de sucesso).
 - **Commit Realizado:** `f085106` / `acumula erros por repeticao e define penalidades por exercicio`
 
-### `[TASK-04]` Padronização do Motor DTW Único e Vetorizado (`dtw_evaluator.py`) — **[PENDENTE]**
-- **Status:** ⏳ **Pendente** (Próxima da fila ao retomar)
+### `[TASK-04]` Padronização do Motor DTW Único e Vetorizado (`dtw_evaluator.py`) — **[CONCLUÍDA]**
+- **Status:** ✅ **Concluída**
 - **Objetivo:** Adotar o `DTWComparator` (vetorizado em NumPy e com suporte a restrição temporal) como o único motor de alinhamento matemático do projeto.
-- **Escopo Técnico:**
-  - Versionar `dtw_evaluator.py` (atualmente untracked).
-  - Adicionar testes em `tests/test_pipeline_pontuacao.py` cobrindo cálculo exato de distâncias, invariância com séries de diferentes tamanhos e validação dimensional.
-- **Critério de Pronto (DoD):** Testes unitários do DTW aprovados no `pytest`.
-- **Commit Previsto:** `feat(dtw): versiona DTWComparator como motor unico de alinhamento`
+- **Escopo Executado:**
+  - Criado `dtw_evaluator.py`:
+    - `@dataclass DTWResult`: armazena `distancia_total`, `distancia_normalizada`, `score_similaridade`, `caminho`, `desvios_por_articulacao`, `valido` e `mensagem_erro`. Suporta desempacotamento de 5 elementos via `__iter__` e indexação posicional para compatibilidade imediata com códigos legados.
+    - `DTWComparator`: vetorização via NumPy 3D *broadcasting* (`a[:, None, :] - b[None, :, :]`), eliminando laços `for` em Python; suporte à restrição de Sakoe-Chiba relativa (`janela=0.20`) ou absoluta; tolerância $\tau = 15.0^\circ$ configurável; e degradação graciosa com retorno de `valido=False` por padrão (`lancar_excecao=False`).
+    - Alias `DTW = DTWComparator` e método `.calcular()` mantendo assinatura idêntica ao legado.
+  - Adicionados 7 testes unitários em `tests/test_pipeline_pontuacao.py` cobrindo alinhamento de séries idênticas, invariância de cadência (AC2), alinhamento multivariado por nomes, compatibilidade de tupla, Sakoe-Chiba, degradação graciosa e exceções.
+- **Critério de Pronto (DoD):** 16/16 testes aprovados no `pytest` (100% de sucesso em 0.55s).
+- **Commit Previsto:** `feat(dtw): implementa DTWComparator vetorizado com Sakoe-Chiba e DTWResult`
 
 ### `[TASK-05]` Segmentador Canônico e Recorte Uniforme de Gabaritos (`buffer_repeticao.py`, `gabarito.py`, `extrator_video.py`) — **[PENDENTE]**
-- **Status:** ⏳ **Pendente**
+- **Status:** ⏳ **Pendente** (Próxima da fila ao retomar)
 - **Objetivo:** Garantir que o gabarito padrão e as repetições do usuário passem exatamente pelo mesmo recorte temporal da FSM, eliminando a penalidade espúria em movimentos perfeitos.
 - **Escopo Técnico:**
   - Criar função utilitária em `buffer_repeticao.py`:
@@ -239,7 +242,7 @@ Nenhum consumidor calcula deltas, DTW ou notas manualmente.
 | **3º** | `TASK-02` | ✅ Concluída | `7151ad3` | `correção cálculo de ângulos` | `calculo_angulos.py` (`calcular_deltas_angulares`), criação de `pytest.ini` e `tests/test_pipeline_pontuacao.py` (5 testes unitários) |
 | **4º** | `TASK-03` | ✅ Concluída | `f085106` | `acumula erros por repeticao e define penalidades por exercicio` | `exercicios_fsm.py` (acumulador, penalidades, sem mascaramento `elif`, `obter_config_exercicio`), expansão em `tests/` (9 testes no total) |
 | **—** | *Doc/Log* | ✅ Concluída | `1c6ccf6` | `atualização de logs e contexto` | Sincronização de `DEVLOG.md` (`[Entrada #002]`) e `CONTEXTO_IA.md` na pausa de sprint |
-| **5º** | `TASK-04` | ⏳ Pendente | — | `feat(dtw): versiona DTWComparator como motor unico de alinhamento` | `dtw_evaluator.py`, incremento em `tests/` |
+| **5º** | `TASK-04` | ✅ Concluída | — | `feat(dtw): implementa DTWComparator vetorizado com Sakoe-Chiba e DTWResult` | `dtw_evaluator.py`, 7 novos testes em `tests/test_pipeline_pontuacao.py` (16/16 aprovados no pytest) |
 | **6º** | `TASK-05` | ⏳ Pendente | — | `fix(gabarito): recorta gabaritos com o mesmo segmentador da execucao do aluno` | `buffer_repeticao.py`, `extrator_video.py`, `gabarito.py`, `*.json`, testes |
 | **7º** | `TASK-06` | ⏳ Pendente | — | `feat(pontuacao): cria avaliador_pontuacao com regra de nota e orquestrador de sessao` | criação de `avaliador_pontuacao.py` com interface frame a frame, testes |
 | **8º** | `TASK-07` | ⏳ Pendente | — | `fix(cli): corrige extrator e integra comparar_exercicio ao orquestrador` | `comparar_exercicio.py`, `extrator_video.py` |

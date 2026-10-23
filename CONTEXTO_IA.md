@@ -2,7 +2,7 @@
 
 > **Propósito deste documento:** Permitir que qualquer agente de IA ou desenvolvedor recupere imediatamente 100% do contexto técnico, arquitetural e histórico da frente de **Inteligência Artificial e Visão Computacional** do projeto **Personal Trainer IA**.
 >
-> **Última atualização:** 2026-10-21 (Commit base: `f085106` na branch `IA`)
+> **Última atualização:** 2026-10-23 (Conclusão da `TASK-04` na branch `IA`)
 
 ---
 
@@ -50,7 +50,7 @@ flowchart TD
     subgraph Dominio["3. Avaliação Biomecânica Híbrida"]
         D <-->|"Transição de Fases (0,1,2,3)\ne Regras Posturais"| E["exercicios_fsm.py\nExercicioBaseFSM (Ombro, Agachamento, Rosca)"]
         E -->|"Erro Imediato (se houver)"| F1["Feedback Instantâneo (HUD / Alerta)"]
-        D -->|"Ao fechar ciclo (Rep concluída):\nMatriz (N x D)"| G["dtw_inicial.py / dtw_evaluator.py\nAlinhamento Temporal DTW"]
+        D -->|"Ao fechar ciclo (Rep concluída):\nMatriz (N x D)"| G["dtw_evaluator.py\nAlinhamento Temporal DTW"]
         H["gabarito.py\nGabaritoExercicio (.json)"] -->|"Matriz Referência (M x D)"| G
     end
 
@@ -75,7 +75,8 @@ Estes arquivos compõem a frente de trabalho imediata da branch, recebendo teste
 | :--- | :--- | :--- | :--- |
 | [`./calculo_angulos.py`](./calculo_angulos.py) | Cálculo vetorial 2D de ângulos articulares em $[0^\circ, 180^\circ]$, checagem de visibilidade de marcos e **cálculo de deltas angulares com âncora de ruído** (`calcular_deltas_angulares`), eliminando a perda de detecção em cadências lentas. | `MAPA_ARTICULACOES`, `calcular_angulo()`, `extrair_angulos_exercicio()`, `calcular_deltas_angulares()` | **Em Desenvolvimento Ativo (Concluído na `TASK-02`)** |
 | [`./exercicios_fsm.py`](./exercicios_fsm.py) | Máquinas de Estados Finitos com **acumulador de erros por repetição** (`consumir_erros_repeticao`), penalidades por exercício (`PENALIDADES_ERRO`), checagens sem mascaramento e catálogo extensível (`obter_config_exercicio`). | `ExercicioBaseFSM`, `DesenvolvimentoOmbro`, `Agachamento`, `RoscaBiceps`, `CATALOGO_EXERCICIOS`, `obter_config_exercicio()` | **Em Desenvolvimento Ativo (Concluído na `TASK-03`)** |
-| [`tests/test_pipeline_pontuacao.py`](tests/test_pipeline_pontuacao.py) | Suíte de testes automatizados com `pytest` cobrindo geometria, deltas acumulados em repetições lentas, transições de fase e memória de erros posturais transientes. | Testes unitários puros sem dependência de hardware | **Em Desenvolvimento Ativo (9 testes aprovados)** |
+| [`./dtw_evaluator.py`](./dtw_evaluator.py) | Motor único de alinhamento temporal multivariado vetorizado via NumPy 3D *broadcasting*, restrição dinâmica de Sakoe-Chiba, tolerância $\tau$ e contrato `@dataclass DTWResult` com suporte a tupla e degradação graciosa. | `DTWComparator`, `DTWResult`, `DTW` | **Em Desenvolvimento Ativo (Concluído na `TASK-04`)** |
+| [`tests/test_pipeline_pontuacao.py`](tests/test_pipeline_pontuacao.py) | Suíte de testes automatizados com `pytest` cobrindo geometria, deltas acumulados em repetições lentas, transições de fase, retenção de erros e DTW vetorizado com Sakoe-Chiba. | Testes unitários puros sem dependência de hardware | **Em Desenvolvimento Ativo (16 testes aprovados)** |
 | [`./pytest.ini`](./pytest.ini) | Configuração de execução do `pytest` com inclusão automática do diretório raiz no `pythonpath`. | Configuração de testes | **Ativo** |
 | [`./requirements.txt`](./requirements.txt) | Especificação das dependências oficiais da branch `IA` (`numpy`, `opencv-python`, `mediapipe`, `pytest`). | Gerenciamento de ambiente | **Ativo** |
 
@@ -87,7 +88,6 @@ Módulos existentes no repositório que serão integrados e padronizados nas pr�
 
 | Arquivo Relativo | Responsabilidade no Pipeline | Próxima Task da Sprint | Observações Técnicas |
 | :--- | :--- | :--- | :--- |
-| [`./dtw_evaluator.py`](./dtw_evaluator.py) | Implementação avançada e orientada a objetos do DTW vetorizada em NumPy, com janela de Sakoe-Chiba. | **`[TASK-04]`** | Será adotado como o motor único matemático de alinhamento temporal do projeto. |
 | [`./buffer_repeticao.py`](./buffer_repeticao.py) | Acumulador de vetores de ângulos durante as fases ativas da FSM (`fase != 0`). | **`[TASK-05]`** | Receberá a função utilitária `extrair_primeira_repeticao()` para corte canônico. |
 | [`./gabarito.py`](./gabarito.py) | Persistência e geração sintética de curvas de referência JSON. | **`[TASK-05]`** | Terá suas curvas recortadas pelo mesmo segmentador do aluno para garantir nota 100.0 em execuções ideais. |
 | [`./avaliador_pontuacao.py`](./avaliador_pontuacao.py) *(a ser criado)* | Motor central de pontuação (`ResultadoPontuacaoRepeticao`) e `OrquestradorSessao` com interface de processamento **frame a frame**. | **`[TASK-06]`** | Núcleo da US-01: unifica FSM, DTW e notas para consumo de outros módulos externos. |
@@ -207,26 +207,28 @@ Todas as classes herdam de `ExercicioBaseFSM` e seguem o ciclo de 4 estados (`0 
 
 ## 5. Diagnóstico de Débitos Técnicos e Pontos de Atenção Atuais
 
-Qualquer agente que iniciar uma nova tarefa nesta branch deve estar ciente dos seguintes pontos:
-
 1. **Incompatibilidade de assinatura em `comparar_exercicio.py`:**
    - No commit `c992f15`, `ExtratorVideo.__init__` (em `extrator_video.py`) passou a exigir `articulacoes: List[str]` como primeiro argumento posicional.
-   - Porém, `comparar_exercicio.py` (linhas 106 e 166) ainda instancia `ExtratorVideo(lado=lado)` sem passar `articulacoes`, além de estar acoplado exclusivamente a `dev_ombro-inicial.py` em vez de usar o `CATALOGO_EXERCICIOS` de `exercicios_fsm.py`.
-2. **Duplicidade de Implementações DTW (`dtw_inicial.py` vs. `dtw_evaluator.py`):**
-   - `app_tempo_real.py` e `comparar_exercicio.py` usam `DTW` de `dtw_inicial.py` (loops aninhados em Python puro para matriz de custo).
-   - `dtw_evaluator.py` (não rastreado no git) implementa `DTWComparator`, `DTWResult`, `MovementTemplate` e `ExerciseDTWEvaluator` com matriz de custo vetorizada em NumPy e janela de Sakoe-Chiba.
+   - Porém, `comparar_exercicio.py` (linhas 106 e 166) ainda instancia `ExtratorVideo(lado=lado)` sem passar `articulacoes`, além de estar acoplado exclusivamente a `dev_ombro-inicial.py` em vez de usar o `CATALOGO_EXERCICIOS` de `exercicios_fsm.py` (será sanado na `TASK-07`).
+2. **Unificação do Motor DTW (`dtw_evaluator.py` vs. `dtw_inicial.py`):**
+   - A `TASK-04` padronizou o `DTWComparator` vetorizado com Sakoe-Chiba em `dtw_evaluator.py` e 16 testes aprovados. O legado `dtw_inicial.py` permanece mantido no repositório apenas até a migração do `app_tempo_real.py` na `TASK-09`.
 3. **Arquivos duplicados com acentuação e artefatos legados:**
    - `exercícios_fsm.py` (com acento) coexiste com `exercicios_fsm.py` (sem acento).
    - `Modularização.py` importa `maquina_estados` (módulo inexistente, removido em `65b5a83`).
-   - `.gitignore` atual é o padrão do Flutter e **não ignora** `__pycache__/`, ambientes virtuais Python (`.venv/`, `venv/`), ou arquivos de vídeo locais pesados (`*.mp4`), embora ignore `*.pyc`.
-4. **Ausência de Suíte Automatizada de Testes (`pytest` / `unittest`):**
-   - Existem simulações demonstrativas em `comparar_exercicio.py` e `exemplo_integracao.py`, mas ainda não há uma pasta `tests/` com testes unitários automatizados para garantir regressão zero nas FSMs, no cálculo de ângulos e no DTW.
+   - `.gitignore` atualizado protege contra arquivos temporários e caches.
+4. **Suíte Automatizada de Testes (`pytest`):**
+   - Suíte `tests/test_pipeline_pontuacao.py` ativa com **16 testes unitários automatizados** rodando com 100% de sucesso.
 5. **Ruído de Sensor e Suavização Temporal:**
-   - `app_tempo_real.py` aplica um limiar simples de variação (`LIMIAR_MOVIMENTO = 1.2` graus) sobre os deltas, mas os ângulos brutos ainda podem sofrer *jitter* frame a frame sem um filtro de suavização (ex.: Média Móvel Exponencial - EMA ou filtro One-Euro).
+   - `calculo_angulos.py` possui `calcular_deltas_angulares` com âncora de ruído (`1.2^\circ`) para cadências lentas.
 
 ---
 
 ## 6. Como Executar os Fluxos Existentes
+
+- **Executar a Suíte de Testes Automatizados:**
+  ```bash
+  pytest
+  ```
 
 - **Avaliação em Tempo Real (Webcam):**
   ```bash
