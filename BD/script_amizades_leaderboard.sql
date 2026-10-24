@@ -1,5 +1,5 @@
 -- ==============================================================================
--- SCRIPT DE CRIAÇÃO: SISTEMA DE AMIZADES E LEADERBOARD
+-- SCRIPT DE CRIAÇÃO: SISTEMA DE AMIZADES E LEADERBOARD (GLOBAL E AMIGOS)
 -- Projeto: Personal Trainer IA
 -- SGBD: PostgreSQL (Supabase)
 -- Data: 2026-10-23
@@ -35,6 +35,10 @@ CREATE INDEX IF NOT EXISTS idx_amizades_amigo_status ON public.amizades(amigo_id
 
 -- Acelera a busca de usuários por nome (insensível a maiúsculas/minúsculas)
 CREATE INDEX IF NOT EXISTS idx_usuarios_nome_busca ON public.usuarios (LOWER(nome));
+
+-- Acelera a Leaderboard Global (ordenação por pontos semanais e streak)
+CREATE INDEX IF NOT EXISTS idx_usuarios_leaderboard_global 
+ON public.usuarios (pontuacao_semanal DESC, sequencia DESC);
 
 
 -- 3. TRIGGER PARA ATUALIZAÇÃO AUTOMÁTICA DE 'updated_at'
@@ -89,12 +93,14 @@ TO authenticated
 USING (usuario_id = auth.uid() OR amigo_id = auth.uid());
 
 
--- 5. FUNÇÃO SQL: OBTENÇÃO DA LEADERBOARD DE AMIGOS
+-- 5. FUNÇÕES SQL: LEADERBOARDS (RPC)
 -- ------------------------------------------------------------------------------
--- Esta função pode ser chamada diretamente via RPC no Supabase ou via FastAPI.
--- Retorna os dados do ranking semanal e streak dos amigos aceitos + o próprio usuário logado.
+
+-- 5.1. LEADERBOARD DE AMIGOS
+-- Retorna o ranking entre o usuário e seus amigos confirmados, com posição calculada.
 CREATE OR REPLACE FUNCTION public.obter_leaderboard_amigos(p_usuario_id UUID)
 RETURNS TABLE (
+    posicao BIGINT,
     id UUID,
     nome TEXT,
     pontuacao_semanal INTEGER,
@@ -124,6 +130,9 @@ AS $$
         SELECT p_usuario_id AS participante_id
     )
     SELECT 
+        ROW_NUMBER() OVER (
+            ORDER BY COALESCE(u.pontuacao_semanal, 0) DESC, COALESCE(u.sequencia, 0) DESC, u.nome ASC
+        ) AS posicao,
         u.id,
         u.nome,
         COALESCE(u.pontuacao_semanal, 0) AS pontuacao_semanal,
@@ -131,5 +140,54 @@ AS $$
         COALESCE(u.maior_sequencia, 0) AS maior_sequencia
     FROM public.usuarios u
     INNER JOIN ids_participantes p ON u.id = p.participante_id
-    ORDER BY u.pontuacao_semanal DESC, u.sequencia DESC, u.nome ASC;
+    ORDER BY posicao ASC;
+$$;
+
+
+-- 5.2. LEADERBOARD GLOBAL (TODOS OS USUÁRIOS)
+-- Retorna o ranking geral do app com paginação/limite configurável.
+CREATE OR REPLACE FUNCTION public.obter_leaderboard_global(p_limite INTEGER DEFAULT 100)
+RETURNS TABLE (
+    posicao BIGINT,
+    id UUID,
+    nome TEXT,
+    pontuacao_semanal INTEGER,
+    sequencia INTEGER,
+    maior_sequencia INTEGER
+) 
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+AS $$
+    SELECT 
+        ROW_NUMBER() OVER (
+            ORDER BY COALESCE(u.pontuacao_semanal, 0) DESC, COALESCE(u.sequencia, 0) DESC, u.nome ASC
+        ) AS posicao,
+        u.id,
+        u.nome,
+        COALESCE(u.pontuacao_semanal, 0) AS pontuacao_semanal,
+        COALESCE(u.sequencia, 0) AS sequencia,
+        COALESCE(u.maior_sequencia, 0) AS maior_sequencia
+    FROM public.usuarios u
+    LIMIT p_limite;
+$$;
+
+
+-- 5.3. POSIÇÃO INDIVIDUAL DO USUÁRIO NO RANKING GLOBAL
+-- Permite exibir em card fixo a colocação exata do usuário logado (ex: "Sua posição: #142").
+CREATE OR REPLACE FUNCTION public.obter_minha_posicao_global(p_usuario_id UUID)
+RETURNS BIGINT
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+AS $$
+    WITH ranking AS (
+        SELECT 
+            id,
+            ROW_NUMBER() OVER (
+                ORDER BY COALESCE(pontuacao_semanal, 0) DESC, COALESCE(sequencia, 0) DESC, nome ASC
+            ) AS posicao
+        FROM public.usuarios
+    )
+    SELECT posicao FROM ranking WHERE id = p_usuario_id;
 $$;

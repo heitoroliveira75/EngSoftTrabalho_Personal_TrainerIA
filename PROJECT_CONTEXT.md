@@ -78,15 +78,21 @@ EngSoftTrabalho_Personal_TrainerIA/
 ├── .ai_context.md           # Contexto denso e ultraconciso consumido pela IA
 ├── PROJECT_CONTEXT.md       # Este guia de contexto voltado a humanos
 ├── BD/                      # Servidor backend Python e scripts de banco
+│   ├── .ai_context.md       # Contexto denso do banco/API consumido pela IA
+│   ├── DATABASE_CONTEXT.md  # Guia completo consolidado de Banco e APIs para humanos
 │   ├── api.py               # Servidor FastAPI com rotas REST e documentação Swagger
 │   ├── main.py              # Funções de interação direta com o Supabase
 │   ├── supabase_client.py   # Inicialização da conexão com Supabase
+│   ├── script_amizades_leaderboard.sql # DDL de amizades e leaderboards (RPC)
 │   ├── requirements.txt     # Dependências Python
 │   └── .env                 # Variáveis de ambiente (chaves de API e URLs)
 ├── lib/                     # Código-fonte principal da aplicação Flutter
 │   ├── config/              # Configurações de conexão (api_config.dart)
 │   ├── models/              # Estruturas e classes de modelo (exercicio_treino.dart)
 │   ├── screens/             # Telas de UI (login, cadastro, perfil, treinos, etc.)
+│   │   ├── .ai_context.md   # Contexto denso das telas para consumo rápido de IAs
+│   │   ├── SCREENS_CONTEXT.md # Guia completo das telas e navegação para humanos
+│   │   └── ...              # Telas Dart (home, login, profile, treinos, etc.)
 │   ├── services/            # Serviços HTTP e sessão de usuário (api_service.dart)
 │   └── main.dart            # Ponto de entrada do aplicativo Flutter
 └── pubspec.yaml             # Dependências e metadados do projeto Flutter
