@@ -66,6 +66,7 @@ Toda a documentação do projeto adota **caminhos estritamente relativos** para 
 ├── tests/
 │   └── test_pipeline_pontuacao.py    # Testes unitários automatizados (pytest)
 ├── app_tempo_real.py                 # Interface com webcam e HUD OpenCV
+├── exemplo_integracao.py              # Demonstração sintética do orquestrador (sem câmera)
 ├── calculo_angulos.py                # Geometria 2D e âncora de ruído para deltas
 ├── exercicios_fsm.py                 # Máquinas de estados finitos e catálogo
 ├── buffer_repeticao.py               # Segmentador temporal de repetições

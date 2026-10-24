@@ -16,6 +16,13 @@ from gabarito import GabaritoExercicio
 from dtw_evaluator import DTWComparator, DTWResult
 
 
+ERROS_INCOMPLETUDE = frozenset({
+    "REPETICAO_INCOMPLETA",
+    "AGACHAMENTO_CURTO",
+    "SUBIDA_INCOMPLETA",
+})
+
+
 @dataclass
 class ResultadoPontuacaoRepeticao:
     """
@@ -82,7 +89,8 @@ def calcular_pontuacao(
     1. Score DTW: S_dtw = 100 * exp(-distancia_normalizada / tau), tau = 15.0 graus.
     2. Penalidades FSM: somatório dos erros únicos cometidos na repetição.
     3. Score Final: clip(S_dtw - P_fsm, 0.0, 100.0).
-    4. Feedback Hierárquico: 1º erro FSM amigável -> 2º desvio articular > 12° -> 3º reforço motivacional.
+    4. Erros de incompletude reprovam a repetição, independentemente do score numérico.
+    5. Feedback Hierárquico: 1º erro FSM amigável -> 2º desvio articular > 12° -> 3º reforço motivacional.
     """
     dtw = DTWComparator(tolerancia=tolerancia, janela=janela_sakoe_chiba)
     res_dtw = dtw.compute(gabarito.dados, dados_usuario, nomes_articulacoes=gabarito.articulacoes)
@@ -103,7 +111,10 @@ def calcular_pontuacao(
 
     score_final = float(np.clip(score_dtw - penalidade_total, 0.0, 100.0))
     score_final = round(score_final, 1)
-    aprovado = bool(score_final >= limiar_aprovacao)
+    aprovado = bool(
+        score_final >= limiar_aprovacao
+        and not ERROS_INCOMPLETUDE.intersection(erros_unicos)
+    )
     classificacao = classificar_score(score_final)
 
     # Cálculo informativo de amplitudes articulares (ROM)

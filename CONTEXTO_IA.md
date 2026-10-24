@@ -2,7 +2,7 @@
 
 > **Propósito deste documento:** Permitir que qualquer agente de IA ou desenvolvedor recupere imediatamente 100% do contexto técnico, arquitetural e histórico da frente de **Inteligência Artificial e Visão Computacional** do projeto **Personal Trainer IA**.
 >
-> **Última atualização:** 2026-10-24 (branch `IA` sincronizada até `bdb8e02`; integração da `TASK-07` no workspace)
+> **Última atualização:** 2026-10-24 (branch `IA` em `3e09708`; `TASK-08` implementada e validada localmente)
 
 ---
 
@@ -79,7 +79,7 @@ Estes arquivos compõem a frente de trabalho imediata da branch, recebendo teste
 | [`./buffer_repeticao.py`](./buffer_repeticao.py) | Acumulador de fotogramas e segmentador canônico de repetições com cálculo automático de deltas com âncora de ruído e interface polimórfica. | `BufferRepeticao`, `extrair_primeira_repeticao()` | **Em Desenvolvimento Ativo (Concluído na `TASK-05`)** |
 | [`./gabarito.py`](./gabarito.py) | Persistência, carregamento JSON e geração de curvas de referência padrão ouro com recorte idêntico ao do aluno via FSM canônica. | `GabaritoExercicio`, `garantir_gabaritos_padrao()` | **Em Desenvolvimento Ativo (Concluído na `TASK-05`)** |
 | [`./avaliador_pontuacao.py`](./avaliador_pontuacao.py) | Motor central de pontuação (`ResultadoPontuacaoRepeticao`), laudos pedagógicos hierárquicos, gamificação e `OrquestradorSessao` com interface **frame a frame**. | `calcular_pontuacao()`, `OrquestradorSessao`, `ResultadoPontuacaoRepeticao`, `ResumoPontuacaoSessao` | **Em Desenvolvimento Ativo (Concluído na `TASK-06`)** |
-| [`tests/test_pipeline_pontuacao.py`](tests/test_pipeline_pontuacao.py) | Suíte de testes automatizados com `pytest` cobrindo geometria, deltas acumulados, transições de fase, retenção de erros, DTW vetorizado, segmentação canônica, orquestração e contrato do extrator de vídeo. | Testes sem dependência de câmera | **Em Desenvolvimento Ativo (29 testes aprovados)** |
+| [`tests/test_pipeline_pontuacao.py`](tests/test_pipeline_pontuacao.py) | Suíte de testes automatizados com `pytest` cobrindo geometria, deltas acumulados, transições de fase, retenção de erros, DTW vetorizado, segmentação canônica, orquestração, contrato do extrator e cenários da demonstração. | Testes sem dependência de câmera | **Em Desenvolvimento Ativo (31 testes aprovados)** |
 
 
 | [`./pytest.ini`](./pytest.ini) | Configuração de execução do `pytest` com inclusão automática do diretório raiz no `pythonpath`. | Configuração de testes | **Ativo** |
@@ -87,7 +87,7 @@ Estes arquivos compõem a frente de trabalho imediata da branch, recebendo teste
 
 ---
 
-### 3.2. Módulos Funcionais em Fila de Unificação / Refatoração Imediata
+### 3.2. Módulos Funcionais Integrados e em Fila de Unificação / Refatoração
 
 Módulos existentes no repositório que serão integrados e padronizados nas próximas tasks da sprint:
 
@@ -95,7 +95,7 @@ Módulos existentes no repositório que serão integrados e padronizados nas pr�
 | :--- | :--- | :--- | :--- |
 | [`./comparar_exercicio.py`](./comparar_exercicio.py) | CLI multi-exercício para avaliar vídeos gravados (`.mp4`) contra especialista. | **`[TASK-07]`** | Integrado ao `OrquestradorSessao`; suporta `--exercicio`, lado, relatório por repetição e resumo da sessão. |
 | [`./extrator_video.py`](./extrator_video.py) | Extrai séries temporais de vídeos `.mp4` em modo `IMAGE`, retornando `frame`, `angulos` e `visivel`. | **`[TASK-07]`** | Não calcula deltas; estes são centralizados no orquestrador durante a avaliação. A extração de gabarito usa o segmentador canônico. |
-| [`./exemplo_integracao.py`](./exemplo_integracao.py) | Script de demonstração sintética sem webcam. | **`[TASK-08]`** | Migrará para o `OrquestradorSessao` oficial. |
+| [`./exemplo_integracao.py`](./exemplo_integracao.py) | Demonstração sintética sem webcam dos fluxos ideal, lento e incompleto usando o orquestrador oficial. | **`[TASK-08]` concluída** | Envia ângulos por frame ao `OrquestradorSessao` e apresenta laudo e resumo de cada cenário. |
 | [`./app_tempo_real.py`](./app_tempo_real.py) | Aplicação em tempo real com webcam, desenho de esqueleto e HUD OpenCV. | **`[TASK-09]`** | Migrará do loop manual para o orquestrador unificado frame a frame. |
 
 
@@ -220,7 +220,7 @@ Todas as classes herdam de `ExercicioBaseFSM` e seguem o ciclo de 4 estados (`0 
    - `Modularização.py` importa `maquina_estados` (módulo inexistente, removido em `65b5a83`).
    - `.gitignore` atualizado protege contra arquivos temporários e caches.
 4. **Suíte Automatizada de Testes (`pytest`):**
-   - Suíte `tests/test_pipeline_pontuacao.py` ativa com **29 testes automatizados** aprovados, incluindo o contrato do extrator e o modo simulado do comparador.
+   - Suíte `tests/test_pipeline_pontuacao.py` ativa com **31 testes automatizados** aprovados, incluindo o contrato do extrator, modo simulado do comparador e demonstração sintética.
 5. **Ruído de Sensor e Suavização Temporal:**
    - `calculo_angulos.py` possui `calcular_deltas_angulares` com âncora de ruído (`1.2^\circ`) para cadências lentas.
 
@@ -249,7 +249,7 @@ Todas as classes herdam de `ExercicioBaseFSM` e seguem o ciclo de 4 estados (`0 
   python extrator_video.py especialista.mp4 --exercicio 1 --lado direito
   ```
 
-- **Executar Simulação de Cenários (FSM + DTW OO):**
+- **Executar Simulação de Cenários pelo Orquestrador (sem câmera):**
   ```bash
   python exemplo_integracao.py
   ```

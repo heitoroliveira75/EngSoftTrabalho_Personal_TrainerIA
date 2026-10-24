@@ -89,7 +89,7 @@ O catálogo central (`CATALOGO_EXERCICIOS`) já suporta **3 exercícios clássic
 * [`extrator_video.py`](./extrator_video.py): Extrai, por pose detectada, o número do frame, os ângulos articulares e a visibilidade. Não calcula deltas; no fluxo de avaliação, essa responsabilidade é do `OrquestradorSessao`. Também segmenta vídeos de especialistas para gerar gabaritos.
 * [`comparar_exercicio.py`](./comparar_exercicio.py): CLI multi-exercício integrada ao orquestrador, com relatório por repetição e resumo da sessão.
 * [`app_tempo_real.py`](./app_tempo_real.py): Aplicação completa com webcam (OpenCV), desenho do esqueleto na tela, painel HUD superior com contagem de repetições, fase atual, ângulos ao vivo, alertas vermelhos de erro e veredito final da última repetição com score DTW.
-* [`tests/test_pipeline_pontuacao.py`](./tests/test_pipeline_pontuacao.py): Suíte com **29 testes automatizados** cobrindo também o contrato do extrator e o modo simulado do comparador.
+* [`tests/test_pipeline_pontuacao.py`](./tests/test_pipeline_pontuacao.py): Suíte com **31 testes automatizados** cobrindo também o contrato do extrator, modo simulado do comparador e cenários sintéticos do orquestrador.
 * **Gabaritos JSON oficiais:** [`gabarito_especialista_ombro.json`](./gabarito_especialista_ombro.json), [`gabarito_especialista_agachamento.json`](./gabarito_especialista_agachamento.json) e [`gabarito_especialista_rosca.json`](./gabarito_especialista_rosca.json).
 
 ### 3.3. Como um Humano Pode Testar Hoje no Computador
@@ -143,11 +143,12 @@ Por isso, o sistema foi estruturado para ser totalmente desacoplado de webcam f�
    * *O problema:* O cálculo de notas e aprovações estava disperso por múltiplos scripts de visualização (CLI, webcam, demo), sem padrão uniforme de desconto para erros posturais e de incompletude.
    * *A solução:* Criado `avaliador_pontuacao.py`, que consolida o contrato único de entrada `orquestrador.processar_frame(angulos, visivel)`, aplica penalidades de erros únicos da FSM, gera feedbacks pedagógicos hierárquicos e calcula pontos de gamificação e resumos para o aplicativo.
 6. **Bateria de Testes Unitários Automatizados (`TASK-02` a `TASK-06`):**
-   * Agora temos uma suíte formal com `pytest` e 28 testes cobrindo geometria, retenção de erros na FSM, alinhamento temporal DTW, autoconsistência de gabaritos, pontuação e orquestração sem depender de câmera aberta.
+   * Agora temos uma suíte formal com `pytest` e 31 testes cobrindo geometria, retenção de erros na FSM, alinhamento temporal DTW, autoconsistência de gabaritos, pontuação, orquestração e demonstração sintética sem câmera.
 
 ### 4.2. O Que Está Sendo Unificado a Seguir:
-1. **Atualização da Demonstração Arquitetural (`TASK-08`):**
-   * Migrar `exemplo_integracao.py` para o orquestrador unificado e remover classes redundantes de DTW.
+1. **Demonstração Arquitetural (`TASK-08`, concluída):**
+   * `exemplo_integracao.py` envia frames sintéticos ao `OrquestradorSessao` oficial e apresenta os resultados dos cenários ideal, lento, muito lento e incompleto. Os últimos dois mantêm aprovação acima de 85; o incompleto é reprovado e recebe penalidade de 25 pontos.
+   * A classe local `SessionOrchestrator` e os wrappers DTW citados em rascunhos anteriores não estavam presentes na branch atual; por isso, nenhum código existente foi removido.
 
 
 
@@ -167,9 +168,9 @@ O plano técnico detalhado está registrado em [`PLANO_SPRINT_US01.md`](./PLANO_
 * [x] **`[TASK-04]` Padronização do DTW Único:** Módulo `dtw_evaluator.py` implementado com vetorização 3D, Sakoe-Chiba, `DTWResult` e 16 testes no `pytest` *(Commit `d02ac24`)*.
 * [x] **`[TASK-05]` Recorte Uniforme dos Gabaritos:** Alinhamento dos JSONs com o mesmo segmentador canônico do aluno em `buffer_repeticao.py`, `gabarito.py`, `extrator_video.py` e 21 testes no `pytest` *(Concluída)*.
 * [x] **`[TASK-06]` Motor de Pontuação e Orquestrador Frame a Frame:** Criação de `avaliador_pontuacao.py` unificando notas, feedbacks, gamificação e sessão com 28 testes no `pytest` *(Concluída)*.
-* [x] **`[TASK-07]` Integração no Comparador de Vídeo CLI:** Extração de ângulos/visibilidade e avaliação da CLI pelo orquestrador, com suporte ao catálogo de exercícios. *Implementação local; commit pendente.*
+* [x] **`[TASK-07]` Integração no Comparador de Vídeo CLI:** Extração de ângulos/visibilidade e avaliação da CLI pelo orquestrador, com suporte ao catálogo de exercícios *(Concluída e publicada)*.
 
-* [ ] **`[TASK-08]` Demonstração Arquitetural:** Atualização de `exemplo_integracao.py` com o novo motor *(Pendente)*.
+* [x] **`[TASK-08]` Demonstração Arquitetural:** Cenários sintéticos processados pelo `OrquestradorSessao`, com teste dos vereditos e resumo *(Implementada e validada localmente; commit pendente)*.
 * [ ] **`[TASK-09]` Integração Webcam em Tempo Real:** Conexão de `app_tempo_real.py` ao orquestrador e aposentadoria segura de `dtw_inicial.py` *(Pendente)*.
 * [ ] **`[TASK-10]` Bateria de Testes End-to-End:** Validação dos critérios de aceite AC1 a AC7 *(Pendente)*.
 * [x] **`[TASK-11]` Gestão Viva de Logs e Contexto:** Devlog, contexto e plano da sprint mantidos rigorosamente sincronizados a cada commit *(Em andamento contínuo)*.

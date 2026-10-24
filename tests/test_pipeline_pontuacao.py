@@ -235,6 +235,11 @@ from avaliador_pontuacao import (
     ResultadoPontuacaoRepeticao,
     ResumoPontuacaoSessao,
 )
+from exemplo_integracao import (
+    criar_frames_movimento_completo,
+    criar_frames_movimento_incompleto,
+    executar_sessao,
+)
 
 
 
@@ -532,7 +537,7 @@ class TestOrquestradorEAvaliadorPontuacao:
         assert len(res.erros_fsm) == 1
         assert "ombros alinhados" in res.feedback_principal.lower()
 
-    def test_calcular_pontuacao_incompletude_reprovacao(self):
+    def test_calcular_pontuacao_reprova_incompletude_mesmo_com_nota_75(self):
         gab = GabaritoExercicio.carregar_json("gabarito_especialista_ombro.json")
         conf = {"classe_fsm": DesenvolvimentoOmbro}
         # Incompletude subtrai 25 pontos
@@ -545,10 +550,33 @@ class TestOrquestradorEAvaliadorPontuacao:
             numero_repeticao=3,
         )
 
-        # 100 - 25 = 75.0. Com tolerância de aprovação 70.0 -> Aprovado no limiar
+        # A penalidade preserva a nota, mas incompletude é desqualificadora.
         assert res.penalidade_fsm == 25.0
         assert res.score_final == 75.0
+        assert res.aprovado is False
         assert "subida interrompida" in res.feedback_principal.lower()
+
+    def test_todos_os_erros_de_incompletude_sao_desqualificadores(self):
+        gab = GabaritoExercicio.carregar_json("gabarito_especialista_ombro.json")
+        codigos = (
+            "REPETICAO_INCOMPLETA",
+            "AGACHAMENTO_CURTO",
+            "SUBIDA_INCOMPLETA",
+        )
+        config = SimpleNamespace(
+            PENALIDADES_ERRO={codigo: 25.0 for codigo in codigos},
+            MENSAGENS_ERRO={},
+        )
+
+        for codigo in codigos:
+            resultado = calcular_pontuacao(
+                dados_usuario=gab.dados,
+                gabarito=gab,
+                erros_fsm=[codigo],
+                fsm_ou_config=config,
+            )
+            assert resultado.score_final == 75.0
+            assert resultado.aprovado is False
 
     def test_orquestrador_processar_frame_fluxo_completo(self):
         orq = OrquestradorSessao("desenvolvimento_ombro")
@@ -617,3 +645,27 @@ class TestOrquestradorEAvaliadorPontuacao:
         orq.reiniciar_serie()
         assert len(orq.historico_repeticoes) == 0
         assert orq.fsm.repeticoes == 0
+
+    def test_exemplo_integracao_cenarios_apresentam_vereditos_esperados(self):
+        ideal, resumo_ideal = executar_sessao(criar_frames_movimento_completo(55))
+        assert ideal.score_final >= 95.0
+        assert ideal.aprovado is True
+        assert ideal.erros_fsm == []
+        assert resumo_ideal.repeticoes_aprovadas == 1
+
+        for total_frames in (65, 150):
+            lento, resumo_lento = executar_sessao(
+                criar_frames_movimento_completo(total_frames)
+            )
+            assert lento.score_final >= 85.0
+            assert lento.aprovado is True
+            assert lento.erros_fsm == []
+            assert resumo_lento.repeticoes_aprovadas == 1
+
+        incompleto, resumo_incompleto = executar_sessao(
+            criar_frames_movimento_incompleto()
+        )
+        assert incompleto.aprovado is False
+        assert incompleto.penalidade_fsm == 25.0
+        assert incompleto.erros_fsm == ["REPETICAO_INCOMPLETA"]
+        assert resumo_incompleto.repeticoes_reprovadas == 1

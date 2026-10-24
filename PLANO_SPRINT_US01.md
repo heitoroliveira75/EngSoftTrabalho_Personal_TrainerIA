@@ -188,15 +188,18 @@ Nenhum consumidor calcula deltas, DTW ou notas manualmente.
 - **Critério de Pronto (DoD):** Modo simulado coberto por teste automatizado; `python -m pytest tests/test_pipeline_pontuacao.py` aprovado (29 testes). A avaliação com vídeo real não foi executada nesta sessão.
 - **Commit Previsto:** `fix(cli): corrige extrator e integra comparar_exercicio ao orquestrador`
 
-### `[TASK-08]` Integração no Script de Demonstração e Remoção de Wrappers Obsoletos (`exemplo_integracao.py`, `dtw_evaluator.py`) — **[PENDENTE]**
-- **Status:** ⏳ **Pendente**
-- **Objetivo:** Refatorar a demonstração arquitetural para usar o `OrquestradorSessao` oficial e remover classes redundantes de DTW.
+### `[TASK-08]` Integração no Script de Demonstração e Remoção de Wrappers Obsoletos (`exemplo_integracao.py`, `dtw_evaluator.py`) — **[CONCLUÍDA]**
+- **Status:** ✅ Implementada, validada e incluída no commit desta entrega (`2026-10-24`).
+- **Objetivo:** Demonstrar os cenários sintéticos da avaliação usando o `OrquestradorSessao` oficial.
 - **Escopo Técnico:**
-  - Em `exemplo_integracao.py`: substituir a classe local `SessionOrchestrator` pelo `OrquestradorSessao` oficial, demonstrando os cenários Ideal, Lento e Incompleto.
-  - Em `dtw_evaluator.py`: remover as classes `MovementTemplate` e `ExerciseDTWEvaluator` que foram substituídas diretamente por `GabaritoExercicio` e `DTWComparator`.
-  - Versionar `exemplo_integracao.py`.
-- **Critério de Pronto (DoD):** `python exemplo_integracao.py` executa e demonstra os 3 cenários com vereditos corretos.
-- **Commit Previsto:** `refactor(demo): migra exemplo_integracao para o orquestrador e remove wrappers DTW`
+  - Criado `exemplo_integracao.py` com os cenários Ideal, Lento (65 frames), Muito lento (150 frames) e Incompleto, submetendo os ângulos frame a frame ao `OrquestradorSessao`.
+  - A demonstração exibe a nota, aprovação, penalidade, erros, feedback e resumo de cada sessão sem webcam e sem calcular deltas, FSM ou DTW diretamente.
+  - Atualizada a regra de aprovação para que erros de incompletude (`REPETICAO_INCOMPLETA`, `AGACHAMENTO_CURTO` e `SUBIDA_INCOMPLETA`) reprovem a repetição, preservando a nota numérica e a penalidade de 25 pontos.
+  - **Adendo — divergência de artefatos:** nesta branch não existiam `exemplo_integracao.py` nem a classe local `SessionOrchestrator`; portanto, foi criado um exemplo novo sobre a API oficial em vez de substituir uma implementação local.
+  - **Adendo — wrappers DTW:** `dtw_evaluator.py` já contém `DTWResult`, `DTWComparator` e o alias `DTW`, mas não contém `MovementTemplate` ou `ExerciseDTWEvaluator`. A remoção prevista não se aplicava ao estado atual do arquivo e nenhum código existente foi removido.
+  - **Adendo — critério de incompletude:** a regra anterior aprovava uma execução com score 75 (100 menos a penalidade de 25) porque o limiar era 70, em conflito com o AC3. A aprovação agora também exige ausência dos erros de incompletude.
+- **Critério de Pronto (DoD):** `python exemplo_integracao.py` demonstrou os vereditos esperados: Ideal 100, Lento 92,1, Muito lento 92,5, ambos aprovados acima de 85, e Incompleto reprovado com penalidade de 25. `python -m pytest tests/test_pipeline_pontuacao.py` passou com 31 testes; `python -m py_compile` e `git diff --check` também passaram.
+- **Commit:** `Task 8 Integração no Script de Demonstração e Remoção de Wrappers Obsoletos (`exemplo_integracao.py`, `dtw_evaluator.py`)`
 
 ### `[TASK-09]` Integração na Aplicação em Tempo Real (Webcam) e Aposentadoria de `dtw_inicial.py` (`app_tempo_real.py`) — **[PENDENTE]**
 - **Status:** ⏳ **Pendente**
@@ -247,7 +250,7 @@ Nenhum consumidor calcula deltas, DTW ou notas manualmente.
 | **6º** | `TASK-05` | ✅ Concluída | — | `fix(gabarito): recorta gabaritos com o mesmo segmentador da execucao do aluno` | `buffer_repeticao.py`, `extrator_video.py`, `gabarito.py`, `*.json`, 5 novos testes (21/21 aprovados) |
 | **7º** | `TASK-06` | ✅ Concluída | — | `feat(pontuacao): cria avaliador_pontuacao com regra de nota e orquestrador de sessao` | criação de `avaliador_pontuacao.py` com interface frame a frame, 7 testes (28/28 aprovados) |
 | **8º** | `TASK-07` | ✅ Concluída | `76b4c0f` | `Task 7- Integração no comparador de Video CLI` | Contrato `frame`/`angulos`/`visivel`, CLI integrada ao orquestrador e teste simulado |
-| **9º** | `TASK-08` | ⏳ Pendente | — | `refactor(demo): migra exemplo_integracao para o orquestrador e remove wrappers DTW` | `exemplo_integracao.py`, limpeza em `dtw_evaluator.py` |
+| **9º** | `TASK-08` | ✅ Concluída | — | `Task 8 Integração no Script de Demonstração e Remoção de Wrappers Obsoletos (`exemplo_integracao.py`, `dtw_evaluator.py`)` | `exemplo_integracao.py`, regra de aprovação de incompletude, testes e adendos de divergência |
 | **10º** | `TASK-09` | ⏳ Pendente | — | `refactor(webcam): integra app_tempo_real ao orquestrador e remove dtw_inicial` | `app_tempo_real.py`, aposentadoria de `dtw_inicial.py` |
 | **11º** | `TASK-10` | ⏳ Pendente | — | `test(pontuacao): adiciona testes de aceite AC1 a AC7 da US-01` | consolidação de `tests/test_pipeline_pontuacao.py` |
 | **12º** | `TASK-11` | 🔄 Parcial | `1c6ccf6` / — | `docs(devlog): registra entrega da US-01 e atualiza contexto` | `CONTEXTO_IA.md`, `DEVLOG.md`, `PLANO_SPRINT_US01.md` |

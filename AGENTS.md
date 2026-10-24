@@ -17,7 +17,7 @@ Para garantir continuidade imediata de contexto e rigor de Engenharia de Softwar
 - **Identificação da Estrutura de Arquivos e Política de Legados:**
   - Antes de alterar ou criar arquivos, consulte a taxonomia detalhada na Seção 3 de **[`CONTEXTO_IA.md`](./CONTEXTO_IA.md)** para identificar o status de cada artefato:
     1. **Em Desenvolvimento Ativo:** arquivos foco da sprint atual (`calculo_angulos.py`, `exercicios_fsm.py`, `tests/test_pipeline_pontuacao.py`, `pytest.ini`, `requirements.txt`).
-    2. **Em Fila de Unificação:** módulos funcionais a serem integrados nas próximas tasks (`dtw_evaluator.py`, `buffer_repeticao.py`, `gabarito.py`, `avaliador_pontuacao.py`, `comparar_exercicio.py`, `app_tempo_real.py`, `exemplo_integracao.py`).
+    2. **Em Fila de Unificação:** módulos funcionais a serem integrados nas próximas tasks (`dtw_evaluator.py`, `buffer_repeticao.py`, `gabarito.py`, `avaliador_pontuacao.py`, `comparar_exercicio.py`, `app_tempo_real.py`).
     3. **Gabaritos e Modelos:** arquivos JSON de referência e modelos `.task` do MediaPipe.
     4. **Legados Preservados:** arquivos históricos (`exercícios_fsm.py`, `dev_ombro-inicial.py`, `dtw_inicial.py`, `Modularização.py`, datasets `.csv`). É **proibido deletar ou descartar** esses arquivos antes que toda a nova arquitetura esteja 100% implementada e aprovada por testes de regressão.
 - **Orientação a Histórias de Usuário e Estado Atual:** Sempre parta da História de Usuário (User Story) fornecida e confronte-a com o estado real mapeado em `CONTEXTO_IA.md`.
