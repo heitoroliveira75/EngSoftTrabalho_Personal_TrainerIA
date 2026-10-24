@@ -5,6 +5,8 @@ Cobre cálculo geométrico, deltas angulares, FSMs, segmentação, DTW e orquest
 
 import pytest
 import numpy as np
+import sys
+from types import ModuleType, SimpleNamespace
 from calculo_angulos import calcular_angulo, calcular_deltas_angulares
 
 
@@ -59,6 +61,85 @@ class TestCalculoAngulos:
         d3 = calcular_deltas_angulares({"cotovelo": 101.5}, referencia, limiar_graus=1.2)
         assert d3["cotovelo"] == 1.5
         assert referencia["cotovelo"] == 101.5
+
+
+def test_extrair_serie_temporal_retorna_angulos_e_visibilidade_sem_deltas(monkeypatch, request, capsys):
+    cv2_fake = ModuleType("cv2")
+    cv2_fake.COLOR_BGR2RGB = 1
+
+    mediapipe_fake = ModuleType("mediapipe")
+    mediapipe_fake.__path__ = []
+    mediapipe_fake.ImageFormat = SimpleNamespace(SRGB=1)
+    mediapipe_fake.Image = lambda **_kwargs: object()
+
+    tasks_fake = ModuleType("mediapipe.tasks")
+    tasks_fake.__path__ = []
+    python_fake = ModuleType("mediapipe.tasks.python")
+    python_fake.BaseOptions = lambda **_kwargs: object()
+    vision_fake = ModuleType("mediapipe.tasks.python.vision")
+    tasks_fake.python = python_fake
+    mediapipe_fake.tasks = tasks_fake
+    python_fake.vision = vision_fake
+
+    monkeypatch.setitem(sys.modules, "cv2", cv2_fake)
+    monkeypatch.setitem(sys.modules, "mediapipe", mediapipe_fake)
+    monkeypatch.setitem(sys.modules, "mediapipe.tasks", tasks_fake)
+    monkeypatch.setitem(sys.modules, "mediapipe.tasks.python", python_fake)
+    monkeypatch.setitem(sys.modules, "mediapipe.tasks.python.vision", vision_fake)
+
+    import extrator_video
+    request.addfinalizer(lambda: sys.modules.pop("extrator_video", None))
+
+    class CapturaFake:
+        def __init__(self):
+            self.frames = [object(), object()]
+
+        def isOpened(self):
+            return bool(self.frames)
+
+        def read(self):
+            if not self.frames:
+                return False, None
+            return True, self.frames.pop(0)
+
+        def release(self):
+            pass
+
+    class DetectorFake:
+        def __init__(self):
+            self.resultados = [
+                SimpleNamespace(pose_landmarks=[[object()]]),
+                SimpleNamespace(pose_landmarks=[]),
+            ]
+
+        def detect(self, _imagem):
+            return self.resultados.pop(0)
+
+    cv2_fake.VideoCapture = lambda _caminho: CapturaFake()
+    cv2_fake.cvtColor = lambda frame, _codigo: frame
+    monkeypatch.setattr(
+        extrator_video,
+        "extrair_angulos_exercicio",
+        lambda **_kwargs: ({"cotovelo": 90.0}, False),
+    )
+
+    extrator = extrator_video.ExtratorVideo.__new__(extrator_video.ExtratorVideo)
+    extrator.articulacoes = ["cotovelo"]
+    extrator.lado = "direito"
+    extrator.detector = DetectorFake()
+
+    frames = extrator.extrair_serie_temporal("video-teste.mp4")
+
+    assert frames == [{
+        "frame": 0,
+        "angulos": {"cotovelo": 90.0},
+        "visivel": False,
+    }]
+
+    import comparar_exercicio
+
+    comparar_exercicio.demonstrar_fluxo_simulado()
+    assert "Resumo da sessão:" in capsys.readouterr().out
 
 
 
@@ -536,5 +617,3 @@ class TestOrquestradorEAvaliadorPontuacao:
         orq.reiniciar_serie()
         assert len(orq.historico_repeticoes) == 0
         assert orq.fsm.repeticoes == 0
-
-

@@ -86,9 +86,10 @@ O catálogo central (`CATALOGO_EXERCICIOS`) já suporta **3 exercícios clássic
 * [`dtw_evaluator.py`](./dtw_evaluator.py): **Novo motor unificado de Dynamic Time Warping.** Vetorizado em NumPy 3D *broadcasting* (até 80x mais rápido), com suporte à janela de restrição dinâmica de Sakoe-Chiba, tolerância $\tau$ configurável, contrato tipado `@dataclass DTWResult` (com desempacotamento retrocompatível como tupla) e degradação graciosa para tempo real.
 * [`dtw_inicial.py`](./dtw_inicial.py): Módulo legado preservado intacto no repositório até a migração final da webcam na Task 09.
 * [`gabarito.py`](./gabarito.py): Sistema de persistência em JSON e gerador automático de gabaritos padrão caso os arquivos ainda não existam.
-* [`extrator_video.py`](./extrator_video.py): Ferramenta CLI para processar vídeos gravados de especialistas e extrair automaticamente a primeira repetição perfeita para salvar como arquivo JSON de referência.
+* [`extrator_video.py`](./extrator_video.py): Extrai, por pose detectada, o número do frame, os ângulos articulares e a visibilidade. Não calcula deltas; no fluxo de avaliação, essa responsabilidade é do `OrquestradorSessao`. Também segmenta vídeos de especialistas para gerar gabaritos.
+* [`comparar_exercicio.py`](./comparar_exercicio.py): CLI multi-exercício integrada ao orquestrador, com relatório por repetição e resumo da sessão.
 * [`app_tempo_real.py`](./app_tempo_real.py): Aplicação completa com webcam (OpenCV), desenho do esqueleto na tela, painel HUD superior com contagem de repetições, fase atual, ângulos ao vivo, alertas vermelhos de erro e veredito final da última repetição com score DTW.
-* [`tests/test_pipeline_pontuacao.py`](./tests/test_pipeline_pontuacao.py): Suíte com **16 testes unitários automatizados** rodando no `pytest` com 100% de sucesso em 0.55s.
+* [`tests/test_pipeline_pontuacao.py`](./tests/test_pipeline_pontuacao.py): Suíte com **29 testes automatizados** cobrindo também o contrato do extrator e o modo simulado do comparador.
 * **Gabaritos JSON oficiais:** [`gabarito_especialista_ombro.json`](./gabarito_especialista_ombro.json), [`gabarito_especialista_agachamento.json`](./gabarito_especialista_agachamento.json) e [`gabarito_especialista_rosca.json`](./gabarito_especialista_rosca.json).
 
 ### 3.3. Como um Humano Pode Testar Hoje no Computador
@@ -103,7 +104,7 @@ Se você clonar o repositório e tiver Python instalado:
    ```bash
    pytest
    ```
-   *Roda todos os 16 testes automatizados de cálculo de ângulos, âncora de ruído para repetições lentas, transições de fase, memória de erros da FSM, vetorização do DTW, invariância temporal e Sakoe-Chiba.*
+   *Roda os testes automatizados de cálculo de ângulos, FSM, DTW, segmentação, orquestração, extração e comparação simulada.*
 
 3. **Testar com a Webcam em Tempo Real:**
    ```bash
@@ -145,9 +146,7 @@ Por isso, o sistema foi estruturado para ser totalmente desacoplado de webcam f�
    * Agora temos uma suíte formal com `pytest` e 28 testes cobrindo geometria, retenção de erros na FSM, alinhamento temporal DTW, autoconsistência de gabaritos, pontuação e orquestração sem depender de câmera aberta.
 
 ### 4.2. O Que Está Sendo Unificado a Seguir:
-1. **Integração no Comparador de Vídeo CLI (`TASK-07`):**
-   * Corrigir a quebra de assinatura do extrator de vídeo e conectar a CLI de arquivos `.mp4` ao `OrquestradorSessao`.
-2. **Atualização da Demonstração Arquitetural (`TASK-08`):**
+1. **Atualização da Demonstração Arquitetural (`TASK-08`):**
    * Migrar `exemplo_integracao.py` para o orquestrador unificado e remover classes redundantes de DTW.
 
 
@@ -168,7 +167,7 @@ O plano técnico detalhado está registrado em [`PLANO_SPRINT_US01.md`](./PLANO_
 * [x] **`[TASK-04]` Padronização do DTW Único:** Módulo `dtw_evaluator.py` implementado com vetorização 3D, Sakoe-Chiba, `DTWResult` e 16 testes no `pytest` *(Commit `d02ac24`)*.
 * [x] **`[TASK-05]` Recorte Uniforme dos Gabaritos:** Alinhamento dos JSONs com o mesmo segmentador canônico do aluno em `buffer_repeticao.py`, `gabarito.py`, `extrator_video.py` e 21 testes no `pytest` *(Concluída)*.
 * [x] **`[TASK-06]` Motor de Pontuação e Orquestrador Frame a Frame:** Criação de `avaliador_pontuacao.py` unificando notas, feedbacks, gamificação e sessão com 28 testes no `pytest` *(Concluída)*.
-* [ ] **`[TASK-07]` Integração no Comparador de Vídeo CLI:** Correção de chamadas em `comparar_exercicio.py` *(Próxima da fila)*.
+* [x] **`[TASK-07]` Integração no Comparador de Vídeo CLI:** Extração de ângulos/visibilidade e avaliação da CLI pelo orquestrador, com suporte ao catálogo de exercícios. *Implementação local; commit pendente.*
 
 * [ ] **`[TASK-08]` Demonstração Arquitetural:** Atualização de `exemplo_integracao.py` com o novo motor *(Pendente)*.
 * [ ] **`[TASK-09]` Integração Webcam em Tempo Real:** Conexão de `app_tempo_real.py` ao orquestrador e aposentadoria segura de `dtw_inicial.py` *(Pendente)*.

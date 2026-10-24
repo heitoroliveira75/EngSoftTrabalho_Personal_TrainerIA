@@ -60,7 +60,6 @@ class ExtratorVideo:
             raise FileNotFoundError(f"Não foi possível abrir o vídeo: {caminho_video}")
 
         frames_processados: List[Dict[str, Any]] = []
-        angulos_anteriores: Dict[str, float] = {}
         frame_idx = 0
 
         while cap.isOpened():
@@ -74,24 +73,16 @@ class ExtratorVideo:
 
             if resultado.pose_landmarks and len(resultado.pose_landmarks) > 0:
                 landmarks = resultado.pose_landmarks[0]
-                angulos, _ = extrair_angulos_exercicio(
+                angulos, visivel = extrair_angulos_exercicio(
                     landmarks=landmarks,
                     articulacoes=self.articulacoes,
                     lado=self.lado,
                 )
 
-                deltas: Dict[str, float] = {}
-                for art, valor_atual in angulos.items():
-                    if art not in angulos_anteriores:
-                        deltas[art] = 0.0
-                    else:
-                        deltas[art] = round(valor_atual - angulos_anteriores[art], 2)
-                    angulos_anteriores[art] = valor_atual
-
                 frames_processados.append({
                     "frame": frame_idx,
                     "angulos": angulos,
-                    "deltas": deltas,
+                    "visivel": visivel,
                 })
 
             frame_idx += 1
@@ -110,7 +101,7 @@ def gerar_gabarito_de_video_especialista(
     extrator = ExtratorVideo(articulacoes=config["articulacoes"], lado=lado)
     frames = extrator.extrair_serie_temporal(caminho_video)
 
-    serie_angulos = [f["angulos"] for f in frames]
+    serie_angulos = [f["angulos"] for f in frames if f["visivel"]]
     dados_rep = extrair_primeira_repeticao(
         fsm_ou_id=identificador_exercicio,
         articulacoes=config["articulacoes"],

@@ -2,7 +2,7 @@
 
 > **Propósito deste documento:** Permitir que qualquer agente de IA ou desenvolvedor recupere imediatamente 100% do contexto técnico, arquitetural e histórico da frente de **Inteligência Artificial e Visão Computacional** do projeto **Personal Trainer IA**.
 >
-> **Última atualização:** 2026-10-23 (Conclusão da `TASK-04` na branch `IA`)
+> **Última atualização:** 2026-10-24 (branch `IA` sincronizada até `bdb8e02`; integração da `TASK-07` no workspace)
 
 ---
 
@@ -79,7 +79,7 @@ Estes arquivos compõem a frente de trabalho imediata da branch, recebendo teste
 | [`./buffer_repeticao.py`](./buffer_repeticao.py) | Acumulador de fotogramas e segmentador canônico de repetições com cálculo automático de deltas com âncora de ruído e interface polimórfica. | `BufferRepeticao`, `extrair_primeira_repeticao()` | **Em Desenvolvimento Ativo (Concluído na `TASK-05`)** |
 | [`./gabarito.py`](./gabarito.py) | Persistência, carregamento JSON e geração de curvas de referência padrão ouro com recorte idêntico ao do aluno via FSM canônica. | `GabaritoExercicio`, `garantir_gabaritos_padrao()` | **Em Desenvolvimento Ativo (Concluído na `TASK-05`)** |
 | [`./avaliador_pontuacao.py`](./avaliador_pontuacao.py) | Motor central de pontuação (`ResultadoPontuacaoRepeticao`), laudos pedagógicos hierárquicos, gamificação e `OrquestradorSessao` com interface **frame a frame**. | `calcular_pontuacao()`, `OrquestradorSessao`, `ResultadoPontuacaoRepeticao`, `ResumoPontuacaoSessao` | **Em Desenvolvimento Ativo (Concluído na `TASK-06`)** |
-| [`tests/test_pipeline_pontuacao.py`](tests/test_pipeline_pontuacao.py) | Suíte de testes automatizados com `pytest` cobrindo geometria, deltas acumulados, transições de fase, retenção de erros, DTW vetorizado, segmentação canônica e orquestração de sessão. | Testes unitários puros sem dependência de hardware | **Em Desenvolvimento Ativo (28 testes aprovados)** |
+| [`tests/test_pipeline_pontuacao.py`](tests/test_pipeline_pontuacao.py) | Suíte de testes automatizados com `pytest` cobrindo geometria, deltas acumulados, transições de fase, retenção de erros, DTW vetorizado, segmentação canônica, orquestração e contrato do extrator de vídeo. | Testes sem dependência de câmera | **Em Desenvolvimento Ativo (29 testes aprovados)** |
 
 
 | [`./pytest.ini`](./pytest.ini) | Configuração de execução do `pytest` com inclusão automática do diretório raiz no `pythonpath`. | Configuração de testes | **Ativo** |
@@ -93,8 +93,8 @@ Módulos existentes no repositório que serão integrados e padronizados nas pr�
 
 | Arquivo Relativo | Responsabilidade no Pipeline | Próxima Task da Sprint | Observações Técnicas |
 | :--- | :--- | :--- | :--- |
-| [`./comparar_exercicio.py`](./comparar_exercicio.py) | CLI para avaliar vídeos gravados (`.mp4`) contra especialista. | **`[TASK-07]`** | Terá o bug de assinatura de `ExtratorVideo` corrigido e migrará para o orquestrador. |
-| [`./extrator_video.py`](./extrator_video.py) | Extrai séries temporais de vídeos `.mp4` em modo `IMAGE`. | **`[TASK-07]`** | Já utiliza o segmentador canônico (`TASK-05`) e será conectado ao orquestrador. |
+| [`./comparar_exercicio.py`](./comparar_exercicio.py) | CLI multi-exercício para avaliar vídeos gravados (`.mp4`) contra especialista. | **`[TASK-07]`** | Integrado ao `OrquestradorSessao`; suporta `--exercicio`, lado, relatório por repetição e resumo da sessão. |
+| [`./extrator_video.py`](./extrator_video.py) | Extrai séries temporais de vídeos `.mp4` em modo `IMAGE`, retornando `frame`, `angulos` e `visivel`. | **`[TASK-07]`** | Não calcula deltas; estes são centralizados no orquestrador durante a avaliação. A extração de gabarito usa o segmentador canônico. |
 | [`./exemplo_integracao.py`](./exemplo_integracao.py) | Script de demonstração sintética sem webcam. | **`[TASK-08]`** | Migrará para o `OrquestradorSessao` oficial. |
 | [`./app_tempo_real.py`](./app_tempo_real.py) | Aplicação em tempo real com webcam, desenho de esqueleto e HUD OpenCV. | **`[TASK-09]`** | Migrará do loop manual para o orquestrador unificado frame a frame. |
 
@@ -211,9 +211,8 @@ Todas as classes herdam de `ExercicioBaseFSM` e seguem o ciclo de 4 estados (`0 
 
 ## 5. Diagnóstico de Débitos Técnicos e Pontos de Atenção Atuais
 
-1. **Incompatibilidade de assinatura em `comparar_exercicio.py`:**
-   - No commit `c992f15`, `ExtratorVideo.__init__` (em `extrator_video.py`) passou a exigir `articulacoes: List[str]` como primeiro argumento posicional.
-   - Porém, `comparar_exercicio.py` (linhas 106 e 166) ainda instancia `ExtratorVideo(lado=lado)` sem passar `articulacoes`, além de estar acoplado exclusivamente a `dev_ombro-inicial.py` em vez de usar o `CATALOGO_EXERCICIOS` de `exercicios_fsm.py` (será sanado na `TASK-07`).
+1. **Integração do comparador de vídeo:**
+   - A `TASK-07` corrigiu a assinatura de `ExtratorVideo`, conectou a CLI ao `OrquestradorSessao` e adicionou seleção por `--exercicio`. O extrator retorna `frame`, `angulos` e `visivel`, sem deltas.
 2. **Unificação do Motor DTW (`dtw_evaluator.py` vs. `dtw_inicial.py`):**
    - A `TASK-04` padronizou o `DTWComparator` vetorizado com Sakoe-Chiba em `dtw_evaluator.py` e 16 testes aprovados. O legado `dtw_inicial.py` permanece mantido no repositório apenas até a migração do `app_tempo_real.py` na `TASK-09`.
 3. **Arquivos duplicados com acentuação e artefatos legados:**
@@ -221,7 +220,7 @@ Todas as classes herdam de `ExercicioBaseFSM` e seguem o ciclo de 4 estados (`0 
    - `Modularização.py` importa `maquina_estados` (módulo inexistente, removido em `65b5a83`).
    - `.gitignore` atualizado protege contra arquivos temporários e caches.
 4. **Suíte Automatizada de Testes (`pytest`):**
-   - Suíte `tests/test_pipeline_pontuacao.py` ativa com **16 testes unitários automatizados** rodando com 100% de sucesso.
+   - Suíte `tests/test_pipeline_pontuacao.py` ativa com **29 testes automatizados** aprovados, incluindo o contrato do extrator e o modo simulado do comparador.
 5. **Ruído de Sensor e Suavização Temporal:**
    - `calculo_angulos.py` possui `calcular_deltas_angulares` com âncora de ruído (`1.2^\circ`) para cadências lentas.
 
