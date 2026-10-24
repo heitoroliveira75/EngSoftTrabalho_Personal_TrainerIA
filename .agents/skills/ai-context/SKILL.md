@@ -31,6 +31,10 @@ Manter a malha de arquivos `.ai_context.md` (na raiz e em pastas modulares espec
 - **Leitura Exclusiva de `.ai_context.md`:** Agentes e IAs devem ler SOMENTE arquivos `.ai_context.md`.
 - **Proibição de Leitura de Documentação Humana:** É expressamente vetada a leitura de arquivos de contexto voltados a humanos (`PROJECT_CONTEXT.md`, `DATABASE_CONTEXT.md`, `SCREENS_CONTEXT.md`, etc.) por agentes e IAs. Esses arquivos contêm explicações detalhadas para desenvolvedores humanos e seu consumo por IAs causa desperdício desnecessário de tokens.
 
+### Regra Obrigatória de Portabilidade: Caminhos Relativos à Raiz
+- **Caminhos a partir da raiz:** Ao criar ou modificar qualquer arquivo `.ai_context.md` (na raiz ou em subpastas), TODOS os caminhos de arquivos e pastas citados (em `ENTRYPOINTS`, `MODULE_MAP`, `ACTIVE_STATE`, `ARCH_RULES`, etc.) DEVEM ser expressos exclusivamente a partir da raiz do repositório (exemplo: `lib/main.dart`, `BD/api.py`, `lib/screens/login_screen.dart`).
+- **Proibição de caminhos absolutos:** É estritamente proibido citar caminhos absolutos do sistema de arquivos local (ex: `C:\...`, `file:///C:/...`, `/home/...`). Isso garante a universalidade entre todas as máquinas dos colegas de equipe.
+
 ### Ação: `check_and_read` (Leitura sob Demanda)
 1. Antes de iniciar qualquer tarefa, leia sempre o `.ai_context.md` da raiz.
 2. Identifique qual módulo/pasta será afetado pela solicitação do usuário.

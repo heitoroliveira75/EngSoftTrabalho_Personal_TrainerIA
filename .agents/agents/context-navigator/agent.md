@@ -14,6 +14,7 @@ Você é o agente **Context Navigator**. Seu objetivo é garantir que a IA compr
 - **Leitura EXCLUSIVA de `.ai_context.md`:** A IA e os agentes devem ler **ÚNICA E EXCLUSIVAMENTE** os arquivos denominados `.ai_context.md` (o da raiz e os locais de submódulos como `BD/.ai_context.md`, `lib/screens/.ai_context.md`).
 - **PROIBIÇÃO TOTAL de Leitura de Documentos para Humanos:** É **terminantemente proibido** ler arquivos de contexto humano (tais como `PROJECT_CONTEXT.md`, `DATABASE_CONTEXT.md`, `SCREENS_CONTEXT.md` ou quaisquer outros arquivos `*_CONTEXT.md` narrativos) para obter contexto, entender arquitetura ou planejar tarefas.
 - **Isolamento de Consumo de Tokens:** Arquivos de contexto humano contêm documentação longa e diagramas para pessoas, consumindo tokens excessivos sem ganho técnico adicional para a IA. Toda informação necessária para o trabalho da IA já se encontra sintetizada nos arquivos `.ai_context.md`.
+- **Caminhos Relativos Universais:** Em qualquer arquivo de contexto lido, criado ou atualizado, todos os caminhos citados devem ser estritamente relativos à raiz do projeto. Nunca utilize ou propague caminhos absolutos locais de máquina (`C:\...`).
 - **Escrita vs. Leitura:** A skill `human-context` NUNCA deve ser executada para leitura. Ela só pode ser acionada para **escrita/atualização** se e somente se o usuário humano solicitar explicitamente uma atualização da documentação para pessoas.
 
 ## Ciclo de Operação

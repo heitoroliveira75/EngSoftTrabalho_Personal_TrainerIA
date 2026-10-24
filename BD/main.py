@@ -1159,6 +1159,30 @@ def resetar_checagem_diaria(usuario_id: str) -> Dict[str, Any]:
 # 8. SISTEMA DE AMIZADES E LEADERBOARD
 # ============================================================
 
+def _obter_mapa_usuarios() -> Dict[str, Dict[str, Any]]:
+    """
+    Retorna um dicionário {id_usuario: dados_usuario} contornando o RLS via RPC SECURITY DEFINER.
+    Garante que os nomes reais, sequências e pontuações sejam resolvidos para qualquer ID.
+    """
+    mapa = {}
+    try:
+        rpc_res = supabase.rpc("obter_leaderboard_global", {"p_limite": 200}).execute()
+        if rpc_res.data:
+            for u in rpc_res.data:
+                uid = str(u.get("id"))
+                mapa[uid] = {
+                    "id": u.get("id"),
+                    "nome": u.get("nome") or "Usuário",
+                    "sequencia": u.get("sequencia") or 0,
+                    "pontuacao_semanal": u.get("pontuacao_semanal") or 0,
+                    "pontuacao_total": u.get("pontuacao_total") or 0,
+                    "maior_sequencia": u.get("maior_sequencia") or 0,
+                }
+    except Exception:
+        pass
+    return mapa
+
+
 def buscar_usuarios(nome: str, usuario_atual_id: Optional[str] = None) -> Dict[str, Any]:
     """
     Busca usuários cadastrados por aproximação de nome.
@@ -1341,21 +1365,30 @@ def enviar_solicitacao_amizade(usuario_id: str, amigo_id: str) -> Dict[str, Any]
 
 def listar_solicitacoes_pendentes(usuario_id: str) -> Dict[str, Any]:
     """
-    Retorna a lista de convites pendentes recebidos pelo usuário.
-    Tenta RPC SECURITY DEFINER e faz fallback na tabela direta.
+    Retorna a lista de convites pendentes recebidos pelo usuário com o nome real de quem enviou.
+    Tenta RPC SECURITY DEFINER e faz fallback na tabela direta resolvendo nomes via mapa RPC.
     """
     if not usuario_id:
         return {"sucesso": False, "mensagem": "ID do usuário é obrigatório."}
 
+    mapa_usuarios = _obter_mapa_usuarios()
+
     # Tentativa 1: RPC SECURITY DEFINER
     try:
         rpc_res = supabase.rpc("listar_solicitacoes_pendentes", {"p_usuario_id": usuario_id}).execute()
-        if rpc_res.data is not None:
-            return {"sucesso": True, "solicitacoes": rpc_res.data}
+        if rpc_res.data is not None and len(rpc_res.data) > 0:
+            solicitacoes = list(rpc_res.data)
+            for s in solicitacoes:
+                solic_uid = str(s.get("solicitante_id") or s.get("usuario_id") or "")
+                if s.get("nome") in ["Usuário", None, ""] and solic_uid in mapa_usuarios:
+                    s["nome"] = mapa_usuarios[solic_uid]["nome"]
+                    s["sequencia"] = mapa_usuarios[solic_uid]["sequencia"]
+                    s["pontos"] = mapa_usuarios[solic_uid]["pontuacao_semanal"]
+            return {"sucesso": True, "solicitacoes": solicitacoes}
     except Exception:
         pass
 
-    # Tentativa 2: Consulta direta
+    # Tentativa 2: Consulta direta na tabela amizades
     try:
         pedidos = (
             supabase
@@ -1371,12 +1404,17 @@ def listar_solicitacoes_pendentes(usuario_id: str) -> Dict[str, Any]:
         solicitacoes_formatadas = []
 
         for p in lista:
-            solicitante_id = p.get("usuario_id")
-            nome = "Usuário"
-            sequencia = 0
-            pontos = 0
+            solicitante_id = str(p.get("usuario_id"))
+            info = mapa_usuarios.get(solicitante_id)
 
-            if solicitante_id:
+            if info:
+                nome = info["nome"]
+                sequencia = info["sequencia"]
+                pontos = info["pontuacao_semanal"]
+            else:
+                nome = "Usuário"
+                sequencia = 0
+                pontos = 0
                 try:
                     u_res = (
                         supabase
@@ -1448,17 +1486,26 @@ def responder_solicitacao(solicitacao_id: str, novo_status: str) -> Dict[str, An
 
 def listar_amigos(usuario_id: str) -> Dict[str, Any]:
     """
-    Retorna todos os amigos com status 'aceito' do usuário.
-    Tenta RPC SECURITY DEFINER e faz fallback na tabela direta.
+    Retorna todos os amigos com status 'aceito' do usuário com os nomes reais de cada amigo.
+    Tenta RPC SECURITY DEFINER e faz fallback na tabela direta resolvendo nomes via mapa RPC.
     """
     if not usuario_id:
         return {"sucesso": False, "mensagem": "ID do usuário é obrigatório."}
 
+    mapa_usuarios = _obter_mapa_usuarios()
+
     # Tentativa 1: RPC SECURITY DEFINER
     try:
         rpc_res = supabase.rpc("listar_amigos", {"p_usuario_id": usuario_id}).execute()
-        if rpc_res.data is not None:
-            return {"sucesso": True, "amigos": rpc_res.data}
+        if rpc_res.data is not None and len(rpc_res.data) > 0:
+            amigos = list(rpc_res.data)
+            for a in amigos:
+                amigo_uid = str(a.get("id") or "")
+                if a.get("nome") in ["Amigo", None, ""] and amigo_uid in mapa_usuarios:
+                    a["nome"] = mapa_usuarios[amigo_uid]["nome"]
+                    a["sequencia"] = mapa_usuarios[amigo_uid]["sequencia"]
+                    a["pontos"] = mapa_usuarios[amigo_uid]["pontuacao_semanal"]
+            return {"sucesso": True, "amigos": amigos}
     except Exception:
         pass
 
@@ -1477,26 +1524,33 @@ def listar_amigos(usuario_id: str) -> Dict[str, Any]:
         amigos_formatados = []
 
         for reg in registros:
-            amigo_id = reg["amigo_id"] if str(reg["usuario_id"]) == str(usuario_id) else reg["usuario_id"]
-            nome = "Amigo"
-            sequencia = 0
-            pontos = 0
-            try:
-                u_res = (
-                    supabase
-                    .table("usuarios")
-                    .select("id, nome, sequencia, pontuacao_semanal, pontuacao_total")
-                    .eq("id", amigo_id)
-                    .execute()
-                )
+            amigo_id = str(reg["amigo_id"]) if str(reg["usuario_id"]) == str(usuario_id) else str(reg["usuario_id"])
+            info = mapa_usuarios.get(amigo_id)
 
-                if u_res.data and len(u_res.data) > 0:
-                    u = u_res.data[0]
-                    nome = u.get("nome") or "Amigo"
-                    sequencia = u.get("sequencia") or 0
-                    pontos = u.get("pontuacao_semanal") or u.get("pontuacao_total") or 0
-            except Exception:
-                pass
+            if info:
+                nome = info["nome"]
+                sequencia = info["sequencia"]
+                pontos = info["pontuacao_semanal"]
+            else:
+                nome = "Amigo"
+                sequencia = 0
+                pontos = 0
+                try:
+                    u_res = (
+                        supabase
+                        .table("usuarios")
+                        .select("id, nome, sequencia, pontuacao_semanal, pontuacao_total")
+                        .eq("id", amigo_id)
+                        .execute()
+                    )
+
+                    if u_res.data and len(u_res.data) > 0:
+                        u = u_res.data[0]
+                        nome = u.get("nome") or "Amigo"
+                        sequencia = u.get("sequencia") or 0
+                        pontos = u.get("pontuacao_semanal") or u.get("pontuacao_total") or 0
+                except Exception:
+                    pass
 
             amigos_formatados.append({
                 "amizade_id": reg.get("id"),
@@ -1507,6 +1561,8 @@ def listar_amigos(usuario_id: str) -> Dict[str, Any]:
             })
 
         return {"sucesso": True, "amigos": amigos_formatados}
+    except Exception as erro:
+        return {"sucesso": False, "mensagem": f"Erro ao listar amigos: {erro}"}
     except Exception as erro:
         return {"sucesso": False, "mensagem": f"Erro ao listar amigos: {erro}"}
 
@@ -1608,30 +1664,47 @@ def obter_leaderboard_amigos(usuario_id: str) -> Dict[str, Any]:
         amigos_res = listar_amigos(usuario_id)
         amigos = amigos_res.get("amigos", []) if amigos_res.get("sucesso") else []
 
-        ids_participantes = [usuario_id] + [str(a["id"]) for a in amigos if a.get("id")]
+        ids_participantes = [str(usuario_id)] + [str(a["id"]) for a in amigos if a.get("id")]
+        mapa_usuarios = _obter_mapa_usuarios()
 
-        u_res = (
-            supabase
-            .table("usuarios")
-            .select("id, nome, pontuacao_semanal, pontuacao_total, sequencia, maior_sequencia")
-            .in_("id", ids_participantes)
-            .order("pontuacao_semanal", desc=True)
-            .order("sequencia", desc=True)
-            .execute()
-        )
-
-        dados = u_res.data or []
         leaderboard = []
-        for idx, u in enumerate(dados):
-            leaderboard.append({
-                "posicao": idx + 1,
-                "id": u.get("id"),
-                "nome": u.get("nome") or "Atleta",
-                "pontos": u.get("pontuacao_semanal") or u.get("pontuacao_total") or 0,
-                "sequencia": u.get("sequencia") or 0,
-                "maior_sequencia": u.get("maior_sequencia") or 0,
-                "is_me": str(u.get("id")) == str(usuario_id)
-            })
+        for uid in ids_participantes:
+            info = mapa_usuarios.get(uid)
+            if info:
+                leaderboard.append({
+                    "id": info["id"],
+                    "nome": info["nome"],
+                    "pontos": info["pontuacao_semanal"] or info["pontuacao_total"] or 0,
+                    "sequencia": info["sequencia"] or 0,
+                    "maior_sequencia": info["maior_sequencia"] or 0,
+                    "is_me": str(info["id"]) == str(usuario_id)
+                })
+
+        if not leaderboard:
+            u_res = (
+                supabase
+                .table("usuarios")
+                .select("id, nome, pontuacao_semanal, pontuacao_total, sequencia, maior_sequencia")
+                .in_("id", ids_participantes)
+                .order("pontuacao_semanal", desc=True)
+                .order("sequencia", desc=True)
+                .execute()
+            )
+
+            dados = u_res.data or []
+            for u in dados:
+                leaderboard.append({
+                    "id": u.get("id"),
+                    "nome": u.get("nome") or "Atleta",
+                    "pontos": u.get("pontuacao_semanal") or u.get("pontuacao_total") or 0,
+                    "sequencia": u.get("sequencia") or 0,
+                    "maior_sequencia": u.get("maior_sequencia") or 0,
+                    "is_me": str(u.get("id")) == str(usuario_id)
+                })
+
+        leaderboard.sort(key=lambda x: (x["pontos"], x["sequencia"]), reverse=True)
+        for idx, u in enumerate(leaderboard):
+            u["posicao"] = idx + 1
 
         return {"sucesso": True, "leaderboard": leaderboard}
     except Exception as erro:

@@ -14,6 +14,7 @@ Ao receber qualquer pedido de alteração, criação ou refatoração, siga rigo
 ## Regras Invioláveis de Contexto e Leitura
 1. **Leitura Exclusiva de `.ai_context.md`:** A IA deve ler exclusivamente os arquivos `.ai_context.md` (raiz e contextos locais dos módulos).
 2. **Proibição Total de Leitura de Documentação Humana:** É **terminantemente proibido** ler arquivos de contexto humano (`PROJECT_CONTEXT.md`, `DATABASE_CONTEXT.md`, `SCREENS_CONTEXT.md` ou qualquer outro arquivo `*_CONTEXT.md` narrativo). Esses arquivos foram gerados para humanos e contêm texto extenso que desperdiça tokens; todas as definições técnicas necessárias já estão compactadas nos arquivos `.ai_context.md`.
+3. **Caminhos Relativos Universais:** Todo e qualquer caminho citado em propostas, análises, planos e arquivos de contexto deve ser relativo à raiz do projeto (ex: `lib/screens/login_screen.dart`, `BD/api.py`). É proibido usar caminhos absolutos de sistema (`C:\...`).
 
 ## Fluxo de Trabalho
 
