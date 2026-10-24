@@ -354,3 +354,90 @@ Padrão de Retorno:
   -> Parâmetros: usuario_id (str).
   -> Retorno: {"sucesso": True, "mensagem": "Checagem atualizada com sucesso!", "usuario_id": "...", "checagem": False} ou {"sucesso": False, "mensagem": "..."}
 
+
+
+6. Sistema de Amizades e Leaderboard:
+
+- buscar_usuarios(nome, usuario_atual_id=None):
+  -> O que faz: Busca usuários no Supabase por aproximação de nome. Utiliza RPC SECURITY DEFINER para contornar políticas de RLS e mapeia automaticamente os vínculos existentes com o usuário atual (já amigo, solicitação enviada, solicitação recebida).
+  -> Parâmetros: nome (str), usuario_atual_id (str, opcional - UUID do usuário logado para excluir da busca e checar vínculos).
+  -> Retorno: {"sucesso": True, "usuarios": [{"id": "...", "nome": "...", "sequencia": 5, "pontuacao_semanal": 350, "pontuacao_total": 1200, "maior_sequencia": 8, "relacao_status": None, "ja_amigo": False, "solicitacao_enviada": False, "solicitacao_recebida": False}]}
+  -> Exemplo de código e prints:
+     resposta = buscar_usuarios("Arthur", usuario_atual_id="meu-uuid")
+     if resposta["sucesso"]:
+         for u in resposta["usuarios"]:
+             print(f"Nome: {u['nome']} | Pontos: {u['pontuacao_semanal']} | Streak: {u['sequencia']}d | Amigo: {u['ja_amigo']}")
+
+- enviar_solicitacao_amizade(usuario_id, amigo_id):
+  -> O que faz: Cria uma solicitação de amizade na tabela amizades com status 'pendente'. Impede auto-solicitação e verifica se já existe registro prévio.
+  -> Parâmetros: usuario_id (str - UUID de quem envia), amigo_id (str - UUID de quem recebe).
+  -> Retorno: {"sucesso": True, "mensagem": "Solicitação de amizade enviada com sucesso!", "solicitacao": {...}} ou {"sucesso": False, "mensagem": "..."}
+  -> Exemplo de código e prints:
+     resposta = enviar_solicitacao_amizade("meu-uuid", "uuid-do-amigo")
+     print(resposta["mensagem"])
+
+- listar_solicitacoes_pendentes(usuario_id):
+  -> O que faz: Retorna todas as solicitações de amizade pendentes recebidas pelo usuário indicado, resolvendo os nomes reais, sequências e pontuações do remetente através de cache/RPC SECURITY DEFINER.
+  -> Parâmetros: usuario_id (str - UUID do usuário destinatário).
+  -> Retorno: {"sucesso": True, "solicitacoes": [{"id": "...", "solicitante_id": "...", "nome": "Arthur Peixoto", "sequencia": 4, "pontos": 250, "created_at": "..."}]}
+  -> Exemplo de código e prints:
+     resposta = listar_solicitacoes_pendentes("meu-uuid")
+     if resposta["sucesso"]:
+         for pedido in resposta["solicitacoes"]:
+             print(f"Solicitação #{pedido['id']} enviada por: {pedido['nome']} (Streak: {pedido['sequencia']} dias)")
+
+- responder_solicitacao(solicitacao_id, novo_status):
+  -> O que faz: Atualiza o status da solicitação de amizade para 'aceito' ou 'recusado'.
+  -> Parâmetros: solicitacao_id (str - UUID da amizade), novo_status (str - 'aceito' ou 'recusado').
+  -> Retorno: {"sucesso": True, "mensagem": "Solicitação aceita! Agora vocês são amigos.", "dados": {...}} ou {"sucesso": False, "mensagem": "..."}
+  -> Exemplo de código e prints:
+     resposta = responder_solicitacao("uuid-solicitacao", "aceito")
+     print(resposta["mensagem"])
+
+- listar_amigos(usuario_id):
+  -> O que faz: Retorna todos os amigos com status 'aceito' do usuário indicado, trazendo nomes reais, streaks e pontuações de cada amigo.
+  -> Parâmetros: usuario_id (str - UUID do usuário).
+  -> Retorno: {"sucesso": True, "amigos": [{"amizade_id": "...", "id": "...", "nome": "Arthur Peixoto", "sequencia": 4, "pontos": 250}]}
+  -> Exemplo de código e prints:
+     resposta = listar_amigos("meu-uuid")
+     if resposta["sucesso"]:
+         for a in resposta["amigos"]:
+             print(f"Amigo: {a['nome']} | Pontos: {a['pontos']} | Streak: {a['sequencia']} dias")
+
+- remover_amigo(usuario_id, amigo_id):
+  -> O que faz: Remove o registro de amizade entre os dois usuários informados.
+  -> Parâmetros: usuario_id (str), amigo_id (str).
+  -> Retorno: {"sucesso": True, "mensagem": "Amizade removida com sucesso!"} ou {"sucesso": False, "mensagem": "..."}
+  -> Exemplo de código e prints:
+     resposta = remover_amigo("meu-uuid", "uuid-amigo")
+     print(resposta["mensagem"])
+
+- obter_leaderboard_global(limite=50):
+  -> O que faz: Retorna o ranking global dos usuários ordenados por pontuação semanal e streak de treinos diários. Utiliza RPC SECURITY DEFINER para garantir acesso aos dados de todos os usuários.
+  -> Parâmetros: limite (int, padrão: 50).
+  -> Retorno: {"sucesso": True, "leaderboard": [{"posicao": 1, "id": "...", "nome": "...", "pontos": 450, "sequencia": 12, "maior_sequencia": 15}, ...]}
+  -> Exemplo de código e prints:
+     resposta = obter_leaderboard_global(limite=10)
+     if resposta["sucesso"]:
+         for u in resposta["leaderboard"]:
+             print(f"#{u['posicao']} {u['nome']} - {u['pontos']} pts | Streak: {u['sequencia']} dias")
+
+- obter_leaderboard_amigos(usuario_id):
+  -> O que faz: Retorna o ranking semanal entre o usuário e seus amigos confirmados, ordenados decrescente por pontos e streak, com indicação do usuário através do campo is_me.
+  -> Parâmetros: usuario_id (str - UUID do usuário logado).
+  -> Retorno: {"sucesso": True, "leaderboard": [{"posicao": 1, "id": "...", "nome": "...", "pontos": 450, "sequencia": 12, "is_me": False}, ...]}
+  -> Exemplo de código e prints:
+     resposta = obter_leaderboard_amigos("meu-uuid")
+     if resposta["sucesso"]:
+         for u in resposta["leaderboard"]:
+             tag = " [VOCÊ]" if u.get("is_me") else ""
+             print(f"#{u['posicao']} {u['nome']}{tag} - {u['pontos']} pts")
+
+- obter_minha_posicao_global(usuario_id):
+  -> O que faz: Retorna a posição ordinal exata do usuário no ranking global semanal.
+  -> Parâmetros: usuario_id (str - UUID do usuário).
+  -> Retorno: {"sucesso": True, "posicao": 2} ou {"sucesso": False, "mensagem": "..."}
+  -> Exemplo de código e prints:
+     resposta = obter_minha_posicao_global("meu-uuid")
+     if resposta["sucesso"]:
+         print(f"Minha posição no ranking global: #{resposta['posicao']}")
