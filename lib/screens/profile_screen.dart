@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
 import '../services/api_service.dart';
+import 'amigos_screen.dart';
 import 'change_name_screen.dart';
 import 'change_password_screen.dart';
+import 'leaderboard_screen.dart';
 import 'login_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -145,146 +147,184 @@ class _ProfileScreenState extends State<ProfileScreen> {
             children: [
               // Card com dados do utilizador
               Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
-                children: [
-                  CircleAvatar(
-                    radius: 36,
-                    backgroundColor: const Color(0xFF8A5CF5),
-                    child: Text(
-                      letraAvatar,
+                width: double.infinity,
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  children: [
+                    CircleAvatar(
+                      radius: 36,
+                      backgroundColor: const Color(0xFF8A5CF5),
+                      child: Text(
+                        letraAvatar,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Text(
+                      nomeUsuario,
+                      textAlign: TextAlign.center,
                       style: const TextStyle(
-                        color: Colors.white,
+                        color: Color(0xFF2196F3),
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    if (emailUsuario.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        emailUsuario,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Color(0xFF64B5F6),
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 24),
+                    const Text(
+                      'Seu Desempenho',
+                      style: TextStyle(
+                        color: Color(0xFF8A5CF5),
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      '$pontosTotais pts',
+                      style: const TextStyle(
+                        color: Color(0xFF2196F3),
                         fontSize: 32,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    nomeUsuario,
-                    textAlign: TextAlign.center,
-                    style: const TextStyle(
-                      color: Color(0xFF2196F3),
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  if (emailUsuario.isNotEmpty) ...[
-                    const SizedBox(height: 4),
-                    Text(
-                      emailUsuario,
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: Color(0xFF64B5F6),
-                        fontSize: 14,
-                      ),
-                    ),
+                    const SizedBox(height: 16),
+                    _buildStatRow('Hoje', '$pontosHoje pts'),
+                    _buildStatRow('Semana', '$pontosSemana pts'),
+                    _buildStatRow('Sequência', '$diasSequencia ${diasSequencia == 1 ? "dia" : "dias"}'),
                   ],
-                  const SizedBox(height: 24),
-                  const Text(
-                    'Seu Desempenho',
-                    style: TextStyle(
-                      color: Color(0xFF8A5CF5),
-                      fontSize: 22,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Text(
-                    '$pontosTotais pts',
-                    style: const TextStyle(
-                      color: Color(0xFF2196F3),
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  _buildStatRow('Hoje', '$pontosHoje pts'),
-                  _buildStatRow('Semana', '$pontosSemana pts'),
-                  _buildStatRow('Sequência', '$diasSequencia ${diasSequencia == 1 ? "dia" : "dias"}'),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
-
-            const Text(
-              'Conta',
-              style: TextStyle(fontSize: 20, color: Colors.white, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 12),
-
-            // Redirecionamento para Alterar Nome
-            _buildOptionButton(
-              title: 'Alterar o nome',
-              onTap: () async {
-                final alterou = await Navigator.push<bool>(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const ChangeNameScreen(),
-                  ),
-                );
-                if (alterou == true) {
-                  _carregarPerfil();
-                }
-              },
-            ),
-            const SizedBox(height: 12),
-
-            // Redirecionamento para Alterar Senha
-            _buildOptionButton(
-              title: 'Alterar a senha',
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const ChangePasswordScreen(),
-                  ),
-                );
-              },
-            ),
-            const SizedBox(height: 24),
-
-            // Botão Deslogar
-            SizedBox(
-              width: double.infinity,
-              height: 50,
-              child: ElevatedButton(
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF2D3139),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
                 ),
-                onPressed: _carregando ? null : _executarLogout,
-                child: _carregando
-                    ? const SizedBox(
-                        height: 24,
-                        width: 24,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.redAccent,
-                        ),
-                      )
-                    : const Text(
-                        'Deslogar',
-                        style: TextStyle(color: Colors.redAccent, fontSize: 18),
-                      ),
               ),
-            ),
-          ],
+              const SizedBox(height: 24),
+
+              // Seção Social & Comunidade
+              const Text(
+                'Social & Comunidade',
+                style: TextStyle(fontSize: 20, color: Colors.white, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 12),
+
+              _buildOptionButton(
+                title: 'Classificação (Leaderboard)',
+                icon: Icons.emoji_events_outlined,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const LeaderboardScreen(),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 12),
+
+              _buildOptionButton(
+                title: 'Meus Amigos e Solicitações',
+                icon: Icons.people_outline,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const AmigosScreen(),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 24),
+
+              const Text(
+                'Conta',
+                style: TextStyle(fontSize: 20, color: Colors.white, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 12),
+
+              // Redirecionamento para Alterar Nome
+              _buildOptionButton(
+                title: 'Alterar o nome',
+                icon: Icons.edit_outlined,
+                onTap: () async {
+                  final alterou = await Navigator.push<bool>(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const ChangeNameScreen(),
+                    ),
+                  );
+                  if (alterou == true) {
+                    _carregarPerfil();
+                  }
+                },
+              ),
+              const SizedBox(height: 12),
+
+              // Redirecionamento para Alterar Senha
+              _buildOptionButton(
+                title: 'Alterar a senha',
+                icon: Icons.lock_outline,
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const ChangePasswordScreen(),
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 24),
+
+              // Botão Deslogar
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF2D3139),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  onPressed: _carregando ? null : _executarLogout,
+                  child: _carregando
+                      ? const SizedBox(
+                          height: 24,
+                          width: 24,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.redAccent,
+                          ),
+                        )
+                      : const Text(
+                          'Deslogar',
+                          style: TextStyle(color: Colors.redAccent, fontSize: 18),
+                        ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   Widget _buildOptionButton({
     required String title,
+    IconData? icon,
     required VoidCallback onTap,
   }) {
     return Container(
@@ -293,6 +333,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         borderRadius: BorderRadius.circular(8),
       ),
       child: ListTile(
+        leading: icon != null ? Icon(icon, color: const Color(0xFF00E676)) : null,
         title: Text(
           title,
           style: const TextStyle(color: Colors.white, fontSize: 16),

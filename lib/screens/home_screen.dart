@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
 import '../services/api_service.dart';
+import 'amigos_screen.dart';
+import 'leaderboard_screen.dart';
 import 'profile_screen.dart';
 import 'training_menu_screen.dart';
 
@@ -107,9 +109,33 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         ),
         actions: [
+          // Ícone para Leaderboard
+          IconButton(
+            icon: const Icon(Icons.leaderboard_outlined, size: 26, color: Color(0xFF00E676)),
+            tooltip: 'Classificação',
+            onPressed: () async {
+              await Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const LeaderboardScreen()),
+              );
+              _carregarPontuacoes();
+            },
+          ),
+          // Ícone para Amigos
+          IconButton(
+            icon: const Icon(Icons.people_alt_outlined, size: 26, color: Color(0xFF00E676)),
+            tooltip: 'Amigos',
+            onPressed: () async {
+              await Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const AmigosScreen()),
+              );
+              _carregarPontuacoes();
+            },
+          ),
           // Ícone de perfil que navega para a tela de Perfil
           IconButton(
-            icon: const Icon(Icons.account_circle, size: 36, color: Colors.white),
+            icon: const Icon(Icons.account_circle, size: 34, color: Colors.white),
             tooltip: 'Meu Perfil',
             onPressed: () async {
               await Navigator.push(
@@ -130,6 +156,7 @@ class _HomeScreenState extends State<HomeScreen> {
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.all(16.0),
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               if (_carregandoPontos)
                 const Padding(
@@ -142,198 +169,304 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               // 1. Card Pontos Totais
               Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
-                children: [
-                  const Text(
-                    'Pontos Totais',
-                    style: TextStyle(
-                      color: Color(0xFF8A5CF5),
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    '$pontosTotais pts',
-                    style: const TextStyle(
-                      color: Color(0xFF2196F3),
-                      fontSize: 36,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '+$pontosSemana pts essa semana',
-                    style: const TextStyle(
-                      color: Color(0xFF64B5F6),
-                      fontSize: 16,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // Espaçamento
-            const SizedBox(height: 24),
-
-            // 2. Os 3 Cards de Métricas (com Altura Igual)
-            IntrinsicHeight(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Expanded(
-                    child: _buildMetricCard(
-                      icon: Icons.star,
-                      iconColor: Colors.amber,
-                      value: '$maiorSequencia',
-                      label: 'Maior\nSequência',
-                      labelColor: Colors.amber,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: _buildMetricCard(
-                      icon: Icons.bolt,
-                      iconColor: Colors.amberAccent,
-                      value: '$sequenciaAtual',
-                      label: 'Sequência',
-                      labelColor: Colors.pinkAccent,
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: _buildMetricCard(
-                      icon: Icons.emoji_events,
-                      iconColor: Colors.amber,
-                      value: '$pontosHoje',
-                      label: 'Pts Hoje',
-                      labelColor: Colors.orangeAccent,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // Espaçamento
-            const SizedBox(height: 24),
-
-            // 3. Card Meta de Hoje
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: const Color(0xFF2D3139),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text(
-                    'Meta de Hoje',
-                    style: TextStyle(
-                      color: Color(0xFF00E676),
-                      fontSize: 26,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Align(
-                    alignment: Alignment.center,
-                    child: Text(
-                      '$pontosHoje/$metaHoje pts',
-                      style: const TextStyle(
-                        color: Color(0xFF00E676),
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
-                    child: LinearProgressIndicator(
-                      value: metaHoje > 0
-                          ? (pontosHoje / metaHoje).clamp(0.0, 1.0)
-                          : 0,
-                      minHeight: 16,
-                      backgroundColor: Colors.grey.shade700,
-                      valueColor: const AlwaysStoppedAnimation<Color>(
-                        Color(0xFF00E676),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-
-            // Espaçamento
-            const SizedBox(height: 24),
-
-            // 4. Botão Hora de Treinar
-            InkWell(
-              onTap: _iniciarTreino,
-              borderRadius: BorderRadius.circular(24),
-              child: Container(
-                padding: const EdgeInsets.symmetric(
-                  vertical: 20,
-                  horizontal: 16,
-                ),
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF2D3139),
-                  borderRadius: BorderRadius.circular(24),
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                child: Row(
+                child: Column(
                   children: [
-                    const Icon(
-                      Icons.fitness_center,
-                      size: 56,
-                      color: Color(0xFF00E676),
+                    const Text(
+                      'Pontos Totais',
+                      style: TextStyle(
+                        color: Color(0xFF8A5CF5),
+                        fontSize: 28,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                    const SizedBox(width: 16),
-                    Container(height: 50, width: 2, color: Colors.grey.shade600),
-                    const SizedBox(width: 16),
-                    const Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Hora de',
-                          style: TextStyle(
-                            color: Color(0xFF00E676),
-                            fontSize: 18,
-                          ),
-                        ),
-                        Text(
-                          'Treinar',
-                          style: TextStyle(
-                            color: Color(0xFF00E676),
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                      ],
+                    const SizedBox(height: 8),
+                    Text(
+                      '$pontosTotais pts',
+                      style: const TextStyle(
+                        color: Color(0xFF2196F3),
+                        fontSize: 36,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                    const Spacer(),
-                    const Icon(
-                      Icons.arrow_forward_ios,
-                      color: Color(0xFF00E676),
-                      size: 24,
+                    const SizedBox(height: 4),
+                    Text(
+                      '+$pontosSemana pts essa semana',
+                      style: const TextStyle(
+                        color: Color(0xFF64B5F6),
+                        fontSize: 16,
+                      ),
                     ),
                   ],
                 ),
+              ),
+
+              // Espaçamento
+              const SizedBox(height: 24),
+
+              // 2. Os 3 Cards de Métricas (com Altura Igual)
+              IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(
+                      child: _buildMetricCard(
+                        icon: Icons.star,
+                        iconColor: Colors.amber,
+                        value: '$maiorSequencia',
+                        label: 'Maior\nSequência',
+                        labelColor: Colors.amber,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _buildMetricCard(
+                        icon: Icons.bolt,
+                        iconColor: Colors.amberAccent,
+                        value: '$sequenciaAtual',
+                        label: 'Sequência',
+                        labelColor: Colors.pinkAccent,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _buildMetricCard(
+                        icon: Icons.emoji_events,
+                        iconColor: Colors.amber,
+                        value: '$pontosHoje',
+                        label: 'Pts Hoje',
+                        labelColor: Colors.orangeAccent,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Espaçamento
+              const SizedBox(height: 24),
+
+              // 3. Card Meta de Hoje
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF2D3139),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Meta de Hoje',
+                      style: TextStyle(
+                        color: Color(0xFF00E676),
+                        fontSize: 26,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Align(
+                      alignment: Alignment.center,
+                      child: Text(
+                        '$pontosHoje/$metaHoje pts',
+                        style: const TextStyle(
+                          color: Color(0xFF00E676),
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: LinearProgressIndicator(
+                        value: metaHoje > 0
+                            ? (pontosHoje / metaHoje).clamp(0.0, 1.0)
+                            : 0,
+                        minHeight: 16,
+                        backgroundColor: Colors.grey.shade700,
+                        valueColor: const AlwaysStoppedAnimation<Color>(
+                          Color(0xFF00E676),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Espaçamento
+              const SizedBox(height: 24),
+
+              // 4. Botão Hora de Treinar
+              InkWell(
+                onTap: _iniciarTreino,
+                borderRadius: BorderRadius.circular(24),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    vertical: 20,
+                    horizontal: 16,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF2D3139),
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(
+                        Icons.fitness_center,
+                        size: 56,
+                        color: Color(0xFF00E676),
+                      ),
+                      const SizedBox(width: 16),
+                      Container(height: 50, width: 2, color: Colors.grey.shade600),
+                      const SizedBox(width: 16),
+                      const Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Hora de',
+                            style: TextStyle(
+                              color: Color(0xFF00E676),
+                              fontSize: 18,
+                            ),
+                          ),
+                          Text(
+                            'Treinar',
+                            style: TextStyle(
+                              color: Color(0xFF00E676),
+                              fontSize: 32,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const Spacer(),
+                      const Icon(
+                        Icons.arrow_forward_ios,
+                        color: Color(0xFF00E676),
+                        size: 24,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              // Espaçamento
+              const SizedBox(height: 28),
+
+              // 5. Seção Comunidade & Competição (Atalhos para Leaderboard e Amigos)
+              const Text(
+                'Comunidade & Desafios',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 14),
+
+              Row(
+                children: [
+                  // Card Leaderboard
+                  Expanded(
+                    child: _buildShortcutCard(
+                      icon: Icons.emoji_events,
+                      iconColor: const Color(0xFFFFD700),
+                      title: 'Classificação',
+                      subtitle: 'Ver Ranking',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const LeaderboardScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  // Card Amigos
+                  Expanded(
+                    child: _buildShortcutCard(
+                      icon: Icons.group,
+                      iconColor: const Color(0xFF00E676),
+                      title: 'Amigos',
+                      subtitle: 'Ver Conexões',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const AmigosScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 16),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildShortcutCard({
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required String subtitle,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 14),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1E232A),
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: Colors.white10),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: iconColor.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, color: iconColor, size: 28),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              title,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              subtitle,
+              style: const TextStyle(
+                color: Colors.white54,
+                fontSize: 12,
               ),
             ),
           ],
         ),
       ),
-    ),
-  );
-}
+    );
+  }
 
   Widget _buildMetricCard({
     required IconData icon,

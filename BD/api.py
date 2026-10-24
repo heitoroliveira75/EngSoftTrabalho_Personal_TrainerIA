@@ -110,6 +110,13 @@ class AtualizarChecagemRequest(BaseModel):
     usuario_id: str
     checagem: bool = Field(description="Status booleano da checagem")
 
+class SolicitarAmizadeRequest(BaseModel):
+    usuario_id: str
+    amigo_id: str
+
+class ResponderSolicitacaoRequest(BaseModel):
+    status: str = Field(..., pattern="^(aceito|recusado)$")
+
 # ============================================================
 # ROTAS - STATUS DA API
 # ============================================================
@@ -370,6 +377,78 @@ def api_resetar_checagem(usuario_id: str):
     """
     resposta = bd.resetar_checagem_diaria(usuario_id=usuario_id)
     return resposta
+
+# ============================================================
+# ============================================================
+# SISTEMA DE AMIZADES
+# ============================================================
+
+@app.get("/amigos/buscar")
+def api_buscar_usuarios(nome: str = Query(...), usuario_id: Optional[str] = Query(None)):
+    """
+    Busca usuários cadastrados por aproximação de nome.
+    """
+    return bd.buscar_usuarios(nome=nome, usuario_atual_id=usuario_id)
+
+@app.post("/amigos/solicitar")
+def api_enviar_solicitacao(req: SolicitarAmizadeRequest):
+    """
+    Envia uma nova solicitação de amizade.
+    """
+    return bd.enviar_solicitacao_amizade(usuario_id=req.usuario_id, amigo_id=req.amigo_id)
+
+@app.get("/amigos/solicitacoes/pendentes")
+def api_listar_solicitacoes_pendentes(usuario_id: str = Query(...)):
+    """
+    Lista solicitações de amizade pendentes recebidas pelo usuário.
+    """
+    return bd.listar_solicitacoes_pendentes(usuario_id=usuario_id)
+
+@app.patch("/amigos/solicitacoes/{solicitacao_id}")
+def api_responder_solicitacao(solicitacao_id: str, req: ResponderSolicitacaoRequest):
+    """
+    Aceita ou recusa uma solicitação de amizade pendente.
+    """
+    return bd.responder_solicitacao(solicitacao_id=solicitacao_id, novo_status=req.status)
+
+@app.get("/amigos/")
+def api_listar_amigos(usuario_id: str = Query(...)):
+    """
+    Retorna a lista de amigos confirmados do usuário.
+    """
+    return bd.listar_amigos(usuario_id=usuario_id)
+
+@app.delete("/amigos/{amigo_id}")
+def api_remover_amigo(amigo_id: str, usuario_id: str = Query(...)):
+    """
+    Remove o vínculo de amizade entre o usuário logado e o amigo indicado.
+    """
+    return bd.remover_amigo(usuario_id=usuario_id, amigo_id=amigo_id)
+
+# ============================================================
+# SISTEMA DE LEADERBOARD
+# ============================================================
+
+@app.get("/leaderboard/global")
+def api_obter_leaderboard_global(limite: int = Query(50, ge=1, le=200)):
+    """
+    Retorna o ranking global dos usuários ordenados por pontuação semanal e streak.
+    """
+    return bd.obter_leaderboard_global(limite=limite)
+
+@app.get("/leaderboard/amigos")
+def api_obter_leaderboard_amigos(usuario_id: str = Query(...)):
+    """
+    Retorna o ranking restrito ao usuário e seu círculo de amigos aceitos.
+    """
+    return bd.obter_leaderboard_amigos(usuario_id=usuario_id)
+
+@app.get("/leaderboard/minha-posicao")
+def api_obter_minha_posicao_global(usuario_id: str = Query(...)):
+    """
+    Retorna a posição ordinal exata do usuário no ranking global.
+    """
+    return bd.obter_minha_posicao_global(usuario_id=usuario_id)
 
 # ============================================================
 # EXECUÇÃO DIRETA
