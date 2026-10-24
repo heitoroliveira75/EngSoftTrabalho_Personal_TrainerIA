@@ -206,40 +206,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   ],
                 ),
 
-                const SizedBox(height: 24),
-
-                // Botão Continuar com Google
-                _buildSocialButton(
-                  text: 'Continuar com o Google',
-                  icon: const Icon(
-                    Icons.g_mobiledata_rounded,
-                    color: Colors.redAccent,
-                    size: 28,
-                  ),
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Login social em desenvolvimento.'),
-                      ),
-                    );
-                  },
-                ),
-
-                const SizedBox(height: 12),
-
-                // Botão Continuar com Apple
-                _buildSocialButton(
-                  text: 'Continuar com a Apple',
-                  icon: const Icon(Icons.apple, color: Colors.black, size: 22),
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('Login social em desenvolvimento.'),
-                      ),
-                    );
-                  },
-                ),
-
                 const SizedBox(height: 36),
 
                 // Rodapé "Não possui uma conta? Crie uma conta"
