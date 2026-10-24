@@ -76,7 +76,12 @@ Estes arquivos compõem a frente de trabalho imediata da branch, recebendo teste
 | [`./calculo_angulos.py`](./calculo_angulos.py) | Cálculo vetorial 2D de ângulos articulares em $[0^\circ, 180^\circ]$, checagem de visibilidade de marcos e **cálculo de deltas angulares com âncora de ruído** (`calcular_deltas_angulares`), eliminando a perda de detecção em cadências lentas. | `MAPA_ARTICULACOES`, `calcular_angulo()`, `extrair_angulos_exercicio()`, `calcular_deltas_angulares()` | **Em Desenvolvimento Ativo (Concluído na `TASK-02`)** |
 | [`./exercicios_fsm.py`](./exercicios_fsm.py) | Máquinas de Estados Finitos com **acumulador de erros por repetição** (`consumir_erros_repeticao`), penalidades por exercício (`PENALIDADES_ERRO`), checagens sem mascaramento e catálogo extensível (`obter_config_exercicio`). | `ExercicioBaseFSM`, `DesenvolvimentoOmbro`, `Agachamento`, `RoscaBiceps`, `CATALOGO_EXERCICIOS`, `obter_config_exercicio()` | **Em Desenvolvimento Ativo (Concluído na `TASK-03`)** |
 | [`./dtw_evaluator.py`](./dtw_evaluator.py) | Motor único de alinhamento temporal multivariado vetorizado via NumPy 3D *broadcasting*, restrição dinâmica de Sakoe-Chiba, tolerância $\tau$ e contrato `@dataclass DTWResult` com suporte a tupla e degradação graciosa. | `DTWComparator`, `DTWResult`, `DTW` | **Em Desenvolvimento Ativo (Concluído na `TASK-04`)** |
-| [`tests/test_pipeline_pontuacao.py`](tests/test_pipeline_pontuacao.py) | Suíte de testes automatizados com `pytest` cobrindo geometria, deltas acumulados em repetições lentas, transições de fase, retenção de erros e DTW vetorizado com Sakoe-Chiba. | Testes unitários puros sem dependência de hardware | **Em Desenvolvimento Ativo (16 testes aprovados)** |
+| [`./buffer_repeticao.py`](./buffer_repeticao.py) | Acumulador de fotogramas e segmentador canônico de repetições com cálculo automático de deltas com âncora de ruído e interface polimórfica. | `BufferRepeticao`, `extrair_primeira_repeticao()` | **Em Desenvolvimento Ativo (Concluído na `TASK-05`)** |
+| [`./gabarito.py`](./gabarito.py) | Persistência, carregamento JSON e geração de curvas de referência padrão ouro com recorte idêntico ao do aluno via FSM canônica. | `GabaritoExercicio`, `garantir_gabaritos_padrao()` | **Em Desenvolvimento Ativo (Concluído na `TASK-05`)** |
+| [`./avaliador_pontuacao.py`](./avaliador_pontuacao.py) | Motor central de pontuação (`ResultadoPontuacaoRepeticao`), laudos pedagógicos hierárquicos, gamificação e `OrquestradorSessao` com interface **frame a frame**. | `calcular_pontuacao()`, `OrquestradorSessao`, `ResultadoPontuacaoRepeticao`, `ResumoPontuacaoSessao` | **Em Desenvolvimento Ativo (Concluído na `TASK-06`)** |
+| [`tests/test_pipeline_pontuacao.py`](tests/test_pipeline_pontuacao.py) | Suíte de testes automatizados com `pytest` cobrindo geometria, deltas acumulados, transições de fase, retenção de erros, DTW vetorizado, segmentação canônica e orquestração de sessão. | Testes unitários puros sem dependência de hardware | **Em Desenvolvimento Ativo (28 testes aprovados)** |
+
+
 | [`./pytest.ini`](./pytest.ini) | Configuração de execução do `pytest` com inclusão automática do diretório raiz no `pythonpath`. | Configuração de testes | **Ativo** |
 | [`./requirements.txt`](./requirements.txt) | Especificação das dependências oficiais da branch `IA` (`numpy`, `opencv-python`, `mediapipe`, `pytest`). | Gerenciamento de ambiente | **Ativo** |
 
@@ -88,13 +93,12 @@ Módulos existentes no repositório que serão integrados e padronizados nas pr�
 
 | Arquivo Relativo | Responsabilidade no Pipeline | Próxima Task da Sprint | Observações Técnicas |
 | :--- | :--- | :--- | :--- |
-| [`./buffer_repeticao.py`](./buffer_repeticao.py) | Acumulador de vetores de ângulos durante as fases ativas da FSM (`fase != 0`). | **`[TASK-05]`** | Receberá a função utilitária `extrair_primeira_repeticao()` para corte canônico. |
-| [`./gabarito.py`](./gabarito.py) | Persistência e geração sintética de curvas de referência JSON. | **`[TASK-05]`** | Terá suas curvas recortadas pelo mesmo segmentador do aluno para garantir nota 100.0 em execuções ideais. |
-| [`./avaliador_pontuacao.py`](./avaliador_pontuacao.py) *(a ser criado)* | Motor central de pontuação (`ResultadoPontuacaoRepeticao`) e `OrquestradorSessao` com interface de processamento **frame a frame**. | **`[TASK-06]`** | Núcleo da US-01: unifica FSM, DTW e notas para consumo de outros módulos externos. |
 | [`./comparar_exercicio.py`](./comparar_exercicio.py) | CLI para avaliar vídeos gravados (`.mp4`) contra especialista. | **`[TASK-07]`** | Terá o bug de assinatura de `ExtratorVideo` corrigido e migrará para o orquestrador. |
+| [`./extrator_video.py`](./extrator_video.py) | Extrai séries temporais de vídeos `.mp4` em modo `IMAGE`. | **`[TASK-07]`** | Já utiliza o segmentador canônico (`TASK-05`) e será conectado ao orquestrador. |
 | [`./exemplo_integracao.py`](./exemplo_integracao.py) | Script de demonstração sintética sem webcam. | **`[TASK-08]`** | Migrará para o `OrquestradorSessao` oficial. |
 | [`./app_tempo_real.py`](./app_tempo_real.py) | Aplicação em tempo real com webcam, desenho de esqueleto e HUD OpenCV. | **`[TASK-09]`** | Migrará do loop manual para o orquestrador unificado frame a frame. |
-| [`./extrator_video.py`](./extrator_video.py) | Extrai séries temporais de vídeos `.mp4` em modo `IMAGE`. | **`[TASK-05]` e `[TASK-07]`** | Utilizará o segmentador canônico. |
+
+
 
 ---
 

@@ -146,6 +146,15 @@ class TestExerciciosFSM:
 
 
 from dtw_evaluator import DTWComparator, DTWResult, DTW
+from buffer_repeticao import extrair_primeira_repeticao
+from gabarito import GabaritoExercicio, garantir_gabaritos_padrao
+from avaliador_pontuacao import (
+    calcular_pontuacao,
+    OrquestradorSessao,
+    ResultadoPontuacaoRepeticao,
+    ResumoPontuacaoSessao,
+)
+
 
 
 class TestDTWEvaluator:
@@ -257,3 +266,275 @@ class TestDTWEvaluator:
         dtw = DTW()
         res = dtw.calcular(serie, serie)
         assert res.score_similaridade == 100.0
+
+
+class TestSegmentadorCanonicoEGabarito:
+    def _gerar_curva_ombro_com_margens(self, frames_movimento=45, margem_inicio=8, margem_fim=8):
+        t = np.linspace(0, np.pi, frames_movimento)
+        serie: list = []
+        for _ in range(margem_inicio):
+            serie.append({"cotovelo": 90.0, "ombro": 80.0})
+        for val in t:
+            serie.append({
+                "cotovelo": float(90.0 + 75.0 * np.sin(val)),
+                "ombro": float(80.0 + 75.0 * np.sin(val)),
+            })
+        for _ in range(margem_fim):
+            serie.append({"cotovelo": 90.0, "ombro": 80.0})
+        return serie
+
+    def test_extrair_primeira_repeticao_recorta_margens_corretamente(self):
+        serie = self._gerar_curva_ombro_com_margens(frames_movimento=45, margem_inicio=10, margem_fim=10)
+        rep = extrair_primeira_repeticao(
+            fsm_ou_id="desenvolvimento_ombro",
+            serie_angulos=serie,
+            lancar_excecao=True,
+        )
+
+        assert rep is not None
+        assert isinstance(rep, np.ndarray)
+        assert rep.ndim == 2
+        assert rep.shape[1] == 2  # [cotovelo, ombro]
+        # O total de frames extraídos é menor que o total bruto (cortou os repousos inicial e final)
+        assert rep.shape[0] < len(serie)
+        # O primeiro frame capturado após a transição 0 -> 1 deve ter cotovelo > 100 graus
+        assert rep[0, 0] > 100.0
+
+    def test_extrair_primeira_repeticao_polimorfismo(self):
+        serie = self._gerar_curva_ombro_com_margens(frames_movimento=45, margem_inicio=5, margem_fim=5)
+
+        # 1. Por ID textual
+        rep1 = extrair_primeira_repeticao("desenvolvimento_ombro", serie_angulos=serie)
+        # 2. Por tecla rápida
+        rep2 = extrair_primeira_repeticao("1", serie_angulos=serie)
+        # 3. Por classe FSM com articulações explícitas
+        rep3 = extrair_primeira_repeticao(DesenvolvimentoOmbro, articulacoes=["cotovelo", "ombro"], serie_angulos=serie)
+        # 4. Por instância já criada
+        fsm_inst = DesenvolvimentoOmbro()
+        rep4 = extrair_primeira_repeticao(fsm_inst, articulacoes=["cotovelo", "ombro"], serie_angulos=serie)
+
+        assert rep1 is not None and rep2 is not None and rep3 is not None and rep4 is not None
+        assert np.array_equal(rep1, rep2)
+        assert np.array_equal(rep1, rep3)
+        assert np.array_equal(rep1, rep4)
+
+    def test_extrair_primeira_repeticao_degradacao_graciosa_vs_excecao(self):
+        # Série incompleta (apenas a fase de subida, interrompida no topo)
+        t = np.linspace(0, np.pi / 2, 20)
+        serie_incompleta = [{"cotovelo": float(90.0 + 75.0 * np.sin(val)), "ombro": 80.0} for val in t]
+
+        # 1. Modo gracioso (padrão) -> retorna None
+        rep_gracioso = extrair_primeira_repeticao(
+            "desenvolvimento_ombro",
+            serie_angulos=serie_incompleta,
+            lancar_excecao=False,
+        )
+        assert rep_gracioso is None
+
+        # 2. Modo com exceção -> levanta ValueError
+        with pytest.raises(ValueError, match="Nenhuma repetição completa"):
+            extrair_primeira_repeticao(
+                "desenvolvimento_ombro",
+                serie_angulos=serie_incompleta,
+                lancar_excecao=True,
+            )
+
+        # 3. Série vazia
+        assert extrair_primeira_repeticao("desenvolvimento_ombro", serie_angulos=[]) is None
+        with pytest.raises(ValueError, match="está vazia"):
+            extrair_primeira_repeticao("desenvolvimento_ombro", serie_angulos=[], lancar_excecao=True)
+
+    def test_gabaritos_carregamento_e_score_100_autoconsistencia(self):
+        """
+        Critério de Pronto (DoD) da TASK-05 e Fundação do AC1:
+        Os gabaritos padronizados carregados do disco comparados contra si mesmos
+        ou contra uma execução ideal extraída com a FSM canônica devem atingir nota máxima (100.0%).
+        """
+        # Garante que os gabaritos existem e estão sincronizados
+        garantir_gabaritos_padrao(sobrescrever=False)
+        dtw = DTWComparator(tolerancia=15.0)
+
+        exercicios = [
+            ("gabarito_especialista_ombro.json", ["cotovelo", "ombro"]),
+            ("gabarito_especialista_agachamento.json", ["joelho", "quadril"]),
+            ("gabarito_especialista_rosca.json", ["cotovelo", "ombro"]),
+        ]
+
+        for arq, arts in exercicios:
+            gab = GabaritoExercicio.carregar_json(arq)
+            assert gab.articulacoes == arts
+            assert gab.total_frames >= 20
+
+            # DTW contra si mesmo
+            res = dtw.compute(gab.dados, gab.dados, nomes_articulacoes=arts)
+            assert res.valido is True
+            assert pytest.approx(res.distancia_total, abs=1e-3) == 0.0
+            assert pytest.approx(res.distancia_normalizada, abs=1e-3) == 0.0
+            assert res.score_similaridade == 100.0
+            for art in arts:
+                assert pytest.approx(res.desvios_por_articulacao[art], abs=1e-3) == 0.0
+
+    def test_execucao_ideal_do_aluno_atinge_100_contra_gabarito(self):
+        """
+        Valida que o problema diagnosticado no PLANO_SPRINT_US01 (Problema 5) foi sanado:
+        Uma execução do aluno com repouso antes e depois do movimento, ao ser recortada
+        pela FSM canônica, produz a mesma matriz do gabarito e atinge score 100%.
+        """
+        gab_ombro = GabaritoExercicio.carregar_json("gabarito_especialista_ombro.json")
+
+        # Aluno faz a repetição com 15 frames de repouso antes e 15 depois
+        serie_aluno = self._gerar_curva_ombro_com_margens(frames_movimento=45, margem_inicio=15, margem_fim=15)
+        rep_aluno = extrair_primeira_repeticao("desenvolvimento_ombro", serie_angulos=serie_aluno, lancar_excecao=True)
+
+        dtw = DTWComparator(tolerancia=15.0)
+        res = dtw.compute(gab_ombro.dados, rep_aluno, nomes_articulacoes=["cotovelo", "ombro"])
+
+        assert res.valido is True
+        assert res.score_similaridade == 100.0
+        assert pytest.approx(res.distancia_normalizada, abs=1e-3) == 0.0
+
+
+class TestOrquestradorEAvaliadorPontuacao:
+    def _criar_frames_desenvolvimento(self, n_mov=45, margem=5, desvio_ombro=0.0):
+        t = np.linspace(0, np.pi, n_mov)
+        frames = []
+        for _ in range(margem):
+            frames.append({"cotovelo": 90.0, "ombro": 80.0 + desvio_ombro})
+        for val in t:
+            frames.append({
+                "cotovelo": float(90.0 + 75.0 * np.sin(val)),
+                "ombro": float(80.0 + 75.0 * np.sin(val) + desvio_ombro),
+            })
+        for _ in range(margem):
+            frames.append({"cotovelo": 90.0, "ombro": 80.0 + desvio_ombro})
+        return frames
+
+    def test_calcular_pontuacao_execucao_perfeita(self):
+        gab = GabaritoExercicio.carregar_json("gabarito_especialista_ombro.json")
+        conf = {"classe_fsm": DesenvolvimentoOmbro}
+        res = calcular_pontuacao(
+            dados_usuario=gab.dados,
+            gabarito=gab,
+            erros_fsm=[],
+            fsm_ou_config=conf,
+            numero_repeticao=1,
+        )
+
+        assert isinstance(res, ResultadoPontuacaoRepeticao)
+        assert res.numero_repeticao == 1
+        assert res.score_dtw == 100.0
+        assert res.penalidade_fsm == 0.0
+        assert res.score_final == 100.0
+        assert res.aprovado is True
+        assert res.classificacao == "EXCELENTE"
+        assert res.erros_fsm == []
+        assert "Excelente" in res.feedback_principal
+
+    def test_calcular_pontuacao_com_penalidade_fsm_e_deduplicacao(self):
+        gab = GabaritoExercicio.carregar_json("gabarito_especialista_ombro.json")
+        conf = {"classe_fsm": DesenvolvimentoOmbro}
+        # Simula ocorrência múltipla do mesmo erro postural durante o ciclo
+        erros = ["OMBRO_CAIDO", "OMBRO_CAIDO", "OMBRO_CAIDO"]
+        res = calcular_pontuacao(
+            dados_usuario=gab.dados,
+            gabarito=gab,
+            erros_fsm=erros,
+            fsm_ou_config=conf,
+            numero_repeticao=2,
+        )
+
+        # Penalidade de OMBRO_CAIDO = 15.0 pts (deduplicado uma única vez)
+        assert res.penalidade_fsm == 15.0
+        assert res.score_final == 85.0
+        assert res.aprovado is True
+        assert res.classificacao == "EXCELENTE"
+        assert len(res.erros_fsm) == 1
+        assert "ombros alinhados" in res.feedback_principal.lower()
+
+    def test_calcular_pontuacao_incompletude_reprovacao(self):
+        gab = GabaritoExercicio.carregar_json("gabarito_especialista_ombro.json")
+        conf = {"classe_fsm": DesenvolvimentoOmbro}
+        # Incompletude subtrai 25 pontos
+        erros = ["REPETICAO_INCOMPLETA"]
+        res = calcular_pontuacao(
+            dados_usuario=gab.dados,
+            gabarito=gab,
+            erros_fsm=erros,
+            fsm_ou_config=conf,
+            numero_repeticao=3,
+        )
+
+        # 100 - 25 = 75.0. Com tolerância de aprovação 70.0 -> Aprovado no limiar
+        assert res.penalidade_fsm == 25.0
+        assert res.score_final == 75.0
+        assert "subida interrompida" in res.feedback_principal.lower()
+
+    def test_orquestrador_processar_frame_fluxo_completo(self):
+        orq = OrquestradorSessao("desenvolvimento_ombro")
+        frames = self._criar_frames_desenvolvimento(n_mov=45, margem=5)
+
+        res_rep_final = None
+        for frame in frames:
+            alerta, res_rep = orq.processar_frame(angulos=frame, visivel=True)
+            if res_rep is not None:
+                res_rep_final = res_rep
+
+        assert res_rep_final is not None
+        assert res_rep_final.score_final >= 95.0
+        assert res_rep_final.aprovado is True
+        assert len(orq.historico_repeticoes) == 1
+
+    def test_orquestrador_resumo_sessao_e_gamificacao(self):
+        orq = OrquestradorSessao("1")
+        frames_ideal = self._criar_frames_desenvolvimento(n_mov=45, margem=4)
+
+        # Executa 2 repetições ideais
+        for _ in range(2):
+            for frame in frames_ideal:
+                orq.processar_frame(frame, visivel=True)
+
+        resumo = orq.gerar_resumo_sessao()
+        assert isinstance(resumo, ResumoPontuacaoSessao)
+        assert resumo.id_exercicio == "desenvolvimento_ombro"
+        assert resumo.total_repeticoes == 2
+        assert resumo.repeticoes_aprovadas == 2
+        assert resumo.repeticoes_reprovadas == 0
+        assert resumo.taxa_aprovacao == 100.0
+        assert resumo.score_medio >= 95.0
+        # Pontos de gamificação: soma das notas / 10
+        assert resumo.pontos_gamificacao >= 19.0
+        assert "consistência técnica" in resumo.recomendacao_prioritaria.lower()
+
+    def test_orquestrador_tolerancia_e_reset_perda_visao(self):
+        orq = OrquestradorSessao("desenvolvimento_ombro", limite_frames_invisivel=10)
+
+        # 1. Poucos frames de invisibilidade (tolerância transitória)
+        alerta, res = orq.processar_frame({"cotovelo": 90.0, "ombro": 80.0}, visivel=False)
+        assert alerta == "ATENÇÃO: Articulação fora de visão"
+        assert res is None
+
+        # 2. Invisibilidade prolongada excedendo o limite (> 10 frames)
+        for _ in range(12):
+            alerta, res = orq.processar_frame({"cotovelo": 90.0, "ombro": 80.0}, visivel=False)
+
+        assert "Visão perdida por muito tempo" in alerta
+        assert res is None
+        assert orq.buffer.frames_atuais == []
+
+    def test_orquestrador_trocar_exercicio_e_reiniciar_serie(self):
+        orq = OrquestradorSessao("desenvolvimento_ombro")
+        assert orq.id_exercicio == "desenvolvimento_ombro"
+        assert orq.articulacoes == ["cotovelo", "ombro"]
+
+        # Troca para Agachamento
+        orq.trocar_exercicio("2")
+        assert orq.id_exercicio == "agachamento"
+        assert orq.articulacoes == ["joelho", "quadril"]
+        assert orq.gabarito.nome_exercicio == "agachamento"
+
+        # Reiniciar série
+        orq.reiniciar_serie()
+        assert len(orq.historico_repeticoes) == 0
+        assert orq.fsm.repeticoes == 0
+
+

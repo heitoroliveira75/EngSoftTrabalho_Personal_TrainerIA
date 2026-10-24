@@ -145,35 +145,36 @@ Nenhum consumidor calcula deltas, DTW ou notas manualmente.
 - **Critério de Pronto (DoD):** 16/16 testes aprovados no `pytest` (100% de sucesso em 0.55s).
 - **Commit Previsto:** `feat(dtw): implementa DTWComparator vetorizado com Sakoe-Chiba e DTWResult`
 
-### `[TASK-05]` Segmentador Canônico e Recorte Uniforme de Gabaritos (`buffer_repeticao.py`, `gabarito.py`, `extrator_video.py`) — **[PENDENTE]**
-- **Status:** ⏳ **Pendente** (Próxima da fila ao retomar)
+### `[TASK-05]` Segmentador Canônico e Recorte Uniforme de Gabaritos (`buffer_repeticao.py`, `gabarito.py`, `extrator_video.py`) — **[CONCLUÍDA]**
+- **Status:** ✅ **Concluída**
 - **Objetivo:** Garantir que o gabarito padrão e as repetições do usuário passem exatamente pelo mesmo recorte temporal da FSM, eliminando a penalidade espúria em movimentos perfeitos.
-- **Escopo Técnico:**
-  - Criar função utilitária em `buffer_repeticao.py`:
+- **Escopo Executado:**
+  - Criada em `buffer_repeticao.py` a função polimórfica:
     ```python
-    def extrair_primeira_repeticao(classe_fsm, articulacoes: List[str], serie_angulos: List[Dict[str, float]]) -> Optional[np.ndarray]
+    def extrair_primeira_repeticao(fsm_ou_id, articulacoes=None, serie_angulos=None, lancar_excecao=False) -> Optional[np.ndarray]
     ```
-  - Refatorar `extrator_video.py` para utilizar `extrair_primeira_repeticao()`, eliminando código duplicado.
-  - Atualizar `gabarito.py` para recortar as curvas senoidais com `extrair_primeira_repeticao()` antes de salvar os JSONs.
-  - Regenerar os 3 arquivos `gabarito_especialista_*.json`.
-  - Adicionar teste em `tests/test_pipeline_pontuacao.py` comprovando que o gabarito confrontado contra si mesmo atinge `score == 100.0%`.
-- **Critério de Pronto (DoD):** Execução ideal resulta em nota máxima 100 no teste automatizado.
+    que calcula deltas automaticamente via `calcular_deltas_angulares()`, aceita classe, instância ou ID textual/numérico do exercício e suporta degradação graciosa (`None` vs `ValueError`).
+  - Atualizado `extrator_video.py` para usar `extrair_primeira_repeticao()` e suportar identificadores por chave ou nome amigável via `obter_config_exercicio()`.
+  - Atualizado `gabarito.py` com parâmetro `sobrescrever: bool = False`, recortando curvas com a FSM canônica com margens de repouso no início e no fim.
+  - Regenerados os 3 arquivos oficiais: `gabarito_especialista_ombro.json`, `gabarito_especialista_agachamento.json` e `gabarito_especialista_rosca.json`.
+  - Adicionados 5 novos testes unitários e de integração em `tests/test_pipeline_pontuacao.py`, comprovando isolamento de margens, autoconsistência com 100% de score no DTW contra o gabarito e retrocompatibilidade (21/21 testes aprovados).
+- **Critério de Pronto (DoD):** Execução ideal resulta em nota máxima 100 no teste automatizado (100% dos 21 testes aprovados no `pytest`).
 - **Commit Previsto:** `fix(gabarito): recorta gabaritos com o mesmo segmentador da execucao do aluno`
 
-### `[TASK-06]` Implementação do Motor de Pontuação e Orquestrador de Sessão Multi-Exercício (`avaliador_pontuacao.py`) — **[PENDENTE]**
-- **Status:** ⏳ **Pendente**
+
+### `[TASK-06]` Implementação do Motor de Pontuação e Orquestrador de Sessão Multi-Exercício (`avaliador_pontuacao.py`) — **[CONCLUÍDA]**
+- **Status:** ✅ **Concluída**
 - **Objetivo:** Entregar o núcleo da `US-01`: cálculo padronizado da pontuação e gerenciamento desacoplado da sessão de treino para qualquer exercício do catálogo, com suporte nativo a processamento fotograma por fotograma enviado por outros módulos do projeto.
-- **Escopo Técnico:**
-  - Criar `avaliador_pontuacao.py`:
-    - `@dataclass ResultadoPontuacaoRepeticao`: nota final, score DTW, penalidade, lista de erros, mensagens traduzidas, desvios por articulação, amplitudes, cadência, classificação e feedback motivacional/biomecânico.
-    - `@dataclass ResumoPontuacaoSessao`: total de repetições, contagem de aprovadas, média da série, recomendação prioritária e histórico.
-    - Função pura `calcular_pontuacao(...)`: aplica as regras da Seção 3.1.
-    - Classe `OrquestradorSessao(identificador_exercicio: str)`: carrega o exercício por chave (`"1"`, `"2"`, `"3"`) ou ID cadastral (`"desenvolvimento_ombro"`, `"agachamento"`, `"rosca_biceps"`).
-    - Método `processar_frame(angulos: Dict[str, float], visivel: bool = True) -> Tuple[Optional[str], Optional[ResultadoPontuacaoRepeticao]]`.
-    - Método `gerar_resumo_sessao() -> ResumoPontuacaoSessao`.
-  - Adicionar testes de pontuação e orquestração em `tests/test_pipeline_pontuacao.py`.
-- **Critério de Pronto (DoD):** Orquestrador processa fluxos completos de repetições com testes automatizados passando.
+- **Escopo Executado:**
+  - Criado `avaliador_pontuacao.py`:
+    - `@dataclass ResultadoPontuacaoRepeticao`: armazena `score_final`, `score_dtw`, `penalidade_fsm`, `aprovado`, `classificacao`, `erros_fsm`, `mensagens_erros_fsm`, `desvios_por_articulacao`, `amplitudes_usuario`, `amplitudes_gabarito`, `razao_cadencia` e `feedback_principal` hierárquico.
+    - `@dataclass ResumoPontuacaoSessao`: consolida `total_repeticoes`, `repeticoes_aprovadas`, `repeticoes_reprovadas`, `taxa_aprovacao`, `score_medio`, `pontos_gamificacao` ($\sum \frac{S_{\text{final}}}{10}$) e `recomendacao_prioritaria` baseada no erro mais frequente.
+    - Função pura `calcular_pontuacao(...)`: aplica penalidades por erros únicos da FSM sobre o score DTW e gera o feedback biomecânico estruturado.
+    - Classe `OrquestradorSessao`: gerencia o pipeline frame a frame com cálculo de deltas via âncora de ruído, tolerância com pausa para oclusões transitórias e reinício de repetição para perda de visão prolongada (> 30 frames), além dos métodos `reiniciar_serie()` e `trocar_exercicio()`.
+  - Adicionados 7 novos testes unitários e de integração em `tests/test_pipeline_pontuacao.py` validando execução ideal, deduplicação de penalidades FSM, reprovação por incompletude, fluxo completo de frames, resumo da série com gamificação, perda de visão e troca de exercício (28/28 testes aprovados).
+- **Critério de Pronto (DoD):** Orquestrador processa fluxos completos de repetições com 100% de sucesso nos 28 testes automatizados do `pytest`.
 - **Commit Previsto:** `feat(pontuacao): cria avaliador_pontuacao com regra de nota e orquestrador de sessao`
+
 
 ### `[TASK-07]` Integração no Comparador de Vídeo CLI (`comparar_exercicio.py`, `extrator_video.py`) — **[PENDENTE]**
 - **Status:** ⏳ **Pendente**
@@ -242,9 +243,9 @@ Nenhum consumidor calcula deltas, DTW ou notas manualmente.
 | **3º** | `TASK-02` | ✅ Concluída | `7151ad3` | `correção cálculo de ângulos` | `calculo_angulos.py` (`calcular_deltas_angulares`), criação de `pytest.ini` e `tests/test_pipeline_pontuacao.py` (5 testes unitários) |
 | **4º** | `TASK-03` | ✅ Concluída | `f085106` | `acumula erros por repeticao e define penalidades por exercicio` | `exercicios_fsm.py` (acumulador, penalidades, sem mascaramento `elif`, `obter_config_exercicio`), expansão em `tests/` (9 testes no total) |
 | **—** | *Doc/Log* | ✅ Concluída | `1c6ccf6` | `atualização de logs e contexto` | Sincronização de `DEVLOG.md` (`[Entrada #002]`) e `CONTEXTO_IA.md` na pausa de sprint |
-| **5º** | `TASK-04` | ✅ Concluída | — | `feat(dtw): implementa DTWComparator vetorizado com Sakoe-Chiba e DTWResult` | `dtw_evaluator.py`, 7 novos testes em `tests/test_pipeline_pontuacao.py` (16/16 aprovados no pytest) |
-| **6º** | `TASK-05` | ⏳ Pendente | — | `fix(gabarito): recorta gabaritos com o mesmo segmentador da execucao do aluno` | `buffer_repeticao.py`, `extrator_video.py`, `gabarito.py`, `*.json`, testes |
-| **7º** | `TASK-06` | ⏳ Pendente | — | `feat(pontuacao): cria avaliador_pontuacao com regra de nota e orquestrador de sessao` | criação de `avaliador_pontuacao.py` com interface frame a frame, testes |
+| **5º** | `TASK-04` | ✅ Concluída | `d02ac24` | `Resolução da Task 04` | `dtw_evaluator.py`, 7 novos testes em `tests/test_pipeline_pontuacao.py` (16/16 aprovados no pytest) |
+| **6º** | `TASK-05` | ✅ Concluída | — | `fix(gabarito): recorta gabaritos com o mesmo segmentador da execucao do aluno` | `buffer_repeticao.py`, `extrator_video.py`, `gabarito.py`, `*.json`, 5 novos testes (21/21 aprovados) |
+| **7º** | `TASK-06` | ✅ Concluída | — | `feat(pontuacao): cria avaliador_pontuacao com regra de nota e orquestrador de sessao` | criação de `avaliador_pontuacao.py` com interface frame a frame, 7 testes (28/28 aprovados) |
 | **8º** | `TASK-07` | ⏳ Pendente | — | `fix(cli): corrige extrator e integra comparar_exercicio ao orquestrador` | `comparar_exercicio.py`, `extrator_video.py` |
 | **9º** | `TASK-08` | ⏳ Pendente | — | `refactor(demo): migra exemplo_integracao para o orquestrador e remove wrappers DTW` | `exemplo_integracao.py`, limpeza em `dtw_evaluator.py` |
 | **10º** | `TASK-09` | ⏳ Pendente | — | `refactor(webcam): integra app_tempo_real ao orquestrador e remove dtw_inicial` | `app_tempo_real.py`, aposentadoria de `dtw_inicial.py` |

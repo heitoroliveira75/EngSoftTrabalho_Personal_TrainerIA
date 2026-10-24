@@ -135,14 +135,22 @@ Por isso, o sistema foi estruturado para ser totalmente desacoplado de webcam f�
 3. **Lentidão do DTW e Ausência de Janela Temporal (Resolvido na `TASK-04`):**
    * *O problema:* O DTW legado rodava laços `for` em Python puro ($N \times M$ iterações), consumindo CPU em repetições longas, e não possuía banda de restrição, permitindo distorções temporais irreais.
    * *A solução:* O novo `dtw_evaluator.py` utiliza vetorização em C com NumPy 3D *broadcasting*, restrição dinâmica de Sakoe-Chiba, dataclass `DTWResult` com suporte a desempacotamento de tupla e proteção contra travamentos via degradação graciosa.
-4. **Bateria de Testes Unitários Automatizados (`TASK-02`, `TASK-03`, `TASK-04`):**
-   * Agora temos uma suíte formal com `pytest` e 16 testes cobrindo todo o pipeline matemático sem depender de câmera aberta.
+4. **Alinhamento Canônico de Gabaritos e Buffer (Resolvido na `TASK-05`):**
+   * *O problema:* Os gabaritos continham repouso excessivo além da transição inicial da FSM, enquanto o `BufferRepeticao` recorta estritamente do início do movimento (`0 → 1`) até a conclusão (`3 → 0`). Isso penalizava indevidamente uma execução impecável do aluno (que tirava ~90% em vez de 100%).
+   * *A solução:* Criamos a função utilitária canônica `extrair_primeira_repeticao()` em `buffer_repeticao.py` e regeneramos os gabaritos em `gabarito.py`. Agora, especialista e aluno passam pelo mesmíssimo recorte da FSM, e uma repetição perfeita atinge pontuação máxima de 100.0%.
+5. **Motor Central de Pontuação e Orquestrador Frame a Frame (Resolvido na `TASK-06`):**
+   * *O problema:* O cálculo de notas e aprovações estava disperso por múltiplos scripts de visualização (CLI, webcam, demo), sem padrão uniforme de desconto para erros posturais e de incompletude.
+   * *A solução:* Criado `avaliador_pontuacao.py`, que consolida o contrato único de entrada `orquestrador.processar_frame(angulos, visivel)`, aplica penalidades de erros únicos da FSM, gera feedbacks pedagógicos hierárquicos e calcula pontos de gamificação e resumos para o aplicativo.
+6. **Bateria de Testes Unitários Automatizados (`TASK-02` a `TASK-06`):**
+   * Agora temos uma suíte formal com `pytest` e 28 testes cobrindo geometria, retenção de erros na FSM, alinhamento temporal DTW, autoconsistência de gabaritos, pontuação e orquestração sem depender de câmera aberta.
 
 ### 4.2. O Que Está Sendo Unificado a Seguir:
-1. **Segmentador Canônico de Gabaritos (`TASK-05`):**
-   * Garantir que as curvas de referência salvas em JSON sejam recortadas com o mesmíssimo critério de início/fim das repetições do aluno, garantindo nota 100 em execuções perfeitas.
-2. **Motor Central de Pontuação e Orquestrador de Sessão Frame a Frame (`TASK-06`):**
-   * O orquestrador central que recebe cada frame do usuário (ângulos ou imagem), aplica as penalidades biomecânicas da FSM sobre o score DTW e entrega notas, diagnósticos detalhados e resumos da série para o aplicativo.
+1. **Integração no Comparador de Vídeo CLI (`TASK-07`):**
+   * Corrigir a quebra de assinatura do extrator de vídeo e conectar a CLI de arquivos `.mp4` ao `OrquestradorSessao`.
+2. **Atualização da Demonstração Arquitetural (`TASK-08`):**
+   * Migrar `exemplo_integracao.py` para o orquestrador unificado e remover classes redundantes de DTW.
+
+
 
 ---
 
@@ -157,10 +165,11 @@ O plano técnico detalhado está registrado em [`PLANO_SPRINT_US01.md`](./PLANO_
 * [x] **`[TASK-01]` Dependências e Proteção do Repositório:** `requirements.txt`, `.gitignore` atualizado e criação deste guia didático `EXPLICACAO_IA.md`. *Nota: Módulos legados mantidos intactos por diretriz até a conclusão e teste dos novos módulos* *(Commit `c340b65`)*.
 * [x] **`[TASK-02]` Geometria com Âncora de Ruído:** Função `calcular_deltas_angulares()` em `calculo_angulos.py` e primeiros testes automatizados em `tests/test_pipeline_pontuacao.py` *(Commit `7151ad3`)*.
 * [x] **`[TASK-03]` Memória de Erros e Penalidades na FSM:** Evolução de `ExercicioBaseFSM` em `exercicios_fsm.py` com acumulador de erros por repetição, penalidades por exercício e 9 testes no `pytest` *(Commit `f085106`)*.
-* [x] **`[TASK-04]` Padronização do DTW Único:** Módulo `dtw_evaluator.py` implementado com vetorização 3D, Sakoe-Chiba, `DTWResult` e 16 testes no `pytest` *(Concluída)*.
-* [ ] **`[TASK-05]` Recorte Uniforme dos Gabaritos:** Alinhamento dos JSONs com o mesmo segmentador do aluno *(Próxima da fila)*.
-* [ ] **`[TASK-06]` Motor de Pontuação e Orquestrador Frame a Frame:** Criação de `avaliador_pontuacao.py` unificando notas e sessão *(Pendente)*.
-* [ ] **`[TASK-07]` Integração no Comparador de Vídeo CLI:** Correção de chamadas em `comparar_exercicio.py` *(Pendente)*.
+* [x] **`[TASK-04]` Padronização do DTW Único:** Módulo `dtw_evaluator.py` implementado com vetorização 3D, Sakoe-Chiba, `DTWResult` e 16 testes no `pytest` *(Commit `d02ac24`)*.
+* [x] **`[TASK-05]` Recorte Uniforme dos Gabaritos:** Alinhamento dos JSONs com o mesmo segmentador canônico do aluno em `buffer_repeticao.py`, `gabarito.py`, `extrator_video.py` e 21 testes no `pytest` *(Concluída)*.
+* [x] **`[TASK-06]` Motor de Pontuação e Orquestrador Frame a Frame:** Criação de `avaliador_pontuacao.py` unificando notas, feedbacks, gamificação e sessão com 28 testes no `pytest` *(Concluída)*.
+* [ ] **`[TASK-07]` Integração no Comparador de Vídeo CLI:** Correção de chamadas em `comparar_exercicio.py` *(Próxima da fila)*.
+
 * [ ] **`[TASK-08]` Demonstração Arquitetural:** Atualização de `exemplo_integracao.py` com o novo motor *(Pendente)*.
 * [ ] **`[TASK-09]` Integração Webcam em Tempo Real:** Conexão de `app_tempo_real.py` ao orquestrador e aposentadoria segura de `dtw_inicial.py` *(Pendente)*.
 * [ ] **`[TASK-10]` Bateria de Testes End-to-End:** Validação dos critérios de aceite AC1 a AC7 *(Pendente)*.

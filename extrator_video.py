@@ -13,9 +13,9 @@ from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
 
 from calculo_angulos import extrair_angulos_exercicio
-from buffer_repeticao import BufferRepeticao
+from buffer_repeticao import BufferRepeticao, extrair_primeira_repeticao
 from gabarito import GabaritoExercicio
-from exercicios_fsm import CATALOGO_EXERCICIOS
+from exercicios_fsm import CATALOGO_EXERCICIOS, obter_config_exercicio
 
 MODELO_URL_PADRAO = (
     "https://storage.googleapis.com/mediapipe-models/pose_landmarker/"
@@ -101,41 +101,38 @@ class ExtratorVideo:
 
 
 def gerar_gabarito_de_video_especialista(
-    tecla_exercicio: str,
+    identificador_exercicio: str,
     caminho_video: str,
     lado: str = "direito"
 ) -> str:
     """Extrai a primeira repetição completa de um vídeo de especialista e salva o JSON."""
-    if tecla_exercicio not in CATALOGO_EXERCICIOS:
-        raise ValueError(f"Exercício '{tecla_exercicio}' inválido. Escolha entre {list(CATALOGO_EXERCICIOS.keys())}.")
-
-    config = CATALOGO_EXERCICIOS[tecla_exercicio]
+    config = obter_config_exercicio(identificador_exercicio)
     extrator = ExtratorVideo(articulacoes=config["articulacoes"], lado=lado)
     frames = extrator.extrair_serie_temporal(caminho_video)
 
-    fsm = config["classe_fsm"]()
-    buffer = BufferRepeticao(fsm=fsm, articulacoes=config["articulacoes"])
+    serie_angulos = [f["angulos"] for f in frames]
+    dados_rep = extrair_primeira_repeticao(
+        fsm_ou_id=identificador_exercicio,
+        articulacoes=config["articulacoes"],
+        serie_angulos=serie_angulos,
+        lancar_excecao=True,
+    )
 
-    for f in frames:
-        dados_rep, _ = buffer.processar_frame(angulos=f["angulos"], angulos_deltas=f["deltas"])
-        if dados_rep is not None:
-            gabarito = GabaritoExercicio(
-                nome_exercicio=config["id"],
-                articulacoes=config["articulacoes"],
-                dados=dados_rep,
-                descricao=f"Extraído do vídeo '{caminho_video}'",
-            )
-            gabarito.salvar_json(config["arquivo_gabarito"])
-            print(f"Gabarito salvo em '{config['arquivo_gabarito']}' ({gabarito.total_frames} frames).")
-            return config["arquivo_gabarito"]
-
-    raise ValueError("Nenhuma repetição completa foi detetada no vídeo informado.")
+    gabarito = GabaritoExercicio(
+        nome_exercicio=config["id"],
+        articulacoes=config["articulacoes"],
+        dados=dados_rep,
+        descricao=f"Extraído do vídeo '{caminho_video}'",
+    )
+    gabarito.salvar_json(config["arquivo_gabarito"])
+    print(f"Gabarito salvo em '{config['arquivo_gabarito']}' ({gabarito.total_frames} frames).")
+    return config["arquivo_gabarito"]
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Extrai gabarito JSON de um vídeo de especialista.")
     parser.add_argument("video", help="Caminho do ficheiro de vídeo do especialista")
-    parser.add_argument("--exercicio", default="1", help="1=Ombro, 2=Agachamento, 3=Rosca Bíceps")
+    parser.add_argument("--exercicio", default="1", help="ID ou tecla do exercício (ex: 1, desenvolvimento_ombro, agachamento, rosca_biceps)")
     parser.add_argument("--lado", default="direito", choices=["direito", "esquerdo"])
     args = parser.parse_args()
     gerar_gabarito_de_video_especialista(args.exercicio, args.video, args.lado)
