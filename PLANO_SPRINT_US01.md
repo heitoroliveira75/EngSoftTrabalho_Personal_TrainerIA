@@ -201,14 +201,17 @@ Nenhum consumidor calcula deltas, DTW ou notas manualmente.
 - **Critério de Pronto (DoD):** `python exemplo_integracao.py` demonstrou os vereditos esperados: Ideal 100, Lento 92,1, Muito lento 92,5, ambos aprovados acima de 85, e Incompleto reprovado com penalidade de 25. `python -m pytest tests/test_pipeline_pontuacao.py` passou com 31 testes; `python -m py_compile` e `git diff --check` também passaram.
 - **Commit:** `Task 8 Integração no Script de Demonstração e Remoção de Wrappers Obsoletos (`exemplo_integracao.py`, `dtw_evaluator.py`)`
 
-### `[TASK-09]` Integração na Aplicação em Tempo Real (Webcam) e Aposentadoria de `dtw_inicial.py` (`app_tempo_real.py`) — **[PENDENTE]**
-- **Status:** ⏳ **Pendente**
+### `[TASK-09]` Integração na Aplicação em Tempo Real (Webcam) e Aposentadoria de `dtw_inicial.py` (`app_tempo_real.py`) — **[PARCIAL]**
+- **Status:** 🟡 **Parcialmente implementada** em 2026-10-24; falta validação em webcam física e decisão final sobre aposentadoria do legado.
 - **Objetivo:** Conectar a webcam ao pipeline unificado e aposentar o módulo legado `dtw_inicial.py`.
 - **Escopo Técnico:**
   - Em `app_tempo_real.py`:
-    - Substituir o controle manual de FSM, buffer, cálculo manual de deltas e DTW pelo `OrquestradorSessao`.
-    - Exibir no HUD o `score_final`, o `feedback_principal` da última repetição e a média da série.
+    - ✅ Substituído o controle manual de FSM, buffer, cálculo de deltas e DTW pelo `OrquestradorSessao`.
+    - ✅ HUD exibe score final, feedback da última repetição e média da sessão.
+    - ✅ Alternância de exercício, reset da série e tratamento de visibilidade ligados ao estado do orquestrador.
   - Com todos os novos módulos e testes aprovados, proceder com a remoção segura de `dtw_inicial.py`.
+- **Validação pendente:** Teste manual com webcam para alternância entre `[1]`, `[2]`, `[3]`, lado, reset, contagem e HUD. `dtw_inicial.py` foi mantido até validação de regressão/aposentadoria; esta implementação removeu sua dependência do app, não o arquivo legado.
+- **Validação automatizada:** `python -m pytest tests/test_pipeline_pontuacao.py` passou (32 testes) e `python -m py_compile app_tempo_real.py tests/test_pipeline_pontuacao.py` passou; repetição ideal demonstrada pelo mesmo adaptador frame a frame da webcam.
 - **Critério de Pronto (DoD):**
   - Execução e checklist manual registrado no DEVLOG: alternância entre exercícios `[1]`, `[2]`, `[3]`, contagem fluida de repetições e exibição correta do HUD.
 - **Commit Previsto:** `refactor(webcam): integra app_tempo_real ao orquestrador e remove dtw_inicial`
@@ -251,6 +254,6 @@ Nenhum consumidor calcula deltas, DTW ou notas manualmente.
 | **7º** | `TASK-06` | ✅ Concluída | — | `feat(pontuacao): cria avaliador_pontuacao com regra de nota e orquestrador de sessao` | criação de `avaliador_pontuacao.py` com interface frame a frame, 7 testes (28/28 aprovados) |
 | **8º** | `TASK-07` | ✅ Concluída | `76b4c0f` | `Task 7- Integração no comparador de Video CLI` | Contrato `frame`/`angulos`/`visivel`, CLI integrada ao orquestrador e teste simulado |
 | **9º** | `TASK-08` | ✅ Concluída | — | `Task 8 Integração no Script de Demonstração e Remoção de Wrappers Obsoletos (`exemplo_integracao.py`, `dtw_evaluator.py`)` | `exemplo_integracao.py`, regra de aprovação de incompletude, testes e adendos de divergência |
-| **10º** | `TASK-09` | ⏳ Pendente | — | `refactor(webcam): integra app_tempo_real ao orquestrador e remove dtw_inicial` | `app_tempo_real.py`, aposentadoria de `dtw_inicial.py` |
+| **10º** | `TASK-09` | 🟡 Parcial | — | `refactor(webcam): integra app_tempo_real ao orquestrador` (aposentadoria/validação pendentes) | `app_tempo_real.py`, testes de integração do adaptador |
 | **11º** | `TASK-10` | ⏳ Pendente | — | `test(pontuacao): adiciona testes de aceite AC1 a AC7 da US-01` | consolidação de `tests/test_pipeline_pontuacao.py` |
 | **12º** | `TASK-11` | 🔄 Parcial | `1c6ccf6` / — | `docs(devlog): registra entrega da US-01 e atualiza contexto` | `CONTEXTO_IA.md`, `DEVLOG.md`, `PLANO_SPRINT_US01.md` |

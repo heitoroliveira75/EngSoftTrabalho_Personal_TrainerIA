@@ -79,7 +79,7 @@ Estes arquivos compõem a frente de trabalho imediata da branch, recebendo teste
 | [`./buffer_repeticao.py`](./buffer_repeticao.py) | Acumulador de fotogramas e segmentador canônico de repetições com cálculo automático de deltas com âncora de ruído e interface polimórfica. | `BufferRepeticao`, `extrair_primeira_repeticao()` | **Em Desenvolvimento Ativo (Concluído na `TASK-05`)** |
 | [`./gabarito.py`](./gabarito.py) | Persistência, carregamento JSON e geração de curvas de referência padrão ouro com recorte idêntico ao do aluno via FSM canônica. | `GabaritoExercicio`, `garantir_gabaritos_padrao()` | **Em Desenvolvimento Ativo (Concluído na `TASK-05`)** |
 | [`./avaliador_pontuacao.py`](./avaliador_pontuacao.py) | Motor central de pontuação (`ResultadoPontuacaoRepeticao`), laudos pedagógicos hierárquicos, gamificação e `OrquestradorSessao` com interface **frame a frame**. | `calcular_pontuacao()`, `OrquestradorSessao`, `ResultadoPontuacaoRepeticao`, `ResumoPontuacaoSessao` | **Em Desenvolvimento Ativo (Concluído na `TASK-06`)** |
-| [`tests/test_pipeline_pontuacao.py`](tests/test_pipeline_pontuacao.py) | Suíte de testes automatizados com `pytest` cobrindo geometria, deltas acumulados, transições de fase, retenção de erros, DTW vetorizado, segmentação canônica, orquestração, contrato do extrator e cenários da demonstração. | Testes sem dependência de câmera | **Em Desenvolvimento Ativo (31 testes aprovados)** |
+| [`tests/test_pipeline_pontuacao.py`](tests/test_pipeline_pontuacao.py) | Suíte de testes automatizados com `pytest` cobrindo geometria, deltas acumulados, transições de fase, retenção de erros, DTW vetorizado, segmentação canônica, orquestração, contrato do extrator e integrações sintéticas. | Testes sem dependência de câmera | **Em Desenvolvimento Ativo (32 testes aprovados)** |
 
 
 | [`./pytest.ini`](./pytest.ini) | Configuração de execução do `pytest` com inclusão automática do diretório raiz no `pythonpath`. | Configuração de testes | **Ativo** |
@@ -96,7 +96,7 @@ Módulos existentes no repositório que serão integrados e padronizados nas pr�
 | [`./comparar_exercicio.py`](./comparar_exercicio.py) | CLI multi-exercício para avaliar vídeos gravados (`.mp4`) contra especialista. | **`[TASK-07]`** | Integrado ao `OrquestradorSessao`; suporta `--exercicio`, lado, relatório por repetição e resumo da sessão. |
 | [`./extrator_video.py`](./extrator_video.py) | Extrai séries temporais de vídeos `.mp4` em modo `IMAGE`, retornando `frame`, `angulos` e `visivel`. | **`[TASK-07]`** | Não calcula deltas; estes são centralizados no orquestrador durante a avaliação. A extração de gabarito usa o segmentador canônico. |
 | [`./exemplo_integracao.py`](./exemplo_integracao.py) | Demonstração sintética sem webcam dos fluxos ideal, lento e incompleto usando o orquestrador oficial. | **`[TASK-08]` concluída** | Envia ângulos por frame ao `OrquestradorSessao` e apresenta laudo e resumo de cada cenário. |
-| [`./app_tempo_real.py`](./app_tempo_real.py) | Aplicação em tempo real com webcam, desenho de esqueleto e HUD OpenCV. | **`[TASK-09]`** | Migrará do loop manual para o orquestrador unificado frame a frame. |
+| [`./app_tempo_real.py`](./app_tempo_real.py) | Aplicação em tempo real com webcam, desenho de esqueleto e HUD OpenCV. | **`[TASK-09]` parcial** | Envia ângulos e visibilidade ao `OrquestradorSessao`; mostra nota, feedback e média. Falta validação com webcam física. |
 
 
 
@@ -124,7 +124,7 @@ Módulos existentes no repositório que serão integrados e padronizados nas pr�
 | :--- | :--- | :--- |
 | [`./exercícios_fsm.py`](./exercícios_fsm.py) (com acento) | Cópia idêntica de `exercicios_fsm.py` criada antes da correção do nome em ASCII puro. | **Legado Preservado:** Manter intacto no repositório até a limpeza final da sprint. |
 | [`./dev_ombro-inicial.py`](./dev_ombro-inicial.py) | Primeira versão isolada da FSM de Desenvolvimento de Ombro. | **Legado Preservado:** Manter intacto enquanto houver scripts antigos referenciando-o. |
-| [`./dtw_inicial.py`](./dtw_inicial.py) | Primeira versão do DTW por loops manuais em Python puro. | **Legado Preservado:** Permanece em uso em `app_tempo_real.py` até a conclusão da `TASK-09`. |
+| [`./dtw_inicial.py`](./dtw_inicial.py) | Primeira versão do DTW por loops manuais em Python puro. | **Legado Preservado:** Não é mais importado pelo `app_tempo_real.py`; mantido até a validação final e conclusão da TASK-09. |
 | [`./Modularização.py`](./Modularização.py) | Protótipo antigo de extração pontual `min/max` com classificador tabular scikit-learn. | **Legado Preservado:** Mantido apenas como referência histórica. |
 | [`./dataset_pronto_para_ia.csv`](./dataset_pronto_para_ia.csv) e [`./relatorio_avaliacoes_ia.csv`](./relatorio_avaliacoes_ia.csv) | Datasets tabulares gerados durante os experimentos com `Modularização.py`. | **Legado Preservado.** |
 
@@ -214,13 +214,13 @@ Todas as classes herdam de `ExercicioBaseFSM` e seguem o ciclo de 4 estados (`0 
 1. **Integração do comparador de vídeo:**
    - A `TASK-07` corrigiu a assinatura de `ExtratorVideo`, conectou a CLI ao `OrquestradorSessao` e adicionou seleção por `--exercicio`. O extrator retorna `frame`, `angulos` e `visivel`, sem deltas.
 2. **Unificação do Motor DTW (`dtw_evaluator.py` vs. `dtw_inicial.py`):**
-   - A `TASK-04` padronizou o `DTWComparator` vetorizado com Sakoe-Chiba em `dtw_evaluator.py` e 16 testes aprovados. O legado `dtw_inicial.py` permanece mantido no repositório apenas até a migração do `app_tempo_real.py` na `TASK-09`.
+   - A `TASK-04` padronizou o `DTWComparator` vetorizado com Sakoe-Chiba em `dtw_evaluator.py` e 16 testes aprovados. O legado `dtw_inicial.py` permanece no repositório por preservação até validação final e decisão de aposentadoria na `TASK-09`.
 3. **Arquivos duplicados com acentuação e artefatos legados:**
    - `exercícios_fsm.py` (com acento) coexiste com `exercicios_fsm.py` (sem acento).
    - `Modularização.py` importa `maquina_estados` (módulo inexistente, removido em `65b5a83`).
    - `.gitignore` atualizado protege contra arquivos temporários e caches.
 4. **Suíte Automatizada de Testes (`pytest`):**
-   - Suíte `tests/test_pipeline_pontuacao.py` ativa com **31 testes automatizados** aprovados, incluindo o contrato do extrator, modo simulado do comparador e demonstração sintética.
+   - Suíte `tests/test_pipeline_pontuacao.py` ativa com **32 testes automatizados** aprovados, incluindo o contrato do extrator, modo simulado do comparador, demonstração sintética e adaptador da webcam.
 5. **Ruído de Sensor e Suavização Temporal:**
    - `calculo_angulos.py` possui `calcular_deltas_angulares` com âncora de ruído (`1.2^\circ`) para cadências lentas.
 

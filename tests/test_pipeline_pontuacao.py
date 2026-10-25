@@ -669,3 +669,33 @@ class TestOrquestradorEAvaliadorPontuacao:
         assert incompleto.penalidade_fsm == 25.0
         assert incompleto.erros_fsm == ["REPETICAO_INCOMPLETA"]
         assert resumo_incompleto.repeticoes_reprovadas == 1
+
+    def test_webcam_usa_orquestrador_nos_tres_exercicios(self):
+        from app_tempo_real import inicializar_sessao_exercicio, processar_frame_webcam
+
+        for tecla, articulacoes in (
+            ("1", ["cotovelo", "ombro"]),
+            ("2", ["joelho", "quadril"]),
+            ("3", ["cotovelo", "ombro"]),
+        ):
+            config, orquestrador = inicializar_sessao_exercicio(tecla)
+            assert config["classe_fsm"] is type(orquestrador.fsm)
+            assert orquestrador.articulacoes == articulacoes
+
+        _, orquestrador = inicializar_sessao_exercicio("1")
+        alerta_atual = None
+        resultado_repeticao = None
+        for angulos in criar_frames_movimento_completo(55):
+            alerta_atual, resultado = processar_frame_webcam(
+                orquestrador=orquestrador,
+                angulos=angulos,
+                visivel=True,
+                alerta_atual=alerta_atual,
+            )
+            if resultado is not None:
+                resultado_repeticao = resultado
+
+        assert resultado_repeticao is not None
+        assert resultado_repeticao.aprovado is True
+        assert resultado_repeticao.score_final >= 95.0
+        assert orquestrador.fsm.repeticoes == 1
