@@ -1152,4 +1152,603 @@ def resetar_checagem_diaria(usuario_id: str) -> Dict[str, Any]:
     """
     Reseta o campo checagem do usuário para False (para novo ciclo diário).
     """
-    return atualizar_checagem(usuario_id, checagem=False)
+    return atualizar_checagem(usuario_id, checagem=False)
+
+
+# ============================================================
+# 8. SISTEMA DE AMIZADES E LEADERBOARD
+# ============================================================
+
+def _obter_mapa_usuarios() -> Dict[str, Dict[str, Any]]:
+    """
+    Retorna um dicionário {id_usuario: dados_usuario} contornando o RLS via RPC SECURITY DEFINER.
+    Garante que os nomes reais, sequências e pontuações sejam resolvidos para qualquer ID.
+    """
+    mapa = {}
+    try:
+        rpc_res = supabase.rpc("obter_leaderboard_global", {"p_limite": 200}).execute()
+        if rpc_res.data:
+            for u in rpc_res.data:
+                uid = str(u.get("id"))
+                mapa[uid] = {
+                    "id": u.get("id"),
+                    "nome": u.get("nome") or "Usuário",
+                    "sequencia": u.get("sequencia") or 0,
+                    "pontuacao_semanal": u.get("pontuacao_semanal") or 0,
+                    "pontuacao_total": u.get("pontuacao_total") or 0,
+                    "maior_sequencia": u.get("maior_sequencia") or 0,
+                }
+    except Exception:
+        pass
+    return mapa
+
+
+def buscar_usuarios(nome: str, usuario_atual_id: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Busca usuários cadastrados por aproximação de nome.
+    Utiliza RPC SECURITY DEFINER para contornar RLS e garantir retorno dos usuários reais.
+    Também identifica se já existe relação de amizade com o usuário atual.
+    """
+    if not nome or not nome.strip():
+        return {"sucesso": True, "usuarios": []}
+
+    termo = nome.strip().lower()
+    usuarios = []
+
+    # Tentativa 1: RPC buscar_usuarios dedicada
+    try:
+        rpc_res = supabase.rpc("buscar_usuarios", {"p_termo": termo, "p_limite": 30}).execute()
+        if rpc_res.data:
+            usuarios = list(rpc_res.data)
+    except Exception:
+        pass
+
+    # Tentativa 2: Fallback via obter_leaderboard_global (SECURITY DEFINER já existente e ativo no Supabase)
+    if not usuarios:
+        try:
+            rpc_res = supabase.rpc("obter_leaderboard_global", {"p_limite": 200}).execute()
+            if rpc_res.data:
+                for u in rpc_res.data:
+                    u_nome = str(u.get("nome") or "")
+                    if termo in u_nome.lower():
+                        usuarios.append({
+                            "id": u.get("id"),
+                            "nome": u_nome,
+                            "sequencia": u.get("sequencia") or 0,
+                            "pontuacao_semanal": u.get("pontuacao_semanal") or 0,
+                            "pontuacao_total": u.get("pontuacao_total") or 0,
+                            "maior_sequencia": u.get("maior_sequencia") or 0,
+                        })
+        except Exception:
+            pass
+
+    # Tentativa 3: Query direta na tabela usuarios caso o RLS permita ou service_role esteja configurada
+    if not usuarios:
+        try:
+            res = (
+                supabase
+                .table("usuarios")
+                .select("id, nome, sequencia, pontuacao_semanal, pontuacao_total")
+                .ilike("nome", f"%{nome.strip()}%")
+                .limit(20)
+                .execute()
+            )
+            if res.data:
+                usuarios = list(res.data)
+        except Exception:
+            pass
+
+    # Se for informado o ID do usuário atual, remove o próprio usuário e mapeia vínculo de amizade
+    if usuario_atual_id:
+        usuarios = [u for u in usuarios if str(u.get("id")) != str(usuario_atual_id)]
+
+        status_map = {}
+        try:
+            amizades_res = (
+                supabase
+                .table("amizades")
+                .select("id, usuario_id, amigo_id, status")
+                .or_(f"usuario_id.eq.{usuario_atual_id},amigo_id.eq.{usuario_atual_id}")
+                .execute()
+            )
+            amizades = amizades_res.data or []
+            for a in amizades:
+                outro_id = a["amigo_id"] if str(a["usuario_id"]) == str(usuario_atual_id) else a["usuario_id"]
+                status_map[str(outro_id)] = {
+                    "amizade_id": a["id"],
+                    "status": a["status"],
+                    "enviada_por_mim": str(a["usuario_id"]) == str(usuario_atual_id)
+                }
+        except Exception:
+            pass
+
+        for u in usuarios:
+            uid = str(u.get("id"))
+            info = status_map.get(uid)
+            if info:
+                u["relacao_status"] = info["status"]
+                u["ja_amigo"] = info["status"] == "aceito"
+                u["solicitacao_enviada"] = info["status"] == "pendente" and info["enviada_por_mim"]
+                u["solicitacao_recebida"] = info["status"] == "pendente" and not info["enviada_por_mim"]
+            else:
+                u["relacao_status"] = None
+                u["ja_amigo"] = False
+                u["solicitacao_enviada"] = False
+                u["solicitacao_recebida"] = False
+    else:
+        for u in usuarios:
+            u["relacao_status"] = None
+            u["ja_amigo"] = False
+            u["solicitacao_enviada"] = False
+            u["solicitacao_recebida"] = False
+
+    return {"sucesso": True, "usuarios": usuarios}
+
+
+def enviar_solicitacao_amizade(usuario_id: str, amigo_id: str) -> Dict[str, Any]:
+    """
+    Envia uma solicitação de amizade registrando em 'amizades' com status 'pendente'.
+    Tenta RPC SECURITY DEFINER e faz fallback na tabela direta.
+    """
+    if not usuario_id or not amigo_id:
+        return {"sucesso": False, "mensagem": "ID do usuário e ID do amigo são obrigatórios."}
+
+    if str(usuario_id) == str(amigo_id):
+        return {"sucesso": False, "mensagem": "Não é permitido enviar solicitação de amizade para si mesmo."}
+
+    # Tentativa 1: RPC SECURITY DEFINER
+    try:
+        rpc_res = supabase.rpc("enviar_solicitacao_amizade", {
+            "p_usuario_id": usuario_id,
+            "p_amigo_id": amigo_id
+        }).execute()
+        if rpc_res.data:
+            return {
+                "sucesso": True,
+                "mensagem": "Solicitação de amizade enviada com sucesso!",
+                "solicitacao": rpc_res.data
+            }
+    except Exception:
+        pass
+
+    # Tentativa 2: Consulta e inserção direta
+    try:
+        existente = (
+            supabase
+            .table("amizades")
+            .select("id, status, usuario_id, amigo_id")
+            .or_(f"and(usuario_id.eq.{usuario_id},amigo_id.eq.{amigo_id}),and(usuario_id.eq.{amigo_id},amigo_id.eq.{usuario_id})")
+            .execute()
+        )
+
+        if existente.data and len(existente.data) > 0:
+            reg = existente.data[0]
+            if reg.get("status") == "aceito":
+                return {"sucesso": False, "mensagem": "Vocês já são amigos."}
+            elif reg.get("status") == "pendente":
+                return {"sucesso": False, "mensagem": "Já existe uma solicitação pendente entre vocês."}
+            else:
+                atualizado = (
+                    supabase
+                    .table("amizades")
+                    .update({"status": "pendente", "usuario_id": usuario_id, "amigo_id": amigo_id})
+                    .eq("id", reg["id"])
+                    .execute()
+                )
+                return {"sucesso": True, "mensagem": "Solicitação de amizade reenviada com sucesso!", "dados": atualizado.data}
+
+        novo = (
+            supabase
+            .table("amizades")
+            .insert({
+                "usuario_id": usuario_id,
+                "amigo_id": amigo_id,
+                "status": "pendente"
+            })
+            .execute()
+        )
+
+        return {
+            "sucesso": True,
+            "mensagem": "Solicitação de amizade enviada com sucesso!",
+            "solicitacao": novo.data[0] if novo.data else None
+        }
+    except Exception as erro:
+        erro_str = str(erro)
+        if "42501" in erro_str or "row-level security" in erro_str.lower():
+            return {
+                "sucesso": False,
+                "mensagem": "Restrição de RLS no Supabase. Execute o script_amizades_leaderboard.sql no painel do Supabase ou insira SUPABASE_SERVICE_ROLE_KEY no BD/.env."
+            }
+        return {"sucesso": False, "mensagem": f"Erro ao enviar solicitação: {erro}"}
+
+
+def listar_solicitacoes_pendentes(usuario_id: str) -> Dict[str, Any]:
+    """
+    Retorna a lista de convites pendentes recebidos pelo usuário com o nome real de quem enviou.
+    Tenta RPC SECURITY DEFINER e faz fallback na tabela direta resolvendo nomes via mapa RPC.
+    """
+    if not usuario_id:
+        return {"sucesso": False, "mensagem": "ID do usuário é obrigatório."}
+
+    mapa_usuarios = _obter_mapa_usuarios()
+
+    # Tentativa 1: RPC SECURITY DEFINER
+    try:
+        rpc_res = supabase.rpc("listar_solicitacoes_pendentes", {"p_usuario_id": usuario_id}).execute()
+        if rpc_res.data is not None and len(rpc_res.data) > 0:
+            solicitacoes = list(rpc_res.data)
+            for s in solicitacoes:
+                solic_uid = str(s.get("solicitante_id") or s.get("usuario_id") or "")
+                if s.get("nome") in ["Usuário", None, ""] and solic_uid in mapa_usuarios:
+                    s["nome"] = mapa_usuarios[solic_uid]["nome"]
+                    s["sequencia"] = mapa_usuarios[solic_uid]["sequencia"]
+                    s["pontos"] = mapa_usuarios[solic_uid]["pontuacao_semanal"]
+            return {"sucesso": True, "solicitacoes": solicitacoes}
+    except Exception:
+        pass
+
+    # Tentativa 2: Consulta direta na tabela amizades
+    try:
+        pedidos = (
+            supabase
+            .table("amizades")
+            .select("id, usuario_id, amigo_id, status, created_at")
+            .eq("amigo_id", usuario_id)
+            .eq("status", "pendente")
+            .order("created_at", desc=True)
+            .execute()
+        )
+
+        lista = pedidos.data or []
+        solicitacoes_formatadas = []
+
+        for p in lista:
+            solicitante_id = str(p.get("usuario_id"))
+            info = mapa_usuarios.get(solicitante_id)
+
+            if info:
+                nome = info["nome"]
+                sequencia = info["sequencia"]
+                pontos = info["pontuacao_semanal"]
+            else:
+                nome = "Usuário"
+                sequencia = 0
+                pontos = 0
+                try:
+                    u_res = (
+                        supabase
+                        .table("usuarios")
+                        .select("id, nome, sequencia, pontuacao_semanal, pontuacao_total")
+                        .eq("id", solicitante_id)
+                        .execute()
+                    )
+                    if u_res.data and len(u_res.data) > 0:
+                        u = u_res.data[0]
+                        nome = u.get("nome") or "Usuário"
+                        sequencia = u.get("sequencia") or 0
+                        pontos = u.get("pontuacao_semanal") or u.get("pontuacao_total") or 0
+                except Exception:
+                    pass
+
+            solicitacoes_formatadas.append({
+                "id": p.get("id"),
+                "solicitante_id": solicitante_id,
+                "nome": nome,
+                "sequencia": sequencia,
+                "pontos": pontos,
+                "created_at": p.get("created_at")
+            })
+
+        return {"sucesso": True, "solicitacoes": solicitacoes_formatadas}
+    except Exception as erro:
+        return {"sucesso": False, "mensagem": f"Erro ao listar solicitações: {erro}"}
+
+
+def responder_solicitacao(solicitacao_id: str, novo_status: str) -> Dict[str, Any]:
+    """
+    Aceita ou recusa uma solicitação de amizade.
+    Tenta RPC SECURITY DEFINER e faz fallback na tabela direta.
+    """
+    if not solicitacao_id or novo_status not in ["aceito", "recusado"]:
+        return {"sucesso": False, "mensagem": "ID da solicitação e status válido ('aceito' ou 'recusado') são obrigatórios."}
+
+    # Tentativa 1: RPC SECURITY DEFINER
+    try:
+        rpc_res = supabase.rpc("responder_solicitacao", {
+            "p_solicitacao_id": solicitacao_id,
+            "p_novo_status": novo_status
+        }).execute()
+        if rpc_res.data is not None:
+            msg = "Solicitação aceita! Agora vocês são amigos." if novo_status == "aceito" else "Solicitação recusada."
+            return {"sucesso": True, "mensagem": msg, "dados": rpc_res.data}
+    except Exception:
+        pass
+
+    # Tentativa 2: Update direto
+    try:
+        atualizado = (
+            supabase
+            .table("amizades")
+            .update({"status": novo_status})
+            .eq("id", solicitacao_id)
+            .execute()
+        )
+
+        if not atualizado.data:
+            return {"sucesso": False, "mensagem": "Solicitação não encontrada."}
+
+        msg = "Solicitação aceita! Agora vocês são amigos." if novo_status == "aceito" else "Solicitação recusada."
+        return {"sucesso": True, "mensagem": msg, "dados": atualizado.data[0]}
+    except Exception as erro:
+        return {"sucesso": False, "mensagem": f"Erro ao responder solicitação: {erro}"}
+
+
+def listar_amigos(usuario_id: str) -> Dict[str, Any]:
+    """
+    Retorna todos os amigos com status 'aceito' do usuário com os nomes reais de cada amigo.
+    Tenta RPC SECURITY DEFINER e faz fallback na tabela direta resolvendo nomes via mapa RPC.
+    """
+    if not usuario_id:
+        return {"sucesso": False, "mensagem": "ID do usuário é obrigatório."}
+
+    mapa_usuarios = _obter_mapa_usuarios()
+
+    # Tentativa 1: RPC SECURITY DEFINER
+    try:
+        rpc_res = supabase.rpc("listar_amigos", {"p_usuario_id": usuario_id}).execute()
+        if rpc_res.data is not None and len(rpc_res.data) > 0:
+            amigos = list(rpc_res.data)
+            for a in amigos:
+                amigo_uid = str(a.get("id") or "")
+                if a.get("nome") in ["Amigo", None, ""] and amigo_uid in mapa_usuarios:
+                    a["nome"] = mapa_usuarios[amigo_uid]["nome"]
+                    a["sequencia"] = mapa_usuarios[amigo_uid]["sequencia"]
+                    a["pontos"] = mapa_usuarios[amigo_uid]["pontuacao_semanal"]
+            return {"sucesso": True, "amigos": amigos}
+    except Exception:
+        pass
+
+    # Tentativa 2: Consulta direta
+    try:
+        amizades = (
+            supabase
+            .table("amizades")
+            .select("id, usuario_id, amigo_id, status")
+            .eq("status", "aceito")
+            .or_(f"usuario_id.eq.{usuario_id},amigo_id.eq.{usuario_id}")
+            .execute()
+        )
+
+        registros = amizades.data or []
+        amigos_formatados = []
+
+        for reg in registros:
+            amigo_id = str(reg["amigo_id"]) if str(reg["usuario_id"]) == str(usuario_id) else str(reg["usuario_id"])
+            info = mapa_usuarios.get(amigo_id)
+
+            if info:
+                nome = info["nome"]
+                sequencia = info["sequencia"]
+                pontos = info["pontuacao_semanal"]
+            else:
+                nome = "Amigo"
+                sequencia = 0
+                pontos = 0
+                try:
+                    u_res = (
+                        supabase
+                        .table("usuarios")
+                        .select("id, nome, sequencia, pontuacao_semanal, pontuacao_total")
+                        .eq("id", amigo_id)
+                        .execute()
+                    )
+
+                    if u_res.data and len(u_res.data) > 0:
+                        u = u_res.data[0]
+                        nome = u.get("nome") or "Amigo"
+                        sequencia = u.get("sequencia") or 0
+                        pontos = u.get("pontuacao_semanal") or u.get("pontuacao_total") or 0
+                except Exception:
+                    pass
+
+            amigos_formatados.append({
+                "amizade_id": reg.get("id"),
+                "id": amigo_id,
+                "nome": nome,
+                "sequencia": sequencia,
+                "pontos": pontos,
+            })
+
+        return {"sucesso": True, "amigos": amigos_formatados}
+    except Exception as erro:
+        return {"sucesso": False, "mensagem": f"Erro ao listar amigos: {erro}"}
+    except Exception as erro:
+        return {"sucesso": False, "mensagem": f"Erro ao listar amigos: {erro}"}
+
+
+def remover_amigo(usuario_id: str, amigo_id: str) -> Dict[str, Any]:
+    """
+    Remove uma amizade entre dois usuários.
+    Tenta RPC SECURITY DEFINER e faz fallback na tabela direta.
+    """
+    if not usuario_id or not amigo_id:
+        return {"sucesso": False, "mensagem": "IDs do usuário e do amigo são obrigatórios."}
+
+    # Tentativa 1: RPC SECURITY DEFINER
+    try:
+        rpc_res = supabase.rpc("remover_amigo", {
+            "p_usuario_id": usuario_id,
+            "p_amigo_id": amigo_id
+        }).execute()
+        if rpc_res.data:
+            return {"sucesso": True, "mensagem": "Amizade removida com sucesso!"}
+    except Exception:
+        pass
+
+    # Tentativa 2: Exclusão direta
+    try:
+        remocao = (
+            supabase
+            .table("amizades")
+            .delete()
+            .or_(f"and(usuario_id.eq.{usuario_id},amigo_id.eq.{amigo_id}),and(usuario_id.eq.{amigo_id},amigo_id.eq.{usuario_id})")
+            .execute()
+        )
+
+        return {"sucesso": True, "mensagem": "Amizade removida com sucesso!"}
+    except Exception as erro:
+        return {"sucesso": False, "mensagem": f"Erro ao remover amizade: {erro}"}
+
+
+def obter_leaderboard_global(limite: int = 50) -> Dict[str, Any]:
+    """
+    Consulta o ranking global semanal.
+    Tenta chamar a RPC 'obter_leaderboard_global'. Se falhar, faz fallback na tabela 'usuarios'.
+    """
+    try:
+        # Tentativa 1: RPC PostgreSQL
+        rpc_res = supabase.rpc("obter_leaderboard_global", {"p_limite": int(limite)}).execute()
+        if rpc_res.data is not None:
+            return {"sucesso": True, "leaderboard": rpc_res.data}
+    except Exception:
+        pass
+
+    # Fallback: Query direta na tabela usuarios
+    try:
+        query_res = (
+            supabase
+            .table("usuarios")
+            .select("id, nome, pontuacao_semanal, pontuacao_total, sequencia, maior_sequencia")
+            .order("pontuacao_semanal", desc=True)
+            .order("sequencia", desc=True)
+            .limit(limite)
+            .execute()
+        )
+
+        dados = query_res.data or []
+        leaderboard = []
+        for idx, u in enumerate(dados):
+            leaderboard.append({
+                "posicao": idx + 1,
+                "id": u.get("id"),
+                "nome": u.get("nome") or "Atleta",
+                "pontos": u.get("pontuacao_semanal") or u.get("pontuacao_total") or 0,
+                "sequencia": u.get("sequencia") or 0,
+                "maior_sequencia": u.get("maior_sequencia") or 0,
+            })
+
+        return {"sucesso": True, "leaderboard": leaderboard}
+    except Exception as erro:
+        return {"sucesso": False, "mensagem": f"Erro ao obter leaderboard global: {erro}"}
+
+
+def obter_leaderboard_amigos(usuario_id: str) -> Dict[str, Any]:
+    """
+    Consulta o ranking semanal entre o usuário e seus amigos.
+    Tenta chamar a RPC 'obter_leaderboard_amigos'. Se falhar, faz fallback consultando amigos + usuário.
+    """
+    if not usuario_id:
+        return {"sucesso": False, "mensagem": "ID do usuário é obrigatório."}
+
+    try:
+        # Tentativa 1: RPC PostgreSQL
+        rpc_res = supabase.rpc("obter_leaderboard_amigos", {"p_usuario_id": usuario_id}).execute()
+        if rpc_res.data is not None:
+            return {"sucesso": True, "leaderboard": rpc_res.data}
+    except Exception:
+        pass
+
+    # Fallback: Junta usuário e amigos confirmados
+    try:
+        amigos_res = listar_amigos(usuario_id)
+        amigos = amigos_res.get("amigos", []) if amigos_res.get("sucesso") else []
+
+        ids_participantes = [str(usuario_id)] + [str(a["id"]) for a in amigos if a.get("id")]
+        mapa_usuarios = _obter_mapa_usuarios()
+
+        leaderboard = []
+        for uid in ids_participantes:
+            info = mapa_usuarios.get(uid)
+            if info:
+                leaderboard.append({
+                    "id": info["id"],
+                    "nome": info["nome"],
+                    "pontos": info["pontuacao_semanal"] or info["pontuacao_total"] or 0,
+                    "sequencia": info["sequencia"] or 0,
+                    "maior_sequencia": info["maior_sequencia"] or 0,
+                    "is_me": str(info["id"]) == str(usuario_id)
+                })
+
+        if not leaderboard:
+            u_res = (
+                supabase
+                .table("usuarios")
+                .select("id, nome, pontuacao_semanal, pontuacao_total, sequencia, maior_sequencia")
+                .in_("id", ids_participantes)
+                .order("pontuacao_semanal", desc=True)
+                .order("sequencia", desc=True)
+                .execute()
+            )
+
+            dados = u_res.data or []
+            for u in dados:
+                leaderboard.append({
+                    "id": u.get("id"),
+                    "nome": u.get("nome") or "Atleta",
+                    "pontos": u.get("pontuacao_semanal") or u.get("pontuacao_total") or 0,
+                    "sequencia": u.get("sequencia") or 0,
+                    "maior_sequencia": u.get("maior_sequencia") or 0,
+                    "is_me": str(u.get("id")) == str(usuario_id)
+                })
+
+        leaderboard.sort(key=lambda x: (x["pontos"], x["sequencia"]), reverse=True)
+        for idx, u in enumerate(leaderboard):
+            u["posicao"] = idx + 1
+
+        return {"sucesso": True, "leaderboard": leaderboard}
+    except Exception as erro:
+        return {"sucesso": False, "mensagem": f"Erro ao obter leaderboard de amigos: {erro}"}
+
+
+def obter_minha_posicao_global(usuario_id: str) -> Dict[str, Any]:
+    """
+    Retorna a posição ordinal do usuário no ranking global.
+    """
+    if not usuario_id:
+        return {"sucesso": False, "mensagem": "ID do usuário é obrigatório."}
+
+    try:
+        rpc_res = supabase.rpc("obter_minha_posicao_global", {"p_usuario_id": usuario_id}).execute()
+        if rpc_res.data is not None:
+            return {"sucesso": True, "posicao": rpc_res.data}
+    except Exception:
+        pass
+
+    # Fallback
+    try:
+        # Pega a pontuação do usuário
+        meu_perfil = (
+            supabase
+            .table("usuarios")
+            .select("pontuacao_semanal")
+            .eq("id", usuario_id)
+            .execute()
+        )
+        if not meu_perfil.data:
+            return {"sucesso": False, "posicao": None, "mensagem": "Usuário não encontrado."}
+
+        meus_pontos = meu_perfil.data[0].get("pontuacao_semanal") or 0
+
+        # Conta quantos usuários têm mais pontos
+        acima = (
+            supabase
+            .table("usuarios")
+            .select("id", count="exact")
+            .gt("pontuacao_semanal", meus_pontos)
+            .execute()
+        )
+        posicao = (acima.count or 0) + 1
+        return {"sucesso": True, "posicao": posicao}
+    except Exception as erro:
+        return {"sucesso": False, "mensagem": f"Erro ao calcular posição: {erro}", "posicao": None}

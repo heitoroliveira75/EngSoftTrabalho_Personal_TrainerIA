@@ -191,3 +191,167 @@ AS $$
     )
     SELECT posicao FROM ranking WHERE id = p_usuario_id;
 $$;
+
+
+-- 5.4. BUSCA DE USUÁRIOS POR NOME (SECURITY DEFINER)
+-- Permite que a API e clientes busquem atletas da comunidade mesmo com RLS ativado na tabela usuarios
+CREATE OR REPLACE FUNCTION public.buscar_usuarios(p_termo TEXT, p_limite INTEGER DEFAULT 20)
+RETURNS TABLE (
+    id UUID,
+    nome TEXT,
+    pontuacao_semanal INTEGER,
+    sequencia INTEGER,
+    maior_sequencia INTEGER
+)
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+AS $$
+    SELECT 
+        u.id,
+        u.nome,
+        COALESCE(u.pontuacao_semanal, 0) AS pontuacao_semanal,
+        COALESCE(u.sequencia, 0) AS sequencia,
+        COALESCE(u.maior_sequencia, 0) AS maior_sequencia
+    FROM public.usuarios u
+    WHERE LOWER(u.nome) LIKE '%' || LOWER(p_termo) || '%'
+    LIMIT p_limite;
+$$;
+
+
+-- 5.5. ENVIAR SOLICITAÇÃO DE AMIZADE (SECURITY DEFINER)
+CREATE OR REPLACE FUNCTION public.enviar_solicitacao_amizade(p_usuario_id UUID, p_amigo_id UUID)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    v_existente RECORD;
+    v_resultado RECORD;
+BEGIN
+    IF p_usuario_id = p_amigo_id THEN
+        RAISE EXCEPTION 'Não é permitido adicionar a si mesmo.';
+    END IF;
+
+    SELECT id, status INTO v_existente 
+    FROM public.amizades
+    WHERE (usuario_id = p_usuario_id AND amigo_id = p_amigo_id)
+       OR (usuario_id = p_amigo_id AND amigo_id = p_usuario_id)
+    LIMIT 1;
+
+    IF FOUND THEN
+        IF v_existente.status = 'aceito' THEN
+            RAISE EXCEPTION 'Vocês já são amigos.';
+        ELSIF v_existente.status = 'pendente' THEN
+            RAISE EXCEPTION 'Já existe uma solicitação pendente entre vocês.';
+        ELSE
+            UPDATE public.amizades
+            SET status = 'pendente', usuario_id = p_usuario_id, amigo_id = p_amigo_id, updated_at = NOW()
+            WHERE id = v_existente.id
+            RETURNING * INTO v_resultado;
+            RETURN to_jsonb(v_resultado);
+        END IF;
+    END IF;
+
+    INSERT INTO public.amizades (usuario_id, amigo_id, status)
+    VALUES (p_usuario_id, p_amigo_id, 'pendente')
+    RETURNING * INTO v_resultado;
+
+    RETURN to_jsonb(v_resultado);
+END;
+$$;
+
+
+-- 5.6. RESPONDER SOLICITAÇÃO DE AMIZADE (SECURITY DEFINER)
+CREATE OR REPLACE FUNCTION public.responder_solicitacao(p_solicitacao_id UUID, p_novo_status TEXT)
+RETURNS JSONB
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    v_resultado RECORD;
+BEGIN
+    UPDATE public.amizades
+    SET status = p_novo_status, updated_at = NOW()
+    WHERE id = p_solicitacao_id
+    RETURNING * INTO v_resultado;
+
+    RETURN to_jsonb(v_resultado);
+END;
+$$;
+
+
+-- 5.7. REMOVER AMIZADE (SECURITY DEFINER)
+CREATE OR REPLACE FUNCTION public.remover_amigo(p_usuario_id UUID, p_amigo_id UUID)
+RETURNS BOOLEAN
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+    DELETE FROM public.amizades
+    WHERE (usuario_id = p_usuario_id AND amigo_id = p_amigo_id)
+       OR (usuario_id = p_amigo_id AND amigo_id = p_usuario_id);
+    RETURN TRUE;
+END;
+$$;
+
+
+-- 5.8. LISTAR AMIGOS CONFIRMADOS (SECURITY DEFINER)
+CREATE OR REPLACE FUNCTION public.listar_amigos(p_usuario_id UUID)
+RETURNS TABLE (
+    amizade_id UUID,
+    id UUID,
+    nome TEXT,
+    sequencia INTEGER,
+    pontos INTEGER
+)
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+AS $$
+    WITH amigos_ids AS (
+        SELECT id AS amizade_id, amigo_id AS amigo_usuario_id
+        FROM public.amizades
+        WHERE usuario_id = p_usuario_id AND status = 'aceito'
+        UNION
+        SELECT id AS amizade_id, usuario_id AS amigo_usuario_id
+        FROM public.amizades
+        WHERE amigo_id = p_usuario_id AND status = 'aceito'
+    )
+    SELECT 
+        a.amizade_id,
+        u.id,
+        u.nome,
+        COALESCE(u.sequencia, 0) AS sequencia,
+        COALESCE(u.pontuacao_semanal, 0) AS pontos
+    FROM public.usuarios u
+    INNER JOIN amigos_ids a ON u.id = a.amigo_usuario_id;
+$$;
+
+
+-- 5.9. LISTAR CONVITES PENDENTES (SECURITY DEFINER)
+CREATE OR REPLACE FUNCTION public.listar_solicitacoes_pendentes(p_usuario_id UUID)
+RETURNS TABLE (
+    id UUID,
+    solicitante_id UUID,
+    nome TEXT,
+    sequencia INTEGER,
+    pontos INTEGER,
+    created_at TIMESTAMP WITH TIME ZONE
+)
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+AS $$
+    SELECT 
+        a.id,
+        a.usuario_id AS solicitante_id,
+        COALESCE(u.nome, 'Usuário') AS nome,
+        COALESCE(u.sequencia, 0) AS sequencia,
+        COALESCE(u.pontuacao_semanal, 0) AS pontos,
+        a.created_at
+    FROM public.amizades a
+    LEFT JOIN public.usuarios u ON a.usuario_id = u.id
+    WHERE a.amigo_id = p_usuario_id AND a.status = 'pendente'
+    ORDER BY a.created_at DESC;
+$$;
