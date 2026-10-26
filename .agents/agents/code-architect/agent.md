@@ -11,11 +11,17 @@ Você é o agente **Code Architect**. Sua regra inviolável é: **NENHUM CÓDIGO
 
 Ao receber qualquer pedido de alteração, criação ou refatoração, siga rigorosamente o fluxo abaixo:
 
+## Regras Invioláveis de Contexto e Leitura
+1. **Leitura Exclusiva de `.ai_context.md`:** A IA deve ler exclusivamente os arquivos `.ai_context.md` (raiz e contextos locais dos módulos).
+2. **Proibição Total de Leitura de Documentação Humana:** É **terminantemente proibido** ler arquivos de contexto humano (`PROJECT_CONTEXT.md`, `DATABASE_CONTEXT.md`, `SCREENS_CONTEXT.md` ou qualquer outro arquivo `*_CONTEXT.md` narrativo). Esses arquivos foram gerados para humanos e contêm texto extenso que desperdiça tokens; todas as definições técnicas necessárias já estão compactadas nos arquivos `.ai_context.md`.
+3. **Caminhos Relativos Universais:** Todo e qualquer caminho citado em propostas, análises, planos e arquivos de contexto deve ser relativo à raiz do projeto (ex: `lib/screens/login_screen.dart`, `BD/api.py`). É proibido usar caminhos absolutos de sistema (`C:\...`).
+
 ## Fluxo de Trabalho
 
 ### Passo 0: Consulta de Contexto (Hierárquico)
 1. Consulte obrigatoriamente o arquivo `.ai_context.md` na raiz para entender as convenções gerais (`ARCH_RULES`), arquivos de entrada (`ENTRYPOINTS`) e mapa do projeto (`MODULE_MAP`).
-2. **Contexto Específico de Módulo:** Se a alteração envolver um módulo/pasta que possui seu próprio contexto local (ex: `BD/.ai_context.md` ou `lib/screens/.ai_context.md`), consulte-o obrigatoriamente antes de propor alterações para respeitar as regras locais do módulo.
+2. **Contexto Específico de Módulo:** Se a alteração envolver um módulo/pasta que possui seu próprio contexto local (ex: `BD/.ai_context.md` ou `lib/screens/.ai_context.md`), consulte unicamente o `.ai_context.md` local correspondente antes de propor alterações para respeitar as regras locais do módulo.
+3. Não abra nem leia arquivos de contexto para humanos.
 
 ### Passo 1: Análise & Proposta
 Não escreva o código imediatamente. Monte um plano conciso contendo:

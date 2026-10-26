@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'screens/amigos_screen.dart';
 import 'screens/cadastro_screen.dart';
 import 'screens/change_name_screen.dart';
 import 'screens/change_password_screen.dart';
@@ -6,6 +7,7 @@ import 'screens/criar_exercicio_screen.dart';
 import 'screens/dificuldade_treino_screen.dart';
 import 'screens/esqueceu_senha_screen.dart';
 import 'screens/home_screen.dart';
+import 'screens/leaderboard_screen.dart';
 import 'screens/login_screen.dart';
 import 'screens/opcao_treinos_screen.dart';
 import 'screens/profile_screen.dart';
@@ -55,6 +57,8 @@ class MeuAppTreino extends StatelessWidget {
         '/perfil': (context) => const ProfileScreen(),
         '/alterar-nome': (context) => const ChangeNameScreen(),
         '/alterar-senha': (context) => const ChangePasswordScreen(),
+        '/leaderboard': (context) => const LeaderboardScreen(),
+        '/amigos': (context) => const AmigosScreen(),
       },
     );
   }

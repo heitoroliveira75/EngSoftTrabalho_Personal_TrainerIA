@@ -794,6 +794,150 @@ class ApiService {
   }
 
   /// Reseta a checagem diária do usuário para false
+  // ============================================================
+  // 7. SISTEMA DE AMIZADES E LEADERBOARD
+  // ============================================================
+
+  /// Consulta o leaderboard global com limite configurável
+  Future<Map<String, dynamic>> obterLeaderboardGlobal({int limite = 50}) async {
+    try {
+      final url = Uri.parse('$baseUrl/leaderboard/global?limite=$limite');
+      final response = await http.get(url, headers: _headers).timeout(const Duration(seconds: 15));
+      return jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+    } catch (e) {
+      return {'sucesso': false, 'mensagem': 'Erro ao obter leaderboard global: $e'};
+    }
+  }
+
+  /// Consulta o leaderboard entre amigos do usuário autenticado
+  Future<Map<String, dynamic>> obterLeaderboardAmigos({String? usuarioId}) async {
+    try {
+      final uid = usuarioId ?? idUsuarioAtual;
+      if (uid == null) {
+        return {'sucesso': false, 'mensagem': 'Usuário não autenticado'};
+      }
+      final url = Uri.parse('$baseUrl/leaderboard/amigos?usuario_id=$uid');
+      final response = await http.get(url, headers: _headers).timeout(const Duration(seconds: 15));
+      return jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+    } catch (e) {
+      return {'sucesso': false, 'mensagem': 'Erro ao obter leaderboard de amigos: $e'};
+    }
+  }
+
+  /// Consulta a posição ordinal do usuário no ranking global
+  Future<Map<String, dynamic>> obterMinhaPosicaoGlobal({String? usuarioId}) async {
+    try {
+      final uid = usuarioId ?? idUsuarioAtual;
+      if (uid == null) {
+        return {'sucesso': false, 'mensagem': 'Usuário não autenticado'};
+      }
+      final url = Uri.parse('$baseUrl/leaderboard/minha-posicao?usuario_id=$uid');
+      final response = await http.get(url, headers: _headers).timeout(const Duration(seconds: 15));
+      return jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+    } catch (e) {
+      return {'sucesso': false, 'mensagem': 'Erro ao obter posição: $e'};
+    }
+  }
+
+  /// Retorna a lista de amigos confirmados do usuário
+  Future<Map<String, dynamic>> listarAmigos({String? usuarioId}) async {
+    try {
+      final uid = usuarioId ?? idUsuarioAtual;
+      if (uid == null) {
+        return {'sucesso': false, 'mensagem': 'Usuário não autenticado'};
+      }
+      final url = Uri.parse('$baseUrl/amigos/?usuario_id=$uid');
+      final response = await http.get(url, headers: _headers).timeout(const Duration(seconds: 15));
+      return jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+    } catch (e) {
+      return {'sucesso': false, 'mensagem': 'Erro ao listar amigos: $e'};
+    }
+  }
+
+  /// Retorna as solicitações de amizade pendentes recebidas
+  Future<Map<String, dynamic>> listarSolicitacoesPendentes({String? usuarioId}) async {
+    try {
+      final uid = usuarioId ?? idUsuarioAtual;
+      if (uid == null) {
+        return {'sucesso': false, 'mensagem': 'Usuário não autenticado'};
+      }
+      final url = Uri.parse('$baseUrl/amigos/solicitacoes/pendentes?usuario_id=$uid');
+      final response = await http.get(url, headers: _headers).timeout(const Duration(seconds: 15));
+      return jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+    } catch (e) {
+      return {'sucesso': false, 'mensagem': 'Erro ao listar solicitações: $e'};
+    }
+  }
+
+  /// Busca usuários por nome para adicionar como amigo
+  Future<Map<String, dynamic>> buscarUsuarios(String termo, {String? usuarioId}) async {
+    try {
+      final uid = usuarioId ?? idUsuarioAtual;
+      final queryParam = uid != null ? '&usuario_id=$uid' : '';
+      final url = Uri.parse('$baseUrl/amigos/buscar?nome=${Uri.encodeComponent(termo)}$queryParam');
+      final response = await http.get(url, headers: _headers).timeout(const Duration(seconds: 15));
+      return jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+    } catch (e) {
+      return {'sucesso': false, 'mensagem': 'Erro ao buscar usuários: $e'};
+    }
+  }
+
+  /// Envia solicitação de amizade para um usuário
+  Future<Map<String, dynamic>> enviarSolicitacaoAmizade(String amigoId, {String? usuarioId}) async {
+    try {
+      final uid = usuarioId ?? idUsuarioAtual;
+      if (uid == null) {
+        return {'sucesso': false, 'mensagem': 'Usuário não autenticado'};
+      }
+      final url = Uri.parse('$baseUrl/amigos/solicitar');
+      final response = await http
+          .post(
+            url,
+            headers: _headers,
+            body: jsonEncode({
+              'usuario_id': uid,
+              'amigo_id': amigoId,
+            }),
+          )
+          .timeout(const Duration(seconds: 15));
+      return jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+    } catch (e) {
+      return {'sucesso': false, 'mensagem': 'Erro ao enviar solicitação: $e'};
+    }
+  }
+
+  /// Responde a uma solicitação de amizade ('aceito' ou 'recusado')
+  Future<Map<String, dynamic>> responderSolicitacao(String solicitacaoId, String status) async {
+    try {
+      final url = Uri.parse('$baseUrl/amigos/solicitacoes/$solicitacaoId');
+      final response = await http
+          .patch(
+            url,
+            headers: _headers,
+            body: jsonEncode({'status': status}),
+          )
+          .timeout(const Duration(seconds: 15));
+      return jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+    } catch (e) {
+      return {'sucesso': false, 'mensagem': 'Erro ao responder solicitação: $e'};
+    }
+  }
+
+  /// Desfaz o vínculo de amizade com outro usuário
+  Future<Map<String, dynamic>> removerAmigo(String amigoId, {String? usuarioId}) async {
+    try {
+      final uid = usuarioId ?? idUsuarioAtual;
+      if (uid == null) {
+        return {'sucesso': false, 'mensagem': 'Usuário não autenticado'};
+      }
+      final url = Uri.parse('$baseUrl/amigos/$amigoId?usuario_id=$uid');
+      final response = await http.delete(url, headers: _headers).timeout(const Duration(seconds: 15));
+      return jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+    } catch (e) {
+      return {'sucesso': false, 'mensagem': 'Erro ao remover amigo: $e'};
+    }
+  }
+
   Future<Map<String, dynamic>> resetarChecagem(String usuarioId) async {
     try {
       final url = Uri.parse('$baseUrl/pontuacao/$usuarioId/resetar-checagem');

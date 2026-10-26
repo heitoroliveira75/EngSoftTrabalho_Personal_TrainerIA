@@ -16,6 +16,7 @@ Manter a malha de arquivos `.ai_context.md` (na raiz e em pastas modulares espec
    - Atua como o **índice geral e roteador de navegação**.
    - Lista entrypoints globais, mapa de módulos de alto nível (`MODULE_MAP`), estado ativo da sprint (`ACTIVE_STATE`) e regras invioláveis de arquitetura (`ARCH_RULES`).
    - Aponta quais subpastas possuem arquivos `.ai_context.md` locais.
+   - **Regra:** NUNCA incluir arquivos de contexto para humanos (`PROJECT_CONTEXT.md`, `DATABASE_CONTEXT.md`, `SCREENS_CONTEXT.md`) em `ENTRYPOINTS` ou `key_files`.
 
 2. **Contextos Específicos por Pasta (`<pasta>/.ai_context.md`):**
    - Atuam como **mapas especializados de domínio** (ex: `BD/.ai_context.md`, `lib/screens/.ai_context.md`).
@@ -26,11 +27,20 @@ Manter a malha de arquivos `.ai_context.md` (na raiz e em pastas modulares espec
 
 ## 2. Diretrizes de Operação
 
+### Restrição Fundamental de Leitura (AI Only)
+- **Leitura Exclusiva de `.ai_context.md`:** Agentes e IAs devem ler SOMENTE arquivos `.ai_context.md`.
+- **Proibição de Leitura de Documentação Humana:** É expressamente vetada a leitura de arquivos de contexto voltados a humanos (`PROJECT_CONTEXT.md`, `DATABASE_CONTEXT.md`, `SCREENS_CONTEXT.md`, etc.) por agentes e IAs. Esses arquivos contêm explicações detalhadas para desenvolvedores humanos e seu consumo por IAs causa desperdício desnecessário de tokens.
+
+### Regra Obrigatória de Portabilidade: Caminhos Relativos à Raiz
+- **Caminhos a partir da raiz:** Ao criar ou modificar qualquer arquivo `.ai_context.md` (na raiz ou em subpastas), TODOS os caminhos de arquivos e pastas citados (em `ENTRYPOINTS`, `MODULE_MAP`, `ACTIVE_STATE`, `ARCH_RULES`, etc.) DEVEM ser expressos exclusivamente a partir da raiz do repositório (exemplo: `lib/main.dart`, `BD/api.py`, `lib/screens/login_screen.dart`).
+- **Proibição de caminhos absolutos:** É estritamente proibido citar caminhos absolutos do sistema de arquivos local (ex: `C:\...`, `file:///C:/...`, `/home/...`). Isso garante a universalidade entre todas as máquinas dos colegas de equipe.
+
 ### Ação: `check_and_read` (Leitura sob Demanda)
 1. Antes de iniciar qualquer tarefa, leia sempre o `.ai_context.md` da raiz.
 2. Identifique qual módulo/pasta será afetado pela solicitação do usuário.
 3. Se a pasta estiver listada no `ENTRYPOINTS` ou `MODULE_MAP` da raiz, **verifique se ela possui um `.ai_context.md` local**.
 4. Se o contexto local existir, leia-o antes de abrir arquivos de código-fonte.
+5. Nunca abra arquivos de contexto humano (`*_CONTEXT.md` ou `PROJECT_CONTEXT.md`) que porventura existam no diretório.
 
 ### Ação: `update` (Sincronização em Cascata)
 Sempre que uma alteração funcional, criação/remoção de arquivo ou nova rota for concluída:
@@ -38,7 +48,7 @@ Sempre que uma alteração funcional, criação/remoção de arquivo ou nova rot
 2. **Passo 2 (Raiz):** Atualize o `/.ai_context.md` da raiz para:
    - Atualizar `LAST_UPDATE: YYYY-MM-DDTHH:mm:ss`.
    - Registrar a nova funcionalidade ou marco em `ACTIVE_STATE`.
-   - Se novos arquivos essenciais ou novas pastas foram criados, registrá-los em `ENTRYPOINTS` e `MODULE_MAP`.
+   - Se novos arquivos essenciais ou novas pastas foram criados, registrá-los em `ENTRYPOINTS` e `MODULE_MAP` (sem nunca adicionar arquivos de documentação humana aos `key_files`).
 
 ---
 

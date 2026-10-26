@@ -794,3 +794,343 @@ Padrão de Resposta da API:
    print(resposta['mensagem']);
 
 
+
+
+================================================================================
+6. SISTEMA DE AMIZADES
+================================================================================
+
+--------------------------------------------------------------------------------
+6.1. Buscar Usuários por Nome
+--------------------------------------------------------------------------------
+-> Rota: GET /amigos/buscar?nome={nome}&usuario_id={usuario_id}
+-> O que faz: Busca usuários cadastrados por aproximação de nome. Contorna restrições de RLS
+   via RPC SECURITY DEFINER, garantindo retorno dos nomes reais, sequências e pontuações.
+   Identifica se já existe vínculo ou pedido pendente com o usuário logado.
+-> Parâmetros Query:
+   - nome (obrigatório, string): Termo de busca (ex: "Arthur", "Davi").
+   - usuario_id (opcional, string): ID do usuário atual para mapear relação e excluir a si mesmo.
+-> Retorno de Sucesso:
+   {
+     "sucesso": true,
+     "usuarios": [
+       {
+         "id": "uuid-do-usuario",
+         "nome": "Arthur Peixoto",
+         "sequencia": 5,
+         "pontuacao_semanal": 350,
+         "pontuacao_total": 1200,
+         "maior_sequencia": 8,
+         "relacao_status": null,
+         "ja_amigo": false,
+         "solicitacao_enviada": false,
+         "solicitacao_recebida": false
+       }
+     ]
+   }
+
+-> Exemplo em Python (requests):
+   import requests
+   params = {"nome": "Arthur", "usuario_id": "uuid-meu-usuario"}
+   resposta = requests.get("http://127.0.0.1:8000/amigos/buscar", params=params).json()
+   if resposta["sucesso"]:
+       for u in resposta["usuarios"]:
+           print(u["nome"], "- Pontos:", u["pontuacao_semanal"], "- Já amigo:", u["ja_amigo"])
+
+-> Exemplo em Flutter (Dart / ApiService):
+   final resposta = await ApiService().buscarUsuarios('Arthur');
+   if (resposta['sucesso'] == true) {
+     final usuarios = resposta['usuarios'] as List;
+     print('Encontrados: ${usuarios.length}');
+   }
+
+
+--------------------------------------------------------------------------------
+6.2. Enviar Solicitação de Amizade
+--------------------------------------------------------------------------------
+-> Rota: POST /amigos/solicitar
+-> O que faz: Registra uma solicitação de amizade na tabela 'amizades' com status 'pendente'.
+-> Payload JSON:
+   {
+     "usuario_id": "uuid-solicitante",
+     "amigo_id": "uuid-destinatario"
+   }
+-> Retorno de Sucesso:
+   {
+     "sucesso": true,
+     "mensagem": "Solicitação de amizade enviada com sucesso!",
+     "solicitacao": {
+       "id": "uuid-da-solicitacao",
+       "usuario_id": "uuid-solicitante",
+       "amigo_id": "uuid-destinatario",
+       "status": "pendente"
+     }
+   }
+
+-> Exemplo em Python (requests):
+   import requests
+   payload = {
+       "usuario_id": "uuid-meu-usuario",
+       "amigo_id": "uuid-do-amigo"
+   }
+   resposta = requests.post("http://127.0.0.1:8000/amigos/solicitar", json=payload).json()
+   print(resposta["mensagem"])
+
+-> Exemplo em Flutter (Dart / ApiService):
+   final resposta = await ApiService().enviarSolicitacaoAmizade('uuid-do-amigo');
+   print(resposta['mensagem']);
+
+
+--------------------------------------------------------------------------------
+6.3. Listar Solicitações de Amizade Pendentes
+--------------------------------------------------------------------------------
+-> Rota: GET /amigos/solicitacoes/pendentes?usuario_id={usuario_id}
+-> O que faz: Retorna as solicitações pendentes recebidas pelo usuário logado com o
+   nome real, sequência e pontuação de quem enviou.
+-> Parâmetros Query:
+   - usuario_id (obrigatório, string): ID do usuário destinatário.
+-> Retorno de Sucesso:
+   {
+     "sucesso": true,
+     "solicitacoes": [
+       {
+         "id": "uuid-solicitacao",
+         "solicitante_id": "uuid-remetente",
+         "nome": "Arthur Peixoto",
+         "sequencia": 4,
+         "pontos": 250,
+         "created_at": "2026-10-24T12:00:00"
+       }
+     ]
+   }
+
+-> Exemplo em Python (requests):
+   import requests
+   resposta = requests.get("http://127.0.0.1:8000/amigos/solicitacoes/pendentes?usuario_id=uuid-meu-usuario").json()
+   if resposta["sucesso"]:
+       for s in resposta["solicitacoes"]:
+           print("Pedido de:", s["nome"], "(ID:", s["id"], ")")
+
+-> Exemplo em Flutter (Dart / ApiService):
+   final resposta = await ApiService().listarSolicitacoesPendentes();
+   if (resposta['sucesso'] == true) {
+     final pendentes = resposta['solicitacoes'] as List;
+     print('Pedidos recebidos: ${pendentes.length}');
+   }
+
+
+--------------------------------------------------------------------------------
+6.4. Responder a Solicitação de Amizade
+--------------------------------------------------------------------------------
+-> Rota: PATCH /amigos/solicitacoes/{solicitacao_id}
+-> O que faz: Aceita ('aceito') ou recusa ('recusado') uma solicitação pendente.
+-> Path Parameter:
+   - solicitacao_id: UUID da solicitação de amizade.
+-> Payload JSON:
+   {
+     "status": "aceito"
+   }
+-> Retorno de Sucesso:
+   {
+     "sucesso": true,
+     "mensagem": "Solicitação aceita! Agora vocês são amigos.",
+     "dados": {
+       "id": "uuid-solicitacao",
+       "status": "aceito"
+     }
+   }
+
+-> Exemplo em Python (requests):
+   import requests
+   resposta = requests.patch("http://127.0.0.1:8000/amigos/solicitacoes/uuid-solicitacao", json={"status": "aceito"}).json()
+   print(resposta["mensagem"])
+
+-> Exemplo em Flutter (Dart / ApiService):
+   final resposta = await ApiService().responderSolicitacao('uuid-solicitacao', 'aceito');
+   print(resposta['mensagem']);
+
+
+--------------------------------------------------------------------------------
+6.5. Listar Amigos Confirmados
+--------------------------------------------------------------------------------
+-> Rota: GET /amigos/?usuario_id={usuario_id}
+-> O que faz: Retorna os amigos confirmados do usuário com seus nomes reais, streaks e pontuações.
+-> Parâmetros Query:
+   - usuario_id (obrigatório, string): ID do usuário logado.
+-> Retorno de Sucesso:
+   {
+     "sucesso": true,
+     "amigos": [
+       {
+         "amizade_id": "uuid-amizade",
+         "id": "uuid-do-amigo",
+         "nome": "Arthur Peixoto",
+         "sequencia": 4,
+         "pontos": 250
+       }
+     ]
+   }
+
+-> Exemplo em Python (requests):
+   import requests
+   resposta = requests.get("http://127.0.0.1:8000/amigos/?usuario_id=uuid-meu-usuario").json()
+   if resposta["sucesso"]:
+       for amigo in resposta["amigos"]:
+           print("Amigo:", amigo["nome"], "| Pontos:", amigo["pontos"], "| Streak:", amigo["sequencia"])
+
+-> Exemplo em Flutter (Dart / ApiService):
+   final resposta = await ApiService().listarAmigos();
+   if (resposta['sucesso'] == true) {
+     final amigos = resposta['amigos'] as List;
+     print('Total de amigos: ${amigos.length}');
+   }
+
+
+--------------------------------------------------------------------------------
+6.6. Remover Amigo
+--------------------------------------------------------------------------------
+-> Rota: DELETE /amigos/{amigo_id}?usuario_id={usuario_id}
+-> O que faz: Remove o registro de amizade entre os dois usuários.
+-> Path Parameter:
+   - amigo_id: UUID do amigo a ser desvinculado.
+-> Parâmetros Query:
+   - usuario_id (obrigatório, string): ID do usuário atual.
+-> Retorno de Sucesso:
+   {
+     "sucesso": true,
+     "mensagem": "Amizade removida com sucesso!"
+   }
+
+-> Exemplo em Python (requests):
+   import requests
+   resposta = requests.delete("http://127.0.0.1:8000/amigos/uuid-do-amigo?usuario_id=uuid-meu-usuario").json()
+   print(resposta["mensagem"])
+
+-> Exemplo em Flutter (Dart / ApiService):
+   final resposta = await ApiService().removerAmigo('uuid-do-amigo');
+   print(resposta['mensagem']);
+
+
+================================================================================
+7. SISTEMA DE LEADERBOARD
+================================================================================
+
+--------------------------------------------------------------------------------
+7.1. Leaderboard Global
+--------------------------------------------------------------------------------
+-> Rota: GET /leaderboard/global?limite=50
+-> O que faz: Retorna o ranking global dos usuários ordenados decrescente por
+   pontuação semanal e streak de treinos diários.
+-> Parâmetros Query:
+   - limite (opcional, inteiro de 1 a 200, padrão: 50): Quantidade máxima de atletas no ranking.
+-> Retorno de Sucesso:
+   {
+     "sucesso": true,
+     "leaderboard": [
+       {
+         "posicao": 1,
+         "id": "uuid-1",
+         "nome": "Arthur Peixoto",
+         "pontos": 450,
+         "sequencia": 12,
+         "maior_sequencia": 15
+       },
+       {
+         "posicao": 2,
+         "id": "uuid-2",
+         "nome": "Davi Lima",
+         "pontos": 350,
+         "sequencia": 8,
+         "maior_sequencia": 10
+       }
+     ]
+   }
+
+-> Exemplo em Python (requests):
+   import requests
+   resposta = requests.get("http://127.0.0.1:8000/leaderboard/global?limite=10").json()
+   if resposta["sucesso"]:
+       for u in resposta["leaderboard"]:
+           print(f"#{u['posicao']} {u['nome']} - {u['pontos']} pts | {u['sequencia']}d streak")
+
+-> Exemplo em Flutter (Dart / ApiService):
+   final resposta = await ApiService().obterLeaderboardGlobal(limite: 20);
+   if (resposta['sucesso'] == true) {
+     final ranking = resposta['leaderboard'] as List;
+     print('Carregados ${ranking.length} atletas do ranking global');
+   }
+
+
+--------------------------------------------------------------------------------
+7.2. Leaderboard entre Amigos
+--------------------------------------------------------------------------------
+-> Rota: GET /leaderboard/amigos?usuario_id={usuario_id}
+-> O que faz: Retorna o ranking semanal restrito ao usuário logado e seus amigos
+   confirmados, incluindo a flag 'is_me' para destaque do próprio atleta.
+-> Parâmetros Query:
+   - usuario_id (obrigatório, string): ID do usuário logado.
+-> Retorno de Sucesso:
+   {
+     "sucesso": true,
+     "leaderboard": [
+       {
+         "posicao": 1,
+         "id": "uuid-amigo",
+         "nome": "Arthur Peixoto",
+         "pontos": 450,
+         "sequencia": 12,
+         "maior_sequencia": 15,
+         "is_me": false
+       },
+       {
+         "posicao": 2,
+         "id": "uuid-meu-usuario",
+         "nome": "Davi Lima",
+         "pontos": 350,
+         "sequencia": 8,
+         "maior_sequencia": 10,
+         "is_me": true
+       }
+     ]
+   }
+
+-> Exemplo em Python (requests):
+   import requests
+   resposta = requests.get("http://127.0.0.1:8000/leaderboard/amigos?usuario_id=uuid-meu-usuario").json()
+   if resposta["sucesso"]:
+       for u in resposta["leaderboard"]:
+           tag = " [VOCÊ]" if u.get("is_me") else ""
+           print(f"#{u['posicao']} {u['nome']}{tag}: {u['pontos']} pts")
+
+-> Exemplo em Flutter (Dart / ApiService):
+   final resposta = await ApiService().obterLeaderboardAmigos();
+   if (resposta['sucesso'] == true) {
+     final amigos = resposta['leaderboard'] as List;
+     print('Ranking de amigos carregado: ${amigos.length}');
+   }
+
+
+--------------------------------------------------------------------------------
+7.3. Minha Posição no Ranking Global
+--------------------------------------------------------------------------------
+-> Rota: GET /leaderboard/minha-posicao?usuario_id={usuario_id}
+-> O que faz: Retorna a posição ordinal exata do usuário logado no ranking global.
+-> Parâmetros Query:
+   - usuario_id (obrigatório, string): ID do usuário logado.
+-> Retorno de Sucesso:
+   {
+     "sucesso": true,
+     "posicao": 2
+   }
+
+-> Exemplo em Python (requests):
+   import requests
+   resposta = requests.get("http://127.0.0.1:8000/leaderboard/minha-posicao?usuario_id=uuid-meu-usuario").json()
+   if resposta["sucesso"]:
+       print("Sua posição global é:", resposta["posicao"])
+
+-> Exemplo em Flutter (Dart / ApiService):
+   final resposta = await ApiService().obterMinhaPosicaoGlobal();
+   if (resposta['sucesso'] == true) {
+     print('Minha posição no mundo: #${resposta['posicao']}');
+   }
