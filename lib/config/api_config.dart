@@ -2,12 +2,19 @@ import 'dart:io' show Platform;
 import 'package:flutter/foundation.dart' show kIsWeb;
 
 class ApiConfig {
-  // Configuração padrão de IP/Host
-  // - No Emulador Android: use 'http://10.0.2.2:8000'
-  // - No iOS Simulator / Chrome Web / Windows Desktop: use 'http://127.0.0.1:8000'
-  // - Em celular físico via Wi-Fi: substitua pelo IP da sua máquina (ex: 'http://192.168.1.100:8000')
-  
+  /// URL do backend hospedado na nuvem (ex: Render).
+  /// Para usar a API online, preencha com a URL do Render (ex: 'https://personal-trainer-api.onrender.com').
+  /// Se deixado null ou vazio, o aplicativo usa a conexão local automaticamente (localhost / 10.0.2.2).
+  static const String? remoteUrl = null;
+
+  /// Retorna a URL base ativa da API REST.
   static String get baseUrl {
+    // 1. Se uma URL remota foi configurada, ela tem prioridade em todas as plataformas
+    if (remoteUrl != null && remoteUrl!.trim().isNotEmpty) {
+      return remoteUrl!.trim();
+    }
+
+    // 2. Modo local de desenvolvimento
     if (kIsWeb) {
       return 'http://127.0.0.1:8000';
     }
