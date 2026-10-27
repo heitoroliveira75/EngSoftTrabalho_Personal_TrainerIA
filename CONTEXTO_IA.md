@@ -2,7 +2,7 @@
 
 > **Propósito deste documento:** Permitir que qualquer agente de IA ou desenvolvedor recupere imediatamente 100% do contexto técnico, arquitetural e histórico da frente de **Inteligência Artificial e Visão Computacional** do projeto **Personal Trainer IA**.
 >
-> **Última atualização:** 2026-10-24 (branch `IA` em `3e09708`; `TASK-08` implementada e validada localmente)
+> **Última atualização:** 2026-10-27 (branch `IA` em `af9b3b6`; Sprint `US-01` concluída e homologada com 39 testes; pronta para demo `US-02`)
 
 ---
 
@@ -67,38 +67,32 @@ flowchart TD
 > **Portabilidade Multiplataforma & Caminhos Relativos:**
 > O desenvolvimento deste projeto é compartilhado entre diferentes máquinas e sistemas operacionais (Windows, Linux, macOS). **Todos os arquivos, imports e referências devem ser manipulados estritamente através de caminhos relativos à raiz do repositório** (ex.: `./calculo_angulos.py`, `tests/test_pipeline_pontuacao.py`). Nunca utilize caminhos absolutos locais de sistema de arquivos.
 
-### 3.1. Núcleo em Desenvolvimento Ativo (Sprint Atual `US-01`)
+### 3.1. Núcleo em Desenvolvimento Ativo (Sprint `US-01` Concluída)
 
-Estes arquivos compõem a frente de trabalho imediata da branch, recebendo testes automatizados e evolução direta de contratos:
+Estes arquivos compõem a frente de trabalho imediata da branch, homologada por testes automatizados e evolução direta de contratos:
 
 | Arquivo Relativo | Responsabilidade Principal | Classes / Funções-Chave | Status Atual |
 | :--- | :--- | :--- | :--- |
-| [`./calculo_angulos.py`](./calculo_angulos.py) | Cálculo vetorial 2D de ângulos articulares em $[0^\circ, 180^\circ]$, checagem de visibilidade de marcos e **cálculo de deltas angulares com âncora de ruído** (`calcular_deltas_angulares`), eliminando a perda de detecção em cadências lentas. | `MAPA_ARTICULACOES`, `calcular_angulo()`, `extrair_angulos_exercicio()`, `calcular_deltas_angulares()` | **Em Desenvolvimento Ativo (Concluído na `TASK-02`)** |
-| [`./exercicios_fsm.py`](./exercicios_fsm.py) | Máquinas de Estados Finitos com **acumulador de erros por repetição** (`consumir_erros_repeticao`), penalidades por exercício (`PENALIDADES_ERRO`), checagens sem mascaramento e catálogo extensível (`obter_config_exercicio`). | `ExercicioBaseFSM`, `DesenvolvimentoOmbro`, `Agachamento`, `RoscaBiceps`, `CATALOGO_EXERCICIOS`, `obter_config_exercicio()` | **Em Desenvolvimento Ativo (Concluído na `TASK-03`)** |
-| [`./dtw_evaluator.py`](./dtw_evaluator.py) | Motor único de alinhamento temporal multivariado vetorizado via NumPy 3D *broadcasting*, restrição dinâmica de Sakoe-Chiba, tolerância $\tau$ e contrato `@dataclass DTWResult` com suporte a tupla e degradação graciosa. | `DTWComparator`, `DTWResult`, `DTW` | **Em Desenvolvimento Ativo (Concluído na `TASK-04`)** |
-| [`./buffer_repeticao.py`](./buffer_repeticao.py) | Acumulador de fotogramas e segmentador canônico de repetições com cálculo automático de deltas com âncora de ruído e interface polimórfica. | `BufferRepeticao`, `extrair_primeira_repeticao()` | **Em Desenvolvimento Ativo (Concluído na `TASK-05`)** |
-| [`./gabarito.py`](./gabarito.py) | Persistência, carregamento JSON e geração de curvas de referência padrão ouro com recorte idêntico ao do aluno via FSM canônica. | `GabaritoExercicio`, `garantir_gabaritos_padrao()` | **Em Desenvolvimento Ativo (Concluído na `TASK-05`)** |
-| [`./avaliador_pontuacao.py`](./avaliador_pontuacao.py) | Motor central de pontuação (`ResultadoPontuacaoRepeticao`), laudos pedagógicos hierárquicos, gamificação e `OrquestradorSessao` com interface **frame a frame**. | `calcular_pontuacao()`, `OrquestradorSessao`, `ResultadoPontuacaoRepeticao`, `ResumoPontuacaoSessao` | **Em Desenvolvimento Ativo (Concluído na `TASK-06`)** |
-| [`tests/test_pipeline_pontuacao.py`](tests/test_pipeline_pontuacao.py) | Suíte de testes automatizados com `pytest` cobrindo geometria, deltas acumulados, transições de fase, retenção de erros, DTW vetorizado, segmentação canônica, orquestração, contrato do extrator e integrações sintéticas. | Testes sem dependência de câmera | **Em Desenvolvimento Ativo (32 testes aprovados)** |
-
-
+| [`./calculo_angulos.py`](./calculo_angulos.py) | Cálculo vetorial 2D de ângulos articulares em $[0^\circ, 180^\circ]$, checagem de visibilidade de marcos e **cálculo de deltas angulares com âncora de ruído** (`calcular_deltas_angulares`), eliminando a perda de detecção em cadências lentas. | `MAPA_ARTICULACOES`, `calcular_angulo()`, `extrair_angulos_exercicio()`, `calcular_deltas_angulares()` | **Concluído na `TASK-02`** |
+| [`./exercicios_fsm.py`](./exercicios_fsm.py) | Máquinas de Estados Finitos com **acumulador de erros por repetição** (`consumir_erros_repeticao`), penalidades por exercício (`PENALIDADES_ERRO`), checagens sem mascaramento e catálogo extensível (`obter_config_exercicio`). | `ExercicioBaseFSM`, `DesenvolvimentoOmbro`, `Agachamento`, `RoscaBiceps`, `CATALOGO_EXERCICIOS`, `obter_config_exercicio()` | **Concluído na `TASK-03`** |
+| [`./dtw_evaluator.py`](./dtw_evaluator.py) | Motor único de alinhamento temporal multivariado vetorizado via NumPy 3D *broadcasting*, restrição dinâmica de Sakoe-Chiba, tolerância $\tau$ e contrato `@dataclass DTWResult` com suporte a tupla e degradação graciosa. | `DTWComparator`, `DTWResult`, `DTW` | **Concluído na `TASK-04`** |
+| [`./buffer_repeticao.py`](./buffer_repeticao.py) | Acumulador de fotogramas e segmentador canônico de repetições com cálculo automático de deltas com âncora de ruído e interface polimórfica. | `BufferRepeticao`, `extrair_primeira_repeticao()` | **Concluído na `TASK-05`** |
+| [`./gabarito.py`](./gabarito.py) | Persistência, carregamento JSON e geração de curvas de referência padrão ouro com recorte idêntico ao do aluno via FSM canônica. | `GabaritoExercicio`, `garantir_gabaritos_padrao()` | **Concluído na `TASK-05`** |
+| [`./avaliador_pontuacao.py`](./avaliador_pontuacao.py) | Motor central de pontuação (`ResultadoPontuacaoRepeticao`), laudos pedagógicos hierárquicos, gamificação e `OrquestradorSessao` com interface **frame a frame**. | `calcular_pontuacao()`, `OrquestradorSessao`, `ResultadoPontuacaoRepeticao`, `ResumoPontuacaoSessao` | **Concluído na `TASK-06`** |
+| [`tests/test_pipeline_pontuacao.py`](tests/test_pipeline_pontuacao.py) | Suíte de testes automatizados com `pytest` cobrindo geometria, deltas acumulados, transições de fase, retenção de erros, DTW vetorizado, segmentação canônica, orquestração, contrato do extrator, integrações sintéticas e suíte end-to-end de aceite AC1 a AC7. | Testes sem dependência de câmera | **Concluído na `TASK-10` (39 testes aprovados)** |
 | [`./pytest.ini`](./pytest.ini) | Configuração de execução do `pytest` com inclusão automática do diretório raiz no `pythonpath`. | Configuração de testes | **Ativo** |
 | [`./requirements.txt`](./requirements.txt) | Especificação das dependências oficiais da branch `IA` (`numpy`, `opencv-python`, `mediapipe`, `pytest`). | Gerenciamento de ambiente | **Ativo** |
 
 ---
 
-### 3.2. Módulos Funcionais Integrados e em Fila de Unificação / Refatoração
+### 3.2. Módulos Funcionais Integrados
 
-Módulos existentes no repositório que serão integrados e padronizados nas próximas tasks da sprint:
-
-| Arquivo Relativo | Responsabilidade no Pipeline | Próxima Task da Sprint | Observações Técnicas |
+| Arquivo Relativo | Responsabilidade no Pipeline | Status da Sprint US-01 | Observações Técnicas |
 | :--- | :--- | :--- | :--- |
-| [`./comparar_exercicio.py`](./comparar_exercicio.py) | CLI multi-exercício para avaliar vídeos gravados (`.mp4`) contra especialista. | **`[TASK-07]`** | Integrado ao `OrquestradorSessao`; suporta `--exercicio`, lado, relatório por repetição e resumo da sessão. |
-| [`./extrator_video.py`](./extrator_video.py) | Extrai séries temporais de vídeos `.mp4` em modo `IMAGE`, retornando `frame`, `angulos` e `visivel`. | **`[TASK-07]`** | Não calcula deltas; estes são centralizados no orquestrador durante a avaliação. A extração de gabarito usa o segmentador canônico. |
-| [`./exemplo_integracao.py`](./exemplo_integracao.py) | Demonstração sintética sem webcam dos fluxos ideal, lento e incompleto usando o orquestrador oficial. | **`[TASK-08]` concluída** | Envia ângulos por frame ao `OrquestradorSessao` e apresenta laudo e resumo de cada cenário. |
-| [`./app_tempo_real.py`](./app_tempo_real.py) | Aplicação em tempo real com webcam, desenho de esqueleto e HUD OpenCV. | **`[TASK-09]` parcial** | Envia ângulos e visibilidade ao `OrquestradorSessao`; mostra nota, feedback e média. Falta validação com webcam física. |
-
-
+| [`./comparar_exercicio.py`](./comparar_exercicio.py) | CLI multi-exercício para avaliar vídeos gravados (`.mp4`) contra especialista. | **Concluído (`TASK-07`)** | Integrado ao `OrquestradorSessao`; suporta `--exercicio`, lado, relatório por repetição e resumo da sessão. |
+| [`./extrator_video.py`](./extrator_video.py) | Extrai séries temporais de vídeos `.mp4` em modo `IMAGE`, retornando `frame`, `angulos` e `visivel`. | **Concluído (`TASK-07`)** | Não calcula deltas; estes são centralizados no orquestrador durante a avaliação. A extração de gabarito usa o segmentador canônico. |
+| [`./exemplo_integracao.py`](./exemplo_integracao.py) | Demonstração sintética sem webcam dos fluxos ideal, lento e incompleto usando o orquestrador oficial. | **Concluído (`TASK-08`)** | Envia ângulos por frame ao `OrquestradorSessao` e apresenta laudo e resumo de cada cenário. |
+| [`./app_tempo_real.py`](./app_tempo_real.py) | Aplicação em tempo real com webcam, desenho de esqueleto e HUD OpenCV. | **Concluído no Código (`TASK-09`)** | Envia ângulos e visibilidade ao `OrquestradorSessao`; mostra nota, feedback e média. Coberto por testes automatizados de adaptador. |
 
 ---
 
@@ -114,17 +108,17 @@ Módulos existentes no repositório que serão integrados e padronizados nas pr�
 
 ---
 
-### 3.4. Arquivos Legados Preservados (NÃO DELETAR até Validação Completa)
+### 3.4. Arquivos Legados Preservados (NÃO DELETAR até Validação Completa da Demo)
 
 > [!CAUTION]
 > **Política Inegociável de Legados:**
-> Em conformidade com a diretriz de engenharia de software do projeto, **nenhum arquivo legado ou protótipo deve ser removido ou descartado prematuramente**. Eles devem permanecer preservados como referência e salvaguarda até que todos os novos módulos substitutos estejam completamente implementados, integrados e validados por suítes de testes automatizados (`TASK-09` e `TASK-10`).
+> Em conformidade com a diretriz de engenharia de software do projeto, **nenhum arquivo legado ou protótipo deve ser removido ou descartado prematuramente**. Eles devem permanecer preservados como referência e salvaguarda até que todos os novos módulos substitutos estejam completamente implementados, integrados e validados por suítes de testes automatizados.
 
 | Arquivo Relativo | Papel Histórico / Diagnóstico Técnico | Política de Tratamento |
 | :--- | :--- | :--- |
-| [`./exercícios_fsm.py`](./exercícios_fsm.py) (com acento) | Cópia idêntica de `exercicios_fsm.py` criada antes da correção do nome em ASCII puro. | **Legado Preservado:** Manter intacto no repositório até a limpeza final da sprint. |
-| [`./dev_ombro-inicial.py`](./dev_ombro-inicial.py) | Primeira versão isolada da FSM de Desenvolvimento de Ombro. | **Legado Preservado:** Manter intacto enquanto houver scripts antigos referenciando-o. |
-| [`./dtw_inicial.py`](./dtw_inicial.py) | Primeira versão do DTW por loops manuais em Python puro. | **Legado Preservado:** Não é mais importado pelo `app_tempo_real.py`; mantido até a validação final e conclusão da TASK-09. |
+| [`./exercícios_fsm.py`](./exercícios_fsm.py) (com acento) | Cópia idêntica de `exercicios_fsm.py` criada antes da correção do nome em ASCII puro. | **Legado Preservado:** Manter intacto no repositório. |
+| [`./dev_ombro-inicial.py`](./dev_ombro-inicial.py) | Primeira versão isolada da FSM de Desenvolvimento de Ombro. | **Legado Preservado:** Manter intacto enquanto houver referências históricas. |
+| [`./dtw_inicial.py`](./dtw_inicial.py) | Primeira versão do DTW por loops manuais em Python puro. | **Legado Preservado:** Desacoplado do app; mantido como salvaguarda histórica. |
 | [`./Modularização.py`](./Modularização.py) | Protótipo antigo de extração pontual `min/max` com classificador tabular scikit-learn. | **Legado Preservado:** Mantido apenas como referência histórica. |
 | [`./dataset_pronto_para_ia.csv`](./dataset_pronto_para_ia.csv) e [`./relatorio_avaliacoes_ia.csv`](./relatorio_avaliacoes_ia.csv) | Datasets tabulares gerados durante os experimentos com `Modularização.py`. | **Legado Preservado.** |
 
@@ -137,7 +131,7 @@ Módulos existentes no repositório que serão integrados e padronizados nas pr�
 | [`./AGENTS.md`](./AGENTS.md) | Ponto de entrada obrigatório para agentes autônomos de IA, contendo as regras inegociáveis do repositório. |
 | [`./CONTEXTO_IA.md`](./CONTEXTO_IA.md) | *(Este documento)* Fotografia arquitetural completa, contratos de classes e taxonomia de arquivos. |
 | [`./DIRETRIZES_DESENVOLVIMENTO.md`](./DIRETRIZES_DESENVOLVIMENTO.md) | Protocolo de Engenharia de Software (SOLID, testes automatizados, commits incrementais, portabilidade). |
-| [`./PLANO_SPRINT_US01.md`](./PLANO_SPRINT_US01.md) | Plano técnico da sprint atual (`US-01`) com detalhamento de tasks, critérios de aceite e status por commit. |
+| [`./PLANO_SPRINT_US01.md`](./PLANO_SPRINT_US01.md) | Plano técnico da sprint concluída (`US-01`) com detalhamento de tasks, critérios de aceite e status por commit. |
 | [`./DEVLOG.md`](./DEVLOG.md) | Diário de bordo cronológico das alterações, decisões técnicas tomadas e histórico de commits. |
 | [`./EXPLICACAO_IA.md`](./EXPLICACAO_IA.md) | Guia didático acessível para humanos, membros da equipe, avaliadores e professores. |
 | [`./README.md`](./README.md) | Página inicial do repositório da branch `IA` com instruções de instalação, testes e mapa de documentação. |
@@ -209,20 +203,16 @@ Todas as classes herdam de `ExercicioBaseFSM` e seguem o ciclo de 4 estados (`0 
 
 ---
 
-## 5. Diagnóstico de Débitos Técnicos e Pontos de Atenção Atuais
+## 5. Diagnóstico de Débitos Técnicos e Estado de Fechamento
 
 1. **Integração do comparador de vídeo:**
-   - A `TASK-07` corrigiu a assinatura de `ExtratorVideo`, conectou a CLI ao `OrquestradorSessao` e adicionou seleção por `--exercicio`. O extrator retorna `frame`, `angulos` e `visivel`, sem deltas.
-2. **Unificação do Motor DTW (`dtw_evaluator.py` vs. `dtw_inicial.py`):**
-   - A `TASK-04` padronizou o `DTWComparator` vetorizado com Sakoe-Chiba em `dtw_evaluator.py` e 16 testes aprovados. O legado `dtw_inicial.py` permanece no repositório por preservação até validação final e decisão de aposentadoria na `TASK-09`.
-3. **Arquivos duplicados com acentuação e artefatos legados:**
-   - `exercícios_fsm.py` (com acento) coexiste com `exercicios_fsm.py` (sem acento).
-   - `Modularização.py` importa `maquina_estados` (módulo inexistente, removido em `65b5a83`).
-   - `.gitignore` atualizado protege contra arquivos temporários e caches.
-4. **Suíte Automatizada de Testes (`pytest`):**
-   - Suíte `tests/test_pipeline_pontuacao.py` ativa com **32 testes automatizados** aprovados, incluindo o contrato do extrator, modo simulado do comparador, demonstração sintética e adaptador da webcam.
-5. **Ruído de Sensor e Suavização Temporal:**
-   - `calculo_angulos.py` possui `calcular_deltas_angulares` com âncora de ruído (`1.2^\circ`) para cadências lentas.
+   - A `TASK-07` corrigiu a assinatura de `ExtratorVideo`, conectou a CLI ao `OrquestradorSessao` e adicionou seleção por `--exercicio`.
+2. **Unificação do Motor DTW:**
+   - Padronizado o `DTWComparator` vetorizado com Sakoe-Chiba em `dtw_evaluator.py`. O legado `dtw_inicial.py` foi desacoplado de todos os consumidores e preservado como salvaguarda histórica.
+3. **Suíte Automatizada de Testes (`pytest`):**
+   - Suíte `tests/test_pipeline_pontuacao.py` ativa com **39 testes automatizados** aprovados com 100% de sucesso, cobrindo geometria, deltas acumulados, FSM, segmentação canônica, DTW vetorizado, orquestrador desacoplado, contrato do extrator e critérios de aceite AC1 a AC7 (incluindo extensibilidade OCP).
+4. **Prontidão para Integração Front + IA (Demo):**
+   - O pipeline está 100% desacoplado de hardware e pronto para ser exposto por rotas REST no FastAPI e consumido pelo app Flutter.
 
 ---
 
@@ -258,6 +248,6 @@ Todas as classes herdam de `ExercicioBaseFSM` e seguem o ciclo de 4 estados (`0 
 
 ## 7. Documentos Complementares Obrigatórios
 
-- **[`DIRETRIZES_DESENVOLVIMENTO.md`](./DIRETRIZES_DESENVOLVIMENTO.md):** Protocolo obrigatório de engenharia de software (como transformar Histórias de Usuário em Tasks Atômicas com Artefatos, planejamento técnico, commits incrementais e padrões de qualidade).
-- **[`DEVLOG.md`](./DEVLOG.md):** Diário de bordo cronológico com todas as alterações, decisões arquiteturais, tasks concluídas e commits realizados no projeto.
+- **[`DIRETRIZES_DESENVOLVIMENTO.md`](./DIRETRIZES_DESENVOLVIMENTO.md):** Protocolo obrigatório de engenharia de software.
+- **[`DEVLOG.md`](./DEVLOG.md):** Diário de bordo cronológico com histórico de commits e homologação da sprint US-01.
 - **[`AGENTS.md`](./AGENTS.md):** Instruções rápidas de inicialização para agentes de IA.

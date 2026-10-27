@@ -27,7 +27,7 @@ flowchart LR
     B --> C["3. Cálculo Geométrico\n(Ângulos em Graus)"]
     B --> D["4. Máquina de Estados (FSM)\n(Fases + Erros Imediatos)"]
     D --> E["5. Buffer de Repetição\n(Isola cada repetição)"]
-    E --> F["6. DTW + Gabarito\n(Comparação e Score)"]
+    D --> F["6. DTW + Gabarito\n(Comparação e Score)"]
     F --> G["7. Veredito e Pontuação\n(Feedback ao Usuário)"]
 ```
 
@@ -70,10 +70,10 @@ Aqui está o coração da avaliação técnica:
 
 ## 3. O Que Já Está Desenvolvido e Funcional no Repositório
 
-Neste momento, a branch `IA` já possui um conjunto robusto de ferramentas e funcionalidades implementadas:
+Neste momento, a branch `IA` possui seu núcleo completamente homologado:
 
 ### 3.1. Exercícios Já Mapeados
-O catálogo central (`CATALOGO_EXERCICIOS`) já suporta **3 exercícios clássicos**:
+O catálogo central (`CATALOGO_EXERCICIOS`) suporta **3 exercícios clássicos**:
 1. **Desenvolvimento de Ombro (Shoulder Press):** Monitora cotovelo e ombro; detecta repetição incompleta, descida excessiva do braço e ombro caído.
 2. **Agachamento Livre (Squat):** Monitora joelho e quadril; detecta agachamento curto (falta de profundidade) e inclinação excessiva do tronco.
 3. **Rosca Direta de Bíceps (Bicep Curl):** Monitora cotovelo e estabilidade do ombro; detecta flexão incompleta e projeção incorreta do ombro.
@@ -83,13 +83,13 @@ O catálogo central (`CATALOGO_EXERCICIOS`) já suporta **3 exercícios clássic
 * [`calculo_angulos.py`](./calculo_angulos.py): Motor geométrico que calcula ângulos articulares em 2D, verifica visibilidade dos marcos e possui o cálculo de deltas angulares com âncora de ruído (`calcular_deltas_angulares`), que preserva a detecção de movimentos lentos sem sofrer com ruído de câmera.
 * [`exercicios_fsm.py`](./exercicios_fsm.py): Contrato base `ExercicioBaseFSM` e máquinas de estado dos 3 exercícios. Conta com memória isolada de erros por repetição (`consumir_erros_repeticao`), checagens sem mascaramento (`if` independentes) e dicionário formal de penalidades (`PENALIDADES_ERRO`).
 * [`buffer_repeticao.py`](./buffer_repeticao.py): Coletor e recortador automático de repetições completas guiado pelas fases da FSM.
-* [`dtw_evaluator.py`](./dtw_evaluator.py): **Novo motor unificado de Dynamic Time Warping.** Vetorizado em NumPy 3D *broadcasting* (até 80x mais rápido), com suporte à janela de restrição dinâmica de Sakoe-Chiba, tolerância $\tau$ configurável, contrato tipado `@dataclass DTWResult` (com desempacotamento retrocompatível como tupla) e degradação graciosa para tempo real.
-* [`dtw_inicial.py`](./dtw_inicial.py): Módulo legado preservado intacto no repositório até a migração final da webcam na Task 09.
+* [`dtw_evaluator.py`](./dtw_evaluator.py): **Novo motor unificado de Dynamic Time Warping.** Vetorizado em NumPy 3D *broadcasting* (até 80x mais rápido), com suporte à janela de restrição dinâmica de Sakoe-Chiba, tolerância $\tau$ configurável, contrato tipado `@dataclass DTWResult` e degradação graciosa para tempo real.
+* [`dtw_inicial.py`](./dtw_inicial.py): Módulo legado preservado intacto como salvaguarda histórica.
 * [`gabarito.py`](./gabarito.py): Sistema de persistência em JSON e gerador automático de gabaritos padrão caso os arquivos ainda não existam.
 * [`extrator_video.py`](./extrator_video.py): Extrai, por pose detectada, o número do frame, os ângulos articulares e a visibilidade. Não calcula deltas; no fluxo de avaliação, essa responsabilidade é do `OrquestradorSessao`. Também segmenta vídeos de especialistas para gerar gabaritos.
 * [`comparar_exercicio.py`](./comparar_exercicio.py): CLI multi-exercício integrada ao orquestrador, com relatório por repetição e resumo da sessão.
 * [`app_tempo_real.py`](./app_tempo_real.py): Aplicação completa com webcam (OpenCV), desenho do esqueleto na tela, painel HUD superior com contagem de repetições, fase atual, ângulos ao vivo, alertas vermelhos de erro e veredito final da última repetição com score DTW.
-* [`tests/test_pipeline_pontuacao.py`](./tests/test_pipeline_pontuacao.py): Suíte com **32 testes automatizados** cobrindo também o contrato do extrator, modo simulado do comparador e integrações sintéticas do orquestrador.
+* [`tests/test_pipeline_pontuacao.py`](./tests/test_pipeline_pontuacao.py): Suíte com **39 testes automatizados** aprovados com 100% de sucesso, cobrindo cálculo de ângulos, FSM, DTW, segmentador canônico, gabaritos, orquestração frame a frame, gamificação, contrato do extrator e a suíte completa de aceite AC1 a AC7 (incluindo extensibilidade OCP).
 * **Gabaritos JSON oficiais:** [`gabarito_especialista_ombro.json`](./gabarito_especialista_ombro.json), [`gabarito_especialista_agachamento.json`](./gabarito_especialista_agachamento.json) e [`gabarito_especialista_rosca.json`](./gabarito_especialista_rosca.json).
 
 ### 3.3. Como um Humano Pode Testar Hoje no Computador
@@ -104,9 +104,15 @@ Se você clonar o repositório e tiver Python instalado:
    ```bash
    pytest
    ```
-   *Roda os testes automatizados de cálculo de ângulos, FSM, DTW, segmentação, orquestração, extração e comparação simulada.*
+   *Roda 39 testes automatizados com 100% de sucesso.*
 
-3. **Testar com a Webcam em Tempo Real:**
+3. **Executar Demonstração dos Cenários no Orquestrador (Sem Câmera):**
+   ```bash
+   python exemplo_integracao.py
+   ```
+   *Mede repetições ideal, lenta, muito lenta e incompleta.*
+
+4. **Testar com a Webcam em Tempo Real:**
    ```bash
    python app_tempo_real.py
    ```
@@ -142,43 +148,31 @@ Por isso, o sistema foi estruturado para ser totalmente desacoplado de webcam f�
 5. **Motor Central de Pontuação e Orquestrador Frame a Frame (Resolvido na `TASK-06`):**
    * *O problema:* O cálculo de notas e aprovações estava disperso por múltiplos scripts de visualização (CLI, webcam, demo), sem padrão uniforme de desconto para erros posturais e de incompletude.
    * *A solução:* Criado `avaliador_pontuacao.py`, que consolida o contrato único de entrada `orquestrador.processar_frame(angulos, visivel)`, aplica penalidades de erros únicos da FSM, gera feedbacks pedagógicos hierárquicos e calcula pontos de gamificação e resumos para o aplicativo.
-6. **Bateria de Testes Unitários Automatizados (`TASK-02` a `TASK-06`):**
-   * Agora temos uma suíte formal com `pytest` e 32 testes cobrindo geometria, retenção de erros na FSM, alinhamento temporal DTW, autoconsistência de gabaritos, pontuação, orquestração e integrações sintéticas sem câmera.
+6. **Bateria de Testes Unitários Automatizados e Aceite AC1 a AC7 (`TASK-02` a `TASK-10`):**
+   * Suíte formal com `pytest` e **39 testes aprovados** com 100% de sucesso.
 
-### 4.2. Unificação do Canal de Webcam (`TASK-09`, parcial):
-* `app_tempo_real.py` agora delega cada frame e sua visibilidade ao `OrquestradorSessao`, que centraliza deltas, FSM, buffer e avaliação DTW.
+### 4.2. Unificação do Canal de Webcam (`TASK-09`, concluída no código):
+* `app_tempo_real.py` delega cada frame e sua visibilidade ao `OrquestradorSessao`, que centraliza deltas, FSM, buffer e avaliação DTW.
 * O HUD exibe a nota e o feedback da última repetição e a média da sessão. A seleção de exercício e o reset também usam o orquestrador.
-* A integração passou por teste sintético, mas ainda precisa ser validada com webcam física. O arquivo legado `dtw_inicial.py` foi preservado, embora não seja mais utilizado pelo app.
-
-### 4.3. O Que Está Sendo Unificado a Seguir:
-1. **Demonstração Arquitetural (`TASK-08`, concluída):**
-   * `exemplo_integracao.py` envia frames sintéticos ao `OrquestradorSessao` oficial e apresenta os resultados dos cenários ideal, lento, muito lento e incompleto. Os últimos dois mantêm aprovação acima de 85; o incompleto é reprovado e recebe penalidade de 25 pontos.
-   * A classe local `SessionOrchestrator` e os wrappers DTW citados em rascunhos anteriores não estavam presentes na branch atual; por isso, nenhum código existente foi removido.
-
-
 
 ---
 
-## 5. O Que Está Planejado e o Progresso da Sprint (`US-01`)
+## 5. Progresso da Sprint (`US-01`) — Concluída
 
-### 5.1. A História de Usuário da Sprint Atual (`US-01`)
-> *"Como usuário praticante de atividades físicas, quero receber uma pontuação clara e justa a partir da comparação da minha execução com a referência de um especialista, para que eu saiba quão correto foi meu movimento em cada repetição e ao final da série."*
-
-O plano técnico detalhado está registrado em [`PLANO_SPRINT_US01.md`](./PLANO_SPRINT_US01.md). Abaixo está o estado de progresso atual com base nos commits realizados:
+O plano técnico detalhado está registrado em [`PLANO_SPRINT_US01.md`](./PLANO_SPRINT_US01.md). Todas as tasks foram finalizadas com sucesso:
 
 * [x] **`[TASK-00]` Base Documental e Contexto:** `CONTEXTO_IA.md`, `DEVLOG.md`, `DIRETRIZES_DESENVOLVIMENTO.md`, `AGENTS.md` e `PLANO_SPRINT_US01.md` criados e versionados *(Commit `0afd9ee`)*.
-* [x] **`[TASK-01]` Dependências e Proteção do Repositório:** `requirements.txt`, `.gitignore` atualizado e criação deste guia didático `EXPLICACAO_IA.md`. *Nota: Módulos legados mantidos intactos por diretriz até a conclusão e teste dos novos módulos* *(Commit `c340b65`)*.
+* [x] **`[TASK-01]` Dependências e Proteção do Repositório:** `requirements.txt`, `.gitignore` atualizado e criação deste guia didático `EXPLICACAO_IA.md` *(Commit `c340b65`)*.
 * [x] **`[TASK-02]` Geometria com Âncora de Ruído:** Função `calcular_deltas_angulares()` em `calculo_angulos.py` e primeiros testes automatizados em `tests/test_pipeline_pontuacao.py` *(Commit `7151ad3`)*.
 * [x] **`[TASK-03]` Memória de Erros e Penalidades na FSM:** Evolução de `ExercicioBaseFSM` em `exercicios_fsm.py` com acumulador de erros por repetição, penalidades por exercício e 9 testes no `pytest` *(Commit `f085106`)*.
 * [x] **`[TASK-04]` Padronização do DTW Único:** Módulo `dtw_evaluator.py` implementado com vetorização 3D, Sakoe-Chiba, `DTWResult` e 16 testes no `pytest` *(Commit `d02ac24`)*.
-* [x] **`[TASK-05]` Recorte Uniforme dos Gabaritos:** Alinhamento dos JSONs com o mesmo segmentador canônico do aluno em `buffer_repeticao.py`, `gabarito.py`, `extrator_video.py` e 21 testes no `pytest` *(Concluída)*.
-* [x] **`[TASK-06]` Motor de Pontuação e Orquestrador Frame a Frame:** Criação de `avaliador_pontuacao.py` unificando notas, feedbacks, gamificação e sessão com 28 testes no `pytest` *(Concluída)*.
-* [x] **`[TASK-07]` Integração no Comparador de Vídeo CLI:** Extração de ângulos/visibilidade e avaliação da CLI pelo orquestrador, com suporte ao catálogo de exercícios *(Concluída e publicada)*.
-
-* [x] **`[TASK-08]` Demonstração Arquitetural:** Cenários sintéticos processados pelo `OrquestradorSessao`, com teste dos vereditos e resumo *(Implementada e validada localmente; commit pendente)*.
-* [ ] **`[TASK-09]` Integração Webcam em Tempo Real:** Pipeline do `app_tempo_real.py` conectado ao orquestrador; teste com câmera física e avaliação de aposentadoria de `dtw_inicial.py` ainda pendentes *(Parcial)*.
-* [ ] **`[TASK-10]` Bateria de Testes End-to-End:** Validação dos critérios de aceite AC1 a AC7 *(Pendente)*.
-* [x] **`[TASK-11]` Gestão Viva de Logs e Contexto:** Devlog, contexto e plano da sprint mantidos rigorosamente sincronizados a cada commit *(Em andamento contínuo)*.
+* [x] **`[TASK-05]` Recorte Uniforme dos Gabaritos:** Alinhamento dos JSONs com o mesmo segmentador canônico do aluno em `buffer_repeticao.py`, `gabarito.py`, `extrator_video.py` e 21 testes no `pytest` *(Commit `bdb8e02`)*.
+* [x] **`[TASK-06]` Motor de Pontuação e Orquestrador Frame a Frame:** Criação de `avaliador_pontuacao.py` unificando notas, feedbacks, gamificação e sessão com 28 testes no `pytest` *(Commit `bdb8e02`)*.
+* [x] **`[TASK-07]` Integração no Comparador de Vídeo CLI:** Extração de ângulos/visibilidade e avaliação da CLI pelo orquestrador, com suporte ao catálogo de exercícios *(Commit `76b4c0f`)*.
+* [x] **`[TASK-08]` Demonstração Arquitetural:** Cenários sintéticos processados pelo `OrquestradorSessao`, com teste dos vereditos e resumo *(Commit `580cd8e`)*.
+* [x] **`[TASK-09]` Integração Webcam em Tempo Real:** Pipeline do `app_tempo_real.py` conectado ao orquestrador e testado *(Commit `8773f75`)*.
+* [x] **`[TASK-10]` Bateria de Testes End-to-End:** Validação dos critérios de aceite AC1 a AC7 e extensibilidade OCP *(Commit `af9b3b6`)*.
+* [x] **`[TASK-11]` Gestão Viva de Logs e Contexto:** Devlog, contexto e plano da sprint mantidos rigorosamente sincronizados a cada commit *(Concluída)*.
 
 ---
 
@@ -195,13 +189,12 @@ O plano técnico detalhado está registrado em [`PLANO_SPRINT_US01.md`](./PLANO_
 
 ## 7. Mapeamento dos Documentos do Projeto
 
-Para se aprofundar em qualquer aspecto específico, consulte os documentos de apoio na raiz do projeto:
-
 | Documento | Para que serve? |
 | :--- | :--- |
 | **`EXPLICACAO_IA.md`** *(este documento)* | Guia didático de leitura humana sobre funcionamento, estado atual e planejamento. |
 | **[`CONTEXTO_IA.md`](./CONTEXTO_IA.md)** | Documento técnico detalhado com especificações de classes, contratos e débitos técnicos. |
-| **[`PLANO_SPRINT_US01.md`](./PLANO_SPRINT_US01.md)** | Plano de implementação técnica e divisão de tasks da sprint de pontuação. |
+| **[`PLANO_SPRINT_US01.md`](./PLANO_SPRINT_US01.md)** | Plano de implementação técnica e divisão de tasks da sprint de pontuação (concluída). |
+| **[`PLANO_SPRINT_US02_DEMO.md`](./PLANO_SPRINT_US02_DEMO.md)** | Plano técnico e tasks para a demo integrada Front + Backend + IA. |
 | **[`DIRETRIZES_DESENVOLVIMENTO.md`](./DIRETRIZES_DESENVOLVIMENTO.md)** | Protocolo de Engenharia de Software (SOLID, testes, commits incrementais). |
 | **[`DEVLOG.md`](./DEVLOG.md)** | Diário de bordo cronológico com histórico de alterações e decisões tomadas. |
 | **[`AGENTS.md`](./AGENTS.md)** | Ponto de entrada e regras obrigatórias para agentes autônomos de IA. |
