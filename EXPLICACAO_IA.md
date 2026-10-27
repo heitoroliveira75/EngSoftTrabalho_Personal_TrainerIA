@@ -176,6 +176,27 @@ O plano técnico detalhado está registrado em [`PLANO_SPRINT_US01.md`](./PLANO_
 
 ---
 
+## 5.1. Unificação do Back-end e Integração da API de IA (Sprint `US-02`)
+
+Para transformar o motor matemático de IA em um serviço web consumível pelo aplicativo móvel Flutter, unificamos a camada de servidor:
+
+1. **Serviço Central em Memória (`servico_ia_api.py`):**
+   * Gerencia instâncias de `OrquestradorSessao` em memória RAM, isolando o estado de cada atleta por seu ID de usuário.
+   * Decodifica imagens JPEG enviadas pelo celular diretamente na memória (sem salvar arquivos temporários no disco), garantindo resposta rápida e sem gargalo de I/O.
+   * Oferece simulação canônica de repetições ideais ou com erros posturais para demonstrações imediatas.
+2. **Rotas REST no FastAPI (`BD/api.py`):**
+   * `POST /ia/reiniciar-sessao`: Inicializa a série para o exercício indicado.
+   * `POST /ia/processar-frame`: Recebe fotogramas por multipart e retorna as métricas para o HUD (repetições, fase motora, alerta postural).
+   * `POST /ia/simular-repeticao`: Executa uma repetição canônica instantânea para demonstrações da banca.
+   * `GET  /ia/resumo-sessao`: Devolve o laudo completo e a pontuação técnica da série (`pontos_gamificacao`).
+   * `POST /ia/finalizar-serie-e-pontuar`: Conecta diretamente os pontos da IA à tabela `usuarios` do Supabase, atualizando a sequência diária (*Streak*) e subindo a posição no *Leaderboard*.
+3. **Guia Completo para o Front-end (`GUIA_INTEGRACAO_FRONT_IA.md`):**
+   * Criado documento com exemplos prontos em Dart/Flutter para que a equipe de telas conecte a câmera e o HUD facilmente.
+4. **Suíte Total de Testes:**
+   * A suíte saltou de 39 para **52 testes automatizados** no `pytest` (100% de sucesso).
+
+---
+
 ## 6. Glossário Rápido de Termos
 
 * **Landmark (Marco Anatômico):** Ponto cartesiano $(x, y, z)$ estimado no corpo humano (ex.: ponto 14 é o cotovelo direito).
