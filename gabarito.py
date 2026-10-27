@@ -54,7 +54,13 @@ class GabaritoExercicio:
 
     @classmethod
     def carregar_json(cls, caminho_arquivo: str) -> "GabaritoExercicio":
-        with open(caminho_arquivo, "r", encoding="utf-8") as f:
+        caminho_final = caminho_arquivo
+        if not os.path.exists(caminho_final):
+            raiz_projeto = os.path.dirname(os.path.abspath(__file__))
+            candidato = os.path.join(raiz_projeto, os.path.basename(caminho_arquivo))
+            if os.path.exists(candidato):
+                caminho_final = candidato
+        with open(caminho_final, "r", encoding="utf-8") as f:
             conteudo = json.load(f)
 
         return cls(

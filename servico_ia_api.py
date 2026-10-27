@@ -18,7 +18,8 @@ from avaliador_pontuacao import (
     ResumoPontuacaoSessao,
 )
 
-MODELO_ARQUIVO_PADRAO = "pose_landmarker_lite.task"
+DIRETORIO_RAIZ = os.path.dirname(os.path.abspath(__file__))
+MODELO_ARQUIVO_PADRAO = os.path.join(DIRETORIO_RAIZ, "pose_landmarker_lite.task")
 
 
 def serializar_resultado_repeticao(res: Optional[ResultadoPontuacaoRepeticao]) -> Optional[Dict[str, Any]]:
