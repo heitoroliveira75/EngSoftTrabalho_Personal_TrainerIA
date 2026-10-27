@@ -699,3 +699,276 @@ class TestOrquestradorEAvaliadorPontuacao:
         assert resultado_repeticao.aprovado is True
         assert resultado_repeticao.score_final >= 95.0
         assert orquestrador.fsm.repeticoes == 1
+
+
+class TestCriteriosAceiteUS01:
+    """
+    Suíte de Aceite Final (AC1 a AC7) da História de Usuário US-01:
+    Garante que todos os critérios mensuráveis do PLANO_SPRINT_US01 são atendidos
+    pelo OrquestradorSessao e motor híbrido FSM + DTW.
+    """
+
+    def _gerar_frames_agachamento(self, n_mov=45, margem=5):
+        t = np.linspace(0, np.pi, n_mov)
+        frames = []
+        for _ in range(margem):
+            frames.append({"joelho": 170.0, "quadril": 170.0})
+        for val in t:
+            frames.append({
+                "joelho": float(170.0 - 80.0 * np.sin(val)),
+                "quadril": float(170.0 - 85.0 * np.sin(val)),
+            })
+        for _ in range(margem):
+            frames.append({"joelho": 170.0, "quadril": 170.0})
+        return frames
+
+    def _gerar_frames_rosca(self, n_mov=45, margem=5):
+        t = np.linspace(0, np.pi, n_mov)
+        frames = []
+        for _ in range(margem):
+            frames.append({"cotovelo": 165.0, "ombro": 15.0})
+        for val in t:
+            frames.append({
+                "cotovelo": float(165.0 - 115.0 * np.sin(val)),
+                "ombro": float(15.0 + 3.0 * np.sin(val)),
+            })
+        for _ in range(margem):
+            frames.append({"cotovelo": 165.0, "ombro": 15.0})
+        return frames
+
+    def test_ac1_execucao_ideal_nos_tres_exercicios(self):
+        """
+        AC1: Repetição com padrão motor idêntico ao gabarito atinge
+        score_final >= 95.0%, aprovado == True e erros_fsm == [] nos 3 exercícios.
+        """
+        # 1. Desenvolvimento de Ombro
+        orq_ombro = OrquestradorSessao("1")
+        frames_ombro = criar_frames_movimento_completo(55)
+        res_ombro = None
+        for f in frames_ombro:
+            _, r = orq_ombro.processar_frame(f, visivel=True)
+            if r is not None:
+                res_ombro = r
+        assert res_ombro is not None
+        assert res_ombro.score_final >= 95.0
+        assert res_ombro.aprovado is True
+        assert res_ombro.erros_fsm == []
+
+        # 2. Agachamento Livre
+        orq_agach = OrquestradorSessao("2")
+        frames_agach = self._gerar_frames_agachamento(n_mov=45, margem=5)
+        res_agach = None
+        for f in frames_agach:
+            _, r = orq_agach.processar_frame(f, visivel=True)
+            if r is not None:
+                res_agach = r
+        assert res_agach is not None
+        assert res_agach.score_final >= 95.0
+        assert res_agach.aprovado is True
+        assert res_agach.erros_fsm == []
+
+        # 3. Rosca Direta de Bíceps
+        orq_rosca = OrquestradorSessao("3")
+        frames_rosca = self._gerar_frames_rosca(n_mov=45, margem=5)
+        res_rosca = None
+        for f in frames_rosca:
+            _, r = orq_rosca.processar_frame(f, visivel=True)
+            if r is not None:
+                res_rosca = r
+        assert res_rosca is not None
+        assert res_rosca.score_final >= 95.0
+        assert res_rosca.aprovado is True
+        assert res_rosca.erros_fsm == []
+
+    def test_ac2_invariancia_temporal_cadencias_multiplas(self):
+        """
+        AC2: Execuções corretas com cadências de 40, 65 e 150 frames mantêm
+        score_final >= 85.0% e aprovado == True.
+        """
+        for total_frames in (40, 65, 150):
+            orq = OrquestradorSessao("1")
+            frames = criar_frames_movimento_completo(total_frames)
+            res = None
+            for f in frames:
+                _, r = orq.processar_frame(f, visivel=True)
+                if r is not None:
+                    res = r
+            assert res is not None, f"Falha ao concluir repetição com {total_frames} frames"
+            assert res.score_final >= 85.0
+            assert res.aprovado is True
+            assert res.erros_fsm == []
+
+    def test_ac3_deteccao_e_punicao_incompletude(self):
+        """
+        AC3: Movimento interrompido antes do pico registra erro de transição,
+        aplica penalidade de 25 pontos e resulta em aprovado == False.
+        """
+        orq = OrquestradorSessao("1")
+        frames_incompletos = criar_frames_movimento_incompleto()
+        res = None
+        for f in frames_incompletos:
+            _, r = orq.processar_frame(f, visivel=True)
+            if r is not None:
+                res = r
+
+        assert res is not None
+        assert res.aprovado is False
+        assert res.penalidade_fsm == 25.0
+        assert "REPETICAO_INCOMPLETA" in res.erros_fsm
+
+    def test_ac4_preservacao_de_erro_postural_transiente(self):
+        """
+        AC4: Compensação postural ocorrida no meio da repetição (ex.: ombro caído < 60° na fase 2)
+        é retida no fechamento do ciclo em repouso e aplica desconto de 15 pontos.
+        """
+        orq = OrquestradorSessao("1")
+        # Gera repetição onde a postura do ombro é comprometida apenas no pico
+        t = np.linspace(0, np.pi, 45)
+        frames = [{"cotovelo": 90.0, "ombro": 80.0} for _ in range(5)]
+        for idx, val in enumerate(t):
+            cot = float(90.0 + 75.0 * np.sin(val))
+            # No terço central (fases 1-2), ombro cai para 45° (< 60°)
+            omb = 45.0 if 15 <= idx <= 30 else float(80.0 + 75.0 * np.sin(val))
+            frames.append({"cotovelo": cot, "ombro": omb})
+        frames.extend([{"cotovelo": 90.0, "ombro": 80.0} for _ in range(5)])
+
+        res = None
+        for f in frames:
+            _, r = orq.processar_frame(f, visivel=True)
+            if r is not None:
+                res = r
+
+        assert res is not None
+        assert "OMBRO_CAIDO" in res.erros_fsm
+        assert res.penalidade_fsm >= 15.0
+
+    def test_ac5_consolidacao_serie_resumo_gamificacao(self):
+        """
+        AC5: Série com múltiplas repetições calcula acuradamente média das notas,
+        percentual de aprovadas e pontos de gamificação proporcionais.
+        """
+        orq = OrquestradorSessao("1")
+        frames_ideal = criar_frames_movimento_completo(50)
+        frames_incompletos = criar_frames_movimento_incompleto()
+
+        # 2 ideais + 1 incompleta
+        for f in frames_ideal:
+            orq.processar_frame(f, visivel=True)
+        for f in frames_ideal:
+            orq.processar_frame(f, visivel=True)
+        for f in frames_incompletos:
+            orq.processar_frame(f, visivel=True)
+
+        resumo = orq.gerar_resumo_sessao()
+        assert resumo.total_repeticoes == 3
+        assert resumo.repeticoes_aprovadas == 2
+        assert resumo.repeticoes_reprovadas == 1
+        assert pytest.approx(resumo.taxa_aprovacao, abs=0.2) == 66.7
+        assert pytest.approx(resumo.score_medio, abs=0.2) == 60.8
+        # Apenas repetições aprovadas somam pontos de gamificação (91.2/10 + 91.2/10 = 18.2)
+        assert pytest.approx(resumo.pontos_gamificacao, abs=0.2) == 18.2
+        assert "Atenção recorrente" in resumo.recomendacao_prioritaria or "REPETICAO_INCOMPLETA" in resumo.recomendacao_prioritaria
+
+    def test_ac6_verificacao_estatica_ausencia_duplicacao_consumidores(self):
+        """
+        AC6: Verificação estática garantindo que os scripts consumidores
+        (app_tempo_real.py, comparar_exercicio.py, exemplo_integracao.py)
+        não importam dtw_inicial nem duplicam cálculos manuais de DTW/pontuação.
+        """
+        import pathlib
+        raiz = pathlib.Path(__file__).resolve().parent.parent
+        consumidores = [
+            raiz / "app_tempo_real.py",
+            raiz / "comparar_exercicio.py",
+            raiz / "exemplo_integracao.py",
+        ]
+
+        for script in consumidores:
+            assert script.exists(), f"Arquivo não encontrado: {script}"
+            codigo = script.read_text(encoding="utf-8")
+            assert "import dtw_inicial" not in codigo
+            assert "from dtw_inicial" not in codigo
+            assert "OrquestradorSessao" in codigo
+
+    def test_ac7_extensibilidade_poo_novo_exercicio_sem_alterar_motor(self):
+        """
+        AC7: Criação de um novo exercício sintético no catálogo prova o princípio
+        Aberto/Fechado (OCP): o orquestrador o instancia, processa frames e avalia
+        sem nenhuma alteração no código central.
+        """
+        from exercicios_fsm import ExercicioBaseFSM, CATALOGO_EXERCICIOS
+
+        class ExercicioDummyTeste(ExercicioBaseFSM):
+            PENALIDADES_ERRO = {"ERRO_DUMMY": 20.0}
+            MENSAGENS_ERRO = {"ERRO_DUMMY": "Erro dummy detectado"}
+
+            def identificar_fase(self, angulos: dict, posicoes: dict, angulos_deltas: dict) -> int:
+                a = angulos.get("articulacao_teste", 0.0)
+                da = angulos_deltas.get("articulacao_teste", 0.0)
+                fase = self.fases[1]
+                if fase == 0 and a > 50.0 and da > 0:
+                    fase = 1
+                elif fase == 1 and a >= 100.0:
+                    fase = 2
+                elif fase == 2 and a < 90.0:
+                    fase = 3
+                elif fase == 3 and a <= 50.0:
+                    fase = 0
+                return fase
+
+            def classificar(self, angulos: dict, posicoes: dict, angulos_deltas: dict) -> Optional[str]:
+                fase = self.identificar_fase(angulos, posicoes, angulos_deltas)
+                self.fases = [self.fases[1], fase]
+                if self.fases[0] == 3 and self.fases[1] == 0:
+                    self.repeticoes += 1
+                return None
+
+        # Dados sintéticos de gabarito para o exercício dummy
+        t = np.linspace(0, np.pi, 30)
+        dados_dummy = np.column_stack((50.0 + 55.0 * np.sin(t),))
+        gabarito_dummy = GabaritoExercicio(
+            nome_exercicio="exercicio_dummy",
+            articulacoes=["articulacao_teste"],
+            dados=dados_dummy,
+            descricao="Gabarito de teste de extensibilidade OCP",
+        )
+
+        chave_teste = "99"
+        CATALOGO_EXERCICIOS[chave_teste] = {
+            "id": "exercicio_dummy",
+            "nome": "Exercício Dummy Extensível",
+            "classe_fsm": ExercicioDummyTeste,
+            "articulacoes": ["articulacao_teste"],
+            "arquivo_gabarito": "dummy_nao_usado.json",
+        }
+
+        try:
+            # Instancia o orquestrador diretamente pelo novo ID do catálogo
+            orq = OrquestradorSessao(
+                identificador_exercicio=chave_teste,
+                gabarito_customizado=gabarito_dummy,
+            )
+            assert orq.nome_exercicio == "Exercício Dummy Extensível"
+            assert isinstance(orq.fsm, ExercicioDummyTeste)
+
+            # Envia frames sintéticos do novo exercício
+            res_rep = None
+            frames = [{"articulacao_teste": 50.0} for _ in range(4)]
+            for val in t:
+                frames.append({"articulacao_teste": float(50.0 + 55.0 * np.sin(val))})
+            frames.extend([{"articulacao_teste": 50.0} for _ in range(4)])
+
+            for f in frames:
+                _, r = orq.processar_frame(f, visivel=True)
+                if r is not None:
+                    res_rep = r
+
+            assert res_rep is not None
+            assert res_rep.score_final >= 95.0
+            assert res_rep.aprovado is True
+            assert orq.fsm.repeticoes == 1
+            resumo = orq.gerar_resumo_sessao()
+            assert resumo.total_repeticoes == 1
+            assert resumo.repeticoes_aprovadas == 1
+        finally:
+            CATALOGO_EXERCICIOS.pop(chave_teste, None)
