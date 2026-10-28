@@ -17,8 +17,8 @@ class CameraTreinoScreen extends StatefulWidget {
     super.key,
     this.camera,
     this.endpoint,
-    this.exercicioId = '1',
-    this.exercicioNome = 'Desenvolvimento de Ombros',
+    this.exercicioId = '16',
+    this.exercicioNome = 'Desenvolvimento com Halteres',
     this.metaRepeticoes = 10,
   });
 

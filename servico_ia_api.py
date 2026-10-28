@@ -185,8 +185,22 @@ class ServicoIA:
                 "ultima_repeticao": None,
             }
 
-        # 2. Extração de Pose com MediaPipe
-        self._inicializar_detector()
+        # 2. Extração de Pose com MediaPipe (com proteção contra ausência de drivers de vídeo)
+        try:
+            self._inicializar_detector()
+        except Exception as e:
+            return {
+                "sucesso": False,
+                "mensagem": f"Motor de visão computacional indisponível no servidor: {e}. Utilize o modo de simulação.",
+                "corpo_visivel": False,
+                "alerta_imediato": "IA em modo simulado",
+                "repeticoes": len(orquestrador.historico_repeticoes),
+                "fase_numero": orquestrador.fsm.fases[1],
+                "fase_nome": orquestrador.fsm.nome_fase_atual,
+                "angulos": {},
+                "repeticao_concluida": False,
+                "ultima_repeticao": None,
+            }
         import mediapipe as mp
 
         frame_rgb = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)
