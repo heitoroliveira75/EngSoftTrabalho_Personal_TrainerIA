@@ -26,6 +26,25 @@
 
 ## Histórico de Entradas
 
+### [Entrada #012] 2026-10-28 — Correção de Conflito de Hardware de Câmera, Amostragem a 200ms e Calibração Biomecânica da Rosca Direta
+- **Objetivo / História de Usuário:** Corrigir erro de concorrência de hardware (`Camera with given device id already exists`) na passagem de exercício, aumentar a taxa de amostragem de fotogramas para 200ms (5 FPS) e viabilizar a detecção contínua e feedback visual instantâneo durante a execução da Rosca Direta e demais exercícios.
+- **Tasks Executadas e Artefatos Gerados:**
+  - `lib/screens/camera_treino_screen.dart`:
+    - Implementada **transição in-place de exercícios na câmera**: a tela agora recebe a lista completa de exercícios e, ao clicar em "Próximo Exercício", avança internamente sem destruir ou recriar a instância do hardware (`CameraController`), eliminando 100% dos conflitos de descritor de dispositivo no Windows/mobile.
+    - Adicionado mecanismo defensivo com retry de 600ms no `_initController` caso ocorra `already exists`.
+    - Ajustado o timer de envio de fotogramas para **200ms** (alta responsividade em tempo real).
+    - Adicionada **Barra Dinâmica de Amplitude de Movimento (0% a 100%)** no HUD da câmera, mostrando visualmente a flexão em tempo real conforme o atleta se move.
+  - `lib/screens/treino_selecionado_screen.dart`:
+    - Atualizado para repassar a lista mapeada de exercícios para a câmera e sincronizar o progresso de todos os exercícios concluídos no retorno.
+  - `exercicios_fsm.py`:
+    - Calibrada a FSM de `RoscaBiceps`: flexibilizada a entrada para a fase concêntrica (eliminada a exigência estrita de delta negativo) e ajustado o pico para `<= 80°` (amplitude realista com halteres).
+  - `servico_ia_api.py`:
+    - Implementado suporte inteligente bilateral em `processar_frame_imagem`: para exercícios de membros superiores, detecta automaticamente o braço ativo (direito ou esquerdo), garantindo funcionamento com qualquer braço ou webcam espelhada.
+- **Decisões Técnicas e Observações:**
+  - Transição in-place evita qualquer overhead de recriação de hardware, tornando a experiência de treino instantânea e sem engasgos.
+  - Testes do Flutter executados com sucesso (`flutter test`, 5/5 aprovados).
+- **Estado Resultante / Próximos Passos:** Conflito de câmera eliminado, Rosca Direta operacional e HUD responsivo com telemetria angular e barra de arco.
+
 ### [Entrada #011] 2026-10-28 — Correção de Fluxo Sequencial de Exercícios e Feedback Biomecânico em Tempo Real no Front-End Flutter
 - **Objetivo / História de Usuário:** Resolver problema reportado na tela de treinos do Flutter onde a conclusão da câmera retornava direto para a lista de treinos sem iterar pelos demais exercícios do treino, e adicionar exibição dinâmica de ângulos e feedback instantâneo da IA em tempo real.
 - **Tasks Executadas e Artefatos Gerados:**

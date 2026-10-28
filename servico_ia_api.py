@@ -229,6 +229,25 @@ class ServicoIA:
             lado=lado,
         )
 
+        # Suporte inteligente a membros contralaterais e webcams espelhadas (Rosca e Desenvolvimento):
+        if "cotovelo" in orquestrador.articulacoes:
+            outro_lado = "esquerdo" if str(lado).lower() == "direito" else "direito"
+            try:
+                angulos_outro, visivel_outro = extrair_angulos_exercicio(
+                    landmarks=landmarks,
+                    articulacoes=orquestrador.articulacoes,
+                    lado=outro_lado,
+                )
+                cotovelo_atual = angulos.get("cotovelo", 180.0)
+                cotovelo_outro = angulos_outro.get("cotovelo", 180.0)
+
+                # Prioriza o braço que está ativamente executando o movimento ou o único visível
+                if (not visivel and visivel_outro) or (visivel_outro and cotovelo_outro < (cotovelo_atual - 8.0)):
+                    angulos = angulos_outro
+                    visivel = visivel_outro
+            except Exception:
+                pass
+
         # 4. Avaliação no motor
         alerta, res_rep = orquestrador.processar_frame(angulos=angulos, visivel=visivel)
 
