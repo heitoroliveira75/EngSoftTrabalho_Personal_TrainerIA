@@ -125,16 +125,16 @@ class ResponderSolicitacaoRequest(BaseModel):
 
 class ReiniciarSessaoIARequest(BaseModel):
     usuario_id: str
-    exercicio_id: str = Field(default="1", description="'1' Ombro, '2' Agachamento, '3' Rosca")
+    exercicio_id: str = Field(default="16", description="'16' Ombro, '11' Agachamento, '20' Rosca (retrocompatível com '1', '2', '3')")
 
 class SimularRepeticaoIARequest(BaseModel):
     usuario_id: str
-    exercicio_id: str = Field(default="1", description="'1' Ombro, '2' Agachamento, '3' Rosca")
+    exercicio_id: str = Field(default="16", description="'16' Ombro, '11' Agachamento, '20' Rosca")
     tipo_cenario: str = Field(default="ideal", description="'ideal', 'postural'")
 
 class ProcessarAngulosIARequest(BaseModel):
     usuario_id: str
-    exercicio_id: str = Field(default="1")
+    exercicio_id: str = Field(default="16")
     angulos: Dict[str, float]
     visivel: bool = True
 
@@ -498,7 +498,7 @@ def api_ia_reiniciar_sessao(req: ReiniciarSessaoIARequest):
 async def api_ia_processar_frame(
     frame: UploadFile = File(...),
     usuario_id: str = Form("anonimo"),
-    exercicio: str = Form("1"),
+    exercicio: str = Form("16"),
     lado: str = Form("direito"),
 ):
     """

@@ -98,23 +98,23 @@ class _TreinoSelecionadoScreenState extends State<TreinoSelecionadoScreen> {
   
   void _iniciarTreinoComCamera() {
     final exercicios = widget.treinoData['exercicios'] as List? ?? [];
-    String exId = '1';
-    String exNome = 'Desenvolvimento de Ombros';
+    String exId = '16';
+    String exNome = 'Desenvolvimento com Halteres';
     int metaReps = 10;
 
     if (exercicios.isNotEmpty) {
       final primeiro = exercicios.first;
       exNome = primeiro['nome']?.toString() ?? exNome;
       metaReps = (primeiro['repeticoes'] as num?)?.toInt() ?? 10;
-      final rawId = primeiro['exercicio_id'] ?? primeiro['id'];
-      if (rawId != null) {
-        exId = rawId.toString();
-      }
+      final rawId = (primeiro['exercicio_id'] ?? primeiro['id'])?.toString();
       final nomeLower = exNome.toLowerCase();
-      if (nomeLower.contains('agacha')) {
-        exId = '2';
-      } else if (nomeLower.contains('rosca') || nomeLower.contains('biceps') || nomeLower.contains('bíceps')) {
-        exId = '3';
+
+      if (rawId == '11' || rawId == '2' || nomeLower.contains('agacha') || nomeLower.contains('squat') || nomeLower.contains('perna')) {
+        exId = '11';
+      } else if (rawId == '20' || rawId == '3' || nomeLower.contains('rosca') || nomeLower.contains('biceps') || nomeLower.contains('bíceps') || nomeLower.contains('braço') || nomeLower.contains('braco')) {
+        exId = '20';
+      } else {
+        exId = '16';
       }
     }
 

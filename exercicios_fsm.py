@@ -255,44 +255,67 @@ class RoscaBiceps(ExercicioBaseFSM):
         return erros_no_frame[0] if erros_no_frame else None
 
 
-# Catálogo central que liga as teclas de atalho ou IDs aos componentes de cada exercício
+# Catálogo central que liga os IDs do banco aos componentes de cada exercício de IA
+# IDs oficiais conforme tabela 'exercicios' (Exercicios.txt):
+#   - 16: Desenvolvimento com Halteres
+#   - 11: Agachamento Livre
+#   - 20: Rosca Direta
 CATALOGO_EXERCICIOS: Dict[str, Dict[str, Any]] = {
-    "1": {
+    "16": {
         "id": "desenvolvimento_ombro",
-        "nome": "Desenvolvimento de Ombro",
+        "nome": "Desenvolvimento com Halteres",
         "classe_fsm": DesenvolvimentoOmbro,
         "articulacoes": ["cotovelo", "ombro"],
         "arquivo_gabarito": "gabarito_especialista_ombro.json",
+        "aliases": ["1", "16", "desenvolvimento_ombro", "ombro", "desenvolvimento", "desenvolvimento com halteres"],
     },
-    "2": {
+    "11": {
         "id": "agachamento",
         "nome": "Agachamento Livre",
         "classe_fsm": Agachamento,
         "articulacoes": ["joelho", "quadril"],
         "arquivo_gabarito": "gabarito_especialista_agachamento.json",
+        "aliases": ["2", "11", "agachamento", "agachamento_livre", "squat", "pernas"],
     },
-    "3": {
+    "20": {
         "id": "rosca_biceps",
-        "nome": "Rosca Direta de Biceps",
+        "nome": "Rosca Direta",
         "classe_fsm": RoscaBiceps,
         "articulacoes": ["cotovelo", "ombro"],
         "arquivo_gabarito": "gabarito_especialista_rosca.json",
+        "aliases": ["3", "20", "rosca_biceps", "rosca", "rosca_direta", "biceps", "bíceps"],
     },
 }
+
+# Aliases diretos para total retrocompatibilidade ('1', '2', '3')
+CATALOGO_EXERCICIOS["1"] = CATALOGO_EXERCICIOS["16"]
+CATALOGO_EXERCICIOS["2"] = CATALOGO_EXERCICIOS["11"]
+CATALOGO_EXERCICIOS["3"] = CATALOGO_EXERCICIOS["20"]
 
 
 def obter_config_exercicio(identificador: str) -> Dict[str, Any]:
     """
-    Busca a configuração do exercício por chave numérica ('1', '2', '3')
+    Busca a configuração do exercício por chave numérica ('16', '11', '20' ou '1', '2', '3')
     ou por identificador de texto ('desenvolvimento_ombro', 'agachamento', 'rosca_biceps').
+    Suporta resolução por aliases e palavras-chave.
     """
     chave = str(identificador).strip().lower()
     if chave in CATALOGO_EXERCICIOS:
         return CATALOGO_EXERCICIOS[chave]
 
     for item in CATALOGO_EXERCICIOS.values():
-        if item["id"].lower() == chave:
+        if item["id"].lower() == chave or chave in item.get("aliases", []):
             return item
 
-    opcoes = list(CATALOGO_EXERCICIOS.keys()) + [item["id"] for item in CATALOGO_EXERCICIOS.values()]
-    raise ValueError(f"Exercício '{identificador}' não encontrado. Opções disponíveis: {opcoes}")
+    # Mapeamento semântico por palavras-chave se vier nome textual
+    if any(w in chave for w in ["agacha", "squat", "perna", "inferior", "coxa"]):
+        return CATALOGO_EXERCICIOS["11"]
+    if any(w in chave for w in ["rosca", "biceps", "bíceps", "braço", "braco"]):
+        return CATALOGO_EXERCICIOS["20"]
+    if any(w in chave for w in ["ombro", "desenvolvimento", "superior", "deltoide", "peito", "costas"]):
+        return CATALOGO_EXERCICIOS["16"]
+
+    # Fallback seguro para evitar HTTP 500 no servidor
+    import logging
+    logging.warning(f"Exercício '{identificador}' não mapeado na FSM. Adotando fallback seguro para Desenvolvimento com Halteres (16).")
+    return CATALOGO_EXERCICIOS["16"]
