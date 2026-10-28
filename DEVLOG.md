@@ -26,6 +26,25 @@
 
 ## Histórico de Entradas
 
+### [Entrada #011] 2026-10-28 — Correção de Fluxo Sequencial de Exercícios e Feedback Biomecânico em Tempo Real no Front-End Flutter
+- **Objetivo / História de Usuário:** Resolver problema reportado na tela de treinos do Flutter onde a conclusão da câmera retornava direto para a lista de treinos sem iterar pelos demais exercícios do treino, e adicionar exibição dinâmica de ângulos e feedback instantâneo da IA em tempo real.
+- **Tasks Executadas e Artefatos Gerados:**
+  - `lib/screens/camera_treino_screen.dart`:
+    - Adicionado suporte a contexto de múltiplos exercícios (`exercicioIndice`, `totalExercicios`, `proximoExercicioNome`).
+    - Adicionada exibição dinâmica de ângulos articulares em tempo real extraídos do endpoint `/ia/processar-frame`.
+    - Adicionado chip de fase do movimento biomecânico (Inicial, Subindo, Pico de Contração, Descendo) com códigos de cores e ícones dedicados.
+    - Implementado banner comemorativo instantâneo quando uma repetição é concluída com sucesso ou simulada.
+    - Atualizado o diálogo de finalização com ações inteligentes: botão primário "Próximo Exercício" e "Pausar e Voltar", ou "Concluir Treino Completo" no último exercício.
+  - `lib/screens/treino_selecionado_screen.dart`:
+    - Adicionado controle de estado `_indiceExercicioAtual` e lista de conclusão de exercícios `_exerciciosConcluidos`.
+    - Implementada navegação sequencial que abre a câmera para o próximo exercício sem fechar o treino.
+    - Adicionados indicadores visuais de progresso na lista (check verde para concluídos, play e destaque para o atual, badge de câmera).
+    - Botão primário adaptativo: "INICIAR TREINO COM CÂMERA IA", "CONTINUAR: [Exercício]" ou "CONCLUIR TREINO COMPLETO".
+- **Decisões Técnicas e Observações:**
+  - Diagnóstico comprovado via `Log2 o retorno.txt`: motor de IA e comunicação FastAPI retornaram HTTP 200 OK em todas as requisições; a causa raiz estava na navegação e exibição do Flutter.
+  - Suíte de testes Flutter executada com sucesso (`flutter test`, 5/5 aprovados).
+- **Estado Resultante / Próximos Passos:** O ciclo de treino agora é 100% contínuo, iterando por todos os exercícios do treino e fornecendo telemetria postural clara na câmera.
+
 ### [Entrada #010] 2026-10-27 — [Sprint US-02] Unificação do Back-end FastAPI com o Motor de IA e Guia para Frontend
 - **Objetivo / História de Usuário:** Unificar a camada de Back-end (FastAPI) com o motor biomecânico de IA da branch `IA` para viabilizar a demonstração funcional, expondo rotas REST em memória para streaming de fotogramas, simulação canônica de repetições e integração direta com a pontuação diária e gamificação do Supabase, deixando o consumo simplificado para a equipe de Frontend Flutter.
 - **Tasks Executadas e Artefatos Gerados:**

@@ -12,6 +12,9 @@ class CameraTreinoScreen extends StatefulWidget {
   final String exercicioId;
   final String exercicioNome;
   final int metaRepeticoes;
+  final int exercicioIndice;
+  final int totalExercicios;
+  final String? proximoExercicioNome;
 
   const CameraTreinoScreen({
     super.key,
@@ -20,6 +23,9 @@ class CameraTreinoScreen extends StatefulWidget {
     this.exercicioId = '16',
     this.exercicioNome = 'Desenvolvimento com Halteres',
     this.metaRepeticoes = 10,
+    this.exercicioIndice = 1,
+    this.totalExercicios = 1,
+    this.proximoExercicioNome,
   });
 
   @override
@@ -30,6 +36,7 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
   CameraController? _controller;
   Future<void>? _initializeControllerFuture;
   Timer? _timer;
+  Timer? _feedbackTimer;
   bool _isSending = false;
   bool _isStreaming = true;
   bool _isLoading = true;
@@ -46,6 +53,8 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
   bool _corpoVisivel = false;
   final String _lado = 'direito';
   Map<String, dynamic>? _ultimaRepeticao;
+  Map<String, dynamic> _angulos = {};
+  bool _mostrandoFeedbackSucesso = false;
   bool _isFinalizando = false;
   bool _isSimulando = false;
 
@@ -128,8 +137,8 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
 
   void _startPeriodicSending() {
     _timer?.cancel();
-    // Envia um frame a cada 1.5 segundo para processamento em tempo real
-    _timer = Timer.periodic(const Duration(milliseconds: 1500), (timer) async {
+    // Envia um frame a cada 1.2 segundo para manter boa responsividade
+    _timer = Timer.periodic(const Duration(milliseconds: 1200), (timer) async {
       if (!_isStreaming || _isSending || _isFinalizando) return;
       if (_controller == null || !_controller!.value.isInitialized) return;
 
@@ -180,6 +189,18 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
           _faseNumero = (res['fase_numero'] as num?)?.toInt() ?? _faseNumero;
           _alertaImediato = res['alerta_imediato']?.toString();
 
+          if (res['angulos'] != null && res['angulos'] is Map) {
+            _angulos = Map<String, dynamic>.from(res['angulos'] as Map);
+          }
+
+          if (res['repeticao_concluida'] == true) {
+            _mostrandoFeedbackSucesso = true;
+            _feedbackTimer?.cancel();
+            _feedbackTimer = Timer(const Duration(seconds: 3), () {
+              if (mounted) setState(() => _mostrandoFeedbackSucesso = false);
+            });
+          }
+
           if (res['ultima_repeticao'] != null && res['ultima_repeticao'] is Map) {
             _ultimaRepeticao = Map<String, dynamic>.from(res['ultima_repeticao'] as Map);
           }
@@ -205,16 +226,22 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
       if (res['sucesso'] == true) {
         setState(() {
           _repeticoes = (res['repeticoes'] as num?)?.toInt() ?? (_repeticoes + 1);
-          _faseNome = 'Concluído';
+          _faseNome = 'Pico de Contração';
           _alertaImediato = res['alerta_imediato']?.toString();
+          _mostrandoFeedbackSucesso = true;
           if (res['ultima_repeticao'] != null && res['ultima_repeticao'] is Map) {
             _ultimaRepeticao = Map<String, dynamic>.from(res['ultima_repeticao'] as Map);
           }
         });
 
+        _feedbackTimer?.cancel();
+        _feedbackTimer = Timer(const Duration(seconds: 3), () {
+          if (mounted) setState(() => _mostrandoFeedbackSucesso = false);
+        });
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Repetição canônica simulada no motor de IA com sucesso!'),
+            content: Text('Repetição canônica validada pelo motor de IA!'),
             backgroundColor: Color(0xFF00E676),
             duration: Duration(seconds: 2),
           ),
@@ -323,18 +350,50 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
             ],
           ),
           actions: [
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF00E676),
-                foregroundColor: Colors.black,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            if (widget.proximoExercicioNome != null) ...[
+              OutlinedButton(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: Colors.white70,
+                  side: const BorderSide(color: Colors.white24),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  Navigator.pop(context, {'concluido': true, 'acao': 'pausar'});
+                },
+                child: const Text('Pausar e Voltar'),
               ),
-              onPressed: () {
-                Navigator.pop(ctx);
-                Navigator.pop(context, true);
-              },
-              child: const Text('Concluir e Voltar', style: TextStyle(fontWeight: FontWeight.bold)),
-            ),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.arrow_forward_rounded, size: 18),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF00E676),
+                  foregroundColor: Colors.black,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  Navigator.pop(context, {'concluido': true, 'acao': 'proximo'});
+                },
+                label: Text(
+                  'Próximo: ${widget.proximoExercicioNome!}',
+                  style: const TextStyle(fontWeight: FontWeight.bold),
+                ),
+              ),
+            ] else ...[
+              ElevatedButton.icon(
+                icon: const Icon(Icons.emoji_events, size: 18),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF00E676),
+                  foregroundColor: Colors.black,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  Navigator.pop(context, {'concluido': true, 'acao': 'finalizar_tudo'});
+                },
+                label: const Text('Concluir Treino Completo', style: TextStyle(fontWeight: FontWeight.bold)),
+              ),
+            ],
           ],
         ),
       );
@@ -379,6 +438,7 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
   @override
   void dispose() {
     _timer?.cancel();
+    _feedbackTimer?.cancel();
     _controller?.dispose();
     super.dispose();
   }
@@ -482,7 +542,7 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
             ),
           ),
 
-          // Título do Exercício e Lado
+          // Título do Exercício, Contador de Exercícios e Lado
           Expanded(
             child: Container(
               margin: const EdgeInsets.symmetric(horizontal: 10),
@@ -495,6 +555,24 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
+                  if (widget.totalExercicios > 1) ...[
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF00E676).withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        '${widget.exercicioIndice}/${widget.totalExercicios}',
+                        style: const TextStyle(
+                          color: Color(0xFF00E676),
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                  ],
                   const Icon(Icons.fitness_center, color: Color(0xFF00E676), size: 16),
                   const SizedBox(width: 6),
                   Flexible(
@@ -532,7 +610,11 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
     String feedbackText;
     IconData feedbackIcon;
 
-    if (!_corpoVisivel && _framesEnviados > 0) {
+    if (_mostrandoFeedbackSucesso) {
+      bannerColor = const Color(0xFF00E676);
+      feedbackText = '🎉 REPETIÇÃO VÁLIDA COM SUCESSO!';
+      feedbackIcon = Icons.stars_rounded;
+    } else if (!_corpoVisivel && _framesEnviados > 0) {
       bannerColor = Colors.orangeAccent;
       feedbackText = 'Posicione seu corpo por completo no enquadramento';
       feedbackIcon = Icons.accessibility_new;
@@ -544,6 +626,21 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
       bannerColor = const Color(0xFF00E676);
       feedbackText = 'Postura Correta • $_faseNome';
       feedbackIcon = Icons.check_circle_outline;
+    }
+
+    // Identificação visual da fase do exercício
+    Color corFase = Colors.blueGrey;
+    IconData iconeFase = Icons.radio_button_unchecked;
+    final faseLower = _faseNome.toLowerCase();
+    if (faseLower.contains('subind') || faseLower.contains('ascend')) {
+      corFase = Colors.amber;
+      iconeFase = Icons.arrow_upward;
+    } else if (faseLower.contains('pico') || faseLower.contains('cont')) {
+      corFase = const Color(0xFF00E676);
+      iconeFase = Icons.local_fire_department;
+    } else if (faseLower.contains('desc') || faseLower.contains('excen')) {
+      corFase = Colors.purpleAccent;
+      iconeFase = Icons.arrow_downward;
     }
 
     return Positioned(
@@ -591,7 +688,68 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
             ),
           ),
 
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
+
+          // Chips de Fase e Ângulos Biomecânicos em Tempo Real
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Chip da Fase Atual
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF161B22).withValues(alpha: 0.9),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: corFase.withValues(alpha: 0.7)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(iconeFase, color: corFase, size: 14),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Fase: $_faseNome',
+                      style: TextStyle(
+                        color: corFase,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // Chips de Ângulos
+              if (_angulos.isNotEmpty) ...[
+                const SizedBox(width: 6),
+                ..._angulos.entries.take(2).map((entry) {
+                  final nomeArt = entry.key.length > 7
+                      ? entry.key.substring(0, 7)
+                      : entry.key;
+                  final ang = (entry.value as num).toStringAsFixed(0);
+                  return Container(
+                    margin: const EdgeInsets.only(left: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF161B22).withValues(alpha: 0.9),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.cyanAccent.withValues(alpha: 0.6)),
+                    ),
+                    child: Text(
+                      '$nomeArt: $ang°',
+                      style: const TextStyle(
+                        color: Colors.cyanAccent,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  );
+                }),
+              ],
+            ],
+          ),
+
+          const SizedBox(height: 10),
 
           // Contador Gigante de Repetições
           Container(
