@@ -144,16 +144,20 @@ class FinalizarSerieIARequest(BaseModel):
 
 
 # ============================================================
-# ROTAS - STATUS DA API
+# ROTAS - STATUS DA API (Suporte a GET e HEAD para healthcheck do Render)
 # ============================================================
 
-@app.get("/")
+@app.api_route("/", methods=["GET", "HEAD"])
 def raiz():
     return {
         "status": "online",
         "app": "Personal Trainer IA API",
         "docs": "/docs"
     }
+
+@app.api_route("/health", methods=["GET", "HEAD"])
+def health():
+    return {"status": "ok"}
 
 # ============================================================
 # ROTAS - 1. AUTENTICAÇÃO E SESSÃO
