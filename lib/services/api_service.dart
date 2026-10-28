@@ -958,5 +958,121 @@ class ApiService {
       };
     }
   }
-}
 
+  // ============================================================
+  // 6. SERVIÇOS DE IA E AVALIAÇÃO BIOMECÂNICA
+  // ============================================================
+
+  /// Reinicia ou inicializa a sessão de IA para um determinado exercício ('1', '2' ou '3')
+  Future<Map<String, dynamic>> reiniciarSessaoIA({
+    required String exercicioId,
+    String? usuarioId,
+  }) async {
+    try {
+      final uid = usuarioId ?? idUsuarioAtual ?? 'anonimo';
+      final url = Uri.parse('$baseUrl/ia/reiniciar-sessao');
+      final response = await http
+          .post(
+            url,
+            headers: _headers,
+            body: jsonEncode({
+              'usuario_id': uid,
+              'exercicio_id': exercicioId,
+            }),
+          )
+          .timeout(const Duration(seconds: 10));
+      return jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+    } catch (e) {
+      return {'sucesso': false, 'mensagem': 'Erro ao reiniciar sessão IA: $e'};
+    }
+  }
+
+  /// Processa fotograma capturado da câmera (multipart) e devolve análise biomecânica em tempo real
+  Future<Map<String, dynamic>> processarFrameIA({
+    required List<int> imageBytes,
+    required String exercicioId,
+    String? usuarioId,
+    String lado = 'direito',
+  }) async {
+    try {
+      final uid = usuarioId ?? idUsuarioAtual ?? 'anonimo';
+      final url = Uri.parse('$baseUrl/ia/processar-frame');
+      final request = http.MultipartRequest('POST', url);
+      request.fields['usuario_id'] = uid;
+      request.fields['exercicio'] = exercicioId;
+      request.fields['lado'] = lado;
+
+      request.files.add(
+        http.MultipartFile.fromBytes('frame', imageBytes, filename: 'frame.jpg'),
+      );
+
+      final streamedResponse = await request.send().timeout(const Duration(seconds: 5));
+      final response = await http.Response.fromStream(streamedResponse);
+      return jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+    } catch (e) {
+      return {'sucesso': false, 'mensagem': 'Erro ao processar frame: $e'};
+    }
+  }
+
+  /// Simula uma repetição canônica completa no orquestrador (modo banca avaliadora / offline)
+  Future<Map<String, dynamic>> simularRepeticaoIA({
+    required String exercicioId,
+    String? usuarioId,
+    String tipoCenario = 'ideal',
+  }) async {
+    try {
+      final uid = usuarioId ?? idUsuarioAtual ?? 'anonimo';
+      final url = Uri.parse('$baseUrl/ia/simular-repeticao');
+      final response = await http
+          .post(
+            url,
+            headers: _headers,
+            body: jsonEncode({
+              'usuario_id': uid,
+              'exercicio_id': exercicioId,
+              'tipo_cenario': tipoCenario,
+            }),
+          )
+          .timeout(const Duration(seconds: 10));
+      return jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+    } catch (e) {
+      return {'sucesso': false, 'mensagem': 'Erro ao simular repetição: $e'};
+    }
+  }
+
+  /// Retorna o laudo da série realizada com taxa de aprovação e recomendação técnica
+  Future<Map<String, dynamic>> obterResumoSessaoIA({String? usuarioId}) async {
+    try {
+      final uid = usuarioId ?? idUsuarioAtual ?? 'anonimo';
+      final url = Uri.parse('$baseUrl/ia/resumo-sessao?usuario_id=$uid');
+      final response = await http.get(url, headers: _headers).timeout(const Duration(seconds: 10));
+      return jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+    } catch (e) {
+      return {'sucesso': false, 'mensagem': 'Erro ao obter resumo da sessão: $e'};
+    }
+  }
+
+  /// Consolida os pontos da série executada com IA no perfil do atleta e no Leaderboard
+  Future<Map<String, dynamic>> finalizarSerieEPontuarIA({
+    String? usuarioId,
+    bool incrementarSequencia = true,
+  }) async {
+    try {
+      final uid = usuarioId ?? idUsuarioAtual ?? 'anonimo';
+      final url = Uri.parse('$baseUrl/ia/finalizar-serie-e-pontuar');
+      final response = await http
+          .post(
+            url,
+            headers: _headers,
+            body: jsonEncode({
+              'usuario_id': uid,
+              'incrementar_sequencia': incrementarSequencia,
+            }),
+          )
+          .timeout(const Duration(seconds: 15));
+      return jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+    } catch (e) {
+      return {'sucesso': false, 'mensagem': 'Erro ao finalizar série IA: $e'};
+    }
+  }
+}

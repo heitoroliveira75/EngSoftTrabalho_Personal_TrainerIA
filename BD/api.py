@@ -497,7 +497,7 @@ def api_ia_reiniciar_sessao(req: ReiniciarSessaoIARequest):
 @app.post("/ia/processar-frame", tags=["IA & Biomecânica"])
 async def api_ia_processar_frame(
     frame: UploadFile = File(...),
-    usuario_id: str = Form(...),
+    usuario_id: str = Form("anonimo"),
     exercicio: str = Form("1"),
     lado: str = Form("direito"),
 ):
