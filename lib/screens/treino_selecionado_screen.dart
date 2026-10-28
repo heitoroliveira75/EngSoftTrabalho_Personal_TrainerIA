@@ -1,3 +1,4 @@
+import 'camera_treino_screen.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
@@ -94,7 +95,46 @@ class _TreinoSelecionadoScreenState extends State<TreinoSelecionadoScreen> {
     }
   }
 
-  Future<void> _executarTreino() async {
+  
+  void _iniciarTreinoComCamera() {
+    final exercicios = widget.treinoData['exercicios'] as List? ?? [];
+    String exId = '1';
+    String exNome = 'Desenvolvimento de Ombros';
+    int metaReps = 10;
+
+    if (exercicios.isNotEmpty) {
+      final primeiro = exercicios.first;
+      exNome = primeiro['nome']?.toString() ?? exNome;
+      metaReps = (primeiro['repeticoes'] as num?)?.toInt() ?? 10;
+      final rawId = primeiro['exercicio_id'] ?? primeiro['id'];
+      if (rawId != null) {
+        exId = rawId.toString();
+      }
+      final nomeLower = exNome.toLowerCase();
+      if (nomeLower.contains('agacha')) {
+        exId = '2';
+      } else if (nomeLower.contains('rosca') || nomeLower.contains('biceps') || nomeLower.contains('bíceps')) {
+        exId = '3';
+      }
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CameraTreinoScreen(
+          exercicioId: exId,
+          exercicioNome: exNome,
+          metaRepeticoes: metaReps,
+        ),
+      ),
+    ).then((concluido) {
+      if (concluido == true && mounted) {
+        Navigator.pop(context, true);
+      }
+    });
+  }
+
+Future<void> _executarTreino() async {
     setState(() => _treinando = true);
     final pontos =
         (widget.treinoData['pontosTotais'] as num?)?.toInt() ?? 100;
@@ -380,6 +420,33 @@ class _TreinoSelecionadoScreenState extends State<TreinoSelecionadoScreen> {
               SizedBox(
                 width: double.infinity,
                 height: 52,
+                child: ElevatedButton.icon(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF00E676),
+                    foregroundColor: Colors.black,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 4,
+                  ),
+                  onPressed: _iniciarTreinoComCamera,
+                  icon: const Icon(Icons.videocam_rounded, size: 24),
+                  label: const Text(
+                    'TREINAR COM CÂMERA IA',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.0,
+                    ),
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 12),
+
+              SizedBox(
+                width: double.infinity,
+                height: 48,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.transparent,
