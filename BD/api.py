@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import FastAPI, HTTPException, Query, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any, Union
@@ -6,11 +6,17 @@ import uvicorn
 import sys
 from pathlib import Path
 
-# Garantir que o diretório BD esteja no sys.path
-sys.path.append(str(Path(__file__).resolve().parent))
+# Garantir que a raiz do repositório e o diretório BD estejam no sys.path
+DIRETORIO_BD = Path(__file__).resolve().parent
+RAIZ_REPOSITORIO = DIRETORIO_BD.parent
+if str(RAIZ_REPOSITORIO) not in sys.path:
+    sys.path.insert(0, str(RAIZ_REPOSITORIO))
+if str(DIRETORIO_BD) not in sys.path:
+    sys.path.insert(0, str(DIRETORIO_BD))
 
 import main as bd
 from supabase_client import supabase
+from servico_ia_api import ServicoIA
 
 app = FastAPI(
     title="Personal Trainer IA - API",
@@ -116,6 +122,26 @@ class SolicitarAmizadeRequest(BaseModel):
 
 class ResponderSolicitacaoRequest(BaseModel):
     status: str = Field(..., pattern="^(aceito|recusado)$")
+
+class ReiniciarSessaoIARequest(BaseModel):
+    usuario_id: str
+    exercicio_id: str = Field(default="1", description="'1' Ombro, '2' Agachamento, '3' Rosca")
+
+class SimularRepeticaoIARequest(BaseModel):
+    usuario_id: str
+    exercicio_id: str = Field(default="1", description="'1' Ombro, '2' Agachamento, '3' Rosca")
+    tipo_cenario: str = Field(default="ideal", description="'ideal', 'postural'")
+
+class ProcessarAngulosIARequest(BaseModel):
+    usuario_id: str
+    exercicio_id: str = Field(default="1")
+    angulos: Dict[str, float]
+    visivel: bool = True
+
+class FinalizarSerieIARequest(BaseModel):
+    usuario_id: str
+    incrementar_sequencia: Optional[bool] = None
+
 
 # ============================================================
 # ROTAS - STATUS DA API
@@ -453,6 +479,112 @@ def api_obter_minha_posicao_global(usuario_id: str = Query(...)):
 # ============================================================
 # EXECUÇÃO DIRETA
 # ============================================================
+
+# ============================================================
+# ROTAS - IA E AVALIAÇÃO BIOMECÂNICA
+# ============================================================
+
+@app.post("/ia/reiniciar-sessao", tags=["IA & Biomecânica"])
+def api_ia_reiniciar_sessao(req: ReiniciarSessaoIARequest):
+    """
+    Inicializa ou reseta a sessão do atleta para o exercício selecionado.
+    """
+    return ServicoIA.obter_instancia().reiniciar_sessao(
+        usuario_id=req.usuario_id,
+        exercicio_id=req.exercicio_id,
+    )
+
+@app.post("/ia/processar-frame", tags=["IA & Biomecânica"])
+async def api_ia_processar_frame(
+    frame: UploadFile = File(...),
+    usuario_id: str = Form(...),
+    exercicio: str = Form("1"),
+    lado: str = Form("direito"),
+):
+    """
+    Recebe um fotograma (Multipart JPG/PNG), decodifica em memória RAM,
+    avalia o movimento na FSM e DTW, e devolve as métricas em tempo real para o HUD.
+    """
+    conteudo = await frame.read()
+    return ServicoIA.obter_instancia().processar_frame_imagem(
+        conteudo_bytes=conteudo,
+        usuario_id=usuario_id,
+        exercicio_id=exercicio,
+        lado=lado,
+    )
+
+@app.post("/ia/processar-angulos", tags=["IA & Biomecânica"])
+def api_ia_processar_angulos(req: ProcessarAngulosIARequest):
+    """
+    Permite processar diretamente um dicionário de ângulos (útil para testes sintéticos e clientes leves).
+    """
+    return ServicoIA.obter_instancia().processar_frame_angulos(
+        angulos=req.angulos,
+        usuario_id=req.usuario_id,
+        exercicio_id=req.exercicio_id,
+        visivel=req.visivel,
+    )
+
+@app.post("/ia/simular-repeticao", tags=["IA & Biomecânica"])
+def api_ia_simular_repeticao(req: SimularRepeticaoIARequest):
+    """
+    Injeta uma repetição canônica completa no orquestrador do usuário para
+    demonstrações instantâneas da banca avaliadora sem depender de webcam física.
+    """
+    return ServicoIA.obter_instancia().simular_repeticao(
+        usuario_id=req.usuario_id,
+        exercicio_id=req.exercicio_id,
+        tipo_cenario=req.tipo_cenario,
+    )
+
+@app.get("/ia/resumo-sessao", tags=["IA & Biomecânica"])
+def api_ia_obter_resumo_sessao(usuario_id: str = Query(...)):
+    """
+    Retorna o laudo da série realizada com o total de repetições,
+    taxa de aprovação, recomendação biomecânica e pontos de gamificação.
+    """
+    return ServicoIA.obter_instancia().obter_resumo_sessao(usuario_id=usuario_id)
+
+@app.post("/ia/finalizar-serie-e-pontuar", tags=["IA & Biomecânica"])
+def api_ia_finalizar_serie_e_pontuar(req: FinalizarSerieIARequest):
+    """
+    Consolida a série do atleta com o motor de IA e envia os pontos conquistados
+    diretamente para a tabela 'usuarios', atualizando a sequência diária (streak) e o Leaderboard.
+    """
+    resumo_resp = ServicoIA.obter_instancia().obter_resumo_sessao(usuario_id=req.usuario_id)
+    if not resumo_resp.get("sucesso") or not resumo_resp.get("dados"):
+        return {
+            "sucesso": False,
+            "mensagem": "Nenhuma sessão ativa com repetições para pontuar.",
+            "resumo": None,
+            "banco": None,
+        }
+
+    dados = resumo_resp["dados"]
+    pts = int(round(dados.get("pontos_gamificacao", 0.0)))
+
+    # Se fez repetições aprovadas mas a pontuação arredondada deu zero, garante ao menos 10 pts
+    if pts == 0 and dados.get("repeticoes_aprovadas", 0) > 0:
+        pts = 10
+
+    resp_banco = None
+    if pts > 0:
+        try:
+            resp_banco = bd.adicionar_pontuacao_diaria(
+                usuario_id=req.usuario_id,
+                pontos=pts,
+                incrementar_sequencia=req.incrementar_sequencia,
+            )
+        except Exception as e:
+            resp_banco = {"sucesso": False, "mensagem": f"Erro ao sincronizar pontos: {e}"}
+
+    return {
+        "sucesso": True,
+        "pontos_atribuidos": pts,
+        "resumo_ia": dados,
+        "atualizacao_banco": resp_banco,
+    }
+
 if __name__ == "__main__":
     print("Iniciando servidor FastAPI em http://0.0.0.0:8000 ...")
     uvicorn.run("api:app", host="0.0.0.0", port=8000, reload=True)
