@@ -56,3 +56,15 @@ app.*.map.json
 
 # Widget Preview related
 .widget_preview/
+
+.pytest_cache/
+env/
+
+# Local video files & generated test fixtures
+*.mp4
+*.avi
+gabarito_especialista_gerado.json
+BD/frames_salvos/
+
+# Nested workspace clone
+EngSoftTrabalho_Personal_TrainerIA/
