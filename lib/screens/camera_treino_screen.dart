@@ -15,6 +15,8 @@ class CameraTreinoScreen extends StatefulWidget {
   final int exercicioIndice;
   final int totalExercicios;
   final String? proximoExercicioNome;
+  final List<Map<String, dynamic>>? listaExercicios;
+  final int indiceInicial;
 
   const CameraTreinoScreen({
     super.key,
@@ -26,6 +28,8 @@ class CameraTreinoScreen extends StatefulWidget {
     this.exercicioIndice = 1,
     this.totalExercicios = 1,
     this.proximoExercicioNome,
+    this.listaExercicios,
+    this.indiceInicial = 0,
   });
 
   @override
@@ -45,6 +49,11 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
   List<CameraDescription> _availableCameras = [];
   int _currentCameraIndex = 0;
 
+  // Lista e Controle de Exercícios do Treino
+  late List<Map<String, dynamic>> _exercicios;
+  late int _indiceAtual;
+  final Set<int> _indicesConcluidos = {};
+
   // Estado da IA e Avaliação Biomecânica
   int _repeticoes = 0;
   String _faseNome = 'Repouso';
@@ -58,9 +67,36 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
   bool _isFinalizando = false;
   bool _isSimulando = false;
 
+  Map<String, dynamic> get _exercicioAtual =>
+      _exercicios.isNotEmpty ? _exercicios[_indiceAtual] : {};
+  String get _exercicioIdAtual =>
+      (_exercicioAtual['exercicio_id'] ?? _exercicioAtual['id'] ?? widget.exercicioId).toString();
+  String get _exercicioNomeAtual =>
+      _exercicioAtual['nome']?.toString() ?? widget.exercicioNome;
+  int get _metaRepsAtual =>
+      (_exercicioAtual['repeticoes'] as num?)?.toInt() ?? widget.metaRepeticoes;
+  bool get _temProximoExercicio => (_indiceAtual + 1) < _exercicios.length;
+  String? get _proximoExercicioNome =>
+      _temProximoExercicio ? _exercicios[_indiceAtual + 1]['nome']?.toString() : null;
+
   @override
   void initState() {
     super.initState();
+    if (widget.listaExercicios != null && widget.listaExercicios!.isNotEmpty) {
+      _exercicios = List<Map<String, dynamic>>.from(widget.listaExercicios!);
+      _indiceAtual = (widget.indiceInicial >= 0 && widget.indiceInicial < _exercicios.length)
+          ? widget.indiceInicial
+          : 0;
+    } else {
+      _exercicios = [
+        {
+          'exercicio_id': widget.exercicioId,
+          'nome': widget.exercicioNome,
+          'repeticoes': widget.metaRepeticoes,
+        }
+      ];
+      _indiceAtual = 0;
+    }
     _iniciarSessaoIA();
     _setupCameras();
   }
@@ -68,13 +104,39 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
   Future<void> _iniciarSessaoIA() async {
     try {
       final res = await ApiService().reiniciarSessaoIA(
-        exercicioId: widget.exercicioId,
+        exercicioId: _exercicioIdAtual,
       );
       if (mounted && res['sucesso'] == true) {
         debugPrint('Sessão IA inicializada com sucesso: ${res['exercicio_nome']}');
       }
     } catch (e) {
       debugPrint('Aviso ao inicializar sessão IA: $e');
+    }
+  }
+
+  void _avancarParaProximoExercicio() {
+    _indicesConcluidos.add(_indiceAtual);
+    if (_temProximoExercicio) {
+      setState(() {
+        _indiceAtual++;
+        _repeticoes = 0;
+        _faseNome = 'Repouso';
+        _faseNumero = 0;
+        _alertaImediato = null;
+        _ultimaRepeticao = null;
+        _angulos = {};
+        _mostrandoFeedbackSucesso = false;
+      });
+
+      _iniciarSessaoIA();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Iniciando: $_exercicioNomeAtual'),
+          backgroundColor: const Color(0xFF00E676),
+          duration: const Duration(seconds: 2),
+        ),
+      );
     }
   }
 
@@ -127,6 +189,21 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
       });
       _startPeriodicSending();
     } catch (e) {
+      final errStr = e.toString();
+      if (errStr.contains('already exists')) {
+        // Aguarda liberação do driver Media Foundation pelo SO e tenta novamente
+        await Future.delayed(const Duration(milliseconds: 600));
+        try {
+          await _controller?.initialize();
+          if (!mounted) return;
+          setState(() {
+            _isLoading = false;
+            _errorMessage = null;
+          });
+          _startPeriodicSending();
+          return;
+        } catch (_) {}
+      }
       if (!mounted) return;
       setState(() {
         _errorMessage = 'Falha ao conectar à câmera: $e';
@@ -137,8 +214,8 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
 
   void _startPeriodicSending() {
     _timer?.cancel();
-    // Envia um frame a cada 1.2 segundo para manter boa responsividade
-    _timer = Timer.periodic(const Duration(milliseconds: 1200), (timer) async {
+    // Envia um frame a cada 200ms para análise biomecânica com alta responsividade
+    _timer = Timer.periodic(const Duration(milliseconds: 200), (timer) async {
       if (!_isStreaming || _isSending || _isFinalizando) return;
       if (_controller == null || !_controller!.value.isInitialized) return;
 
@@ -174,7 +251,7 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
     try {
       final res = await ApiService().processarFrameIA(
         imageBytes: bytes,
-        exercicioId: widget.exercicioId,
+        exercicioId: _exercicioIdAtual,
         lado: _lado,
       );
 
@@ -217,7 +294,7 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
 
     try {
       final res = await ApiService().simularRepeticaoIA(
-        exercicioId: widget.exercicioId,
+        exercicioId: _exercicioIdAtual,
         tipoCenario: 'ideal',
       );
 
@@ -261,6 +338,28 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
     }
   }
 
+  double _calcularProgressoMovimento() {
+    if (_angulos.isEmpty) return 0.0;
+    final nomeLower = _exercicioNomeAtual.toLowerCase();
+    if (nomeLower.contains('agacha') ||
+        nomeLower.contains('squat') ||
+        nomeLower.contains('perna')) {
+      final joelho = (_angulos['joelho'] as num?)?.toDouble() ?? 170.0;
+      // Repouso: ~170°, Fundo do Agachamento: ~100°
+      return ((170.0 - joelho) / (170.0 - 100.0)).clamp(0.0, 1.0);
+    } else if (nomeLower.contains('rosca') ||
+        nomeLower.contains('biceps') ||
+        nomeLower.contains('bíceps')) {
+      final cotovelo = (_angulos['cotovelo'] as num?)?.toDouble() ?? 160.0;
+      // Repouso: ~160°, Topo da Flexão: ~80°
+      return ((160.0 - cotovelo) / (160.0 - 80.0)).clamp(0.0, 1.0);
+    } else {
+      // Desenvolvimento com halteres: cotovelo de 85° a 165°
+      final cotovelo = (_angulos['cotovelo'] as num?)?.toDouble() ?? 85.0;
+      return ((cotovelo - 85.0) / (165.0 - 85.0)).clamp(0.0, 1.0);
+    }
+  }
+
   Future<void> _finalizarSerie() async {
     setState(() => _isFinalizando = true);
     _timer?.cancel();
@@ -296,7 +395,7 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Exercício: ${widget.exercicioNome}',
+                'Exercício: $_exercicioNomeAtual',
                 style: const TextStyle(color: Colors.white70, fontSize: 14),
               ),
               const SizedBox(height: 12),
@@ -350,7 +449,7 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
             ],
           ),
           actions: [
-            if (widget.proximoExercicioNome != null) ...[
+            if (_temProximoExercicio) ...[
               OutlinedButton(
                 style: OutlinedButton.styleFrom(
                   foregroundColor: Colors.white70,
@@ -358,8 +457,13 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 ),
                 onPressed: () {
+                  _indicesConcluidos.add(_indiceAtual);
                   Navigator.pop(ctx);
-                  Navigator.pop(context, {'concluido': true, 'acao': 'pausar'});
+                  Navigator.pop(context, {
+                    'concluido': true,
+                    'acao': 'pausar',
+                    'indicesConcluidos': _indicesConcluidos.toList(),
+                  });
                 },
                 child: const Text('Pausar e Voltar'),
               ),
@@ -372,10 +476,10 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
                 ),
                 onPressed: () {
                   Navigator.pop(ctx);
-                  Navigator.pop(context, {'concluido': true, 'acao': 'proximo'});
+                  _avancarParaProximoExercicio();
                 },
                 label: Text(
-                  'Próximo: ${widget.proximoExercicioNome!}',
+                  'Próximo: ${_proximoExercicioNome!}',
                   style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
               ),
@@ -388,8 +492,14 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                 ),
                 onPressed: () {
+                  _indicesConcluidos.add(_indiceAtual);
                   Navigator.pop(ctx);
-                  Navigator.pop(context, {'concluido': true, 'acao': 'finalizar_tudo'});
+                  Navigator.pop(context, {
+                    'concluido': true,
+                    'acao': 'finalizar_tudo',
+                    'treinoConcluido': true,
+                    'indicesConcluidos': _indicesConcluidos.toList(),
+                  });
                 },
                 label: const Text('Concluir Treino Completo', style: TextStyle(fontWeight: FontWeight.bold)),
               ),
@@ -526,6 +636,9 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
   }
 
   Widget _buildTopBar() {
+    final totalEx = _exercicios.length;
+    final numAtual = _indiceAtual + 1;
+
     return Positioned(
       top: 16,
       left: 16,
@@ -538,7 +651,12 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
             backgroundColor: Colors.black54,
             child: IconButton(
               icon: const Icon(Icons.arrow_back, color: Colors.white),
-              onPressed: () => Navigator.pop(context),
+              onPressed: () {
+                Navigator.pop(context, {
+                  'concluido': _indicesConcluidos.isNotEmpty,
+                  'indicesConcluidos': _indicesConcluidos.toList(),
+                });
+              },
             ),
           ),
 
@@ -555,7 +673,7 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  if (widget.totalExercicios > 1) ...[
+                  if (totalEx > 1) ...[
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
@@ -563,7 +681,7 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
-                        '${widget.exercicioIndice}/${widget.totalExercicios}',
+                        '$numAtual/$totalEx',
                         style: const TextStyle(
                           color: Color(0xFF00E676),
                           fontSize: 11,
@@ -577,7 +695,7 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
                   const SizedBox(width: 6),
                   Flexible(
                     child: Text(
-                      widget.exercicioNome,
+                      _exercicioNomeAtual,
                       overflow: TextOverflow.ellipsis,
                       style: const TextStyle(
                         color: Colors.white,
@@ -635,13 +753,17 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
     if (faseLower.contains('subind') || faseLower.contains('ascend')) {
       corFase = Colors.amber;
       iconeFase = Icons.arrow_upward;
-    } else if (faseLower.contains('pico') || faseLower.contains('cont')) {
+    } else if (faseLower.contains('pico') || faseLower.contains('cont') || faseLower.contains('topo')) {
       corFase = const Color(0xFF00E676);
       iconeFase = Icons.local_fire_department;
     } else if (faseLower.contains('desc') || faseLower.contains('excen')) {
       corFase = Colors.purpleAccent;
       iconeFase = Icons.arrow_downward;
     }
+
+    // Cálculo em tempo real do percentual de amplitude do movimento (0 a 100%)
+    final progresso = _calcularProgressoMovimento();
+    final progressoPct = (progresso * 100).toInt();
 
     return Positioned(
       top: 80,
@@ -751,9 +873,62 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
 
           const SizedBox(height: 10),
 
+          // Barra de Progresso e Amplitude da Repetição em Tempo Real
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+            decoration: BoxDecoration(
+              color: const Color(0xFF161B22).withValues(alpha: 0.9),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: Colors.white24),
+            ),
+            child: Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Amplitude do Movimento:',
+                      style: TextStyle(
+                        color: Colors.white70,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      '$progressoPct%',
+                      style: TextStyle(
+                        color: progressoPct >= 80
+                            ? const Color(0xFF00E676)
+                            : (progressoPct >= 40 ? Colors.amber : Colors.cyanAccent),
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 5),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(6),
+                  child: LinearProgressIndicator(
+                    value: progresso,
+                    minHeight: 8,
+                    backgroundColor: Colors.white12,
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      progressoPct >= 80
+                          ? const Color(0xFF00E676)
+                          : (progressoPct >= 40 ? Colors.amber : Colors.cyanAccent),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 10),
+
           // Contador Gigante de Repetições
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
             decoration: BoxDecoration(
               color: Colors.black.withValues(alpha: 0.75),
               borderRadius: BorderRadius.circular(24),
@@ -766,15 +941,15 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
                   '$_repeticoes',
                   style: const TextStyle(
                     color: Color(0xFF00E676),
-                    fontSize: 32,
+                    fontSize: 30,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
                 Text(
-                  ' / ${widget.metaRepeticoes} REPS',
+                  ' / $_metaRepsAtual REPS',
                   style: const TextStyle(
                     color: Colors.white70,
-                    fontSize: 16,
+                    fontSize: 15,
                     fontWeight: FontWeight.w600,
                   ),
                 ),

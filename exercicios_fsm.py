@@ -218,19 +218,19 @@ class RoscaBiceps(ExercicioBaseFSM):
         fase = self.fases[1]
 
         if fase == 0:
-            if cotovelo < 145.0 and delta_cotovelo < 0:
+            if cotovelo < 145.0:
                 fase = 1
                 self.erros_repeticao_atual = []
         elif fase == 1:
-            if cotovelo <= 65.0:
+            if cotovelo <= 80.0:
                 fase = 2
-            elif delta_cotovelo > 0 and cotovelo > 95.0:
+            elif delta_cotovelo > 0 and cotovelo > 105.0:
                 fase = 3
         elif fase == 2:
-            if cotovelo > 75.0 or delta_cotovelo > 0:
+            if cotovelo > 88.0 or delta_cotovelo > 0:
                 fase = 3
         elif fase == 3:
-            if cotovelo >= 150.0:
+            if cotovelo >= 145.0:
                 fase = 0
                 self.repeticoes += 1
 
@@ -244,7 +244,7 @@ class RoscaBiceps(ExercicioBaseFSM):
         self.fases[1] = fase_atual
 
         erros_no_frame = []
-        if self.fases[0] == 1 and self.fases[1] == 3:
+        if self.fases[0] == 1 and self.fases[1] == 3 and angulos.get("cotovelo", 180.0) > 100.0:
             erros_no_frame.append("SUBIDA_INCOMPLETA")
         if self.fases[1] in (1, 2, 3) and angulos.get("ombro", 15.0) > 40.0:
             erros_no_frame.append("OMBRO_INSTAVEL")

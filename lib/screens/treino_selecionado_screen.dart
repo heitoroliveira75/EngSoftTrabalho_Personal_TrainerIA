@@ -93,6 +93,14 @@ class _TreinoSelecionadoScreenState extends State<TreinoSelecionadoScreen> {
     final String? proximoNome =
         temProximo ? exercicios[targetIndex + 1]['nome']?.toString() : null;
 
+    final exerciciosMapeados = exercicios.map((e) {
+      final mapE = Map<String, dynamic>.from(e as Map);
+      final rawId = (mapE['exercicio_id'] ?? mapE['id'])?.toString();
+      final nomeEx = mapE['nome']?.toString() ?? 'Exercício';
+      mapE['exercicio_id'] = _mapearIdExercicio(rawId, nomeEx);
+      return mapE;
+    }).toList();
+
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -103,37 +111,53 @@ class _TreinoSelecionadoScreenState extends State<TreinoSelecionadoScreen> {
           exercicioIndice: targetIndex + 1,
           totalExercicios: exercicios.length,
           proximoExercicioNome: proximoNome,
+          listaExercicios: exerciciosMapeados,
+          indiceInicial: targetIndex,
         ),
       ),
     ).then((resultado) {
       if (!mounted || resultado == null) return;
 
       bool concluido = false;
-      String acao = 'voltar';
+      bool treinoConcluido = false;
+      List<int> indicesConcluidos = [];
 
       if (resultado is bool) {
         concluido = resultado;
       } else if (resultado is Map) {
         concluido = resultado['concluido'] == true;
-        acao = resultado['acao']?.toString() ?? 'voltar';
+        treinoConcluido = resultado['treinoConcluido'] == true;
+        if (resultado['indicesConcluidos'] is List) {
+          indicesConcluidos = (resultado['indicesConcluidos'] as List)
+              .map((i) => (i as num).toInt())
+              .toList();
+        }
       }
 
       if (concluido) {
         setState(() {
-          if (targetIndex < _exerciciosConcluidos.length) {
-            _exerciciosConcluidos[targetIndex] = true;
-          }
-          if (targetIndex + 1 < exercicios.length) {
-            _indiceExercicioAtual = targetIndex + 1;
+          if (indicesConcluidos.isNotEmpty) {
+            for (final idx in indicesConcluidos) {
+              if (idx >= 0 && idx < _exerciciosConcluidos.length) {
+                _exerciciosConcluidos[idx] = true;
+              }
+            }
+            final nextIdx = indicesConcluidos.last + 1;
+            if (nextIdx < exercicios.length) {
+              _indiceExercicioAtual = nextIdx;
+            }
+          } else {
+            if (targetIndex < _exerciciosConcluidos.length) {
+              _exerciciosConcluidos[targetIndex] = true;
+            }
+            if (targetIndex + 1 < exercicios.length) {
+              _indiceExercicioAtual = targetIndex + 1;
+            }
           }
         });
 
-        if (acao == 'proximo' && temProximo) {
-          // Avança automaticamente para o próximo exercício sem fechar o fluxo
-          _iniciarTreinoComCamera(targetIndex + 1);
-        } else if (acao == 'finalizar_tudo' ||
-            !_exerciciosConcluidos.contains(false)) {
-          // Finaliza o treino e consolida pontos totais
+        if (treinoConcluido || !_exerciciosConcluidos.contains(false)) {
+          // Finaliza o treino completo e consolida pontos totais
           _executarTreino();
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
