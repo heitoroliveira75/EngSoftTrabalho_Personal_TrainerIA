@@ -217,7 +217,6 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
             content: Text(
               resposta['mensagem'] ?? 'Erro ao salvar treino no servidor.',
             ),
-            backgroundColor: const Color(0xFF8B0000),
           ),
         );
       }
@@ -462,8 +461,10 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                const Text('Total de Repetições:',
-                                    style: TextStyle(color: Colors.white70, fontSize: 13)),
+                                const Expanded(
+                                  child: Text('Total de Repetições:',
+                                      style: TextStyle(color: Colors.white70, fontSize: 13)),
+                                ),
                                 Text('$totalRepsCalculado reps',
                                     style: const TextStyle(
                                         color: Colors.white, fontWeight: FontWeight.bold)),
@@ -475,8 +476,10 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text('Pontos Séries ($pontosPorSerie pts/série):',
-                                    style: const TextStyle(color: Colors.white60, fontSize: 12)),
+                                Expanded(
+                                  child: Text('Pontos Séries ($pontosPorSerie pts/série):',
+                                      style: const TextStyle(color: Colors.white60, fontSize: 12)),
+                                ),
                                 Text('+$pontosSeriesCalculado pts',
                                     style: const TextStyle(
                                         color: Color(0xFF64B5F6), fontWeight: FontWeight.w600)),
@@ -485,8 +488,10 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text('Pontos Repetições ($pontosPorRepeticao pts/rep):',
-                                    style: const TextStyle(color: Colors.white60, fontSize: 12)),
+                                Expanded(
+                                  child: Text('Pontos Repetições ($pontosPorRepeticao pts/rep):',
+                                      style: const TextStyle(color: Colors.white60, fontSize: 12)),
+                                ),
                                 Text('+$pontosRepsCalculado pts',
                                     style: const TextStyle(
                                         color: Color(0xFF64B5F6), fontWeight: FontWeight.w600)),
@@ -496,9 +501,11 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                const Text('Total deste Exercício:',
-                                    style: TextStyle(
-                                        color: Colors.white, fontWeight: FontWeight.bold)),
+                                const Expanded(
+                                  child: Text('Total deste Exercício:',
+                                      style: TextStyle(
+                                          color: Colors.white, fontWeight: FontWeight.bold)),
+                                ),
                                 Text('+$pontosTotalCalculado pts',
                                     style: const TextStyle(
                                         color: Color(0xFF00E676),
@@ -822,11 +829,14 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
 
                                             const SizedBox(width: 6),
 
-                                            Text(
-                                              '(${item.totalRepeticoes} totais)',
-                                              style: const TextStyle(
-                                                color: Colors.white60,
-                                                fontSize: 11,
+                                            Flexible(
+                                              child: Text(
+                                                '(${item.totalRepeticoes} totais)',
+                                                overflow: TextOverflow.ellipsis,
+                                                style: const TextStyle(
+                                                  color: Colors.white60,
+                                                  fontSize: 11,
+                                                ),
                                               ),
                                             ),
                                           ],

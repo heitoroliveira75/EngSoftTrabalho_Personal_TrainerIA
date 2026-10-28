@@ -711,19 +711,25 @@ class _AmigosScreenState extends State<AmigosScreen>
                                           children: [
                                             const Icon(Icons.bolt, size: 14, color: Colors.amberAccent),
                                             const SizedBox(width: 2),
-                                            Text(
-                                              '${user['sequencia'] ?? 0} dias streak',
-                                              style: const TextStyle(color: Colors.white70, fontSize: 11),
+                                            Flexible(
+                                              child: Text(
+                                                '${user['sequencia'] ?? 0} dias streak',
+                                                overflow: TextOverflow.ellipsis,
+                                                style: const TextStyle(color: Colors.white70, fontSize: 11),
+                                              ),
                                             ),
                                             const SizedBox(width: 8),
                                             const Icon(Icons.star, size: 13, color: Color(0xFF00E676)),
                                             const SizedBox(width: 2),
-                                            Text(
-                                              '${user['pontuacao_semanal'] ?? user['pontos'] ?? 0} pts',
-                                              style: const TextStyle(
-                                                color: Color(0xFF00E676),
-                                                fontSize: 11,
-                                                fontWeight: FontWeight.w600,
+                                            Flexible(
+                                              child: Text(
+                                                '${user['pontuacao_semanal'] ?? user['pontos'] ?? 0} pts',
+                                                overflow: TextOverflow.ellipsis,
+                                                style: const TextStyle(
+                                                  color: Color(0xFF00E676),
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
                                               ),
                                             ),
                                           ],
