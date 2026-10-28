@@ -67,6 +67,11 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
   bool _isFinalizando = false;
   bool _isSimulando = false;
 
+  // Telemetria e Diagnóstico em Tempo Real
+  int _latenciaMs = 0;
+  String _statusConexao = 'Iniciando IA...';
+  bool _servidorConectado = false;
+
   Map<String, dynamic> get _exercicioAtual =>
       _exercicios.isNotEmpty ? _exercicios[_indiceAtual] : {};
   String get _exercicioIdAtual =>
@@ -173,7 +178,7 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
 
     final controller = CameraController(
       cameraDescription,
-      ResolutionPreset.medium,
+      ResolutionPreset.low, // Formato leve (~320x240, ~30KB) para tráfego ultrarrápido na internet
       enableAudio: false,
     );
 
@@ -214,8 +219,8 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
 
   void _startPeriodicSending() {
     _timer?.cancel();
-    // Envia um frame a cada 200ms para análise biomecânica com alta responsividade
-    _timer = Timer.periodic(const Duration(milliseconds: 200), (timer) async {
+    // Envia um frame a cada 500ms (taxa ideal que não satura o driver da webcam e mantém resposta ágil)
+    _timer = Timer.periodic(const Duration(milliseconds: 500), (timer) async {
       if (!_isStreaming || _isSending || _isFinalizando) return;
       if (_controller == null || !_controller!.value.isInitialized) return;
 
@@ -248,18 +253,25 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
   }
 
   Future<void> _processarFrameNoBackend(List<int> bytes) async {
+    final sw = Stopwatch()..start();
     try {
       final res = await ApiService().processarFrameIA(
         imageBytes: bytes,
         exercicioId: _exercicioIdAtual,
         lado: _lado,
       );
+      sw.stop();
 
       if (!mounted) return;
+
+      final lat = sw.elapsedMilliseconds;
 
       if (res['sucesso'] == true) {
         setState(() {
           _framesEnviados++;
+          _latenciaMs = lat;
+          _servidorConectado = true;
+          _statusConexao = '🟢 IA Conectada • ${_latenciaMs}ms';
           _corpoVisivel = res['corpo_visivel'] ?? false;
           _repeticoes = (res['repeticoes'] as num?)?.toInt() ?? _repeticoes;
           _faseNome = res['fase_nome']?.toString() ?? _faseNome;
@@ -282,8 +294,21 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
             _ultimaRepeticao = Map<String, dynamic>.from(res['ultima_repeticao'] as Map);
           }
         });
+      } else {
+        setState(() {
+          _statusConexao = '🟡 ${res['mensagem'] ?? 'Processando...'}';
+          if (res['alerta_imediato'] != null) {
+            _alertaImediato = res['alerta_imediato'].toString();
+          }
+        });
       }
     } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _servidorConectado = false;
+        _statusConexao = '🟠 Conectando ao servidor...';
+        _alertaImediato = 'Servidor Render iniciando ou sem conexão...';
+      });
       debugPrint('Falha ao processar frame no backend: $e');
     }
   }
@@ -732,9 +757,13 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
       bannerColor = const Color(0xFF00E676);
       feedbackText = '🎉 REPETIÇÃO VÁLIDA COM SUCESSO!';
       feedbackIcon = Icons.stars_rounded;
+    } else if (!_servidorConectado && _framesEnviados == 0) {
+      bannerColor = Colors.orangeAccent;
+      feedbackText = _alertaImediato ?? 'Conectando ao servidor IA no Render...';
+      feedbackIcon = Icons.cloud_sync;
     } else if (!_corpoVisivel && _framesEnviados > 0) {
       bannerColor = Colors.orangeAccent;
-      feedbackText = 'Posicione seu corpo por completo no enquadramento';
+      feedbackText = 'Afaste-se da câmera (~1.5m a 2m) para enquadrar corpo e braços';
       feedbackIcon = Icons.accessibility_new;
     } else if (_alertaImediato != null && _alertaImediato!.isNotEmpty) {
       bannerColor = Colors.redAccent;
@@ -810,7 +839,38 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
             ),
           ),
 
-          const SizedBox(height: 8),
+          const SizedBox(height: 6),
+
+          // Pílula de Telemetria e Diagnóstico da Conexão em Tempo Real
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+            decoration: BoxDecoration(
+              color: Colors.black.withValues(alpha: 0.65),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  _statusConexao,
+                  style: const TextStyle(
+                    color: Colors.white70,
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+                if (_framesEnviados > 0) ...[
+                  const SizedBox(width: 6),
+                  Text(
+                    '• $_framesEnviados frames',
+                    style: const TextStyle(color: Colors.white38, fontSize: 10),
+                  ),
+                ],
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 6),
 
           // Chips de Fase e Ângulos Biomecânicos em Tempo Real
           Row(

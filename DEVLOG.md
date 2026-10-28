@@ -26,6 +26,20 @@
 
 ## Histórico de Entradas
 
+### [Entrada #013] 2026-10-28 — Otimização de Resolução de Captura, Intervalo de 500ms e Telemetria de Conexão no HUD da Câmera
+- **Objetivo / História de Usuário:** Eliminar gargalos de upload e congelamentos de hardware no streaming de vídeo da câmera, ajustando a resolução para `ResolutionPreset.low` (~320x240, ~30KB), estabelecendo taxa de amostragem equilibrada em 500ms e introduzindo telemetria em tempo real (latência em ms, contagem de fotogramas e status de conexão com o Render) para visibilidade imediata pelo usuário.
+- **Tasks Executadas e Artefatos Gerados:**
+  - `lib/screens/camera_treino_screen.dart`:
+    - Atualizada resolução da câmera para `ResolutionPreset.low` (30KB por foto, 10x mais rápida no upload que 720p e perfeita para o MediaPipe Pose de 256x256).
+    - Ajustado o timer periódico de captura para `500ms`, garantindo tempo suficiente para o driver do Windows/mobile e I/O de rede sem acumular fila de frames.
+    - Implementada telemetria ao vivo com cronômetro de latência (`Stopwatch`) exibindo no HUD: `_statusConexao` (ex.: `"🟢 IA Conectada • 140ms • 32 frames"`).
+    - Tratamento explícito de estados de conexão: se o servidor estiver dormindo (cold start do Render) ou indisponível, o banner avisa `"Conectando ao servidor IA no Render..."` em vez de falha silenciosa.
+    - Atualizado o alerta de enquadramento: `"Afaste-se da câmera (~1.5m a 2m) para enquadrar corpo e braços"`.
+- **Decisões Técnicas e Observações:**
+  - 500ms com 30KB por frame oferece experiência estável, responsiva (~2 FPS de IA) e previne concorrência de I/O em máquinas Windows.
+  - Testes Flutter executados com sucesso (`flutter test`, 5/5 aprovados).
+- **Estado Resultante / Próximos Passos:** Pipeline da câmera estável, leve e com feedback visual instantâneo da comunicação com a IA.
+
 ### [Entrada #012] 2026-10-28 — Correção de Conflito de Hardware de Câmera, Amostragem a 200ms e Calibração Biomecânica da Rosca Direta
 - **Objetivo / História de Usuário:** Corrigir erro de concorrência de hardware (`Camera with given device id already exists`) na passagem de exercício, aumentar a taxa de amostragem de fotogramas para 200ms (5 FPS) e viabilizar a detecção contínua e feedback visual instantâneo durante a execução da Rosca Direta e demais exercícios.
 - **Tasks Executadas e Artefatos Gerados:**
