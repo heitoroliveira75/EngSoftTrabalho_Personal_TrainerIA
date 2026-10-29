@@ -28,6 +28,13 @@ class MeuAppTreino extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Personal Trainer IA',
+      builder: (context, child) {
+        return SafeArea(
+          top: false,
+          bottom: true,
+          child: child ?? const SizedBox.shrink(),
+        );
+      },
       theme: ThemeData(
         brightness: Brightness.dark,
         scaffoldBackgroundColor: const Color(0xFF0D1117),
