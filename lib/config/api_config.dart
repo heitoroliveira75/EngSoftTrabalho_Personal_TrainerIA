@@ -1,11 +1,12 @@
 import 'dart:io' show Platform;
+
 import 'package:flutter/foundation.dart' show kIsWeb;
 
 class ApiConfig {
   /// URL do backend hospedado na nuvem (ex: Render).
   /// Para usar a API online, preencha com a URL do Render (ex: 'https://personal-trainer-api.onrender.com').
   /// Se deixado null ou vazio, o aplicativo usa a conexão local automaticamente (localhost / 10.0.2.2).
-  static const String? remoteUrl = 'https://personai-t6mf.onrender.com';
+  static const String? remoteUrl = 'https://personai-docker.onrender.com';
 
   /// Retorna a URL base ativa da API REST.
   static String get baseUrl {
