@@ -26,6 +26,23 @@
 
 ## Histórico de Entradas
 
+### [Entrada #014] 2026-10-28 — Criação do Documento Mestre de Arquitetura e Comunicação da IA (Front-End, Back-End e Motor Biomecânico)
+- **Objetivo / História de Usuário:** Elaborar uma documentação abrangente, didática e visualmente estruturada com diagramas explicativos (Mermaid), detalhando a mecânica interna da IA (MediaPipe + FSM + Buffer + DTW), os contratos de comunicação JSON via REST/Multipart entre Flutter e FastAPI, as estratégias de resiliência e o mapeamento dos componentes de código para a equipe e avaliadores.
+- **Tasks Executadas e Artefatos Gerados:**
+  - `ARQUITETURA_E_COMUNICACAO_IA.md`:
+    - Visão geral da arquitetura em 3 camadas com diagrama Mermaid (Flutter HUD -> FastAPI RAM -> Motor IA Python).
+    - Detalhamento passo a passo das 5 etapas da IA: Estimação de Pose, Ângulos 2D, FSM de 4 Fases, Buffer de Repetição e Comparação DTW contra Gabaritos Especialistas.
+    - Diagrama de sequência temporal do loop de streaming a cada 500ms.
+    - Especificação formal dos contratos de payload JSON para `/ia/reiniciar-sessao`, `/ia/processar-frame` e `/ia/finalizar-serie-e-pontuar`.
+    - Guia de componentes visuais do HUD (Barra de amplitude 0-100%, chips de ângulo/fase, telemetria de latência e transição *in-place*).
+    - Seções de resiliência (decodificação direta em RAM, tolerância a oscilação de rede, cold start do Render e detecção de enquadramento).
+    - Tabela de calibração biomecânica dos 3 exercícios nativos (Rosca Direta, Agachamento e Desenvolvimento de Ombros).
+    - Guia de execução e testes offline (`pytest`, `uvicorn` e `flutter test`).
+  - `EXPLICACAO_IA.md`: Sincronizado para incluir referência em destaque ao novo documento mestre.
+- **Decisões Técnicas e Observações:**
+  - O documento atende plenamente aos requisitos de transparência e rastreabilidade pedagógica do projeto, facilitando apresentações para professores e o onboarding de novos colaboradores.
+- **Estado Resultante / Próximos Passos:** Documentação 100% atualizada e alinhada com as diretrizes do `AGENTS.md`.
+
 ### [Entrada #013] 2026-10-28 — Otimização de Resolução de Captura, Intervalo de 500ms e Telemetria de Conexão no HUD da Câmera
 - **Objetivo / História de Usuário:** Eliminar gargalos de upload e congelamentos de hardware no streaming de vídeo da câmera, ajustando a resolução para `ResolutionPreset.low` (~320x240, ~30KB), estabelecendo taxa de amostragem equilibrada em 500ms e introduzindo telemetria em tempo real (latência em ms, contagem de fotogramas e status de conexão com o Render) para visibilidade imediata pelo usuário.
 - **Tasks Executadas e Artefatos Gerados:**

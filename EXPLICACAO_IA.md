@@ -212,7 +212,8 @@ Para transformar o motor matemático de IA em um serviço web consumível pelo a
 
 | Documento | Para que serve? |
 | :--- | :--- |
-| **`EXPLICACAO_IA.md`** *(este documento)* | Guia didático de leitura humana sobre funcionamento, estado atual e planejamento. |
+| **[`ARQUITETURA_E_COMUNICACAO_IA.md`](./ARQUITETURA_E_COMUNICACAO_IA.md)** | **Documento Mestre de Integração:** Explicação detalhada da IA, fluxos Mermaid, contratos JSON de comunicação com FastAPI e HUD Flutter. |
+| **`EXPLICACAO_IA.md`** *(este documento)* | Guia didático de leitura humana sobre funcionamento biomecânico, estado atual e planejamento. |
 | **[`CONTEXTO_IA.md`](./CONTEXTO_IA.md)** | Documento técnico detalhado com especificações de classes, contratos e débitos técnicos. |
 | **[`PLANO_SPRINT_US01.md`](./PLANO_SPRINT_US01.md)** | Plano de implementação técnica e divisão de tasks da sprint de pontuação (concluída). |
 | **[`PLANO_SPRINT_US02_DEMO.md`](./PLANO_SPRINT_US02_DEMO.md)** | Plano técnico e tasks para a demo integrada Front + Backend + IA. |
