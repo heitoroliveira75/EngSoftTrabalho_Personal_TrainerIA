@@ -26,6 +26,19 @@
 
 ## Histórico de Entradas
 
+### [Entrada #015] 2026-10-30 — Correção da Retomada do Envio Periódico de Frames na Transição de Exercícios na Câmera
+- **Objetivo / História de Usuário:** Corrigir anomalia onde a IA cessava o envio de fotogramas ao Render após a conclusão de uma série e avanço para o próximo exercício dentro do treino, restaurando o ciclo contínuo do `Timer.periodic` de 500ms sem recriar o controlador de hardware da câmera.
+- **Tasks Executadas e Artefatos Gerados:**
+  - `lib/screens/camera_treino_screen.dart`:
+    - Identificada a causa raiz: `_timer?.cancel()` era invocado em `_finalizarSerie()`, mas o método `_avancarParaProximoExercicio()` não rearmava o timer de envio periódico de frames.
+    - Atualizado `_avancarParaProximoExercicio()` para aguardar `_iniciarSessaoIA()` (reconfiguração de FSM/gabarito no backend) e rearmar explicitamente `_startPeriodicSending()`.
+    - Redefinidas as variáveis de controle `_isSending = false`, `_isFinalizando = false` e `_isStreaming = true` ao avançar de exercício.
+    - Adicionada retomada defensiva de `_startPeriodicSending()` no bloco `catch` de `_finalizarSerie()` para prevenir congelamento caso a requisição de finalização falhe.
+  - Testes de regressão executados e aprovados (`flutter test`, 5/5 aprovados).
+- **Decisões Técnicas e Observações:**
+  - Mantém a estratégia *in-place* que protege contra erros de concorrência do driver de webcam do Windows/mobile (`Camera already exists`), garantindo fluxo contínuo de dados até o Render.
+- **Estado Resultante / Próximos Passos:** O ciclo de streaming e avaliação da IA opera de forma ininterrupta ao longo de toda a sequência de exercícios do treino.
+
 ### [Entrada #014] 2026-10-28 — Criação do Documento Mestre de Arquitetura e Comunicação da IA (Front-End, Back-End e Motor Biomecânico)
 - **Objetivo / História de Usuário:** Elaborar uma documentação abrangente, didática e visualmente estruturada com diagramas explicativos (Mermaid), detalhando a mecânica interna da IA (MediaPipe + FSM + Buffer + DTW), os contratos de comunicação JSON via REST/Multipart entre Flutter e FastAPI, as estratégias de resiliência e o mapeamento dos componentes de código para a equipe e avaliadores.
 - **Tasks Executadas e Artefatos Gerados:**
