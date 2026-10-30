@@ -1,3 +1,4 @@
+import 'screens/camera_treino_screen.dart';
 import 'package:flutter/material.dart';
 import 'screens/amigos_screen.dart';
 import 'screens/cadastro_screen.dart';
@@ -66,6 +67,7 @@ class MeuAppTreino extends StatelessWidget {
         '/alterar-senha': (context) => const ChangePasswordScreen(),
         '/leaderboard': (context) => const LeaderboardScreen(),
         '/amigos': (context) => const AmigosScreen(),
+        '/camera-treino': (context) => const CameraTreinoScreen(),
       },
     );
   }

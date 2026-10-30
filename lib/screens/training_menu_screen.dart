@@ -119,12 +119,14 @@ class _TrainingMenuScreenState extends State<TrainingMenuScreen> {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: const [
-                              Text(
-                                'Meus Treinos',
-                                style: TextStyle(
-                                  color: Color(0xFF2196F3),
-                                  fontSize: 22,
-                                  fontWeight: FontWeight.bold,
+                              Flexible(
+                                child: Text(
+                                  'Meus Treinos',
+                                  style: TextStyle(
+                                    color: Color(0xFF2196F3),
+                                    fontSize: 22,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                               ),
                               Icon(
@@ -300,7 +302,6 @@ class _TrainingMenuScreenState extends State<TrainingMenuScreen> {
                 ],
               ),
             ),
-            
 
             const SizedBox(height: spacing),
 
@@ -322,12 +323,14 @@ class _TrainingMenuScreenState extends State<TrainingMenuScreen> {
                       children: [
                         Row(
                           children: [
-                            const Text(
-                              'Mantenha a sequência',
-                              style: TextStyle(
-                                color: Color(0xFF8A5CF5),
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
+                            const Flexible(
+                              child: Text(
+                                'Mantenha a sequência',
+                                style: TextStyle(
+                                  color: Color(0xFF8A5CF5),
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
                             if (_sequencia > 0) ...[

@@ -439,8 +439,34 @@ class _OpcaoTreinosScreenState extends State<OpcaoTreinosScreen> {
     _carregarTreinos();
   }
 
+  /// Retorna um mapa { titulo_em_minusculo : id_do_treino_salvo }
+  Future<Map<String, String>> _obterTreinosSalvosUsuario() async {
+    final Map<String, String> salvosPorTitulo = {};
+    try {
+      final idUsuario = ApiService().idUsuarioAtual;
+      final res = await ApiService().listarTreinosUsuario(idUsuario);
+      if (res['sucesso'] == true && res['treinos'] is List) {
+        for (final t in (res['treinos'] as List)) {
+          if (t is Map) {
+            final titulo = (t['nome'] ?? t['titulo'] ?? '')
+                .toString()
+                .trim()
+                .toLowerCase();
+            final id = t['id']?.toString() ?? '';
+            if (titulo.isNotEmpty && id.isNotEmpty) {
+              salvosPorTitulo[titulo] = id;
+            }
+          }
+        }
+      }
+    } catch (_) {}
+    return salvosPorTitulo;
+  }
+
   Future<void> _carregarTreinos() async {
     setState(() => _carregando = true);
+
+    Map<String, String> salvosPorTitulo = {};
 
     try {
       if (widget.dificuldadeFlag == 'meus_treinos') {
@@ -533,8 +559,10 @@ class _OpcaoTreinosScreenState extends State<OpcaoTreinosScreen> {
                 (t['pontos_totais'] as num?)?.toInt() ??
                 (totalPontos > 0 ? totalPontos : 150);
 
+            final String idBanco = t['id'].toString();
             convertidos.add({
-              'id': t['id'].toString(),
+              'id': idBanco,
+              'idSalvo': idBanco,
               'titulo': t['nome'] ?? t['titulo'] ?? 'Treino Personalizado',
               'dificuldade': t['dificuldade'] ?? 'Personalizado',
               'exerciciosCount': exerciciosMapeados.length,
@@ -542,6 +570,7 @@ class _OpcaoTreinosScreenState extends State<OpcaoTreinosScreen> {
               'pontosTotais': pontosTreino,
               'corTema': const Color(0xFF29B6F6),
               'exercicios': exerciciosMapeados,
+              'salvo': true,
             });
           }
 
@@ -553,13 +582,17 @@ class _OpcaoTreinosScreenState extends State<OpcaoTreinosScreen> {
         } else {
           // Se a lista da API for vazia, usa os treinos locais padrão de meus_treinos
           setState(() {
-            _listaTreinos = List.from(bancoDeTreinos['meus_treinos'] ?? []);
+            _listaTreinos = (bancoDeTreinos['meus_treinos'] ?? [])
+                .map((t) => {...t, 'salvo': true, 'idSalvo': t['id']?.toString()})
+                .toList();
             _carregando = false;
           });
           return;
         }
       } else {
-        // Busca da API os treinos daquela dificuldade
+        // Busca os treinos salvos do usuário (nome -> id) e os treinos da dificuldade
+        salvosPorTitulo = await _obterTreinosSalvosUsuario();
+
         final res = await ApiService()
             .obterTreinosPorDificuldade(widget.dificuldadeFlag);
 
@@ -580,9 +613,14 @@ class _OpcaoTreinosScreenState extends State<OpcaoTreinosScreen> {
               }
             }
 
+            final String tituloTreino = item['titulo'] ?? 'Treino';
+            final String chaveTitulo = tituloTreino.trim().toLowerCase();
+            final String? idSalvo = salvosPorTitulo[chaveTitulo];
+
             list.add({
               'id': item['id']?.toString() ?? '',
-              'titulo': item['titulo'] ?? 'Treino',
+              'idSalvo': idSalvo,
+              'titulo': tituloTreino,
               'dificuldade': item['dificuldade'] ?? _tituloDificuldade,
               'exerciciosCount': item['exerciciosCount'] ??
                   (item['exercicios'] as List?)?.length ??
@@ -591,6 +629,7 @@ class _OpcaoTreinosScreenState extends State<OpcaoTreinosScreen> {
               'pontosTotais': item['pontosTotais'] ?? 200,
               'corTema': cor,
               'exercicios': item['exercicios'] ?? [],
+              'salvo': idSalvo != null,
             });
           }
 
@@ -608,8 +647,20 @@ class _OpcaoTreinosScreenState extends State<OpcaoTreinosScreen> {
     if (!mounted) return;
 
     setState(() {
-      _listaTreinos =
-          List.from(bancoDeTreinos[widget.dificuldadeFlag] ?? []);
+      _listaTreinos = (bancoDeTreinos[widget.dificuldadeFlag] ?? []).map((t) {
+        final String chaveTitulo =
+            (t['titulo'] ?? '').toString().trim().toLowerCase();
+        final String? idSalvo = widget.dificuldadeFlag == 'meus_treinos'
+            ? t['id']?.toString()
+            : salvosPorTitulo[chaveTitulo];
+        final bool jaSalvo =
+            widget.dificuldadeFlag == 'meus_treinos' || idSalvo != null;
+        return {
+          ...t,
+          'idSalvo': idSalvo,
+          'salvo': jaSalvo,
+        };
+      }).toList();
       _carregando = false;
     });
   }
@@ -739,9 +790,13 @@ class _OpcaoTreinosScreenState extends State<OpcaoTreinosScreen> {
                                               treinoData: treino),
                                     ),
                                   );
-                                  if (concluido == true &&
-                                      widget.dificuldadeFlag == 'meus_treinos') {
+                                  if (!mounted) return;
+                                  if (widget.dificuldadeFlag == 'meus_treinos' &&
+                                      (concluido == true ||
+                                          treino['salvo'] == false)) {
                                     _carregarTreinos();
+                                  } else {
+                                    setState(() {});
                                   }
                                 },
                                 borderRadius: BorderRadius.circular(12),
@@ -771,9 +826,13 @@ class _OpcaoTreinosScreenState extends State<OpcaoTreinosScreen> {
                                               ),
                                             ),
                                           ),
-                                          const Icon(
-                                            Icons.star_border,
-                                            color: Colors.grey,
+                                          Icon(
+                                            treino['salvo'] == true
+                                                ? Icons.star
+                                                : Icons.star_border,
+                                            color: treino['salvo'] == true
+                                                ? Colors.amber
+                                                : Colors.grey,
                                             size: 26,
                                           ),
                                         ],
