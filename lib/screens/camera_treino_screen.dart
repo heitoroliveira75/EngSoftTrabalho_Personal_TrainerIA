@@ -119,7 +119,7 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
     }
   }
 
-  void _avancarParaProximoExercicio() {
+  Future<void> _avancarParaProximoExercicio() async {
     _indicesConcluidos.add(_indiceAtual);
     if (_temProximoExercicio) {
       setState(() {
@@ -131,9 +131,19 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
         _ultimaRepeticao = null;
         _angulos = {};
         _mostrandoFeedbackSucesso = false;
+        _isFinalizando = false;
+        _isSending = false;
+        _isStreaming = true;
+        _statusConexao = 'Iniciando IA para novo exercício...';
       });
 
-      _iniciarSessaoIA();
+      // Notifica o backend para alternar FSM e Gabarito para o novo exercício
+      await _iniciarSessaoIA();
+
+      // Rearma o timer de envio periódico de frames da câmera para a IA no Render
+      if (mounted) {
+        _startPeriodicSending();
+      }
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -540,6 +550,8 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
             backgroundColor: Colors.redAccent,
           ),
         );
+        // Retoma o envio contínuo caso o encerramento tenha falhado na rede
+        _startPeriodicSending();
       }
     } finally {
       if (mounted) setState(() => _isFinalizando = false);
