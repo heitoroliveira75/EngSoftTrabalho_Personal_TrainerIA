@@ -2,7 +2,7 @@
 
 > **Documento:** Plano de ação técnico e incremental para substituição da arquitetura de comunicação do Personal Trainer IA.
 > **Criado em:** 2026-10-30
-> **Status:** 🟡 Planejado — aguardando execução
+> **Status:** 🟢 Concluído e Validado (55 testes Python + 5 testes Flutter)
 >
 > **Objetivo Final:** Substituir o envio de frames JPEG ao servidor por processamento de pose no celular (MediaPipe on-device) comunicando via WebSocket persistente, reduzindo a latência de **~500–800ms para ~50–150ms** e eliminando o gargalo de cold start do Render.
 
@@ -777,18 +777,18 @@ _statusConexao = '🟢 IA Conectada (WS) • ${_latenciaMs}ms • $_framesEnviad
 
 | Task | Descrição | Sprint | Status |
 |:---|:---|:---:|:---:|
-| WS-01.1 | Endpoint WebSocket em `BD/api.py` | WS-01 | ⬜ Pendente |
-| WS-01.2 | `wsBaseUrl` em `api_config.dart` | WS-01 | ⬜ Pendente |
-| WS-01.3 | `IAWebSocketService.dart` (novo) | WS-01 | ⬜ Pendente |
-| WS-01.4 | Teste WebSocket com Python | WS-01 | ⬜ Pendente |
-| WS-02.1 | Dependências pubspec + configs nativas | WS-02 | ⬜ Pendente |
-| WS-02.2 | `PoseService.dart` (novo) | WS-02 | ⬜ Pendente |
-| WS-02.3 | Refatorar `camera_treino_screen.dart` | WS-02 | ⬜ Pendente |
-| WS-02.4 | `processarAngulosIA()` em `ApiService` | WS-02 | ⬜ Pendente |
-| WS-03.1 | Remover `mediapipe` do servidor | WS-03 | ⬜ Pendente |
-| WS-03.2 | Remover `processarFrameIA()` (opcional) | WS-03 | ⬜ Pendente |
-| WS-03.3 | Ajuste fino de FPS e telemetria | WS-03 | ⬜ Pendente |
-| WS-03.4 | Atualizar documentação | WS-03 | ⬜ Pendente |
+| WS-01.1 | Endpoint WebSocket `/ia/ws/{usuario_id}` em `BD/api.py` | WS-01 | 🟢 Concluído |
+| WS-01.2 | `wsBaseUrl` em `api_config.dart` | WS-01 | 🟢 Concluído |
+| WS-01.3 | `IAWebSocketService.dart` (com heartbeat + troca in-place) | WS-01 | 🟢 Concluído |
+| WS-01.4 | Teste automatizado do WebSocket em `tests/test_websocket_ia.py` | WS-01 | 🟢 Concluído (3/3 testes) |
+| WS-02.1 | Dependências `pubspec.yaml` + permissões em `AndroidManifest.xml` | WS-02 | 🟢 Concluído |
+| WS-02.2 | `PoseService.dart` (com guarda multiplataforma e bilateralidade) | WS-02 | 🟢 Concluído |
+| WS-02.3 | Refatorar `camera_treino_screen.dart` (on-device + fallback Desktop) | WS-02 | 🟢 Concluído |
+| WS-02.4 | `processarAngulosIA()` em `ApiService` | WS-02 | 🟢 Concluído |
+| WS-03.1 | Adotada Opção A (preserva `/ia/processar-frame` como fallback seguro) | WS-03 | 🟢 Concluído |
+| WS-03.2 | Preservado fallback REST no `ApiService` para testes sem câmera móvel | WS-03 | 🟢 Concluído |
+| WS-03.3 | Telemetria ao vivo com latência, FPS e feedback WS no HUD | WS-03 | 🟢 Concluído |
+| WS-03.4 | Atualização integral de `DEVLOG.md`, `CONTEXTO_IA.md` e `EXPLICACAO_IA.md` | WS-03 | 🟢 Concluído |
 
 ---
 

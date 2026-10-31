@@ -1014,7 +1014,36 @@ class ApiService {
     }
   }
 
-  /// Simula uma repetição canônica completa no orquestrador (modo banca avaliadora / offline)
+  /// Envia ângulos calculados localmente (sem imagem) para o endpoint leve do servidor.
+  /// Alternativa REST ao WebSocket — útil para fallback e testes sintéticos.
+  Future<Map<String, dynamic>> processarAngulosIA({
+    required Map<String, double> angulos,
+    required String exercicioId,
+    String? usuarioId,
+    bool visivel = true,
+  }) async {
+    try {
+      final uid = usuarioId ?? idUsuarioAtual ?? 'anonimo';
+      final url = Uri.parse('$baseUrl/ia/processar-angulos');
+      final response = await http
+          .post(
+            url,
+            headers: _headers,
+            body: jsonEncode({
+              'usuario_id': uid,
+              'exercicio_id': exercicioId,
+              'angulos': angulos,
+              'visivel': visivel,
+            }),
+          )
+          .timeout(const Duration(seconds: 5));
+      return jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+    } catch (e) {
+      return {'sucesso': false, 'mensagem': 'Erro ao processar ângulos: $e'};
+    }
+  }
+
+    /// Simula uma repetição canônica completa no orquestrador (modo banca avaliadora / offline)
   Future<Map<String, dynamic>> simularRepeticaoIA({
     required String exercicioId,
     String? usuarioId,

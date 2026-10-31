@@ -197,6 +197,26 @@ Para transformar o motor matemático de IA em um serviço web consumível pelo a
 
 ---
 
+## 5. Nova Arquitetura de Ultrabaixa Latência (MediaPipe On-Device + WebSocket Persistente)
+
+Com a evolução da branch `IA` e o objetivo de reduzir a latência de ~500–800ms para **~50–150ms** por ciclo de análise biomecânica, o sistema adotou uma arquitetura moderna dividida entre cliente e servidor:
+
+1. **Estimação de Pose On-Device no Celular (`PoseService.dart`):**
+   * Em vez de comprimir e enviar fotos JPEG pesadas (~30KB) pela internet para o servidor, o aplicativo móvel executa o **Google ML Kit Pose Detection diretamente na GPU/NPU do celular**.
+   * O celular extrai as coordenadas anatômicas e calcula os ângulos das articulações localmente em ~20ms, com consumo mínimo de bateria e sem tráfego de vídeo sensível na nuvem.
+   * Conta com **guarda multiplataforma**: roda o ML Kit on-device em Android e iOS, e realiza fallback transparente e gracioso para envio de imagem ou simulação em desktops Windows.
+
+2. **Canal Persistente WebSocket (`IAWebSocketService.dart` e `/ia/ws/{usuario_id}`):**
+   * A conexão com o servidor FastAPI é aberta uma única vez no início do treino e mantida aberta via WebSocket bidirecional.
+   * O celular envia apenas pequenos pacotes de texto JSON contendo os ângulos calculados (**~200 bytes**, 150 vezes menor que uma foto).
+   * O servidor aplica a FSM e o DTW em menos de 5ms e devolve instantaneamente as métricas para o HUD.
+   * O canal conta com **heartbeat preventivo de 20s (ping/pong)** contra o timeout de conexões ociosas do Render e suporte à **troca dinâmica de exercício in-place**.
+
+3. **Fallback Resiliente:**
+   * Todas as rotas REST anteriores (`/ia/processar-frame`, `/ia/processar-angulos`, etc.) permanecem 100% operacionais como contingência de segurança.
+
+---
+
 ## 6. Glossário Rápido de Termos
 
 * **Landmark (Marco Anatômico):** Ponto cartesiano $(x, y, z)$ estimado no corpo humano (ex.: ponto 14 é o cotovelo direito).
@@ -218,5 +238,6 @@ Para transformar o motor matemático de IA em um serviço web consumível pelo a
 | **[`PLANO_SPRINT_US01.md`](./PLANO_SPRINT_US01.md)** | Plano de implementação técnica e divisão de tasks da sprint de pontuação (concluída). |
 | **[`PLANO_SPRINT_US02_DEMO.md`](./PLANO_SPRINT_US02_DEMO.md)** | Plano técnico e tasks para a demo integrada Front + Backend + IA. |
 | **[`DIRETRIZES_DESENVOLVIMENTO.md`](./DIRETRIZES_DESENVOLVIMENTO.md)** | Protocolo de Engenharia de Software (SOLID, testes, commits incrementais). |
+| **[`PLANO_MIGRACAO_WEBSOCKET_ONDEVICE.md`](./PLANO_MIGRACAO_WEBSOCKET_ONDEVICE.md)** | Plano técnico e status da migração para WebSocket e processamento on-device. |
 | **[`DEVLOG.md`](./DEVLOG.md)** | Diário de bordo cronológico com histórico de alterações e decisões tomadas. |
 | **[`AGENTS.md`](./AGENTS.md)** | Ponto de entrada e regras obrigatórias para agentes autônomos de IA. |

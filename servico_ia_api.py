@@ -115,7 +115,7 @@ class ServicoIA:
         exercicio_id: str = "1",
     ) -> OrquestradorSessao:
         """Garante a existência de uma sessão ativa para o usuário no exercício indicado."""
-        config = obter_config_exercicio(exercicio_id)
+        config = obter_config_exercicio(exercicio_id, permitir_fallback=True)
         id_canonica = config["id"]
 
         if usuario_id not in self.sessoes:
@@ -133,7 +133,7 @@ class ServicoIA:
         exercicio_id: str = "1",
     ) -> Dict[str, Any]:
         """Reinicia o contador e o histórico de uma série para o usuário."""
-        config = obter_config_exercicio(exercicio_id)
+        config = obter_config_exercicio(exercicio_id, permitir_fallback=True)
         id_canonica = config["id"]
 
         if usuario_id in self.sessoes:

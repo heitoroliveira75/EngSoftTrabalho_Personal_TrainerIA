@@ -1,4 +1,5 @@
-from fastapi import FastAPI, HTTPException, Query, UploadFile, File, Form
+from fastapi import FastAPI, HTTPException, Query, UploadFile, File, Form, WebSocket, WebSocketDisconnect
+import asyncio
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from typing import Optional, List, Dict, Any, Union
@@ -588,6 +589,79 @@ def api_ia_finalizar_serie_e_pontuar(req: FinalizarSerieIARequest):
         "resumo_ia": dados,
         "atualizacao_banco": resp_banco,
     }
+
+
+# ============================================================
+# WEBSOCKET - IA EM TEMPO REAL
+# ============================================================
+
+@app.websocket("/ia/ws/{usuario_id}")
+async def websocket_ia(
+    websocket: WebSocket,
+    usuario_id: str,
+    exercicio: str = "16",
+    lado: str = "direito",
+):
+    """
+    Canal WebSocket persistente para análise biomecânica em tempo real.
+    Recebe JSON com ângulos calculados pelo celular (ou comandos) e devolve métricas da FSM + DTW.
+
+    Payloads suportados:
+      - Ângulos: {"angulos": {"cotovelo": 125.4, "ombro": 72.1}, "visivel": true}
+      - Ping: {"tipo": "ping"} -> Devolve {"tipo": "pong"}
+      - Trocar exercício: {"tipo": "trocar_exercicio", "exercicio_id": "20", "lado": "direito"}
+      - Reiniciar: {"tipo": "reiniciar"}
+    """
+    await websocket.accept()
+    servico = ServicoIA.obter_instancia()
+
+    exercicio_atual = exercicio
+    lado_atual = lado
+
+    # Reinicia sessão ao abrir conexão
+    servico.reiniciar_sessao(usuario_id=usuario_id, exercicio_id=exercicio_atual)
+
+    try:
+        while True:
+            dados = await websocket.receive_json()
+
+            tipo = dados.get("tipo")
+            if tipo == "ping":
+                await websocket.send_json({"tipo": "pong"})
+                continue
+            elif tipo == "reiniciar":
+                res = servico.reiniciar_sessao(usuario_id=usuario_id, exercicio_id=exercicio_atual)
+                await websocket.send_json({"tipo": "sessao_reiniciada", "dados": res})
+                continue
+            elif tipo == "trocar_exercicio":
+                exercicio_atual = str(dados.get("exercicio_id", exercicio_atual))
+                lado_atual = str(dados.get("lado", lado_atual))
+                res = servico.reiniciar_sessao(usuario_id=usuario_id, exercicio_id=exercicio_atual)
+                await websocket.send_json({"tipo": "exercicio_trocado", "dados": res})
+                continue
+
+            # Processamento de ângulos
+            angulos = dados.get("angulos", {})
+            visivel = bool(dados.get("visivel", True))
+
+            resultado = await asyncio.to_thread(
+                servico.processar_frame_angulos,
+                angulos=angulos,
+                usuario_id=usuario_id,
+                exercicio_id=exercicio_atual,
+                visivel=visivel,
+            )
+
+            await websocket.send_json(resultado)
+
+    except WebSocketDisconnect:
+        pass
+    except Exception as e:
+        try:
+            await websocket.send_json({"sucesso": False, "mensagem": str(e)})
+            await websocket.close()
+        except Exception:
+            pass
 
 if __name__ == "__main__":
     print("Iniciando servidor FastAPI em http://0.0.0.0:8000 ...")
