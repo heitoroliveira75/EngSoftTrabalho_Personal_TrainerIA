@@ -293,7 +293,7 @@ CATALOGO_EXERCICIOS["2"] = CATALOGO_EXERCICIOS["11"]
 CATALOGO_EXERCICIOS["3"] = CATALOGO_EXERCICIOS["20"]
 
 
-def obter_config_exercicio(identificador: str) -> Dict[str, Any]:
+def obter_config_exercicio(identificador: str, permitir_fallback: bool = False) -> Dict[str, Any]:
     """
     Busca a configuração do exercício por chave numérica ('16', '11', '20' ou '1', '2', '3')
     ou por identificador de texto ('desenvolvimento_ombro', 'agachamento', 'rosca_biceps').
@@ -315,7 +315,9 @@ def obter_config_exercicio(identificador: str) -> Dict[str, Any]:
     if any(w in chave for w in ["ombro", "desenvolvimento", "superior", "deltoide", "peito", "costas"]):
         return CATALOGO_EXERCICIOS["16"]
 
-    # Fallback seguro para evitar HTTP 500 no servidor
-    import logging
-    logging.warning(f"Exercício '{identificador}' não mapeado na FSM. Adotando fallback seguro para Desenvolvimento com Halteres (16).")
-    return CATALOGO_EXERCICIOS["16"]
+    if permitir_fallback:
+        import logging
+        logging.warning(f"Exercício '{identificador}' não mapeado na FSM. Adotando fallback seguro para Desenvolvimento com Halteres (16).")
+        return CATALOGO_EXERCICIOS["16"]
+
+    raise ValueError(f"Exercício '{identificador}' não encontrado no catálogo.")
