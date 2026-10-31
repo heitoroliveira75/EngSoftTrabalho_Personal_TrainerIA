@@ -463,6 +463,126 @@ class _OpcaoTreinosScreenState extends State<OpcaoTreinosScreen> {
     return salvosPorTitulo;
   }
 
+  Future<void> _alternarSalvarTreinoCard(Map<String, dynamic> treino) async {
+    if (treino['salvando'] == true) return;
+
+    final bool novoStatus = !(treino['salvo'] == true);
+    setState(() {
+      treino['salvo'] = novoStatus;
+      treino['salvando'] = true;
+    });
+
+    if (novoStatus) {
+      final idUsuario = ApiService().idUsuarioAtual;
+      final exercicios = (treino['exercicios'] as List? ?? [])
+          .map((e) => {
+                'exercicio_id': e['exercicio_id'] ?? e['id'] ?? 1,
+                'nome': e['nome'] ?? 'Exercício',
+                'series': e['series'] ?? 3,
+                'repeticoes': e['repeticoes'] ?? 10,
+                'pontos': e['pontos'] ?? e['pontos_totais'] ?? 20,
+                'pontos_totais': e['pontos_totais'] ?? e['pontos'] ?? 20,
+              })
+          .toList();
+
+      try {
+        final res = await ApiService().criarTreino(
+          usuarioId: idUsuario,
+          nome: treino['titulo'] ?? 'Treino',
+          descricao:
+              'Treino salvo dos treinos ${treino['dificuldade'] ?? 'padrões'}',
+          dificuldade: treino['dificuldade']?.toString() ?? 'Personalizado',
+          duracaoMinutos: (treino['duracaoMinutos'] as num?)?.toInt() ?? 30,
+          pontosTotais: (treino['pontosTotais'] as num?)?.toInt() ?? 100,
+          exercicios: exercicios,
+        );
+
+        final novoId =
+            res['treino']?['id']?.toString() ?? res['id']?.toString();
+        if (novoId != null && novoId.isNotEmpty) {
+          treino['idSalvo'] = novoId;
+        }
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                res['sucesso'] == true
+                    ? 'Treino salvo nos Meus Treinos com sucesso!'
+                    : (res['mensagem'] ?? 'Treino salvo localmente.'),
+              ),
+              backgroundColor: res['sucesso'] == true
+                  ? const Color(0xFF00E676)
+                  : Colors.blueGrey,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
+      } catch (_) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Treino salvo localmente nos Meus Treinos.'),
+              backgroundColor: Colors.blueGrey,
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      } finally {
+        if (mounted) {
+          setState(() => treino['salvando'] = false);
+        }
+      }
+    } else {
+      try {
+        String? idParaExcluir = treino['idSalvo']?.toString();
+
+        if (idParaExcluir == null || idParaExcluir.isEmpty) {
+          final idUsuario = ApiService().idUsuarioAtual;
+          final resLista = await ApiService().listarTreinosUsuario(idUsuario);
+          final tituloAlvo =
+              (treino['titulo'] ?? '').toString().trim().toLowerCase();
+
+          if (resLista['sucesso'] == true && resLista['treinos'] is List) {
+            for (final t in (resLista['treinos'] as List)) {
+              if (t is Map) {
+                final nome = (t['nome'] ?? t['titulo'] ?? '')
+                    .toString()
+                    .trim()
+                    .toLowerCase();
+                if (nome == tituloAlvo && t['id'] != null) {
+                  idParaExcluir = t['id'].toString();
+                  break;
+                }
+              }
+            }
+          }
+        }
+
+        if (idParaExcluir != null && idParaExcluir.isNotEmpty) {
+          await ApiService().excluirTreino(idParaExcluir);
+          treino['idSalvo'] = null;
+        }
+      } catch (_) {
+      } finally {
+        if (mounted) {
+          setState(() {
+            treino['salvando'] = false;
+            if (widget.dificuldadeFlag == 'meus_treinos') {
+              _listaTreinos.remove(treino);
+            }
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Treino removido dos salvos.'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      }
+    }
+  }
+
   Future<void> _carregarTreinos() async {
     setState(() => _carregando = true);
 
@@ -826,14 +946,40 @@ class _OpcaoTreinosScreenState extends State<OpcaoTreinosScreen> {
                                               ),
                                             ),
                                           ),
-                                          Icon(
-                                            treino['salvo'] == true
-                                                ? Icons.star
-                                                : Icons.star_border,
-                                            color: treino['salvo'] == true
-                                                ? Colors.amber
-                                                : Colors.grey,
-                                            size: 26,
+                                          IconButton(
+                                            padding: EdgeInsets.zero,
+                                            constraints: const BoxConstraints(),
+                                            visualDensity:
+                                                VisualDensity.compact,
+                                            tooltip: treino['salvo'] == true
+                                                ? 'Remover dos Meus Treinos'
+                                                : 'Salvar nos Meus Treinos',
+                                            onPressed:
+                                                treino['salvando'] == true
+                                                    ? null
+                                                    : () =>
+                                                        _alternarSalvarTreinoCard(
+                                                            treino),
+                                            icon: treino['salvando'] == true
+                                                ? const SizedBox(
+                                                    width: 20,
+                                                    height: 20,
+                                                    child:
+                                                        CircularProgressIndicator(
+                                                      strokeWidth: 2,
+                                                      color: Colors.amber,
+                                                    ),
+                                                  )
+                                                : Icon(
+                                                    treino['salvo'] == true
+                                                        ? Icons.star
+                                                        : Icons.star_border,
+                                                    color:
+                                                        treino['salvo'] == true
+                                                            ? Colors.amber
+                                                            : Colors.grey,
+                                                    size: 26,
+                                                  ),
                                           ),
                                         ],
                                       ),
