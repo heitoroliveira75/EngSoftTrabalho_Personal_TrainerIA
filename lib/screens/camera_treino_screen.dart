@@ -3,8 +3,11 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
+import 'package:google_mlkit_pose_detection/google_mlkit_pose_detection.dart';
 
 import '../services/api_service.dart';
+import '../services/pose_service.dart';
+import '../services/ia_websocket_service.dart';
 
 class CameraTreinoScreen extends StatefulWidget {
   final CameraDescription? camera;
@@ -72,6 +75,11 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
   String _statusConexao = 'Iniciando IA...';
   bool _servidorConectado = false;
 
+  // Serviços de Pose On-Device e WebSocket
+  late final PoseService _poseService;
+  IAWebSocketService? _wsService;
+  final Stopwatch _latenciaSw = Stopwatch();
+
   Map<String, dynamic> get _exercicioAtual =>
       _exercicios.isNotEmpty ? _exercicios[_indiceAtual] : {};
   String get _exercicioIdAtual =>
@@ -102,6 +110,8 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
       ];
       _indiceAtual = 0;
     }
+    _poseService = PoseService();
+    _iniciarWebSocket();
     _iniciarSessaoIA();
     _setupCameras();
   }
@@ -119,7 +129,7 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
     }
   }
 
-  void _avancarParaProximoExercicio() {
+  Future<void> _avancarParaProximoExercicio() async {
     _indicesConcluidos.add(_indiceAtual);
     if (_temProximoExercicio) {
       setState(() {
@@ -131,9 +141,21 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
         _ultimaRepeticao = null;
         _angulos = {};
         _mostrandoFeedbackSucesso = false;
+        _isFinalizando = false;
+        _isSending = false;
+        _isStreaming = true;
+        _statusConexao = 'Iniciando IA para novo exercício...';
       });
 
-      _iniciarSessaoIA();
+      // Notifica o backend via WebSocket (se conectado) ou REST para alternar exercício
+      if (_wsService != null && _wsService!.conectado) {
+        _wsService!.trocarExercicio(exercicioId: _exercicioIdAtual, lado: _lado);
+      }
+      await _iniciarSessaoIA();
+
+      // Rearma o timer de envio periódico de frames da câmera para a IA
+      if (!mounted) return;
+      _startPeriodicSending();
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -217,10 +239,71 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
     }
   }
 
+  void _iniciarWebSocket() {
+    _wsService = IAWebSocketService(
+      onResultado: _onResultadoIA,
+      onStatusChanged: (status) {
+        if (mounted) setState(() => _statusConexao = status);
+      },
+      onErro: (erro) {
+        debugPrint('WebSocket IA erro: $erro');
+      },
+    );
+
+    final uid = ApiService().idUsuarioAtual ?? 'anonimo';
+    _wsService!.conectar(
+      usuarioId: uid,
+      exercicioId: _exercicioIdAtual,
+      lado: _lado,
+    );
+  }
+
+  void _onResultadoIA(Map<String, dynamic> res) {
+    if (!mounted) return;
+
+    final lat = _latenciaSw.elapsedMilliseconds;
+
+    setState(() {
+      _framesEnviados++;
+      if (lat > 0) _latenciaMs = lat;
+      _servidorConectado = true;
+      _statusConexao = '🟢 IA Conectada (WS) • ${_latenciaMs}ms';
+      _corpoVisivel = res['corpo_visivel'] ?? false;
+      _repeticoes = (res['repeticoes'] as num?)?.toInt() ?? _repeticoes;
+      _faseNome = res['fase_nome']?.toString() ?? _faseNome;
+      _faseNumero = (res['fase_numero'] as num?)?.toInt() ?? _faseNumero;
+      _alertaImediato = res['alerta_imediato']?.toString();
+
+      if (res['angulos'] != null && res['angulos'] is Map) {
+        _angulos = Map<String, dynamic>.from(res['angulos'] as Map);
+      }
+
+      if (res['repeticao_concluida'] == true) {
+        _mostrandoFeedbackSucesso = true;
+        _feedbackTimer?.cancel();
+        _feedbackTimer = Timer(const Duration(seconds: 3), () {
+          if (mounted) setState(() => _mostrandoFeedbackSucesso = false);
+        });
+      }
+
+      if (res['ultima_repeticao'] != null && res['ultima_repeticao'] is Map) {
+        _ultimaRepeticao = Map<String, dynamic>.from(res['ultima_repeticao'] as Map);
+      }
+    });
+  }
+
   void _startPeriodicSending() {
     _timer?.cancel();
-    // Envia um frame a cada 500ms (taxa ideal que não satura o driver da webcam e mantém resposta ágil)
-    _timer = Timer.periodic(const Duration(milliseconds: 500), (timer) async {
+
+    // Em dispositivos móveis com MediaPipe on-device suportado (Android / iOS),
+    // analisa a pose localmente e envia apenas os ângulos (JSON ~200 bytes) via WebSocket a cada 150ms (~7 FPS).
+    // No Windows desktop ou plataformas sem ML Kit, mantém fallback seguro de envio de imagens via REST a cada 500ms.
+    final bool usaOnDevice = _poseService.disponivel;
+    final Duration intervalo = usaOnDevice
+        ? const Duration(milliseconds: 150)
+        : const Duration(milliseconds: 500);
+
+    _timer = Timer.periodic(intervalo, (timer) async {
       if (!_isStreaming || _isSending || _isFinalizando) return;
       if (_controller == null || !_controller!.value.isInitialized) return;
 
@@ -231,11 +314,31 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
       try {
         final XFile imageFile = await _controller!.takePicture();
         tempFile = File(imageFile.path);
-        final bytes = await tempFile.readAsBytes();
 
-        await _processarFrameNoBackend(bytes);
+        if (usaOnDevice && _wsService != null && _wsService!.conectado) {
+          // Extração on-device com Google ML Kit Pose Detection
+          final inputImage = InputImage.fromFilePath(imageFile.path);
+          final poseRes = await _poseService.extrairAngulos(
+            inputImage,
+            exercicioId: _exercicioIdAtual,
+            lado: _lado,
+          );
+
+          _latenciaSw.reset();
+          _latenciaSw.start();
+
+          if (poseRes != null) {
+            _wsService!.enviarAngulos(poseRes.angulos, visivel: poseRes.visivel);
+          } else {
+            _wsService!.enviarAngulos({}, visivel: false);
+          }
+        } else {
+          // Fallback seguro: Envia imagem completa para processamento no servidor (modo clássico)
+          final bytes = await tempFile.readAsBytes();
+          await _processarFrameNoBackend(bytes);
+        }
       } catch (e) {
-        debugPrint('Erro ao capturar ou enviar frame: $e');
+        debugPrint('Erro no loop de captura/envio da câmera: $e');
       } finally {
         try {
           if (tempFile != null && await tempFile.exists()) {
@@ -540,6 +643,8 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
             backgroundColor: Colors.redAccent,
           ),
         );
+        // Retoma o envio contínuo caso o encerramento tenha falhado na rede
+        _startPeriodicSending();
       }
     } finally {
       if (mounted) setState(() => _isFinalizando = false);
@@ -574,6 +679,8 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
   void dispose() {
     _timer?.cancel();
     _feedbackTimer?.cancel();
+    _wsService?.desconectar();
+    _poseService.dispose();
     _controller?.dispose();
     super.dispose();
   }
