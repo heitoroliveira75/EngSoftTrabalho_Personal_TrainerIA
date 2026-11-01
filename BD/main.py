@@ -1,4 +1,6 @@
 import json
+import uuid
+from datetime import datetime, timezone
 from typing import Optional, List, Dict, Any, Union
 from supabase_client import supabase
 
@@ -1752,3 +1754,449 @@ def obter_minha_posicao_global(usuario_id: str) -> Dict[str, Any]:
         return {"sucesso": True, "posicao": posicao}
     except Exception as erro:
         return {"sucesso": False, "mensagem": f"Erro ao calcular posição: {erro}", "posicao": None}
+
+
+# ============================================================
+# 8. GESTÃO DE TREINOS EM DUPLA (COOPERATIVO)
+# ============================================================
+
+_sessoes_dupla_memoria: Dict[str, Dict[str, Any]] = {}
+
+def criar_sessao_dupla(
+    host_id: str,
+    convidado_id: str,
+    treino_id: Optional[str] = None,
+    dados_treino: Optional[Dict[str, Any]] = None,
+    total_series: int = 3
+) -> Dict[str, Any]:
+    """
+    Cria uma nova solicitação/sessão de treino em dupla.
+    Inicializa com status 'pendente' e turno no host_id.
+    """
+    if not host_id or not convidado_id:
+        return {"sucesso": False, "mensagem": "Host e convidado são obrigatórios."}
+    if str(host_id) == str(convidado_id):
+        return {"sucesso": False, "mensagem": "Não é possível criar treino em dupla consigo mesmo."}
+
+    novo_id = str(uuid.uuid4())
+    agora = datetime.now(timezone.utc).isoformat()
+    registro = {
+        "id": novo_id,
+        "host_id": str(host_id),
+        "convidado_id": str(convidado_id),
+        "treino_id": treino_id,
+        "dados_treino": dados_treino or {},
+        "status": "pendente",
+        "turno_usuario_id": str(host_id),
+        "indice_exercicio_atual": 0,
+        "serie_atual": 1,
+        "total_series": int(total_series) if total_series else 3,
+        "pontos_host": 0,
+        "pontos_convidado": 0,
+        "pontos_finais_cada": 0,
+        "multiplicador_aplicado": 1.20,
+        "created_at": agora,
+        "updated_at": agora,
+        "finalizado_em": None,
+    }
+
+    # Salva em memória como fallback/cache imediato
+    _sessoes_dupla_memoria[novo_id] = dict(registro)
+
+    # Tenta persistir no Supabase caso a tabela exista
+    try:
+        res = (
+            supabase
+            .table("sessoes_treino_dupla")
+            .insert({
+                "id": novo_id,
+                "host_id": str(host_id),
+                "convidado_id": str(convidado_id),
+                "treino_id": treino_id,
+                "dados_treino": dados_treino or {},
+                "status": "pendente",
+                "turno_usuario_id": str(host_id),
+                "indice_exercicio_atual": 0,
+                "serie_atual": 1,
+                "total_series": int(total_series) if total_series else 3,
+                "pontos_host": 0,
+                "pontos_convidado": 0,
+                "pontos_finais_cada": 0,
+                "multiplicador_aplicado": 1.20,
+            })
+            .execute()
+        )
+        if res.data and len(res.data) > 0:
+            registro_db = res.data[0]
+            _sessoes_dupla_memoria[novo_id] = dict(registro_db)
+            return {"sucesso": True, "sessao_id": registro_db.get("id", novo_id), "status": "pendente", "sessao": registro_db}
+    except Exception:
+        pass
+
+    return {"sucesso": True, "sessao_id": novo_id, "status": "pendente", "sessao": registro}
+
+
+def listar_convites_dupla_pendentes(usuario_id: str) -> Dict[str, Any]:
+    """
+    Retorna os convites de treino em dupla com status 'pendente' recebidos pelo usuário.
+    """
+    if not usuario_id:
+        return {"sucesso": False, "mensagem": "ID do usuário é obrigatório.", "convites": []}
+
+    mapa_usuarios = _obter_mapa_usuarios()
+    convites = []
+
+    # 1. Supabase
+    try:
+        res = (
+            supabase
+            .table("sessoes_treino_dupla")
+            .select("*")
+            .eq("convidado_id", str(usuario_id))
+            .eq("status", "pendente")
+            .order("created_at", desc=True)
+            .execute()
+        )
+        if res.data:
+            for item in res.data:
+                h_id = str(item.get("host_id"))
+                nome_host = "Amigo"
+                if h_id in mapa_usuarios:
+                    nome_host = mapa_usuarios[h_id].get("nome") or "Amigo"
+                item_formatado = dict(item)
+                item_formatado["host_nome"] = nome_host
+                convites.append(item_formatado)
+                _sessoes_dupla_memoria[str(item.get("id"))] = dict(item)
+            return {"sucesso": True, "convites": convites}
+    except Exception:
+        pass
+
+    # 2. Fallback em memória
+    for s_id, sessao in _sessoes_dupla_memoria.items():
+        if str(sessao.get("convidado_id")) == str(usuario_id) and sessao.get("status") == "pendente":
+            h_id = str(sessao.get("host_id"))
+            nome_host = "Amigo"
+            if h_id in mapa_usuarios:
+                nome_host = mapa_usuarios[h_id].get("nome") or "Amigo"
+            c = dict(sessao)
+            c["host_nome"] = nome_host
+            convites.append(c)
+
+    return {"sucesso": True, "convites": convites}
+
+
+def responder_convite_dupla(sessao_id: str, usuario_id: str, resposta: str) -> Dict[str, Any]:
+    """
+    Atualiza o status de um convite de treino em dupla.
+    resposta: 'aceito' | 'recusado' | 'cancelado'
+    """
+    if not sessao_id or not usuario_id or not resposta:
+        return {"sucesso": False, "mensagem": "Sessão, usuário e resposta são obrigatórios."}
+
+    resposta_normalizada = resposta.lower().strip()
+    if resposta_normalizada not in ["aceito", "recusado", "cancelado"]:
+        return {"sucesso": False, "mensagem": f"Resposta inválida: {resposta}"}
+
+    agora = datetime.now(timezone.utc).isoformat()
+
+    # Atualiza memória
+    sessao_local = _sessoes_dupla_memoria.get(str(sessao_id))
+    if sessao_local:
+        sessao_local["status"] = resposta_normalizada
+        sessao_local["updated_at"] = agora
+
+    # Tenta atualizar no Supabase
+    try:
+        res = (
+            supabase
+            .table("sessoes_treino_dupla")
+            .update({"status": resposta_normalizada, "updated_at": agora})
+            .eq("id", str(sessao_id))
+            .execute()
+        )
+        if res.data and len(res.data) > 0:
+            sessao_db = res.data[0]
+            _sessoes_dupla_memoria[str(sessao_id)] = dict(sessao_db)
+            return {"sucesso": True, "status": resposta_normalizada, "sessao": sessao_db}
+    except Exception:
+        pass
+
+    if sessao_local:
+        return {"sucesso": True, "status": resposta_normalizada, "sessao": sessao_local}
+
+    return {"sucesso": True, "status": resposta_normalizada, "sessao_id": sessao_id}
+
+
+def selecionar_treino_dupla(
+    sessao_id: str,
+    host_id: str,
+    treino_id: Optional[str] = None,
+    dados_treino: Optional[Dict[str, Any]] = None,
+    total_series: int = 3
+) -> Dict[str, Any]:
+    """
+    Permite ao Host definir os exercícios e parâmetros da sessão em dupla.
+    """
+    if not sessao_id or not host_id:
+        return {"sucesso": False, "mensagem": "Sessão e Host são obrigatórios."}
+
+    agora = datetime.now(timezone.utc).isoformat()
+    campos = {
+        "treino_id": treino_id,
+        "dados_treino": dados_treino or {},
+        "total_series": int(total_series) if total_series else 3,
+        "updated_at": agora
+    }
+
+    sessao_local = _sessoes_dupla_memoria.get(str(sessao_id))
+    if sessao_local:
+        sessao_local.update(campos)
+
+    try:
+        res = (
+            supabase
+            .table("sessoes_treino_dupla")
+            .update(campos)
+            .eq("id", str(sessao_id))
+            .execute()
+        )
+        if res.data and len(res.data) > 0:
+            sessao_db = res.data[0]
+            _sessoes_dupla_memoria[str(sessao_id)] = dict(sessao_db)
+            return {"sucesso": True, "sessao": sessao_db}
+    except Exception:
+        pass
+
+    if sessao_local:
+        return {"sucesso": True, "sessao": sessao_local}
+
+    return {"sucesso": True, "sessao_id": sessao_id, "dados_treino": dados_treino}
+
+
+def iniciar_treino_dupla(sessao_id: str, host_id: str) -> Dict[str, Any]:
+    """
+    Inicia a execução do treino em dupla pelo Host (passa status para 'em_andamento').
+    """
+    if not sessao_id:
+        return {"sucesso": False, "mensagem": "Sessão é obrigatória."}
+
+    agora = datetime.now(timezone.utc).isoformat()
+    campos = {
+        "status": "em_andamento",
+        "turno_usuario_id": str(host_id) if host_id else None,
+        "updated_at": agora
+    }
+
+    sessao_local = _sessoes_dupla_memoria.get(str(sessao_id))
+    if sessao_local:
+        sessao_local["status"] = "em_andamento"
+        if host_id:
+            sessao_local["turno_usuario_id"] = str(host_id)
+        sessao_local["updated_at"] = agora
+
+    try:
+        res = (
+            supabase
+            .table("sessoes_treino_dupla")
+            .update(campos)
+            .eq("id", str(sessao_id))
+            .execute()
+        )
+        if res.data and len(res.data) > 0:
+            sessao_db = res.data[0]
+            _sessoes_dupla_memoria[str(sessao_id)] = dict(sessao_db)
+            return {"sucesso": True, "status": "em_andamento", "sessao": sessao_db}
+    except Exception:
+        pass
+
+    if sessao_local:
+        return {"sucesso": True, "status": "em_andamento", "sessao": sessao_local}
+
+    return {"sucesso": True, "status": "em_andamento", "sessao_id": sessao_id}
+
+
+def obter_sessao_dupla(sessao_id: str) -> Dict[str, Any]:
+    """
+    Retorna o estado detalhado atual de uma sessão de treino em dupla.
+    """
+    if not sessao_id:
+        return {"sucesso": False, "mensagem": "ID da sessão é obrigatório."}
+
+    mapa_usuarios = _obter_mapa_usuarios()
+    sessao = None
+
+    try:
+        res = (
+            supabase
+            .table("sessoes_treino_dupla")
+            .select("*")
+            .eq("id", str(sessao_id))
+            .execute()
+        )
+        if res.data and len(res.data) > 0:
+            sessao = dict(res.data[0])
+            _sessoes_dupla_memoria[str(sessao_id)] = dict(sessao)
+    except Exception:
+        pass
+
+    if not sessao:
+        sessao = _sessoes_dupla_memoria.get(str(sessao_id))
+
+    if not sessao:
+        return {"sucesso": False, "mensagem": "Sessão de treino em dupla não encontrada."}
+
+    res_sessao = dict(sessao)
+    h_id = str(res_sessao.get("host_id") or "")
+    c_id = str(res_sessao.get("convidado_id") or "")
+
+    res_sessao["host_nome"] = mapa_usuarios.get(h_id, {}).get("nome", "Host")
+    res_sessao["convidado_nome"] = mapa_usuarios.get(c_id, {}).get("nome", "Convidado")
+
+    return {"sucesso": True, "sessao": res_sessao}
+
+
+def atualizar_turno_dupla(
+    sessao_id: str,
+    usuario_id: str,
+    pontos_serie: int = 0,
+    proximo_turno_id: Optional[str] = None,
+    nova_serie: Optional[int] = None,
+    novo_indice_exercicio: Optional[int] = None
+) -> Dict[str, Any]:
+    """
+    Registra a conclusão da série pelo atleta da vez, acumula sua pontuação parcial
+    e transfere a posse do turno para o parceiro.
+    """
+    if not sessao_id or not usuario_id:
+        return {"sucesso": False, "mensagem": "Sessão e usuário são obrigatórios."}
+
+    info = obter_sessao_dupla(sessao_id)
+    if not info.get("sucesso") or not info.get("sessao"):
+        return {"sucesso": False, "mensagem": "Sessão não encontrada para atualizar turno."}
+
+    sessao = info["sessao"]
+    host_id = str(sessao.get("host_id"))
+    convidado_id = str(sessao.get("convidado_id"))
+    uid_str = str(usuario_id)
+
+    # Identifica quem pontuou
+    pontos_host = int(sessao.get("pontos_host") or 0)
+    pontos_convidado = int(sessao.get("pontos_convidado") or 0)
+    pts = max(0, int(pontos_serie))
+
+    if uid_str == host_id:
+        pontos_host += pts
+        turno_destino = convidado_id if not proximo_turno_id else str(proximo_turno_id)
+    elif uid_str == convidado_id:
+        pontos_convidado += pts
+        turno_destino = host_id if not proximo_turno_id else str(proximo_turno_id)
+    else:
+        return {"sucesso": False, "mensagem": "Usuário não pertence a esta sessão de dupla."}
+
+    agora = datetime.now(timezone.utc).isoformat()
+    campos_update = {
+        "pontos_host": pontos_host,
+        "pontos_convidado": pontos_convidado,
+        "turno_usuario_id": turno_destino,
+        "updated_at": agora,
+    }
+
+    if nova_serie is not None:
+        campos_update["serie_atual"] = int(nova_serie)
+    if novo_indice_exercicio is not None:
+        campos_update["indice_exercicio_atual"] = int(novo_indice_exercicio)
+
+    # Atualiza memória
+    if str(sessao_id) in _sessoes_dupla_memoria:
+        _sessoes_dupla_memoria[str(sessao_id)].update(campos_update)
+
+    # Atualiza Supabase
+    try:
+        supabase.table("sessoes_treino_dupla").update(campos_update).eq("id", str(sessao_id)).execute()
+    except Exception:
+        pass
+
+    sessao.update(campos_update)
+    return {
+        "sucesso": True,
+        "proximo_turno": turno_destino,
+        "pontos_host": pontos_host,
+        "pontos_convidado": pontos_convidado,
+        "serie_atual": sessao.get("serie_atual", 1),
+        "indice_exercicio_atual": sessao.get("indice_exercicio_atual", 0),
+        "sessao": sessao
+    }
+
+
+def finalizar_sessao_dupla(sessao_id: str, solicitante_id: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Encerra a sessão de treino em dupla, consolida a regra matemática de cooperação:
+      Pontos Finais (cada um) = round(((Pontos_Host + Pontos_Convidado) / 2) * 1.20)
+    E credita a pontuação no banco via adicionar_pontuacao_diaria para ambos os participantes.
+    """
+    if not sessao_id:
+        return {"sucesso": False, "mensagem": "ID da sessão é obrigatório."}
+
+    info = obter_sessao_dupla(sessao_id)
+    if not info.get("sucesso") or not info.get("sessao"):
+        return {"sucesso": False, "mensagem": "Sessão não encontrada para finalização."}
+
+    sessao = info["sessao"]
+    host_id = str(sessao.get("host_id"))
+    convidado_id = str(sessao.get("convidado_id"))
+
+    pontos_host = int(sessao.get("pontos_host") or 0)
+    pontos_convidado = int(sessao.get("pontos_convidado") or 0)
+
+    # Regra matemática cooperativa: Média aritmética com bônus de 20% (1.2x)
+    soma_pontos = pontos_host + pontos_convidado
+    media_pontos = soma_pontos / 2.0
+    multiplicador = 1.20
+    pontos_finais_cada = int(round(media_pontos * multiplicador))
+
+    agora = datetime.now(timezone.utc).isoformat()
+    campos_encerramento = {
+        "status": "finalizado",
+        "pontos_finais_cada": pontos_finais_cada,
+        "multiplicador_aplicado": multiplicador,
+        "finalizado_em": agora,
+        "updated_at": agora,
+    }
+
+    # Atualiza em memória
+    if str(sessao_id) in _sessoes_dupla_memoria:
+        _sessoes_dupla_memoria[str(sessao_id)].update(campos_encerramento)
+
+    # Atualiza Supabase
+    try:
+        supabase.table("sessoes_treino_dupla").update(campos_encerramento).eq("id", str(sessao_id)).execute()
+    except Exception:
+        pass
+
+    # Credita pontuação no Supabase para ambos os participantes
+    resultado_credito_host = adicionar_pontuacao_diaria(
+        usuario_id=host_id,
+        pontos=pontos_finais_cada,
+        incrementar_sequencia=True
+    )
+    resultado_credito_convidado = adicionar_pontuacao_diaria(
+        usuario_id=convidado_id,
+        pontos=pontos_finais_cada,
+        incrementar_sequencia=True
+    )
+
+    sessao.update(campos_encerramento)
+
+    return {
+        "sucesso": True,
+        "mensagem": "Sessão em dupla finalizada e bônus de 20% creditado com sucesso!",
+        "pontos_host": pontos_host,
+        "pontos_convidado": pontos_convidado,
+        "media_dupla": media_pontos,
+        "bonus_percentual": 20,
+        "multiplicador": multiplicador,
+        "pontos_finais_cada": pontos_finais_cada,
+        "credito_host": resultado_credito_host,
+        "credito_convidado": resultado_credito_convidado,
+        "sessao": sessao
+    }

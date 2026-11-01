@@ -87,7 +87,8 @@ Estes arquivos compõem a frente de trabalho imediata da branch, homologada por 
 | [`tests/test_servico_ia_api.py`](tests/test_servico_ia_api.py) | Suíte de testes do gerenciador de sessões de IA em memória, decodificação em RAM e simulações canônicas. | `test_servico_ia_*` | **Concluído (7 testes)** |
 | [`tests/test_api_ia_integrada.py`](tests/test_api_ia_integrada.py) | Suíte de testes end-to-end das rotas FastAPI de IA e envio automático de pontos para a gamificação. | `test_rota_ia_*` | **Concluído (6 testes)** |
 | [`tests/test_websocket_ia.py`](tests/test_websocket_ia.py) | Suíte de testes do canal persistente WebSocket, fluxo angular, keep-alive ping e troca dinâmica de exercício. | `test_websocket_ia_*` | **Concluído (3 testes)** |
-| **Total da Suíte Automatizada** | **55 testes aprovados no `pytest` + 5 testes no `flutter test` com 100% de sucesso** | `pytest` + `flutter test` | **100% Aprovado (60 testes)** |
+| [`tests/test_treino_dupla_api.py`](tests/test_treino_dupla_api.py) | Suíte de testes automatizados do fluxo cooperativo de treinos em dupla, alternância de turnos por série e fórmula de bônus (+20%). | `test_dupla_*` | **Concluído (8 testes)** |
+| **Total da Suíte Automatizada** | **63 testes aprovados no `pytest` + 5 testes no `flutter test` com 100% de sucesso** | `pytest` + `flutter test` | **100% Aprovado (68 testes)** |
 | [`./pytest.ini`](./pytest.ini) | Configuração de execução do `pytest` com inclusão automática do diretório raiz no `pythonpath`. | Configuração de testes | **Ativo** |
 | [`./requirements.txt`](./requirements.txt) | Especificação das dependências oficiais da branch `IA` (`numpy`, `opencv-python`, `mediapipe`, `pytest`). | Gerenciamento de ambiente | **Ativo** |
 
