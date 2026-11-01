@@ -1104,4 +1104,205 @@ class ApiService {
       return {'sucesso': false, 'mensagem': 'Erro ao finalizar série IA: $e'};
     }
   }
+
+  // ============================================================
+  // 8. TREINOS EM DUPLA (COOPERATIVO)
+  // ============================================================
+
+  /// Host convida um amigo para sessão de treino cooperativo
+  Future<Map<String, dynamic>> convidarParaTreinoEmDupla({
+    required String convidadoId,
+    String? treinoId,
+    Map<String, dynamic>? dadosTreino,
+    int totalSeries = 3,
+  }) async {
+    try {
+      final hostId = idUsuarioAtual;
+      if (hostId == null) {
+        return {'sucesso': false, 'mensagem': 'Usuário não está autenticado.'};
+      }
+      final url = Uri.parse('$baseUrl/dupla/convidar');
+      final response = await http
+          .post(
+            url,
+            headers: _headers,
+            body: jsonEncode({
+              'host_id': hostId,
+              'convidado_id': convidadoId,
+              'treino_id': treinoId,
+              'dados_treino': dadosTreino ?? {},
+              'total_series': totalSeries,
+            }),
+          )
+          .timeout(const Duration(seconds: 15));
+      return jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+    } catch (e) {
+      return {'sucesso': false, 'mensagem': 'Erro ao enviar convite de treino em dupla: $e'};
+    }
+  }
+
+  /// Convidado consulta convites pendentes de treino em dupla recebidos
+  Future<Map<String, dynamic>> listarConvitesTreinoPendentes() async {
+    try {
+      final uid = idUsuarioAtual;
+      if (uid == null) {
+        return {'sucesso': false, 'mensagem': 'Usuário não está autenticado.', 'convites': []};
+      }
+      final url = Uri.parse('$baseUrl/dupla/convites/pendentes?usuario_id=$uid');
+      final response = await http.get(url, headers: _headers).timeout(const Duration(seconds: 10));
+      return jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+    } catch (e) {
+      return {'sucesso': false, 'mensagem': 'Erro ao listar convites: $e', 'convites': []};
+    }
+  }
+
+  /// Aceita, recusa ou cancela um convite de treino em dupla
+  Future<Map<String, dynamic>> responderConviteTreino({
+    required String sessaoId,
+    required String resposta,
+  }) async {
+    try {
+      final uid = idUsuarioAtual;
+      if (uid == null) {
+        return {'sucesso': false, 'mensagem': 'Usuário não está autenticado.'};
+      }
+      final url = Uri.parse('$baseUrl/dupla/responder-convite');
+      final response = await http
+          .post(
+            url,
+            headers: _headers,
+            body: jsonEncode({
+              'sessao_id': sessaoId,
+              'usuario_id': uid,
+              'resposta': resposta,
+            }),
+          )
+          .timeout(const Duration(seconds: 15));
+      return jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+    } catch (e) {
+      return {'sucesso': false, 'mensagem': 'Erro ao responder convite: $e'};
+    }
+  }
+
+  /// Host seleciona o treino da dupla no Lobby
+  Future<Map<String, dynamic>> selecionarTreinoDupla({
+    required String sessaoId,
+    String? treinoId,
+    Map<String, dynamic>? dadosTreino,
+    int totalSeries = 3,
+  }) async {
+    try {
+      final hostId = idUsuarioAtual;
+      if (hostId == null) {
+        return {'sucesso': false, 'mensagem': 'Usuário não está autenticado.'};
+      }
+      final url = Uri.parse('$baseUrl/dupla/selecionar-treino');
+      final response = await http
+          .post(
+            url,
+            headers: _headers,
+            body: jsonEncode({
+              'sessao_id': sessaoId,
+              'host_id': hostId,
+              'treino_id': treinoId,
+              'dados_treino': dadosTreino ?? {},
+              'total_series': totalSeries,
+            }),
+          )
+          .timeout(const Duration(seconds: 15));
+      return jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+    } catch (e) {
+      return {'sucesso': false, 'mensagem': 'Erro ao configurar treino da dupla: $e'};
+    }
+  }
+
+  /// Host inicia a sessão de treino em dupla (passa para 'em_andamento')
+  Future<Map<String, dynamic>> iniciarTreinoDupla({required String sessaoId}) async {
+    try {
+      final hostId = idUsuarioAtual;
+      if (hostId == null) {
+        return {'sucesso': false, 'mensagem': 'Usuário não está autenticado.'};
+      }
+      final url = Uri.parse('$baseUrl/dupla/iniciar-treino');
+      final response = await http
+          .post(
+            url,
+            headers: _headers,
+            body: jsonEncode({
+              'sessao_id': sessaoId,
+              'host_id': hostId,
+            }),
+          )
+          .timeout(const Duration(seconds: 15));
+      return jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+    } catch (e) {
+      return {'sucesso': false, 'mensagem': 'Erro ao iniciar treino em dupla: $e'};
+    }
+  }
+
+  /// Consulta estado em tempo real da sessão em dupla (polling)
+  Future<Map<String, dynamic>> obterEstadoSessaoDupla(String sessaoId) async {
+    try {
+      final url = Uri.parse('$baseUrl/dupla/estado/$sessaoId');
+      final response = await http.get(url, headers: _headers).timeout(const Duration(seconds: 10));
+      return jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+    } catch (e) {
+      return {'sucesso': false, 'mensagem': 'Erro ao consultar estado da sessão: $e'};
+    }
+  }
+
+  /// Conclui série pelo atleta da vez, pontua e passa turno para o parceiro
+  Future<Map<String, dynamic>> concluirSerieDupla({
+    required String sessaoId,
+    required int pontosSerie,
+    String? proximoTurnoId,
+    int? novaSerie,
+    int? novoIndiceExercicio,
+  }) async {
+    try {
+      final uid = idUsuarioAtual;
+      if (uid == null) {
+        return {'sucesso': false, 'mensagem': 'Usuário não está autenticado.'};
+      }
+      final url = Uri.parse('$baseUrl/dupla/concluir-serie');
+      final response = await http
+          .post(
+            url,
+            headers: _headers,
+            body: jsonEncode({
+              'sessao_id': sessaoId,
+              'usuario_id': uid,
+              'pontos_serie': pontosSerie,
+              'proximo_turno_id': proximoTurnoId,
+              'nova_serie': novaSerie,
+              'novo_indice_exercicio': novoIndiceExercicio,
+            }),
+          )
+          .timeout(const Duration(seconds: 15));
+      return jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+    } catch (e) {
+      return {'sucesso': false, 'mensagem': 'Erro ao concluir série em dupla: $e'};
+    }
+  }
+
+  /// Finaliza sessão de treino em dupla e aplica bônus de 20% para ambos
+  Future<Map<String, dynamic>> encerrarSessaoDupla(String sessaoId) async {
+    try {
+      final uid = idUsuarioAtual;
+      final url = Uri.parse('$baseUrl/dupla/encerrar-sessao');
+      final response = await http
+          .post(
+            url,
+            headers: _headers,
+            body: jsonEncode({
+              'sessao_id': sessaoId,
+              'solicitante_id': uid,
+            }),
+          )
+          .timeout(const Duration(seconds: 15));
+      return jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+    } catch (e) {
+      return {'sucesso': false, 'mensagem': 'Erro ao encerrar sessão em dupla: $e'};
+    }
+  }
 }
