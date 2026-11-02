@@ -1780,11 +1780,18 @@ def criar_sessao_dupla(
 
     novo_id = str(uuid.uuid4())
     agora = datetime.now(timezone.utc).isoformat()
+    t_id = None
+    if treino_id is not None:
+        try:
+            t_id = int(treino_id)
+        except (ValueError, TypeError):
+            t_id = None
+
     registro = {
         "id": novo_id,
         "host_id": str(host_id),
         "convidado_id": str(convidado_id),
-        "treino_id": treino_id,
+        "treino_id": t_id,
         "dados_treino": dados_treino or {},
         "status": "pendente",
         "turno_usuario_id": str(host_id),
@@ -1812,7 +1819,7 @@ def criar_sessao_dupla(
                 "id": novo_id,
                 "host_id": str(host_id),
                 "convidado_id": str(convidado_id),
-                "treino_id": treino_id,
+                "treino_id": t_id,
                 "dados_treino": dados_treino or {},
                 "status": "pendente",
                 "turno_usuario_id": str(host_id),
@@ -1941,8 +1948,15 @@ def selecionar_treino_dupla(
         return {"sucesso": False, "mensagem": "Sessão e Host são obrigatórios."}
 
     agora = datetime.now(timezone.utc).isoformat()
+    t_id = None
+    if treino_id is not None:
+        try:
+            t_id = int(treino_id)
+        except (ValueError, TypeError):
+            t_id = None
+
     campos = {
-        "treino_id": treino_id,
+        "treino_id": t_id,
         "dados_treino": dados_treino or {},
         "total_series": int(total_series) if total_series else 3,
         "updated_at": agora

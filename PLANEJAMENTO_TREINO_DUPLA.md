@@ -177,7 +177,7 @@ CREATE TABLE IF NOT EXISTS public.sessoes_treino_dupla (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     host_id UUID NOT NULL REFERENCES public.usuarios(id) ON DELETE CASCADE,
     convidado_id UUID NOT NULL REFERENCES public.usuarios(id) ON DELETE CASCADE,
-    treino_id UUID REFERENCES public.treinos(id) ON DELETE SET NULL,
+    treino_id BIGINT REFERENCES public.treinos(id) ON DELETE SET NULL, -- Identificador compatível com public.treinos (bigint)
     dados_treino JSONB DEFAULT '{}'::jsonb, -- Cache da lista de exercícios e séries
     status VARCHAR(30) NOT NULL DEFAULT 'pendente', -- pendente, aceito, recusado, cancelado, em_andamento, finalizado, interrompido
     

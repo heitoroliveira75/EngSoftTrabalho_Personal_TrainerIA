@@ -26,6 +26,21 @@
 
 ## Histórico de Entradas
 
+### [Entrada #018] 2026-11-02 — Integração do Ciclo de Séries/Repetições e Seleção de Treino Completo em Dupla
+- **Objetivo / História de Usuário:**
+  1. Integrar as correções da branch `feature/repeticao`: pausa automática das repetições ao atingir a meta, diálogo com intervalo de descanso entre séries e confirmação explícita para avançar de série/exercício.
+  2. Implementar no Treino em Dupla (`LobbyDuplaScreen`) a seleção de um **treino inteiro** (com múltiplos exercícios e séries configuradas) pelo Host, em substituição ao exercício isolado.
+  3. Unificar a lógica entre treinos solo e treinos em dupla: ao concluir as repetições da série com IA, o aplicativo finaliza a série e aguarda confirmação explícita do atleta antes de passar o turno para o parceiro, avançar para o próximo exercício ou finalizar o treino cooperativo.
+- **Tasks Executadas e Artefatos Gerados:**
+  - `[TASK-REP-01]` Integração do ciclo de séries e repetições na tela `CameraTreinoScreen`: parâmetros `totalSeries`, getters dinâmicos `_totalSeriesAtual` e `_serieAtual`, monitoramento contínuo em `_verificarProgressoSeries()`, exibição no contador HUD (`SÉRIE X DE Y`) e diálogo de intervalo com confirmação explícita $\rightarrow$ **Artefato:** `lib/screens/camera_treino_screen.dart`.
+  - `[TASK-REP-02]` Atualização de `TreinoSelecionadoScreen` para repassar a contagem de séries do exercício (`totalSeries: seriesEx`) à tela da câmera $\rightarrow$ **Artefato:** `lib/screens/treino_selecionado_screen.dart`.
+  - `[TASK-DUPLA-TREINO-01]` Expansão do catálogo de treinos no lobby em dupla (`LobbyDuplaScreen`) permitindo ao Host selecionar treinos completos (`Circuito Completo IA`, `Treino Superior IA`, `Treino Pernas & Ombros IA`, `Corpo completo A`, `Membros Inferiores & Core`), sincronizando em tempo real a lista completa de exercícios com o parceiro $\rightarrow$ **Artefato:** `lib/screens/lobby_dupla_screen.dart`.
+  - `[TASK-DUPLA-TREINO-02]` Adaptação da transição por turnos e exercícios em dupla em `CameraTreinoScreen`: diálogo de confirmação de série `_exibirDialogoIntervaloSerieDupla()`, avanço coordenado de exercício e série ao final dos ciclos de cada atleta, e polling reativo sincronizando o índice de exercício entre ambos $\rightarrow$ **Artefato:** `lib/screens/camera_treino_screen.dart`.
+  - `[TASK-TEST-01]` Testes automatizados expandidos com Flutter test cobrindo metas configuráveis de séries/repetições e treino em dupla com múltiplos exercícios $\rightarrow$ **Artefato:** `test/treinos_test.dart` (7 testes aprovados).
+- **Decisões Técnicas e Observações:**
+  - O fluxo em dupla respeita o revezamento por atleta em cada série. Ao concluir todas as séries de um exercício, o sistema sincroniza `novoIndiceExercicio` no backend (`/dupla/concluir-serie`), permitindo a ambos os atletas transitar automaticamente para o próximo exercício até a conclusão completa do treino.
+- **Estado Resultante:** 100% dos testes aprovados (63 testes Python + 7 testes Flutter).
+
 ### [Entrada #017] 2026-11-01 — Implementação da Feature: Treinos em Dupla Cooperativos (US-DUPLA)
 - **Objetivo / História de Usuário:** Implementar o fluxo cooperativo de treinos em dupla com revezamento estrito de séries (Turn-Based Workout), sincronização em tempo real via polling resiliente, pausa automática de câmera/IA durante o descanso para economia de bateria e bonificação cooperativa de +20% (multiplicador 1.2x) creditada no Supabase/Leaderboard.
 - **Tasks Executadas e Artefatos Gerados:**
