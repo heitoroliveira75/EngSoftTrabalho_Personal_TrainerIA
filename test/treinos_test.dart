@@ -4,6 +4,7 @@ import 'package:flutter_application_1/models/exercicio_treino.dart';
 import 'package:flutter_application_1/screens/dificuldade_treino_screen.dart';
 import 'package:flutter_application_1/screens/training_menu_screen.dart';
 import 'package:flutter_application_1/screens/opcao_treinos_screen.dart';
+import 'package:flutter_application_1/screens/camera_treino_screen.dart';
 
 void main() {
   group('ExercicioTreino Model Tests', () {
@@ -75,6 +76,22 @@ void main() {
 
       expect(find.text('INICIANTE'), findsOneWidget);
       expect(find.text('Corpo completo A'), findsOneWidget);
+    });
+  });
+
+  group('CameraTreinoScreen Series & Reps Tests', () {
+    test('CameraTreinoScreen suporta metas configuráveis de séries e repetições', () {
+      const screen = CameraTreinoScreen(
+        exercicioId: '20',
+        exercicioNome: 'Rosca Direta',
+        metaRepeticoes: 8,
+        totalSeries: 3,
+      );
+
+      expect(screen.exercicioId, '20');
+      expect(screen.exercicioNome, 'Rosca Direta');
+      expect(screen.metaRepeticoes, 8);
+      expect(screen.totalSeries, 3);
     });
   });
 }

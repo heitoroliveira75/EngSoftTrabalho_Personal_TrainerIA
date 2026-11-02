@@ -26,6 +26,24 @@
 
 ## Histórico de Entradas
 
+### [Entrada #017] 2026-11-02 — Ciclo Completo de Séries e Repetições com Intervalo e Transição Confirmada de Exercício
+- **Objetivo / História de Usuário:** Implementar controle automático de séries e repetições na tela da câmera (`CameraTreinoScreen`), de modo que ao atingir a meta de repetições (ex.: 8 reps), a série seja concluída, o contador de repetições resete para zero, o contador de séries seja incrementado com diálogo de intervalo e, ao atingir a quantidade total de séries do exercício (ex.: 3 séries), o fluxo de próximo exercício seja acionado exigindo confirmação explícita do atleta.
+- **Tasks Executadas e Artefatos Gerados:**
+  - `lib/screens/camera_treino_screen.dart`:
+    - Adicionado suporte a `totalSeries` no construtor e estado interno de rastreamento (`_seriesConcluidas`, `_totalSeriesAtual`, `_serieAtual`, `_isProcessandoFimDeSerie`).
+    - Implementado método `_verificarProgressoSeries()` acionado a cada repetição validada pela IA (via WebSocket, REST ou Simulação).
+    - Criado diálogo de descanso interséries (`_exibirDialogoIntervaloSerie`): pausa o envio de frames, exibe *"Série Completa!"* com contagem `$_seriesConcluidas / $_totalSeriesAtual`, e botão *"Iniciar Série X"* que zera o contador local de reps, reinicia a FSM no backend via `_iniciarSessaoIA()` e retoma o streaming.
+    - Ao concluir a última série (`_seriesConcluidas >= _totalSeriesAtual`), invoca automaticamente `_finalizarSerie()`, consolidando a pontuação com a IA e abrindo o modal com o botão *"Próximo: [Nome do Próximo Exercício]"*, que requer confirmação manual do usuário para avançar.
+    - Atualizado o HUD com um badge destacado: `SÉRIE X DE Y` logo abaixo do contador gigante de repetições.
+  - `lib/screens/treino_selecionado_screen.dart`:
+    - Extraída a quantidade de séries de cada exercício (`seriesEx`) e repassada ao `CameraTreinoScreen(totalSeries: seriesEx)`.
+  - `test/treinos_test.dart`:
+    - Adicionado teste automatizado validando a parametrização de séries e repetições em `CameraTreinoScreen` (6/6 testes aprovados).
+- **Decisões Técnicas e Observações:**
+  - O intervalo interséries pausa a captura da câmera para evitar contagem de repetições falsas enquanto o praticante descansa ou guarda os pesos.
+  - Ao iniciar a próxima série, `_iniciarSessaoIA()` sincroniza a memória RAM do backend para resetar a FSM, mantendo o gabarito DTW íntegro.
+- **Estado Resultante / Próximos Passos:** Fluxo de treino fluido e alinhado aos padrões de aplicativos fitness profissionais.
+
 ### [Entrada #016] 2026-10-31 — Migração para WebSocket Persistente e MediaPipe On-Device (Sprints WS-01, WS-02 e WS-03)
 - **Objetivo / História de Usuário:** Reduzir radicalmente a latência da análise biomecânica (de ~500–800ms para ~50–150ms) e o tráfego de rede (de ~30KB por frame JPEG para ~200 bytes por payload JSON), migrando a estimação de pose para o dispositivo móvel (Google ML Kit on-device) e estabelecendo canal de comunicação persistente via WebSocket bidirecional com o backend FastAPI.
 - **Tasks Executadas e Artefatos Gerados:**

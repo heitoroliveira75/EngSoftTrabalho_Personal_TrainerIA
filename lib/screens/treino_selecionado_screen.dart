@@ -86,6 +86,7 @@ class _TreinoSelecionadoScreenState extends State<TreinoSelecionadoScreen> {
     final exAtual = exercicios[targetIndex];
     final String exNome = exAtual['nome']?.toString() ?? 'Exercício';
     final int metaReps = (exAtual['repeticoes'] as num?)?.toInt() ?? 10;
+    final int seriesEx = (exAtual['series'] as num?)?.toInt() ?? 3;
     final String rawId =
         (exAtual['exercicio_id'] ?? exAtual['id'])?.toString() ?? '16';
     final String exId = _mapearIdExercicio(rawId, exNome);
@@ -109,6 +110,7 @@ class _TreinoSelecionadoScreenState extends State<TreinoSelecionadoScreen> {
           exercicioId: exId,
           exercicioNome: exNome,
           metaRepeticoes: metaReps,
+          totalSeries: seriesEx,
           exercicioIndice: targetIndex + 1,
           totalExercicios: exercicios.length,
           proximoExercicioNome: proximoNome,

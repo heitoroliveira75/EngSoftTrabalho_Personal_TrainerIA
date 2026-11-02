@@ -15,6 +15,7 @@ class CameraTreinoScreen extends StatefulWidget {
   final String exercicioId;
   final String exercicioNome;
   final int metaRepeticoes;
+  final int totalSeries;
   final int exercicioIndice;
   final int totalExercicios;
   final String? proximoExercicioNome;
@@ -28,6 +29,7 @@ class CameraTreinoScreen extends StatefulWidget {
     this.exercicioId = '16',
     this.exercicioNome = 'Desenvolvimento com Halteres',
     this.metaRepeticoes = 10,
+    this.totalSeries = 3,
     this.exercicioIndice = 1,
     this.totalExercicios = 1,
     this.proximoExercicioNome,
@@ -69,6 +71,8 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
   bool _mostrandoFeedbackSucesso = false;
   bool _isFinalizando = false;
   bool _isSimulando = false;
+  int _seriesConcluidas = 0;
+  bool _isProcessandoFimDeSerie = false;
 
   // Telemetria e Diagnóstico em Tempo Real
   int _latenciaMs = 0;
@@ -88,6 +92,12 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
       _exercicioAtual['nome']?.toString() ?? widget.exercicioNome;
   int get _metaRepsAtual =>
       (_exercicioAtual['repeticoes'] as num?)?.toInt() ?? widget.metaRepeticoes;
+  int get _totalSeriesAtual {
+    final val = _exercicioAtual['series'];
+    if (val is num && val > 0) return val.toInt();
+    return widget.totalSeries > 0 ? widget.totalSeries : 3;
+  }
+  int get _serieAtual => (_seriesConcluidas + 1).clamp(1, _totalSeriesAtual);
   bool get _temProximoExercicio => (_indiceAtual + 1) < _exercicios.length;
   String? get _proximoExercicioNome =>
       _temProximoExercicio ? _exercicios[_indiceAtual + 1]['nome']?.toString() : null;
@@ -135,6 +145,8 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
       setState(() {
         _indiceAtual++;
         _repeticoes = 0;
+        _seriesConcluidas = 0;
+        _isProcessandoFimDeSerie = false;
         _faseNome = 'Repouso';
         _faseNumero = 0;
         _alertaImediato = null;
@@ -290,6 +302,8 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
         _ultimaRepeticao = Map<String, dynamic>.from(res['ultima_repeticao'] as Map);
       }
     });
+
+    _verificarProgressoSeries();
   }
 
   void _startPeriodicSending() {
@@ -397,6 +411,8 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
             _ultimaRepeticao = Map<String, dynamic>.from(res['ultima_repeticao'] as Map);
           }
         });
+
+        _verificarProgressoSeries();
       } else {
         setState(() {
           _statusConexao = '🟡 ${res['mensagem'] ?? 'Processando...'}';
@@ -451,6 +467,8 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
             duration: Duration(seconds: 2),
           ),
         );
+
+        _verificarProgressoSeries();
       }
     } catch (e) {
       if (mounted) {
@@ -485,6 +503,119 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
       // Desenvolvimento com halteres: cotovelo de 85° a 165°
       final cotovelo = (_angulos['cotovelo'] as num?)?.toDouble() ?? 85.0;
       return ((cotovelo - 85.0) / (165.0 - 85.0)).clamp(0.0, 1.0);
+    }
+  }
+
+  void _verificarProgressoSeries() {
+    if (_repeticoes < _metaRepsAtual) return;
+    if (_isProcessandoFimDeSerie || _isFinalizando) return;
+
+    _isProcessandoFimDeSerie = true;
+    final seriesFeitas = _seriesConcluidas + 1;
+
+    if (seriesFeitas < _totalSeriesAtual) {
+      _seriesConcluidas = seriesFeitas;
+      _exibirDialogoIntervaloSerie();
+    } else {
+      _seriesConcluidas = seriesFeitas;
+      _finalizarSerie();
+    }
+  }
+
+  Future<void> _exibirDialogoIntervaloSerie() async {
+    _timer?.cancel();
+
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF161B22),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: const [
+            Icon(Icons.check_circle_outline, color: Color(0xFF00E676), size: 28),
+            SizedBox(width: 10),
+            Text(
+              'Série Completa!',
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Exercício: $_exercicioNomeAtual',
+              style: const TextStyle(color: Colors.white70, fontSize: 14),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF00E676).withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFF00E676)),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Séries Concluídas:',
+                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                  ),
+                  Text(
+                    '$_seriesConcluidas / $_totalSeriesAtual',
+                    style: const TextStyle(
+                      color: Color(0xFF00E676),
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Você completou $_metaRepsAtual repetições. Respire um instante antes de iniciar a Série ${_seriesConcluidas + 1}.',
+              style: const TextStyle(color: Colors.white70, fontSize: 13),
+            ),
+          ],
+        ),
+        actions: [
+          ElevatedButton.icon(
+            icon: const Icon(Icons.play_arrow_rounded, size: 20),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF00E676),
+              foregroundColor: Colors.black,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            onPressed: () => Navigator.pop(ctx),
+            label: Text(
+              'Iniciar Série ${_seriesConcluidas + 1}',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (!mounted) return;
+    setState(() {
+      _repeticoes = 0;
+      _faseNome = 'Repouso';
+      _faseNumero = 0;
+      _alertaImediato = null;
+      _isProcessandoFimDeSerie = false;
+    });
+
+    await _iniciarSessaoIA();
+    if (_wsService != null && _wsService!.conectado) {
+      _wsService!.trocarExercicio(exercicioId: _exercicioIdAtual, lado: _lado);
+    }
+
+    if (mounted) {
+      _startPeriodicSending();
     }
   }
 
@@ -647,7 +778,12 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
         _startPeriodicSending();
       }
     } finally {
-      if (mounted) setState(() => _isFinalizando = false);
+      if (mounted) {
+        setState(() {
+          _isFinalizando = false;
+          _isProcessandoFimDeSerie = false;
+        });
+      }
     }
   }
 
@@ -1096,7 +1232,7 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
 
           const SizedBox(height: 10),
 
-          // Contador Gigante de Repetições
+          // Contador Gigante de Repetições e Séries
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
             decoration: BoxDecoration(
@@ -1104,23 +1240,46 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
               borderRadius: BorderRadius.circular(24),
               border: Border.all(color: const Color(0xFF00E676), width: 1.5),
             ),
-            child: Row(
+            child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  '$_repeticoes',
-                  style: const TextStyle(
-                    color: Color(0xFF00E676),
-                    fontSize: 30,
-                    fontWeight: FontWeight.bold,
-                  ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '$_repeticoes',
+                      style: const TextStyle(
+                        color: Color(0xFF00E676),
+                        fontSize: 30,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      ' / $_metaRepsAtual REPS',
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
                 ),
-                Text(
-                  ' / $_metaRepsAtual REPS',
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
+                const SizedBox(height: 3),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF00E676).withValues(alpha: 0.18),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0xFF00E676).withValues(alpha: 0.5)),
+                  ),
+                  child: Text(
+                    'SÉRIE $_serieAtual DE $_totalSeriesAtual',
+                    style: const TextStyle(
+                      color: Color(0xFF00E676),
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.0,
+                    ),
                   ),
                 ),
               ],
