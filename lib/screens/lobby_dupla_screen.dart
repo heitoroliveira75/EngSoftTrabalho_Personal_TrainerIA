@@ -28,41 +28,150 @@ class _LobbyDuplaScreenState extends State<LobbyDuplaScreen> {
   bool _carregando = true;
   String? _erroMensagem;
 
-  // Opções de treinos rápidos pré-configurados
-  final List<Map<String, dynamic>> _catalogoExercicios = [
+  // Catálogo de Treinos Completos para Treino em Dupla (US-DUPLA)
+  final List<Map<String, dynamic>> _catalogoTreinos = [
     {
-      'id': '16',
-      'nome': 'Desenvolvimento com Halteres',
-      'grupo_muscular': 'Ombro',
-      'series': 3,
-      'repeticoes': 10,
+      'id': 'treino_circuito_ia',
+      'titulo': 'Circuito Completo IA (Ombros, Pernas & Bíceps)',
+      'dificuldade': 'Intermediário',
+      'descricao': 'Treino completo com análise biomecânica em tempo real',
+      'exercicios': [
+        {
+          'id': '16',
+          'exercicio_id': '16',
+          'nome': 'Desenvolvimento com Halteres',
+          'grupo_muscular': 'Ombro',
+          'series': 3,
+          'repeticoes': 10,
+        },
+        {
+          'id': '11',
+          'exercicio_id': '11',
+          'nome': 'Agachamento Livre',
+          'grupo_muscular': 'Pernas',
+          'series': 3,
+          'repeticoes': 10,
+        },
+        {
+          'id': '20',
+          'exercicio_id': '20',
+          'nome': 'Rosca Direta com Barra',
+          'grupo_muscular': 'Bíceps',
+          'series': 3,
+          'repeticoes': 12,
+        },
+      ],
     },
     {
-      'id': '11',
-      'nome': 'Agachamento Livre',
-      'grupo_muscular': 'Pernas',
-      'series': 3,
-      'repeticoes': 10,
+      'id': 'treino_superiores_ia',
+      'titulo': 'Treino Superior IA (Desenvolvimento & Rosca)',
+      'dificuldade': 'Iniciante',
+      'descricao': 'Foco em membros superiores e braços',
+      'exercicios': [
+        {
+          'id': '16',
+          'exercicio_id': '16',
+          'nome': 'Desenvolvimento com Halteres',
+          'grupo_muscular': 'Ombro',
+          'series': 3,
+          'repeticoes': 10,
+        },
+        {
+          'id': '20',
+          'exercicio_id': '20',
+          'nome': 'Rosca Direta com Barra',
+          'grupo_muscular': 'Bíceps',
+          'series': 3,
+          'repeticoes': 12,
+        },
+      ],
     },
     {
-      'id': '20',
-      'nome': 'Rosca Direta com Barra',
-      'grupo_muscular': 'Bíceps',
-      'series': 3,
-      'repeticoes': 12,
+      'id': 'treino_inferior_ombros_ia',
+      'titulo': 'Treino Pernas & Ombros IA (Agachamento & Halteres)',
+      'dificuldade': 'Iniciante',
+      'descricao': 'Foco em cadeia inferior e estabilização de ombro',
+      'exercicios': [
+        {
+          'id': '11',
+          'exercicio_id': '11',
+          'nome': 'Agachamento Livre',
+          'grupo_muscular': 'Pernas',
+          'series': 3,
+          'repeticoes': 12,
+        },
+        {
+          'id': '16',
+          'exercicio_id': '16',
+          'nome': 'Desenvolvimento com Halteres',
+          'grupo_muscular': 'Ombro',
+          'series': 3,
+          'repeticoes': 10,
+        },
+      ],
+    },
+    {
+      'id': '1',
+      'titulo': 'Corpo completo A',
+      'dificuldade': 'Iniciante',
+      'descricao': 'Treino balanceado de corpo inteiro',
+      'exercicios': [
+        {'id': '16', 'nome': 'Polichinelo', 'series': 3, 'repeticoes': 12, 'grupo_muscular': 'Cardio'},
+        {'id': '11', 'nome': 'Agachamento Livre', 'series': 3, 'repeticoes': 12, 'grupo_muscular': 'Pernas'},
+        {'id': '16', 'nome': 'Flexão com Joelhos', 'series': 3, 'repeticoes': 10, 'grupo_muscular': 'Peitoral'},
+        {'id': '16', 'nome': 'Abdominal Supra', 'series': 3, 'repeticoes': 15, 'grupo_muscular': 'Core'},
+      ],
+    },
+    {
+      'id': '2',
+      'titulo': 'Membros Inferiores & Core',
+      'dificuldade': 'Iniciante',
+      'descricao': 'Fortalecimento de pernas e estabilização lombar',
+      'exercicios': [
+        {'id': '11', 'nome': 'Agachamento Isométrico', 'series': 3, 'repeticoes': 12, 'grupo_muscular': 'Pernas'},
+        {'id': '11', 'nome': 'Afundo Alternado', 'series': 3, 'repeticoes': 10, 'grupo_muscular': 'Pernas'},
+        {'id': '16', 'nome': 'Abdominal Infra', 'series': 3, 'repeticoes': 12, 'grupo_muscular': 'Core'},
+        {'id': '11', 'nome': 'Elevação de Panturrilha', 'series': 3, 'repeticoes': 15, 'grupo_muscular': 'Pernas'},
+      ],
     },
   ];
 
-  late String _exercicioSelecionadoId;
-  int _seriesSelecionadas = 3;
-  int _repeticoesSelecionadas = 10;
+  late String _treinoSelecionadoId;
   bool _salvandoTreino = false;
   bool _iniciando = false;
+
+  String _mapearIdExercicio(String? rawId, String exNome) {
+    final nomeLower = exNome.toLowerCase();
+    if (rawId == '11' ||
+        rawId == '2' ||
+        nomeLower.contains('agacha') ||
+        nomeLower.contains('squat') ||
+        nomeLower.contains('perna')) {
+      return '11';
+    } else if (rawId == '20' ||
+        rawId == '3' ||
+        nomeLower.contains('rosca') ||
+        nomeLower.contains('biceps') ||
+        nomeLower.contains('bíceps') ||
+        nomeLower.contains('braço') ||
+        nomeLower.contains('braco')) {
+      return '20';
+    } else {
+      return '16';
+    }
+  }
+
+  Map<String, dynamic> get _treinoSelecionado {
+    return _catalogoTreinos.firstWhere(
+      (t) => t['id']?.toString() == _treinoSelecionadoId,
+      orElse: () => _catalogoTreinos.first,
+    );
+  }
 
   @override
   void initState() {
     super.initState();
-    _exercicioSelecionadoId = _catalogoExercicios.first['id'];
+    _treinoSelecionadoId = _catalogoTreinos.first['id'];
     _carregarEstado();
     // Polling a cada 1.5s para sincronizar status da dupla em tempo real
     _pollingTimer = Timer.periodic(const Duration(milliseconds: 1500), (_) {
@@ -138,39 +247,52 @@ class _LobbyDuplaScreenState extends State<LobbyDuplaScreen> {
   Future<void> _salvarConfiguracaoTreino() async {
     setState(() => _salvandoTreino = true);
     try {
-      final exEscolhido = _catalogoExercicios.firstWhere(
-        (e) => e['id'] == _exercicioSelecionadoId,
-        orElse: () => _catalogoExercicios.first,
-      );
+      final treino = _treinoSelecionado;
+      final rawExercicios = (treino['exercicios'] as List? ?? []);
+
+      final List<Map<String, dynamic>> exerciciosFormatados = rawExercicios.map((e) {
+        final mapE = Map<String, dynamic>.from(e as Map);
+        final nome = mapE['nome']?.toString() ?? 'Exercício';
+        final rawId = (mapE['exercicio_id'] ?? mapE['id'])?.toString();
+        final idIA = _mapearIdExercicio(rawId, nome);
+        final series = (mapE['series'] as num?)?.toInt() ?? 3;
+        final reps = (mapE['repeticoes'] as num?)?.toInt() ?? 10;
+
+        return {
+          'id': idIA,
+          'exercicio_id': idIA,
+          'nome': nome,
+          'grupo_muscular': mapE['grupo_muscular'] ?? 'Geral',
+          'series': series,
+          'repeticoes': reps,
+        };
+      }).toList();
 
       final dadosTreino = {
-        'nome': 'Treino Dupla: ${exEscolhido['nome']}',
-        'exercicios': [
-          {
-            'id': exEscolhido['id'],
-            'exercicio_id': exEscolhido['id'],
-            'nome': exEscolhido['nome'],
-            'grupo_muscular': exEscolhido['grupo_muscular'],
-            'series': _seriesSelecionadas,
-            'repeticoes': _repeticoesSelecionadas,
-          }
-        ]
+        'nome': treino['titulo'] ?? treino['nome'] ?? 'Treino em Dupla',
+        'treino_id': treino['id'],
+        'dificuldade': treino['dificuldade'] ?? 'Intermediário',
+        'exercicios': exerciciosFormatados,
       };
+
+      final totalSeriesTreino = exerciciosFormatados.isNotEmpty
+          ? (exerciciosFormatados.first['series'] as int)
+          : 3;
 
       final res = await ApiService().selecionarTreinoDupla(
         sessaoId: widget.sessaoId,
-        treinoId: null,
+        treinoId: treino['id']?.toString(),
         dadosTreino: dadosTreino,
-        totalSeries: _seriesSelecionadas,
+        totalSeries: totalSeriesTreino,
       );
 
       if (mounted) {
         setState(() => _salvandoTreino = false);
         if (res['sucesso'] == true) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Configuração de treino sincronizada com o parceiro!'),
-              backgroundColor: Color(0xFF00E676),
+            SnackBar(
+              content: Text('Treino "${dadosTreino['nome']}" sincronizado com o parceiro!'),
+              backgroundColor: const Color(0xFF00E676),
             ),
           );
           _carregarEstado(silencioso: true);
@@ -221,7 +343,14 @@ class _LobbyDuplaScreenState extends State<LobbyDuplaScreen> {
     if (sessao.dadosTreino['exercicios'] is List &&
         (sessao.dadosTreino['exercicios'] as List).isNotEmpty) {
       listaEx = List<Map<String, dynamic>>.from(
-        (sessao.dadosTreino['exercicios'] as List).map((e) => Map<String, dynamic>.from(e as Map)),
+        (sessao.dadosTreino['exercicios'] as List).map((e) {
+          final mapE = Map<String, dynamic>.from(e as Map);
+          final nome = mapE['nome']?.toString() ?? 'Exercício';
+          final rawId = (mapE['exercicio_id'] ?? mapE['id'])?.toString();
+          mapE['exercicio_id'] = _mapearIdExercicio(rawId, nome);
+          mapE['id'] = mapE['exercicio_id'];
+          return mapE;
+        }),
       );
     } else {
       listaEx = [
@@ -236,6 +365,7 @@ class _LobbyDuplaScreenState extends State<LobbyDuplaScreen> {
     }
 
     final exAtual = listaEx.first;
+    final int seriesEx = (exAtual['series'] as num?)?.toInt() ?? sessao.totalSeries;
 
     Navigator.pushReplacement(
       context,
@@ -244,6 +374,7 @@ class _LobbyDuplaScreenState extends State<LobbyDuplaScreen> {
           exercicioId: exAtual['id']?.toString() ?? '16',
           exercicioNome: exAtual['nome']?.toString() ?? 'Desenvolvimento com Halteres',
           metaRepeticoes: (exAtual['repeticoes'] as num?)?.toInt() ?? 10,
+          totalSeries: seriesEx,
           listaExercicios: listaEx,
           isModoDupla: true,
           sessaoDuplaId: widget.sessaoId,
@@ -427,7 +558,7 @@ class _LobbyDuplaScreenState extends State<LobbyDuplaScreen> {
 
                   const SizedBox(height: 16),
 
-                  // Configuração de Treino
+                  // Configuração de Treino Completo (US-DUPLA)
                   Container(
                     padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
@@ -442,7 +573,7 @@ class _LobbyDuplaScreenState extends State<LobbyDuplaScreen> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             const Text(
-                              'EXERCÍCIO E CARGA',
+                              'TREINO COMPLETO DA DUPLA',
                               style: TextStyle(
                                 color: Colors.white60,
                                 fontWeight: FontWeight.bold,
@@ -467,12 +598,12 @@ class _LobbyDuplaScreenState extends State<LobbyDuplaScreen> {
                         const SizedBox(height: 14),
 
                         if (widget.isHost) ...[
-                          // Seletor de Exercício
+                          // Seletor de Treino Completo
                           DropdownButtonFormField<String>(
-                            initialValue: _exercicioSelecionadoId,
+                            value: _treinoSelecionadoId,
                             dropdownColor: const Color(0xFF1E232A),
                             decoration: InputDecoration(
-                              labelText: 'Exercício Biomecânico',
+                              labelText: 'Escolha o Treino Completo',
                               labelStyle: const TextStyle(color: Colors.white70),
                               filled: true,
                               fillColor: const Color(0xFF0D1117),
@@ -481,82 +612,107 @@ class _LobbyDuplaScreenState extends State<LobbyDuplaScreen> {
                                 borderSide: const BorderSide(color: Colors.white24),
                               ),
                             ),
-                            items: _catalogoExercicios.map((ex) {
+                            items: _catalogoTreinos.map((t) {
+                              final totalEx = (t['exercicios'] as List? ?? []).length;
                               return DropdownMenuItem<String>(
-                                value: ex['id'].toString(),
+                                value: t['id'].toString(),
                                 child: Text(
-                                  ex['nome'].toString(),
-                                  style: const TextStyle(color: Colors.white),
+                                  '${t['titulo']} ($totalEx ex)',
+                                  style: const TextStyle(color: Colors.white, fontSize: 13),
+                                  overflow: TextOverflow.ellipsis,
                                 ),
                               );
                             }).toList(),
                             onChanged: (val) {
                               if (val != null) {
-                                setState(() => _exercicioSelecionadoId = val);
+                                setState(() => _treinoSelecionadoId = val);
+                                _salvarConfiguracaoTreino();
                               }
                             },
                           ),
 
                           const SizedBox(height: 12),
 
-                          // Séries e Repetições
-                          Row(
-                            children: [
-                              Expanded(
-                                child: DropdownButtonFormField<int>(
-                                  initialValue: _seriesSelecionadas,
-                                  dropdownColor: const Color(0xFF1E232A),
-                                  decoration: InputDecoration(
-                                    labelText: 'Total de Séries',
-                                    labelStyle: const TextStyle(color: Colors.white70),
-                                    filled: true,
-                                    fillColor: const Color(0xFF0D1117),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(10),
+                          // Card de Detalhes dos Exercícios do Treino Escolhido
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF0D1117),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: Colors.white12),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        '${_treinoSelecionado['titulo']}',
+                                        style: const TextStyle(
+                                          color: Color(0xFF00E676),
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 14,
+                                        ),
+                                      ),
                                     ),
-                                  ),
-                                  items: [1, 2, 3, 4, 5].map((s) {
-                                    return DropdownMenuItem<int>(
-                                      value: s,
-                                      child: Text('$s séries', style: const TextStyle(color: Colors.white)),
-                                    );
-                                  }).toList(),
-                                  onChanged: (val) {
-                                    if (val != null) {
-                                      setState(() => _seriesSelecionadas = val);
-                                    }
-                                  },
-                                ),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: DropdownButtonFormField<int>(
-                                  initialValue: _repeticoesSelecionadas,
-                                  dropdownColor: const Color(0xFF1E232A),
-                                  decoration: InputDecoration(
-                                    labelText: 'Reps por Série',
-                                    labelStyle: const TextStyle(color: Colors.white70),
-                                    filled: true,
-                                    fillColor: const Color(0xFF0D1117),
-                                    border: OutlineInputBorder(
-                                      borderRadius: BorderRadius.circular(10),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF00E676).withValues(alpha: 0.15),
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Text(
+                                        _treinoSelecionado['dificuldade'] ?? 'Intermediário',
+                                        style: const TextStyle(
+                                          color: Color(0xFF00E676),
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
                                     ),
-                                  ),
-                                  items: [6, 8, 10, 12, 15].map((r) {
-                                    return DropdownMenuItem<int>(
-                                      value: r,
-                                      child: Text('$r reps', style: const TextStyle(color: Colors.white)),
-                                    );
-                                  }).toList(),
-                                  onChanged: (val) {
-                                    if (val != null) {
-                                      setState(() => _repeticoesSelecionadas = val);
-                                    }
-                                  },
+                                  ],
                                 ),
-                              ),
-                            ],
+                                const SizedBox(height: 8),
+                                ...((_treinoSelecionado['exercicios'] as List? ?? []).asMap().entries.map((entry) {
+                                  final idx = entry.key + 1;
+                                  final ex = entry.value as Map<String, dynamic>;
+                                  return Padding(
+                                    padding: const EdgeInsets.symmetric(vertical: 4),
+                                    child: Row(
+                                      children: [
+                                        CircleAvatar(
+                                          radius: 10,
+                                          backgroundColor: const Color(0xFF00E676).withValues(alpha: 0.2),
+                                          child: Text(
+                                            '$idx',
+                                            style: const TextStyle(
+                                              color: Color(0xFF00E676),
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: Text(
+                                            ex['nome']?.toString() ?? 'Exercício',
+                                            style: const TextStyle(color: Colors.white, fontSize: 13),
+                                          ),
+                                        ),
+                                        Text(
+                                          '${ex['series'] ?? 3}x ${ex['repeticoes'] ?? 10} reps',
+                                          style: const TextStyle(color: Colors.white60, fontSize: 12),
+                                        ),
+                                      ],
+                                    ),
+                                  );
+                                })),
+                              ],
+                            ),
                           ),
+
                           const SizedBox(height: 12),
                           OutlinedButton.icon(
                             onPressed: _salvandoTreino ? null : _salvarConfiguracaoTreino,
@@ -567,7 +723,7 @@ class _LobbyDuplaScreenState extends State<LobbyDuplaScreen> {
                                     child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF00E676)),
                                   )
                                 : const Icon(Icons.sync, size: 18),
-                            label: const Text('Sincronizar Exercício com Convidado'),
+                            label: const Text('Sincronizar Treino com Convidado'),
                             style: OutlinedButton.styleFrom(
                               foregroundColor: const Color(0xFF00E676),
                               side: const BorderSide(color: Color(0xFF00E676)),
@@ -576,19 +732,88 @@ class _LobbyDuplaScreenState extends State<LobbyDuplaScreen> {
                           ),
                         ] else ...[
                           // Visualização do Convidado
-                          ListTile(
-                            contentPadding: EdgeInsets.zero,
-                            leading: const CircleAvatar(
-                              backgroundColor: Color(0xFF00E676),
-                              child: Icon(Icons.fitness_center, color: Colors.black),
+                          Container(
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF0D1117),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: Colors.white12),
                             ),
-                            title: Text(
-                              _sessao?.dadosTreino['nome']?.toString() ?? 'Desenvolvimento com Halteres',
-                              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                            ),
-                            subtitle: Text(
-                              '${_sessao?.totalSeries ?? 3} séries de revezamento com IA',
-                              style: const TextStyle(color: Colors.white60),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Expanded(
+                                      child: Text(
+                                        _sessao?.dadosTreino['nome']?.toString() ?? 'Circuito Completo IA',
+                                        style: const TextStyle(
+                                          color: Color(0xFF00E676),
+                                          fontWeight: FontWeight.bold,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                    ),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF00E676).withValues(alpha: 0.15),
+                                        borderRadius: BorderRadius.circular(6),
+                                      ),
+                                      child: Text(
+                                        _sessao?.dadosTreino['dificuldade']?.toString() ?? 'Dupla IA',
+                                        style: const TextStyle(
+                                          color: Color(0xFF00E676),
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                if (_sessao?.dadosTreino['exercicios'] is List)
+                                  ...((_sessao!.dadosTreino['exercicios'] as List).asMap().entries.map((entry) {
+                                    final idx = entry.key + 1;
+                                    final ex = Map<String, dynamic>.from(entry.value as Map);
+                                    return Padding(
+                                      padding: const EdgeInsets.symmetric(vertical: 4),
+                                      child: Row(
+                                        children: [
+                                          CircleAvatar(
+                                            radius: 10,
+                                            backgroundColor: const Color(0xFF00E676).withValues(alpha: 0.2),
+                                            child: Text(
+                                              '$idx',
+                                              style: const TextStyle(
+                                                color: Color(0xFF00E676),
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 8),
+                                          Expanded(
+                                            child: Text(
+                                              ex['nome']?.toString() ?? 'Exercício',
+                                              style: const TextStyle(color: Colors.white, fontSize: 13),
+                                            ),
+                                          ),
+                                          Text(
+                                            '${ex['series'] ?? 3}x ${ex['repeticoes'] ?? 10} reps',
+                                            style: const TextStyle(color: Colors.white60, fontSize: 12),
+                                          ),
+                                        ],
+                                      ),
+                                    );
+                                  }))
+                                else
+                                  Text(
+                                    '${_sessao?.totalSeries ?? 3} séries por exercício em revezamento com IA',
+                                    style: const TextStyle(color: Colors.white60, fontSize: 13),
+                                  ),
+                              ],
                             ),
                           ),
                         ],

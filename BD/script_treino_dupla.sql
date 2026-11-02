@@ -9,7 +9,7 @@ CREATE TABLE IF NOT EXISTS public.sessoes_treino_dupla (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     host_id UUID NOT NULL REFERENCES public.usuarios(id) ON DELETE CASCADE,
     convidado_id UUID NOT NULL REFERENCES public.usuarios(id) ON DELETE CASCADE,
-    treino_id UUID REFERENCES public.treinos(id) ON DELETE SET NULL,
+    treino_id BIGINT REFERENCES public.treinos(id) ON DELETE SET NULL,
     dados_treino JSONB DEFAULT '{}'::jsonb, -- Armazena snapshot dos exercícios, séries e repetições
     status VARCHAR(30) NOT NULL DEFAULT 'pendente', 
     -- Valores possíveis para status: 

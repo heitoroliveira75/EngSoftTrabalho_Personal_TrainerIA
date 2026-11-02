@@ -74,7 +74,7 @@ class ApiService {
               'senha': senha,
             }),
           )
-          .timeout(const Duration(seconds: 15));
+          .timeout(const Duration(seconds: 60));
 
       final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
       if (data['sucesso'] == true && data['usuario'] != null) {
@@ -108,7 +108,7 @@ class ApiService {
               'senha': senha,
             }),
           )
-          .timeout(const Duration(seconds: 15));
+          .timeout(const Duration(seconds: 60));
 
       final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
 
@@ -192,7 +192,7 @@ class ApiService {
             headers: _headers,
             body: jsonEncode({'email': email}),
           )
-          .timeout(const Duration(seconds: 15));
+          .timeout(const Duration(seconds: 60));
 
       final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
       return data;
@@ -222,7 +222,7 @@ class ApiService {
               'nova_senha': novaSenha,
             }),
           )
-          .timeout(const Duration(seconds: 15));
+          .timeout(const Duration(seconds: 60));
 
       final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
       return data;
@@ -252,7 +252,7 @@ class ApiService {
               if (email != null) 'email': email,
             }),
           )
-          .timeout(const Duration(seconds: 15));
+          .timeout(const Duration(seconds: 60));
 
       final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
       return data;
@@ -320,7 +320,7 @@ class ApiService {
               if (checagem != null) 'checagem': checagem,
             }),
           )
-          .timeout(const Duration(seconds: 15));
+          .timeout(const Duration(seconds: 60));
 
       final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
       if (data['sucesso'] == true) {
@@ -486,7 +486,7 @@ class ApiService {
               if (exercicios != null) 'exercicios': exercicios,
             }),
           )
-          .timeout(const Duration(seconds: 15));
+          .timeout(const Duration(seconds: 60));
 
       final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
       return data;
@@ -517,7 +517,7 @@ class ApiService {
               if (exercicios != null) 'exercicios': exercicios,
             }),
           )
-          .timeout(const Duration(seconds: 15));
+          .timeout(const Duration(seconds: 60));
 
       final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
       return data;
@@ -661,7 +661,7 @@ class ApiService {
                 'incrementar_sequencia': incrementarSequencia,
             }),
           )
-          .timeout(const Duration(seconds: 15));
+          .timeout(const Duration(seconds: 60));
 
       final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
       if (data['sucesso'] == true) {
@@ -710,7 +710,7 @@ class ApiService {
               'sequencia': sequencia,
             }),
           )
-          .timeout(const Duration(seconds: 15));
+          .timeout(const Duration(seconds: 60));
 
       final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
       if (data['sucesso'] == true) {
@@ -745,7 +745,7 @@ class ApiService {
               'maior_sequencia': maiorSequencia,
             }),
           )
-          .timeout(const Duration(seconds: 15));
+          .timeout(const Duration(seconds: 60));
 
       final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
       if (data['sucesso'] == true) {
@@ -777,7 +777,7 @@ class ApiService {
               'checagem': checagem,
             }),
           )
-          .timeout(const Duration(seconds: 15));
+          .timeout(const Duration(seconds: 60));
 
       final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
       if (data['sucesso'] == true) {
@@ -899,7 +899,7 @@ class ApiService {
               'amigo_id': amigoId,
             }),
           )
-          .timeout(const Duration(seconds: 15));
+          .timeout(const Duration(seconds: 60));
       return jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
     } catch (e) {
       return {'sucesso': false, 'mensagem': 'Erro ao enviar solicitação: $e'};
@@ -916,7 +916,7 @@ class ApiService {
             headers: _headers,
             body: jsonEncode({'status': status}),
           )
-          .timeout(const Duration(seconds: 15));
+          .timeout(const Duration(seconds: 60));
       return jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
     } catch (e) {
       return {'sucesso': false, 'mensagem': 'Erro ao responder solicitação: $e'};
@@ -943,7 +943,7 @@ class ApiService {
       final url = Uri.parse('$baseUrl/pontuacao/$usuarioId/resetar-checagem');
       final response = await http
           .post(url, headers: _headers)
-          .timeout(const Duration(seconds: 15));
+          .timeout(const Duration(seconds: 60));
 
       final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
       if (data['sucesso'] == true) {
@@ -1098,7 +1098,7 @@ class ApiService {
               'incrementar_sequencia': incrementarSequencia,
             }),
           )
-          .timeout(const Duration(seconds: 15));
+          .timeout(const Duration(seconds: 60));
       return jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
     } catch (e) {
       return {'sucesso': false, 'mensagem': 'Erro ao finalizar série IA: $e'};
@@ -1134,7 +1134,7 @@ class ApiService {
               'total_series': totalSeries,
             }),
           )
-          .timeout(const Duration(seconds: 15));
+          .timeout(const Duration(seconds: 60));
       return jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
     } catch (e) {
       return {'sucesso': false, 'mensagem': 'Erro ao enviar convite de treino em dupla: $e'};
@@ -1177,7 +1177,7 @@ class ApiService {
               'resposta': resposta,
             }),
           )
-          .timeout(const Duration(seconds: 15));
+          .timeout(const Duration(seconds: 60));
       return jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
     } catch (e) {
       return {'sucesso': false, 'mensagem': 'Erro ao responder convite: $e'};
@@ -1209,7 +1209,7 @@ class ApiService {
               'total_series': totalSeries,
             }),
           )
-          .timeout(const Duration(seconds: 15));
+          .timeout(const Duration(seconds: 60));
       return jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
     } catch (e) {
       return {'sucesso': false, 'mensagem': 'Erro ao configurar treino da dupla: $e'};
@@ -1233,7 +1233,7 @@ class ApiService {
               'host_id': hostId,
             }),
           )
-          .timeout(const Duration(seconds: 15));
+          .timeout(const Duration(seconds: 60));
       return jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
     } catch (e) {
       return {'sucesso': false, 'mensagem': 'Erro ao iniciar treino em dupla: $e'};
@@ -1278,7 +1278,7 @@ class ApiService {
               'novo_indice_exercicio': novoIndiceExercicio,
             }),
           )
-          .timeout(const Duration(seconds: 15));
+          .timeout(const Duration(seconds: 60));
       return jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
     } catch (e) {
       return {'sucesso': false, 'mensagem': 'Erro ao concluir série em dupla: $e'};
@@ -1299,7 +1299,7 @@ class ApiService {
               'solicitante_id': uid,
             }),
           )
-          .timeout(const Duration(seconds: 15));
+          .timeout(const Duration(seconds: 60));
       return jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
     } catch (e) {
       return {'sucesso': false, 'mensagem': 'Erro ao encerrar sessão em dupla: $e'};
