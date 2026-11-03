@@ -26,6 +26,38 @@
 
 ## Histórico de Entradas
 
+### [Entrada #018] 2026-11-02 — Integração do Ciclo de Séries/Repetições e Seleção de Treino Completo em Dupla
+- **Objetivo / História de Usuário:**
+  1. Integrar as correções da branch `feature/repeticao`: pausa automática das repetições ao atingir a meta, diálogo com intervalo de descanso entre séries e confirmação explícita para avançar de série/exercício.
+  2. Implementar no Treino em Dupla (`LobbyDuplaScreen`) a seleção de um **treino inteiro** (com múltiplos exercícios e séries configuradas) pelo Host, em substituição ao exercício isolado.
+  3. Unificar a lógica entre treinos solo e treinos em dupla: ao concluir as repetições da série com IA, o aplicativo finaliza a série e aguarda confirmação explícita do atleta antes de passar o turno para o parceiro, avançar para o próximo exercício ou finalizar o treino cooperativo.
+- **Tasks Executadas e Artefatos Gerados:**
+  - `[TASK-REP-01]` Integração do ciclo de séries e repetições na tela `CameraTreinoScreen`: parâmetros `totalSeries`, getters dinâmicos `_totalSeriesAtual` e `_serieAtual`, monitoramento contínuo em `_verificarProgressoSeries()`, exibição no contador HUD (`SÉRIE X DE Y`) e diálogo de intervalo com confirmação explícita $\rightarrow$ **Artefato:** `lib/screens/camera_treino_screen.dart`.
+  - `[TASK-REP-02]` Atualização de `TreinoSelecionadoScreen` para repassar a contagem de séries do exercício (`totalSeries: seriesEx`) à tela da câmera $\rightarrow$ **Artefato:** `lib/screens/treino_selecionado_screen.dart`.
+  - `[TASK-DUPLA-TREINO-01]` Expansão do catálogo de treinos no lobby em dupla (`LobbyDuplaScreen`) permitindo ao Host selecionar treinos completos (`Circuito Completo IA`, `Treino Superior IA`, `Treino Pernas & Ombros IA`, `Corpo completo A`, `Membros Inferiores & Core`), sincronizando em tempo real a lista completa de exercícios com o parceiro $\rightarrow$ **Artefato:** `lib/screens/lobby_dupla_screen.dart`.
+  - `[TASK-DUPLA-TREINO-02]` Adaptação da transição por turnos e exercícios em dupla em `CameraTreinoScreen`: diálogo de confirmação de série `_exibirDialogoIntervaloSerieDupla()`, avanço coordenado de exercício e série ao final dos ciclos de cada atleta, e polling reativo sincronizando o índice de exercício entre ambos $\rightarrow$ **Artefato:** `lib/screens/camera_treino_screen.dart`.
+  - `[TASK-TEST-01]` Testes automatizados expandidos com Flutter test cobrindo metas configuráveis de séries/repetições e treino em dupla com múltiplos exercícios $\rightarrow$ **Artefato:** `test/treinos_test.dart` (7 testes aprovados).
+- **Decisões Técnicas e Observações:**
+  - O fluxo em dupla respeita o revezamento por atleta em cada série. Ao concluir todas as séries de um exercício, o sistema sincroniza `novoIndiceExercicio` no backend (`/dupla/concluir-serie`), permitindo a ambos os atletas transitar automaticamente para o próximo exercício até a conclusão completa do treino.
+- **Estado Resultante:** 100% dos testes aprovados (63 testes Python + 7 testes Flutter).
+
+### [Entrada #017] 2026-11-01 — Implementação da Feature: Treinos em Dupla Cooperativos (US-DUPLA)
+- **Objetivo / História de Usuário:** Implementar o fluxo cooperativo de treinos em dupla com revezamento estrito de séries (Turn-Based Workout), sincronização em tempo real via polling resiliente, pausa automática de câmera/IA durante o descanso para economia de bateria e bonificação cooperativa de +20% (multiplicador 1.2x) creditada no Supabase/Leaderboard.
+- **Tasks Executadas e Artefatos Gerados:**
+  - `[TASK-DUPLA-01]` Elaborado script DDL SQL completo para criação da tabela `public.sessoes_treino_dupla` com integridade referencial, índices para busca rápida, trigger automática de `updated_at` e políticas RLS $\rightarrow$ **Artefato:** `BD/script_treino_dupla.sql`.
+  - `[TASK-DUPLA-02]` Implementados métodos de acesso a dados no repositório backend em `BD/main.py`: `criar_sessao_dupla`, `listar_convites_dupla_pendentes`, `responder_convite_dupla`, `selecionar_treino_dupla`, `iniciar_treino_dupla`, `obter_sessao_dupla`, `atualizar_turno_dupla` e `finalizar_sessao_dupla`, com suporte a banco de dados e fallback em memória resiliente $\rightarrow$ **Artefato:** `BD/main.py`.
+  - `[TASK-DUPLA-03]` Expostos endpoints REST no servidor FastAPI sob a tag `Treino em Dupla` com schemas Pydantic tipados: `/dupla/convidar`, `/dupla/convites/pendentes`, `/dupla/responder-convite`, `/dupla/selecionar-treino`, `/dupla/iniciar-treino`, `/dupla/estado/{sessao_id}`, `/dupla/concluir-serie` e `/dupla/encerrar-sessao` $\rightarrow$ **Artefato:** `BD/api.py`.
+  - `[TASK-DUPLA-04]` Criada suíte completa de testes automatizados com `pytest` validando convite, validação anti-duplicidade, listagem, recusa, lobby, revezamento e o cálculo matemático exato do bônus cooperativo $\text{round}(((A+B)/2)\times 1.2)$ $\rightarrow$ **Artefato:** `tests/test_treino_dupla_api.py` (8 testes aprovados).
+  - `[TASK-DUPLA-05]` Criado modelo `SessaoDupla` em Dart e métodos assíncronos no `ApiService` no Flutter para consumo de todas as rotas de treino em dupla $\rightarrow$ **Artefatos:** `lib/models/sessao_dupla.dart`, `lib/services/api_service.dart`.
+  - `[TASK-DUPLA-06]` Integrado botão "Dupla" em cada amigo na `AmigosScreen`, listener periódico para convites pendentes e diálogo receptivo com ações "Aceitar" e "Recusar" $\rightarrow$ **Artefato:** `lib/screens/amigos_screen.dart`.
+  - `[TASK-DUPLA-07]` Criada nova tela de Lobby sincronizada (`LobbyDuplaScreen`) e adaptada `CameraTreinoScreen` para alternância de turnos por série, pausa de hardware/ML Kit durante descanso, cronômetro de repouso e modal de resumo final com bônus de 20% $\rightarrow$ **Artefatos:** `lib/screens/lobby_dupla_screen.dart`, `lib/screens/camera_treino_screen.dart`.
+  - `[TASK-DUPLA-08]` Homologação integrada dos testes (63 testes Python aprovados + 5 testes Flutter aprovados + análise estática limpa) e atualização de documentação $\rightarrow$ **Artefatos:** `DEVLOG.md`, `EXPLICACAO_IA.md`, `CONTEXTO_IA.md`.
+- **Decisões Técnicas e Observações:**
+  1. *Fórmula Cooperativa no Backend:* O cálculo de pontuação $\text{round}(((P_A + P_B) / 2) \times 1.20)$ e o crédito no Supabase via `adicionar_pontuacao_diaria` são realizados estritamente no backend para integridade de dados e prevenção a manipulações locais.
+  2. *Pausa de Hardware no Descanso:* Quando o turno é do parceiro, a captura de frames da câmera e o processamento de poses são suspensos, reduzindo o aquecimento e o consumo de bateria do smartphone.
+  3. *Arquitetura Resiliente:* Implementado fallback em memória em `BD/main.py` garantindo que o app Flutter e a suíte de testes funcionem mesmo antes do script SQL ser executado no painel web do Supabase.
+- **Estado Resultante:** 100% dos testes aprovados (63 no pytest + 5 no flutter test), `flutter analyze` sem nenhum apontamento. Feature de Treinos em Dupla finalizada e pronta para homologação em dispositivos físicos.
+
 ### [Entrada #016] 2026-10-31 — Migração para WebSocket Persistente e MediaPipe On-Device (Sprints WS-01, WS-02 e WS-03)
 - **Objetivo / História de Usuário:** Reduzir radicalmente a latência da análise biomecânica (de ~500–800ms para ~50–150ms) e o tráfego de rede (de ~30KB por frame JPEG para ~200 bytes por payload JSON), migrando a estimação de pose para o dispositivo móvel (Google ML Kit on-device) e estabelecendo canal de comunicação persistente via WebSocket bidirecional com o backend FastAPI.
 - **Tasks Executadas e Artefatos Gerados:**

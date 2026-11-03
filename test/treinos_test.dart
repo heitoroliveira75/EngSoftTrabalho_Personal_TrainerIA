@@ -4,6 +4,7 @@ import 'package:flutter_application_1/models/exercicio_treino.dart';
 import 'package:flutter_application_1/screens/dificuldade_treino_screen.dart';
 import 'package:flutter_application_1/screens/training_menu_screen.dart';
 import 'package:flutter_application_1/screens/opcao_treinos_screen.dart';
+import 'package:flutter_application_1/screens/camera_treino_screen.dart';
 
 void main() {
   group('ExercicioTreino Model Tests', () {
@@ -75,6 +76,45 @@ void main() {
 
       expect(find.text('INICIANTE'), findsOneWidget);
       expect(find.text('Corpo completo A'), findsOneWidget);
+    });
+  });
+
+  group('CameraTreinoScreen Series & Reps Tests', () {
+    test('CameraTreinoScreen suporta metas configuráveis de séries e repetições', () {
+      const screen = CameraTreinoScreen(
+        exercicioId: '20',
+        exercicioNome: 'Rosca Direta',
+        metaRepeticoes: 8,
+        totalSeries: 3,
+      );
+
+      expect(screen.exercicioId, '20');
+      expect(screen.exercicioNome, 'Rosca Direta');
+      expect(screen.metaRepeticoes, 8);
+      expect(screen.totalSeries, 3);
+    });
+
+    test('CameraTreinoScreen suporta modo dupla com lista completa de exercícios', () {
+      final exercicios = [
+        {'id': '16', 'nome': 'Desenvolvimento com Halteres', 'series': 3, 'repeticoes': 10},
+        {'id': '11', 'nome': 'Agachamento Livre', 'series': 3, 'repeticoes': 12},
+      ];
+
+      final screen = CameraTreinoScreen(
+        exercicioId: '16',
+        exercicioNome: 'Desenvolvimento com Halteres',
+        metaRepeticoes: 10,
+        totalSeries: 3,
+        listaExercicios: exercicios,
+        isModoDupla: true,
+        sessaoDuplaId: 'sessao-123',
+        isHostDupla: true,
+      );
+
+      expect(screen.isModoDupla, isTrue);
+      expect(screen.isHostDupla, isTrue);
+      expect(screen.sessaoDuplaId, 'sessao-123');
+      expect(screen.listaExercicios?.length, 2);
     });
   });
 }

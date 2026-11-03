@@ -15,11 +15,17 @@ class CameraTreinoScreen extends StatefulWidget {
   final String exercicioId;
   final String exercicioNome;
   final int metaRepeticoes;
+  final int totalSeries;
   final int exercicioIndice;
   final int totalExercicios;
   final String? proximoExercicioNome;
   final List<Map<String, dynamic>>? listaExercicios;
   final int indiceInicial;
+  final bool isModoDupla;
+  final String? sessaoDuplaId;
+  final String? parceiroId;
+  final String? parceiroNome;
+  final bool isHostDupla;
 
   const CameraTreinoScreen({
     super.key,
@@ -28,11 +34,17 @@ class CameraTreinoScreen extends StatefulWidget {
     this.exercicioId = '16',
     this.exercicioNome = 'Desenvolvimento com Halteres',
     this.metaRepeticoes = 10,
+    this.totalSeries = 3,
     this.exercicioIndice = 1,
     this.totalExercicios = 1,
     this.proximoExercicioNome,
     this.listaExercicios,
     this.indiceInicial = 0,
+    this.isModoDupla = false,
+    this.sessaoDuplaId,
+    this.parceiroId,
+    this.parceiroNome,
+    this.isHostDupla = true,
   });
 
   @override
@@ -69,6 +81,8 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
   bool _mostrandoFeedbackSucesso = false;
   bool _isFinalizando = false;
   bool _isSimulando = false;
+  int _seriesConcluidas = 0;
+  bool _isProcessandoFimDeSerie = false;
 
   // Telemetria e Diagnóstico em Tempo Real
   int _latenciaMs = 0;
@@ -80,6 +94,16 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
   IAWebSocketService? _wsService;
   final Stopwatch _latenciaSw = Stopwatch();
 
+  // Controle de Treino em Dupla (US-DUPLA)
+  bool _isMeuTurno = true;
+  int _serieAtualDupla = 1;
+  int _totalSeriesDupla = 3;
+  int _pontosAcumuladosHost = 0;
+  int _pontosAcumuladosConvidado = 0;
+  Timer? _duplaPollingTimer;
+  int _tempoDescansoSegundos = 0;
+  Timer? _descansoTimer;
+
   Map<String, dynamic> get _exercicioAtual =>
       _exercicios.isNotEmpty ? _exercicios[_indiceAtual] : {};
   String get _exercicioIdAtual =>
@@ -88,6 +112,18 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
       _exercicioAtual['nome']?.toString() ?? widget.exercicioNome;
   int get _metaRepsAtual =>
       (_exercicioAtual['repeticoes'] as num?)?.toInt() ?? widget.metaRepeticoes;
+  int get _totalSeriesAtual {
+    final val = _exercicioAtual['series'];
+    if (val is num && val > 0) return val.toInt();
+    if (widget.isModoDupla && _totalSeriesDupla > 0) {
+      return _totalSeriesDupla;
+    }
+    return widget.totalSeries > 0 ? widget.totalSeries : 3;
+  }
+  int get _serieAtual {
+    if (widget.isModoDupla) return _serieAtualDupla;
+    return (_seriesConcluidas + 1).clamp(1, _totalSeriesAtual);
+  }
   bool get _temProximoExercicio => (_indiceAtual + 1) < _exercicios.length;
   String? get _proximoExercicioNome =>
       _temProximoExercicio ? _exercicios[_indiceAtual + 1]['nome']?.toString() : null;
@@ -113,6 +149,13 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
     _poseService = PoseService();
     _iniciarWebSocket();
     _iniciarSessaoIA();
+    if (widget.isModoDupla) {
+      _isMeuTurno = widget.isHostDupla;
+      _iniciarPollingDupla();
+      if (!_isMeuTurno) {
+        _iniciarContadorDescanso();
+      }
+    }
     _setupCameras();
   }
 
@@ -135,6 +178,8 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
       setState(() {
         _indiceAtual++;
         _repeticoes = 0;
+        _seriesConcluidas = 0;
+        _isProcessandoFimDeSerie = false;
         _faseNome = 'Repouso';
         _faseNumero = 0;
         _alertaImediato = null;
@@ -290,6 +335,8 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
         _ultimaRepeticao = Map<String, dynamic>.from(res['ultima_repeticao'] as Map);
       }
     });
+
+    _verificarProgressoSeries();
   }
 
   void _startPeriodicSending() {
@@ -305,6 +352,7 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
 
     _timer = Timer.periodic(intervalo, (timer) async {
       if (!_isStreaming || _isSending || _isFinalizando) return;
+      if (widget.isModoDupla && !_isMeuTurno) return;
       if (_controller == null || !_controller!.value.isInitialized) return;
 
       _isSending = true;
@@ -397,6 +445,8 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
             _ultimaRepeticao = Map<String, dynamic>.from(res['ultima_repeticao'] as Map);
           }
         });
+
+        _verificarProgressoSeries();
       } else {
         setState(() {
           _statusConexao = '🟡 ${res['mensagem'] ?? 'Processando...'}';
@@ -451,6 +501,8 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
             duration: Duration(seconds: 2),
           ),
         );
+
+        _verificarProgressoSeries();
       }
     } catch (e) {
       if (mounted) {
@@ -486,6 +538,231 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
       final cotovelo = (_angulos['cotovelo'] as num?)?.toDouble() ?? 85.0;
       return ((cotovelo - 85.0) / (165.0 - 85.0)).clamp(0.0, 1.0);
     }
+  }
+
+  void _verificarProgressoSeries() {
+    if (_repeticoes < _metaRepsAtual) return;
+    if (_isProcessandoFimDeSerie || _isFinalizando) return;
+
+    if (widget.isModoDupla) {
+      if (!_isMeuTurno) return;
+      _isProcessandoFimDeSerie = true;
+      _timer?.cancel();
+      _exibirDialogoIntervaloSerieDupla();
+    } else {
+      _isProcessandoFimDeSerie = true;
+      final seriesFeitas = _seriesConcluidas + 1;
+
+      if (seriesFeitas < _totalSeriesAtual) {
+        _seriesConcluidas = seriesFeitas;
+        _exibirDialogoIntervaloSerie();
+      } else {
+        _seriesConcluidas = seriesFeitas;
+        _finalizarSerie();
+      }
+    }
+  }
+
+  Future<void> _exibirDialogoIntervaloSerie() async {
+    _timer?.cancel();
+
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF161B22),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.check_circle_outline, color: Color(0xFF00E676), size: 28),
+            SizedBox(width: 10),
+            Text(
+              'Série Completa!',
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Exercício: $_exercicioNomeAtual',
+              style: const TextStyle(color: Colors.white70, fontSize: 14),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF00E676).withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFF00E676)),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Séries Concluídas:',
+                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                  ),
+                  Text(
+                    '$_seriesConcluidas / $_totalSeriesAtual',
+                    style: const TextStyle(
+                      color: Color(0xFF00E676),
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Você completou $_metaRepsAtual repetições. Respire um instante antes de iniciar a Série ${_seriesConcluidas + 1}.',
+              style: const TextStyle(color: Colors.white70, fontSize: 13),
+            ),
+          ],
+        ),
+        actions: [
+          ElevatedButton.icon(
+            icon: const Icon(Icons.play_arrow_rounded, size: 20),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF00E676),
+              foregroundColor: Colors.black,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            onPressed: () => Navigator.pop(ctx),
+            label: Text(
+              'Iniciar Série ${_seriesConcluidas + 1}',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (!mounted) return;
+    setState(() {
+      _repeticoes = 0;
+      _faseNome = 'Repouso';
+      _faseNumero = 0;
+      _alertaImediato = null;
+      _isProcessandoFimDeSerie = false;
+    });
+
+    await _iniciarSessaoIA();
+    if (_wsService != null && _wsService!.conectado) {
+      _wsService!.trocarExercicio(exercicioId: _exercicioIdAtual, lado: _lado);
+    }
+
+    if (mounted) {
+      _startPeriodicSending();
+    }
+  }
+
+  Future<void> _exibirDialogoIntervaloSerieDupla() async {
+    _timer?.cancel();
+
+    final bool isHost = widget.isHostDupla;
+    final bool isUltimaSerie = _serieAtualDupla >= _totalSeriesAtual;
+    final bool temProx = _temProximoExercicio;
+
+    String mensagemBotao;
+    String descricao;
+
+    if (isHost) {
+      mensagemBotao = 'Passar a Vez para ${widget.parceiroNome ?? "Parceiro"} ➔';
+      descricao = 'Você completou as $_metaRepsAtual repetições da Série $_serieAtualDupla. Confirme para passar o turno para seu parceiro.';
+    } else {
+      if (!isUltimaSerie) {
+        mensagemBotao = 'Confirmar Série e Passar Vez ➔';
+        descricao = 'Série $_serieAtualDupla finalizada! Confirme para iniciar a Série ${_serieAtualDupla + 1} com ${widget.parceiroNome ?? "o Host"}.';
+      } else if (temProx) {
+        mensagemBotao = 'Próximo Exercício: $_proximoExercicioNome ➔';
+        descricao = 'Exercício finalizado com sucesso pela dupla! Confirme para avançar para o próximo exercício do treino.';
+      } else {
+        mensagemBotao = 'Finalizar Treino em Dupla 🎉';
+        descricao = 'Parabéns! Todas as séries de todos os exercícios foram concluídas pela dupla!';
+      }
+    }
+
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF161B22),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Icon(Icons.check_circle_outline, color: Color(0xFF00E676), size: 28),
+            SizedBox(width: 10),
+            Text(
+              'Série Concluída!',
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Exercício: $_exercicioNomeAtual',
+              style: const TextStyle(color: Colors.white70, fontSize: 14),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF00E676).withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFF00E676)),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Série Atual:',
+                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                  ),
+                  Text(
+                    '$_serieAtualDupla / $_totalSeriesAtual',
+                    style: const TextStyle(
+                      color: Color(0xFF00E676),
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              descricao,
+              style: const TextStyle(color: Colors.white70, fontSize: 13),
+            ),
+          ],
+        ),
+        actions: [
+          ElevatedButton.icon(
+            icon: const Icon(Icons.check, size: 20),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF00E676),
+              foregroundColor: Colors.black,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            onPressed: () {
+              Navigator.pop(ctx);
+              _concluirSerieDupla();
+            },
+            label: Text(
+              mensagemBotao,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _finalizarSerie() async {
@@ -647,7 +924,12 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
         _startPeriodicSending();
       }
     } finally {
-      if (mounted) setState(() => _isFinalizando = false);
+      if (mounted) {
+        setState(() {
+          _isFinalizando = false;
+          _isProcessandoFimDeSerie = false;
+        });
+      }
     }
   }
 
@@ -677,6 +959,8 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
 
   @override
   void dispose() {
+    _duplaPollingTimer?.cancel();
+    _descansoTimer?.cancel();
     _timer?.cancel();
     _feedbackTimer?.cancel();
     _wsService?.desconectar();
@@ -695,11 +979,16 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
             // Feed da Câmera
             _buildCameraPreview(),
 
+            // Se for treino em dupla e NÃO for a minha vez, exibe tela de descanso em overlay
+            if (widget.isModoDupla && !_isMeuTurno)
+              _buildDescansoDuplaOverlay(),
+
             // HUD Superior: Barra de Informações do Treino
             _buildTopBar(),
 
             // HUD Central: Card de Feedback Postural em Tempo Real
-            _buildFeedbackOverlay(),
+            if (!widget.isModoDupla || _isMeuTurno)
+              _buildFeedbackOverlay(),
 
             // HUD Inferior: Controles de Treino e Simulação
             _buildBottomControls(),
@@ -775,22 +1064,75 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
       top: 16,
       left: 16,
       right: 16,
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      child: Column(
         children: [
-          // Botão Voltar
-          CircleAvatar(
-            backgroundColor: Colors.black54,
-            child: IconButton(
-              icon: const Icon(Icons.arrow_back, color: Colors.white),
-              onPressed: () {
-                Navigator.pop(context, {
-                  'concluido': _indicesConcluidos.isNotEmpty,
-                  'indicesConcluidos': _indicesConcluidos.toList(),
-                });
-              },
+          if (widget.isModoDupla) ...[
+            Container(
+              margin: const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              decoration: BoxDecoration(
+                color: _isMeuTurno
+                    ? const Color(0xFF00E676).withValues(alpha: 0.95)
+                    : Colors.amber[800]!.withValues(alpha: 0.95),
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: const [
+                  BoxShadow(color: Colors.black45, blurRadius: 6, offset: Offset(0, 2)),
+                ],
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    _isMeuTurno ? Icons.play_circle_fill : Icons.pause_circle_filled,
+                    color: Colors.black,
+                    size: 20,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      _isMeuTurno
+                          ? '🟢 SUA VEZ! Série $_serieAtualDupla/$_totalSeriesDupla • Execute com IA'
+                          : '🟠 VEZ DE ${widget.parceiroNome ?? "PARCEIRO"}! Série $_serieAtualDupla/$_totalSeriesDupla • Descanse',
+                      style: const TextStyle(
+                        color: Colors.black,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: _encerrarTreinoDupla,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.black26,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: const Text(
+                        'Encerrar',
+                        style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 11),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
+          ],
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              // Botão Voltar
+              CircleAvatar(
+                backgroundColor: Colors.black54,
+                child: IconButton(
+                  icon: const Icon(Icons.arrow_back, color: Colors.white),
+                  onPressed: () {
+                    Navigator.pop(context, {
+                      'concluido': _indicesConcluidos.isNotEmpty,
+                      'indicesConcluidos': _indicesConcluidos.toList(),
+                    });
+                  },
+                ),
+              ),
 
           // Título do Exercício, Contador de Exercícios e Lado
           Expanded(
@@ -850,6 +1192,8 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
                 onPressed: _switchCamera,
               ),
             ),
+        ],
+      ),
         ],
       ),
     );
@@ -1104,23 +1448,46 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
               borderRadius: BorderRadius.circular(24),
               border: Border.all(color: const Color(0xFF00E676), width: 1.5),
             ),
-            child: Row(
+            child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  '$_repeticoes',
-                  style: const TextStyle(
-                    color: Color(0xFF00E676),
-                    fontSize: 30,
-                    fontWeight: FontWeight.bold,
-                  ),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      '$_repeticoes',
+                      style: const TextStyle(
+                        color: Color(0xFF00E676),
+                        fontSize: 30,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    Text(
+                      ' / $_metaRepsAtual REPS',
+                      style: const TextStyle(
+                        color: Colors.white70,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
                 ),
-                Text(
-                  ' / $_metaRepsAtual REPS',
-                  style: const TextStyle(
-                    color: Colors.white70,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
+                const SizedBox(height: 3),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF00E676).withValues(alpha: 0.18),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0xFF00E676).withValues(alpha: 0.5)),
+                  ),
+                  child: Text(
+                    'SÉRIE $_serieAtual DE $_totalSeriesAtual',
+                    style: const TextStyle(
+                      color: Color(0xFF00E676),
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 1.0,
+                    ),
                   ),
                 ),
               ],
@@ -1197,9 +1564,11 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
               label: const Text('Simular Rep', style: TextStyle(fontSize: 12)),
             ),
 
-            // Botão Finalizar Série
+            // Botão Finalizar Série / Concluir Série Dupla
             ElevatedButton.icon(
-              onPressed: _isFinalizando ? null : _finalizarSerie,
+              onPressed: _isFinalizando
+                  ? null
+                  : (widget.isModoDupla ? _concluirSerieDupla : _finalizarSerie),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF00E676),
                 foregroundColor: Colors.black,
@@ -1212,11 +1581,481 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
                       height: 16,
                       child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
                     )
-                  : const Icon(Icons.check_circle, size: 18),
-              label: const Text(
-                'Finalizar',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                  : Icon(
+                      widget.isModoDupla ? Icons.arrow_forward_rounded : Icons.check_circle,
+                      size: 18,
+                    ),
+              label: Text(
+                widget.isModoDupla ? 'Passar Vez ➡️' : 'Finalizar',
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
               ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ============================================================
+  // MÉTODOS DE CONTROLE DO TREINO EM DUPLA (US-DUPLA)
+  // ============================================================
+
+  void _iniciarContadorDescanso() {
+    _descansoTimer?.cancel();
+    setState(() => _tempoDescansoSegundos = 0);
+    _descansoTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted && !_isMeuTurno) {
+        setState(() => _tempoDescansoSegundos++);
+      }
+    });
+  }
+
+  void _iniciarPollingDupla() {
+    if (!widget.isModoDupla || widget.sessaoDuplaId == null) return;
+    _duplaPollingTimer?.cancel();
+    _duplaPollingTimer = Timer.periodic(const Duration(milliseconds: 1500), (_) async {
+      if (!mounted) return;
+      try {
+        final res = await ApiService().obterEstadoSessaoDupla(widget.sessaoDuplaId!);
+        if (!mounted || res['sucesso'] != true || res['sessao'] == null) return;
+
+        final sessao = Map<String, dynamic>.from(res['sessao'] as Map);
+        final status = sessao['status']?.toString();
+        final turnoId = sessao['turno_usuario_id']?.toString();
+        final meuId = ApiService().idUsuarioAtual;
+
+        // Se a sessão foi finalizada pelo parceiro
+        if (status == 'finalizado' && !_isFinalizando) {
+          _duplaPollingTimer?.cancel();
+          _exibirResumoDuplaConcluido(sessao);
+          return;
+        }
+
+        final pHost = (sessao['pontos_host'] as num?)?.toInt() ?? _pontosAcumuladosHost;
+        final pConvidado = (sessao['pontos_convidado'] as num?)?.toInt() ?? _pontosAcumuladosConvidado;
+        final sAtual = (sessao['serie_atual'] as num?)?.toInt() ?? _serieAtualDupla;
+        final sTotal = (sessao['total_series'] as num?)?.toInt() ?? _totalSeriesDupla;
+        final indEx = (sessao['indice_exercicio_atual'] as num?)?.toInt() ?? _indiceAtual;
+
+        // Se a dupla avançou para o próximo exercício
+        if (indEx > _indiceAtual && indEx < _exercicios.length) {
+          _indicesConcluidos.add(_indiceAtual);
+          setState(() {
+            _indiceAtual = indEx;
+            _serieAtualDupla = sAtual;
+            _repeticoes = 0;
+            _faseNome = 'Repouso';
+            _faseNumero = 0;
+            _alertaImediato = null;
+          });
+          await _iniciarSessaoIA();
+          if (_wsService != null && _wsService!.conectado) {
+            _wsService!.trocarExercicio(exercicioId: _exercicioIdAtual, lado: _lado);
+          }
+        }
+
+        // Verifica transição de turno para este usuário
+        final bool novoTurnoMeu = (meuId != null && turnoId != null && meuId == turnoId);
+
+        if (!_isMeuTurno && novoTurnoMeu) {
+          _descansoTimer?.cancel();
+          setState(() {
+            _isMeuTurno = true;
+            _isProcessandoFimDeSerie = false;
+            _serieAtualDupla = sAtual;
+            _totalSeriesDupla = sTotal;
+            _pontosAcumuladosHost = pHost;
+            _pontosAcumuladosConvidado = pConvidado;
+            _repeticoes = 0;
+            _faseNome = 'Repouso';
+            _faseNumero = 0;
+            _alertaImediato = null;
+          });
+
+          await _iniciarSessaoIA();
+          if (_wsService != null && _wsService!.conectado) {
+            _wsService!.trocarExercicio(exercicioId: _exercicioIdAtual, lado: _lado);
+          }
+
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('🟢 SUA VEZ! $_exercicioNomeAtual • Série $_serieAtualDupla de $_totalSeriesAtual!'),
+                backgroundColor: const Color(0xFF00E676),
+                duration: const Duration(seconds: 3),
+              ),
+            );
+            _startPeriodicSending();
+          }
+        } else {
+          setState(() {
+            _pontosAcumuladosHost = pHost;
+            _pontosAcumuladosConvidado = pConvidado;
+            _serieAtualDupla = sAtual;
+            _totalSeriesDupla = sTotal;
+          });
+        }
+      } catch (_) {}
+    });
+  }
+
+  Future<void> _concluirSerieDupla() async {
+    setState(() => _isFinalizando = true);
+    _timer?.cancel();
+
+    int pontosSerie = 0;
+    try {
+      final res = await ApiService().finalizarSerieEPontuarIA(incrementarSequencia: false);
+      if (res['sucesso'] == true) {
+        pontosSerie = (res['pontos_atribuidos'] as num?)?.toInt() ?? (_repeticoes * 5 + 30);
+      } else {
+        pontosSerie = _repeticoes * 5 + 30;
+      }
+    } catch (_) {
+      pontosSerie = _repeticoes * 5 + 30;
+    }
+
+    int? proximaSerieCalc;
+    int? proximoIndiceExCalc;
+    bool treinoFinalizado = false;
+
+    if (widget.isHostDupla) {
+      // Host acabou a série atual -> passa para o Convidado na mesma série e mesmo exercício
+      proximaSerieCalc = _serieAtualDupla;
+      proximoIndiceExCalc = _indiceAtual;
+    } else {
+      // Convidado acabou a série atual
+      if (_serieAtualDupla < _totalSeriesAtual) {
+        // Ainda há séries neste exercício
+        proximaSerieCalc = _serieAtualDupla + 1;
+        proximoIndiceExCalc = _indiceAtual;
+      } else {
+        // Todas as séries deste exercício foram finalizadas pela dupla!
+        if (_temProximoExercicio) {
+          proximaSerieCalc = 1;
+          proximoIndiceExCalc = _indiceAtual + 1;
+        } else {
+          treinoFinalizado = true;
+        }
+      }
+    }
+
+    if (treinoFinalizado) {
+      await _encerrarTreinoDupla();
+      return;
+    }
+
+    try {
+      final resDupla = await ApiService().concluirSerieDupla(
+        sessaoId: widget.sessaoDuplaId!,
+        pontosSerie: pontosSerie,
+        proximoTurnoId: widget.parceiroId,
+        novaSerie: proximaSerieCalc,
+        novoIndiceExercicio: proximoIndiceExCalc,
+      );
+
+      if (!mounted) return;
+
+      final bool trocouEx = (proximoIndiceExCalc != null && proximoIndiceExCalc > _indiceAtual);
+
+      setState(() {
+        _isFinalizando = false;
+        _isProcessandoFimDeSerie = false;
+        _isMeuTurno = false;
+        _repeticoes = 0;
+        _faseNome = 'Repouso';
+        _faseNumero = 0;
+        _alertaImediato = null;
+        if (trocouEx) {
+          _indicesConcluidos.add(_indiceAtual);
+          _indiceAtual = proximoIndiceExCalc!;
+          _serieAtualDupla = proximaSerieCalc ?? 1;
+        }
+        if (resDupla['sucesso'] == true) {
+          _pontosAcumuladosHost = (resDupla['pontos_host'] as num?)?.toInt() ?? _pontosAcumuladosHost;
+          _pontosAcumuladosConvidado = (resDupla['pontos_convidado'] as num?)?.toInt() ?? _pontosAcumuladosConvidado;
+        }
+      });
+
+      if (trocouEx) {
+        await _iniciarSessaoIA();
+        if (_wsService != null && _wsService!.conectado) {
+          _wsService!.trocarExercicio(exercicioId: _exercicioIdAtual, lado: _lado);
+        }
+      }
+
+      _iniciarContadorDescanso();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Série concluída! +$pontosSerie pts. Vez de ${widget.parceiroNome ?? "Parceiro"}!'),
+          backgroundColor: Colors.amber[800],
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _isFinalizando = false;
+          _isProcessandoFimDeSerie = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao sincronizar turno: $e'), backgroundColor: Colors.redAccent),
+        );
+      }
+    }
+  }
+
+  Future<void> _encerrarTreinoDupla() async {
+    setState(() => _isFinalizando = true);
+    _duplaPollingTimer?.cancel();
+    _descansoTimer?.cancel();
+    _timer?.cancel();
+
+    try {
+      final res = await ApiService().encerrarSessaoDupla(widget.sessaoDuplaId!);
+      if (!mounted) return;
+      setState(() => _isFinalizando = false);
+
+      if (res['sucesso'] == true) {
+        _exibirResumoDuplaConcluido(res);
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(res['mensagem'] ?? 'Erro ao finalizar treino em dupla.'), backgroundColor: Colors.redAccent),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _isFinalizando = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erro ao encerrar treino: $e'), backgroundColor: Colors.redAccent),
+        );
+      }
+    }
+  }
+
+  void _exibirResumoDuplaConcluido(Map<String, dynamic> dados) {
+    final pontosHost = (dados['pontos_host'] as num?)?.toInt() ?? _pontosAcumuladosHost;
+    final pontosConvidado = (dados['pontos_convidado'] as num?)?.toInt() ?? _pontosAcumuladosConvidado;
+    final media = (dados['media_dupla'] as num?)?.toDouble() ?? ((pontosHost + pontosConvidado) / 2.0);
+    final pontosFinais = (dados['pontos_finais_cada'] as num?)?.toInt() ?? (media * 1.2).round();
+    final bonusExtra = (pontosFinais - media).round();
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF161B22),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: const Row(
+          children: [
+            Text('🎉', style: TextStyle(fontSize: 26)),
+            SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                'TREINO EM DUPLA CONCLUÍDO!',
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Parceiro: ${widget.parceiroNome ?? "Amigo"}',
+              style: const TextStyle(color: Colors.white70, fontSize: 14),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1E232A),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.white10),
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Pontos do Host:', style: TextStyle(color: Colors.white60, fontSize: 13)),
+                      Text('$pontosHost pts', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Pontos do Convidado:', style: TextStyle(color: Colors.white60, fontSize: 13)),
+                      Text('$pontosConvidado pts', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                  const Divider(color: Colors.white10, height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('Média da Dupla:', style: TextStyle(color: Colors.white70, fontSize: 13)),
+                      Text('${media.toStringAsFixed(1)} pts', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text('🔥 Bônus Cooperativo (1.2x):', style: TextStyle(color: Color(0xFF00E676), fontSize: 13, fontWeight: FontWeight.bold)),
+                      Text('+$bonusExtra pts (+20%)', style: const TextStyle(color: Color(0xFF00E676), fontWeight: FontWeight.bold)),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 14),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+              decoration: BoxDecoration(
+                color: const Color(0xFF00E676).withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFF00E676)),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('Total Creditado a Você:', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  Text(
+                    '$pontosFinais ⭐',
+                    style: const TextStyle(color: Color(0xFF00E676), fontSize: 20, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF00E676),
+              foregroundColor: Colors.black,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            onPressed: () {
+              Navigator.pop(ctx);
+              Navigator.pop(context);
+            },
+            child: const Text('Concluir e Voltar', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDescansoDuplaOverlay() {
+    final minutos = (_tempoDescansoSegundos ~/ 60).toString().padLeft(2, '0');
+    final segundos = (_tempoDescansoSegundos % 60).toString().padLeft(2, '0');
+    final meusPontos = widget.isHostDupla ? _pontosAcumuladosHost : _pontosAcumuladosConvidado;
+    final pontosParceiro = widget.isHostDupla ? _pontosAcumuladosConvidado : _pontosAcumuladosHost;
+
+    return Container(
+      color: Colors.black.withValues(alpha: 0.88),
+      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 80),
+      child: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.self_improvement, size: 72, color: Colors.orangeAccent),
+            const SizedBox(height: 16),
+            Text(
+              'VEZ DE ${widget.parceiroNome ?? "PARCEIRO"}!',
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 22,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 1.1,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Série $_serieAtualDupla de $_totalSeriesDupla • Exercício: $_exercicioNomeAtual',
+              style: const TextStyle(color: Colors.white70, fontSize: 14),
+            ),
+            const SizedBox(height: 24),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1E232A),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.orangeAccent.withValues(alpha: 0.4)),
+              ),
+              child: Column(
+                children: [
+                  const Text(
+                    'TEMPO DE DESCANSO',
+                    style: TextStyle(color: Colors.orangeAccent, fontWeight: FontWeight.bold, fontSize: 12),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    '$minutos:$segundos',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 48,
+                      fontWeight: FontWeight.bold,
+                      letterSpacing: 2.0,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  const Text(
+                    'Respire fundo e hidrate-se para sua vez!',
+                    style: TextStyle(color: Colors.white54, fontSize: 12),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              decoration: BoxDecoration(
+                color: Colors.white10,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.bolt, color: Colors.amber, size: 18),
+                  const SizedBox(width: 6),
+                  Text(
+                    'Você: $meusPontos pts   •   ${widget.parceiroNome ?? "Parceiro"}: $pontosParceiro pts',
+                    style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                OutlinedButton.icon(
+                  onPressed: () {
+                    setState(() => _isMeuTurno = true);
+                  },
+                  icon: const Icon(Icons.play_arrow, size: 16),
+                  label: const Text('Assumir Vez (Demo)'),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: const Color(0xFF00E676),
+                    side: const BorderSide(color: Color(0xFF00E676)),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                ElevatedButton.icon(
+                  onPressed: _encerrarTreinoDupla,
+                  icon: const Icon(Icons.flag_rounded, size: 16),
+                  label: const Text('Encerrar Treino'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.redAccent,
+                    foregroundColor: Colors.white,
+                  ),
+                ),
+              ],
             ),
           ],
         ),

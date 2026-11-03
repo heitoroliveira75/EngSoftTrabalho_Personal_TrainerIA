@@ -143,6 +143,41 @@ class FinalizarSerieIARequest(BaseModel):
     usuario_id: str
     incrementar_sequencia: Optional[bool] = None
 
+class ConvidarDuplaRequest(BaseModel):
+    host_id: str
+    convidado_id: str
+    treino_id: Optional[str] = None
+    dados_treino: Optional[Dict[str, Any]] = None
+    total_series: Optional[int] = 3
+
+class ResponderConviteDuplaRequest(BaseModel):
+    sessao_id: str
+    usuario_id: str
+    resposta: str = Field(..., description="'aceito', 'recusado' ou 'cancelado'")
+
+class SelecionarTreinoDuplaRequest(BaseModel):
+    sessao_id: str
+    host_id: str
+    treino_id: Optional[str] = None
+    dados_treino: Optional[Dict[str, Any]] = None
+    total_series: Optional[int] = 3
+
+class IniciarTreinoDuplaRequest(BaseModel):
+    sessao_id: str
+    host_id: str
+
+class ConcluirSerieDuplaRequest(BaseModel):
+    sessao_id: str
+    usuario_id: str
+    pontos_serie: int = 0
+    proximo_turno_id: Optional[str] = None
+    nova_serie: Optional[int] = None
+    novo_indice_exercicio: Optional[int] = None
+
+class EncerrarDuplaRequest(BaseModel):
+    sessao_id: str
+    solicitante_id: Optional[str] = None
+
 
 # ============================================================
 # ROTAS - STATUS DA API (Suporte a GET e HEAD para healthcheck do Render)
@@ -589,6 +624,104 @@ def api_ia_finalizar_serie_e_pontuar(req: FinalizarSerieIARequest):
         "resumo_ia": dados,
         "atualizacao_banco": resp_banco,
     }
+
+
+# ============================================================
+# ============================================================
+# ROTAS - 8. TREINOS EM DUPLA (COOPERATIVO)
+# ============================================================
+
+@app.post("/dupla/convidar", tags=["Treino em Dupla"])
+def rota_dupla_convidar(req: ConvidarDuplaRequest):
+    """Host cria convite para amigo treinar em dupla."""
+    res = bd.criar_sessao_dupla(
+        host_id=req.host_id,
+        convidado_id=req.convidado_id,
+        treino_id=req.treino_id,
+        dados_treino=req.dados_treino,
+        total_series=req.total_series or 3
+    )
+    if not res.get("sucesso"):
+        raise HTTPException(status_code=400, detail=res.get("mensagem", "Erro ao convidar para treino em dupla."))
+    return res
+
+@app.get("/dupla/convites/pendentes", tags=["Treino em Dupla"])
+def rota_dupla_convites_pendentes(usuario_id: str = Query(..., description="ID do usuário convidado")):
+    """Convidado consulta convites de treino pendentes recebidos."""
+    res = bd.listar_convites_dupla_pendentes(usuario_id=usuario_id)
+    return res
+
+@app.patch("/dupla/responder-convite", tags=["Treino em Dupla"])
+@app.post("/dupla/responder-convite", tags=["Treino em Dupla"])
+def rota_dupla_responder_convite(req: ResponderConviteDuplaRequest):
+    """Convidado aceita ou recusa convite (ou Host cancela)."""
+    res = bd.responder_convite_dupla(
+        sessao_id=req.sessao_id,
+        usuario_id=req.usuario_id,
+        resposta=req.resposta
+    )
+    if not res.get("sucesso"):
+        raise HTTPException(status_code=400, detail=res.get("mensagem", "Erro ao responder convite."))
+    return res
+
+@app.post("/dupla/selecionar-treino", tags=["Treino em Dupla"])
+def rota_dupla_selecionar_treino(req: SelecionarTreinoDuplaRequest):
+    """Host define ou altera o treino da dupla no Lobby."""
+    res = bd.selecionar_treino_dupla(
+        sessao_id=req.sessao_id,
+        host_id=req.host_id,
+        treino_id=req.treino_id,
+        dados_treino=req.dados_treino,
+        total_series=req.total_series or 3
+    )
+    if not res.get("sucesso"):
+        raise HTTPException(status_code=400, detail=res.get("mensagem", "Erro ao selecionar treino."))
+    return res
+
+@app.post("/dupla/iniciar-treino", tags=["Treino em Dupla"])
+def rota_dupla_iniciar_treino(req: IniciarTreinoDuplaRequest):
+    """Host dá a partida oficial do treino em dupla."""
+    res = bd.iniciar_treino_dupla(
+        sessao_id=req.sessao_id,
+        host_id=req.host_id
+    )
+    if not res.get("sucesso"):
+        raise HTTPException(status_code=400, detail=res.get("mensagem", "Erro ao iniciar treino."))
+    return res
+
+@app.get("/dupla/estado/{sessao_id}", tags=["Treino em Dupla"])
+def rota_dupla_estado(sessao_id: str):
+    """Consulta estado atual da sessão em dupla (polling a cada 1.5s - 2s)."""
+    res = bd.obter_sessao_dupla(sessao_id=sessao_id)
+    if not res.get("sucesso"):
+        raise HTTPException(status_code=404, detail=res.get("mensagem", "Sessão não encontrada."))
+    return res
+
+@app.post("/dupla/concluir-serie", tags=["Treino em Dupla"])
+def rota_dupla_concluir_serie(req: ConcluirSerieDuplaRequest):
+    """Atleta da vez conclui sua série, pontua e passa o turno para o parceiro."""
+    res = bd.atualizar_turno_dupla(
+        sessao_id=req.sessao_id,
+        usuario_id=req.usuario_id,
+        pontos_serie=req.pontos_serie,
+        proximo_turno_id=req.proximo_turno_id,
+        nova_serie=req.nova_serie,
+        novo_indice_exercicio=req.novo_indice_exercicio
+    )
+    if not res.get("sucesso"):
+        raise HTTPException(status_code=400, detail=res.get("mensagem", "Erro ao registrar série."))
+    return res
+
+@app.post("/dupla/encerrar-sessao", tags=["Treino em Dupla"])
+def rota_dupla_encerrar_sessao(req: EncerrarDuplaRequest):
+    """Encerra a sessão, calcula ((PtsHost + PtsConvidado)/2)*1.2 e credita para ambos."""
+    res = bd.finalizar_sessao_dupla(
+        sessao_id=req.sessao_id,
+        solicitante_id=req.solicitante_id
+    )
+    if not res.get("sucesso"):
+        raise HTTPException(status_code=400, detail=res.get("mensagem", "Erro ao encerrar sessão."))
+    return res
 
 
 # ============================================================

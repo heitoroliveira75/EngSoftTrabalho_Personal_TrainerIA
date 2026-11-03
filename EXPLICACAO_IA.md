@@ -217,7 +217,36 @@ Com a evolução da branch `IA` e o objetivo de reduzir a latência de ~500–80
 
 ---
 
-## 6. Glossário Rápido de Termos
+## 6. Treinos Cooperativos em Dupla com Revezamento e Bônus de Gamificação (+20%)
+
+Para aumentar o engajamento, a retenção e o incentivo mútuo entre alunos, o sistema conta com a funcionalidade de **Treinos em Dupla Cooperativos** (`US-DUPLA`):
+
+1. **Seleção de Treinos Inteiros pelo Host:**
+   * Em vez de escolher apenas um exercício isolado, o Host agora pode escolher um **treino inteiro** (ex.: `Circuito Completo IA`, `Treino Superior IA`, `Corpo completo A`, etc.).
+   * A lista completa de exercícios, séries e repetições é sincronizada instantaneamente em tempo real com o parceiro convidado antes de iniciar a sessão.
+
+2. **Ciclo de Séries e Repetições com Pausa e Confirmação:**
+   * Tanto em treinos individuais quanto em treinos em dupla, quando o praticante atinge a meta de repetições da série com auxílio da IA:
+     1. A contagem de repetições e a transmissão contínua da câmera são pausadas imediatamente.
+     2. O aplicativo exibe uma janela de diálogo informando a série concluída e aguarda a **confirmação explícita do atleta**.
+     3. Em treinos em dupla, após a confirmação, o turno é transferido para o parceiro (ou a série/exercício é avançado coordenadamente).
+     4. Quando todas as séries de um exercício terminam, a dupla avança automaticamente para o próximo exercício do treino até a finalização completa.
+
+3. **Revezamento por Série (Turn-Based Workout):**
+   * Em vez de ambos treinarem ao mesmo tempo (o que dividiria a atenção e exigiria duas câmeras ativas), o treino segue a mecânica natural de revezamento de academias: enquanto o atleta "A" executa a Série $K$, o atleta "B" descansa.
+   * Quando "A" conclui a série e confirma, os papéis se invertem: "B" assume a câmera e a IA para a Série $K$, enquanto "A" descansa.
+
+4. **Otimização de Hardware e Economia de Bateria:**
+   * Quando **não é a vez** do atleta (durante o repouso), o aplicativo suspende a captura de imagens e o processamento do ML Kit, ativando um cronômetro de descanso relaxante. Isso economiza bateria, previne superaquecimento e mantém o dispositivo responsivo.
+
+5. **Gamificação Cooperativa com Bônus de 20% (1.2x):**
+   * Ao término do treino, o servidor consolida os pontos conquistados por ambos, calcula a média da dupla e aplica um bônus de $+20\%$:
+     $$\text{Pontuação Final (cada um)} = \text{round}\left(\frac{\text{Pontos}_{\text{Host}} + \text{Pontos}_{\text{Convidado}}}{2} \times 1.20\right)$$
+   * Ambos recebem a mesma pontuação bonificada no banco de dados, incentivando o companheirismo e o apoio mútuo no Leaderboard semanal.
+
+---
+
+## 7. Glossário Rápido de Termos
 
 * **Landmark (Marco Anatômico):** Ponto cartesiano $(x, y, z)$ estimado no corpo humano (ex.: ponto 14 é o cotovelo direito).
 * **FSM (Máquina de Estados Finitos):** Lógica matemática que organiza o movimento em etapas bem definidas (repouso, subida, pico, descida) e só transita quando certos ângulos são atingidos.
@@ -228,7 +257,7 @@ Com a evolução da branch `IA` e o objetivo de reduzir a latência de ~500–80
 
 ---
 
-## 7. Mapeamento dos Documentos do Projeto
+## 8. Mapeamento dos Documentos do Projeto
 
 | Documento | Para que serve? |
 | :--- | :--- |
