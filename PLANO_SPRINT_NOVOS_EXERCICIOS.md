@@ -1,7 +1,7 @@
 # Plano Técnico — Expansão Biomecânica de Exercícios (Sprint Novos Exercícios)
 
 > **História de Usuário:**  
-> *"Como atleta/usuário do Personal Trainer IA, quero que o sistema reconheça, conte repetições e avalie tecnicamente a execução de Tríceps Corda, Elevação Lateral, Flexão de Braço e Remada Baixa (Costas), identificando erros posturais em tempo real e comparando meu padrão de movimento contra gabaritos padrão ouro via DTW."*
+> *"Como atleta/usuário do Personal Trainer IA, quero que o sistema reconheça, conte repetições e avalie tecnicamente a execução de Tríceps Corda, Elevação Lateral, Flexão de Braço, Remada Baixa (Costas) e Remada Alta (Ombro/Trapézio), identificando erros posturais em tempo real e comparando meu padrão de movimento contra gabaritos padrão ouro via DTW."*
 
 ---
 
@@ -22,13 +22,14 @@ O motor de IA opera sob uma **arquitetura híbrida de dois níveis** desacoplada
 
 ---
 
-## 2. Especificação Biomecânica dos 4 Novos Exercícios
+## 2. Especificação Biomecânica dos 5 Novos Exercícios
 
 ```mermaid
 flowchart LR
     subgraph MembrosSuperiores["Foco: Membros Superiores"]
         E1["1. Tríceps Corda\n(cotovelo + ombro)"]
         E2["2. Elevação Lateral\n(ombro + cotovelo)"]
+        E5["5. Remada Alta\n(ombro + cotovelo)"]
     end
 
     subgraph Multiarticulares["Foco: Multiarticulares / Tronco"]
@@ -36,7 +37,7 @@ flowchart LR
         E4["4. Remada Baixa\n(cotovelo + quadril)"]
     end
 
-    E1 & E2 & E3 & E4 --> FSM["Máquina de Estados (FSM)\nFases 0, 1, 2, 3"]
+    E1 & E2 & E3 & E4 & E5 --> FSM["Máquina de Estados (FSM)\nFases 0, 1, 2, 3"]
     FSM --> BUF["Buffer de Repetição Canônico"]
     BUF --> DTW["DTW Alinhamento Temporal"]
     DTW --> NOTA["Laudo e Pontuação"]
@@ -120,6 +121,25 @@ flowchart LR
 
 ---
 
+### 2.5. Exercício 8: Remada Alta (Upright Row)
+- **Identificador:** `remada_alta` | **Tecla de Atalho:** `"8"`
+- **Articulações Monitoradas:** `["ombro", "cotovelo"]`
+  - Articulação motora primária: `ombro` (abdução e elevação com tração vertical dos cotovelos).
+  - Articulação sinergista/flexora: `cotovelo` (flexão acompanhando a subida vertical da barra/halteres rente ao tronco).
+- **Mapeamento de Fases:**
+  - `Fase 0 (Repouso Inicial)`: Barra ou halteres à frente das coxas com braços estendidos ($ombro \le 25^\circ$, $cotovelo \ge 155^\circ$).
+  - `Fase 1 (Puxada Concêntrica / Subida)`: Tração vertical puxando pelos cotovelos ($ombro > 35^\circ$ e `delta_ombro > 0`, cotovelos flexionando).
+  - `Fase 2 (Pico de Contração)`: Cotovelos elevados até a linha dos ombros / barra na altura do esterno ($ombro \ge 80^\circ$ e $\le 100^\circ$, $cotovelo \approx 50^\circ - 75^\circ$).
+  - `Fase 3 (Descida Excêntrica)`: Retorno controlado descendo a carga rente ao tronco ($ombro < 75^\circ$ ou `delta_ombro < 0`).
+  - `3 -> 0 (Fechamento de Repetição)`: Retorno completo à extensão com $ombro \le 30^\circ$ e $cotovelo \ge 150^\circ$ (`repeticoes += 1`).
+- **Detecção de Erros e Penalidades:**
+  - `PUXADA_CURTA` (Penalidade: **25.0 pts**, Desqualificador de Reprovação): Transição $1 \to 3$ antes de atingir elevação mínima no ombro ($ombro < 80^\circ$).
+  - `ELEVACAO_EXCESSIVA` (Penalidade: **15.0 pts**): Ombro $> 100^\circ$ na fase 2 (elevação exagerada dos cotovelos acima da linha clavicular com rotação interna, gerando risco severo de impacto/pinçamento subacromial).
+  - `COTOVELO_CAIDO` (Penalidade: **15.0 pts**): Cotovelo $> 95^\circ$ durante o pico de contração na fase 2 (atleta não lidera o movimento com os cotovelos, deixando os punhos mais altos que os cotovelos).
+- **Curva Gabarito Padrão:** Ombro de $20^\circ \to 90^\circ \to 20^\circ$; Cotovelo de $165^\circ \to 60^\circ \to 165^\circ$.
+
+---
+
 ## 3. Matriz de Configuração do Catálogo Expandido
 
 | Tecla | ID do Exercício | Nome Amigável | Articulações | Erro Desqualificador (-25 pts) | Erros Posturais (-15 pts) | Gabarito JSON |
@@ -131,6 +151,7 @@ flowchart LR
 | `5` | `elevacao_lateral` | Elevação Lateral | `ombro`, `cotovelo` | `ELEVACAO_CURTA` | `ELEVACAO_EXCESSIVA`, `COTOVELO_MUITO_FLEXIONADO` | `gabarito_especialista_elevacao_lateral.json` |
 | `6` | `flexao` | Flexão de Braço | `cotovelo`, `quadril` | `FLEXAO_CURTA` | `QUADRIL_CAIDO`, `QUADRIL_ELEVADO` | `gabarito_especialista_flexao.json` |
 | `7` | `remada_baixa` | Remada Baixa | `cotovelo`, `quadril` | `PUXADA_INCOMPLETA` | `BALANCO_TRONCO_EXCESSIVO`, `HIPEREXTENSAO_LOMBAR` | `gabarito_especialista_remada_baixa.json` |
+| `8` | `remada_alta` | Remada Alta | `ombro`, `cotovelo` | `PUXADA_CURTA` | `ELEVACAO_EXCESSIVA`, `COTOVELO_CAIDO` | `gabarito_especialista_remada_alta.json` |
 
 ---
 
@@ -140,7 +161,7 @@ O desenvolvimento segue a divisão em 5 tarefas atômicas sequenciais e independ
 
 ```mermaid
 flowchart TD
-    T1["TASK-EX.01\nModelagem das 4 Novas FSMs\n(códigos/exercicios_fsm.py)"] --> T2["TASK-EX.02\nGabaritos Especialistas Padrão Ouro\n(códigos/gabarito.py)"]
+    T1["TASK-EX.01\nModelagem das 5 Novas FSMs\n(códigos/exercicios_fsm.py)"] --> T2["TASK-EX.02\nGabaritos Especialistas Padrão Ouro\n(códigos/gabarito.py)"]
     T2 --> T3["TASK-EX.03\nUnificação do Motor de Pontuação\n(códigos/avaliador_pontuacao.py)"]
     T3 --> T4["TASK-EX.04\nIntegração de Canais e Demonstração\n(app_tempo_real.py, servico_ia_api.py, exemplo_integracao.py)"]
     T4 --> T5["TASK-EX.05\nSuíte Automatizada de Aceite e Documentação\n(tests/, DEVLOG.md, CONTEXTO_IA.md)"]
@@ -148,43 +169,46 @@ flowchart TD
 
 ---
 
-### `[TASK-EX.01]` Modelagem das 4 Novas Classes FSM e Catálogo Expandido
-- **Objetivo:** Implementar as classes de máquina de estados dos 4 novos exercícios e integrá-las ao catálogo central de seleção.
+### `[TASK-EX.01]` Modelagem das 5 Novas Classes FSM e Catálogo Expandido
+- **Objetivo:** Implementar as classes de máquina de estados dos 5 novos exercícios e integrá-las ao catálogo central de seleção.
 - **Escopo Técnico:**
   - Em [`./códigos/exercicios_fsm.py`](./códigos/exercicios_fsm.py):
     - Implementar `TricepsCorda(ExercicioBaseFSM)`.
     - Implementar `ElevacaoLateral(ExercicioBaseFSM)`.
     - Implementar `Flexao(ExercicioBaseFSM)`.
     - Implementar `RemadaBaixa(ExercicioBaseFSM)`.
-    - Atualizar o dicionário `CATALOGO_EXERCICIOS` adicionando as chaves `"4"`, `"5"`, `"6"`, `"7"` e os respectivos identificadores textuais (`triceps_corda`, `elevacao_lateral`, `flexao`, `remada_baixa`).
+    - Implementar `RemadaAlta(ExercicioBaseFSM)`.
+    - Atualizar o dicionário `CATALOGO_EXERCICIOS` adicionando as chaves `"4"`, `"5"`, `"6"`, `"7"`, `"8"` e os respectivos identificadores textuais (`triceps_corda`, `elevacao_lateral`, `flexao`, `remada_baixa`, `remada_alta`).
     - Configurar `NOMES_FASES`, `MENSAGENS_ERRO` e `PENALIDADES_ERRO` específicas para cada um.
 - **Artefatos:**
   - [`./códigos/exercicios_fsm.py`](./códigos/exercicios_fsm.py)
 - **Critério de Aceite (DoD):**
-  - Instanciação polimórfica via `obter_config_exercicio()` funcionando para as 7 opções sem quebra de contrato.
-- **Commit Semântico:** `feat(fsm): adiciona FSMs de triceps corda, elevacao lateral, flexao e remada baixa`
+  - Instanciação polimórfica via `obter_config_exercicio()` funcionando para as 8 opções sem quebra de contrato.
+- **Commit Semântico:** `feat(fsm): adiciona FSMs de triceps corda, elevacao lateral, flexao, remada baixa e remada alta`
 
 ---
 
 ### `[TASK-EX.02]` Geração e Recorte Canônico dos Gabaritos Padrão Ouro
-- **Objetivo:** Gerar curvas temporais de referência matemática pura para os 4 exercícios, processadas pelo mesmo segmentador FSM do usuário (`extrair_primeira_repeticao`).
+- **Objetivo:** Gerar curvas temporais de referência matemática pura para os 5 exercícios, processadas pelo mesmo segmentador FSM do usuário (`extrair_primeira_repeticao`).
 - **Escopo Técnico:**
   - Em [`./códigos/gabarito.py`](./códigos/gabarito.py):
-    - Adicionar em `garantir_gabaritos_padrao(sobrescrever=False)` as curvas sintéticas dos 4 exercícios:
+    - Adicionar em `garantir_gabaritos_padrao(sobrescrever=False)` as curvas sintéticas dos 5 exercícios:
       1. `gabarito_especialista_triceps_corda.json` (cotovelo $85^\circ \to 160^\circ \to 85^\circ$, ombro $15^\circ$).
       2. `gabarito_especialista_elevacao_lateral.json` (ombro $20^\circ \to 90^\circ \to 20^\circ$, cotovelo $160^\circ$).
       3. `gabarito_especialista_flexao.json` (cotovelo $170^\circ \to 85^\circ \to 170^\circ$, quadril $175^\circ$).
       4. `gabarito_especialista_remada_baixa.json` (cotovelo $165^\circ \to 80^\circ \to 165^\circ$, quadril $90^\circ$).
-    - Executar a geração garantindo os 4 arquivos `.json`.
+      5. `gabarito_especialista_remada_alta.json` (ombro $20^\circ \to 90^\circ \to 20^\circ$, cotovelo $165^\circ \to 60^\circ \to 165^\circ$).
+    - Executar a geração garantindo os 5 arquivos `.json`.
 - **Artefatos:**
   - [`./códigos/gabarito.py`](./códigos/gabarito.py)
   - `./gabarito_especialista_triceps_corda.json`
   - `./gabarito_especialista_elevacao_lateral.json`
   - `./gabarito_especialista_flexao.json`
   - `./gabarito_especialista_remada_baixa.json`
+  - `./gabarito_especialista_remada_alta.json`
 - **Critério de Aceite (DoD):**
   - Carregamento de todos os JSONs validado via `GabaritoExercicio.carregar_json()`.
-- **Commit Semântico:** `feat(gabarito): adiciona geracao de gabaritos especialistas para os 4 novos exercicios`
+- **Commit Semântico:** `feat(gabarito): adiciona geracao de gabaritos especialistas para os 5 novos exercicios`
 
 ---
 
@@ -197,11 +221,12 @@ flowchart TD
       - `"ELEVACAO_CURTA"`
       - `"FLEXAO_CURTA"`
       - `"PUXADA_INCOMPLETA"`
-    - Assegurar que `OrquestradorSessao` consiga alternar via `trocar_exercicio()` para qualquer um dos 7 identificadores sem falhas.
+      - `"PUXADA_CURTA"`
+    - Assegurar que `OrquestradorSessao` consiga alternar via `trocar_exercicio()` para qualquer um dos 8 identificadores sem falhas.
 - **Artefatos:**
   - [`./códigos/avaliador_pontuacao.py`](./códigos/avaliador_pontuacao.py)
 - **Critério de Aceite (DoD):**
-  - Repetições incompletas de qualquer um dos 4 novos exercícios resultam estritamente em `aprovado == False` e penalidade de 25 pontos.
+  - Repetições incompletas de qualquer um dos 5 novos exercícios resultam estritamente em `aprovado == False` e penalidade de 25 pontos.
 - **Commit Semântico:** `feat(pontuacao): expande conjunto de erros de incompletude para os novos exercicios`
 
 ---
@@ -210,10 +235,10 @@ flowchart TD
 - **Objetivo:** Habilitar a seleção e execução dos novos exercícios em todos os pontos de entrada do sistema.
 - **Escopo Técnico:**
   - Em [`./códigos/app_tempo_real.py`](./códigos/app_tempo_real.py):
-    - Atualizar a legenda do HUD OpenCV para exibir atalhos `[1]` a `[7]`.
-    - Tratar teclas `'4'`, `'5'`, `'6'`, `'7'` no loop da câmera chamando `orquestrador.trocar_exercicio()`.
+    - Atualizar a legenda do HUD OpenCV para exibir atalhos `[1]` a `[8]`.
+    - Tratar teclas `'4'`, `'5'`, `'6'`, `'7'`, `'8'` no loop da câmera chamando `orquestrador.trocar_exercicio()`.
   - Em [`./códigos/servico_ia_api.py`](./códigos/servico_ia_api.py):
-    - Atualizar `simular_repeticao()` para suportar os cenários `ideal` e `postural` para os 4 novos exercícios.
+    - Atualizar `simular_repeticao()` para suportar os cenários `ideal` e `postural` para os 5 novos exercícios.
   - Em [`./códigos/exemplo_integracao.py`](./códigos/exemplo_integracao.py):
     - Incluir demonstração sintética sem câmera dos novos exercícios.
 - **Artefatos:**
@@ -221,8 +246,8 @@ flowchart TD
   - [`./códigos/servico_ia_api.py`](./códigos/servico_ia_api.py)
   - [`./códigos/exemplo_integracao.py`](./códigos/exemplo_integracao.py)
 - **Critério de Aceite (DoD):**
-  - `/ia/simular-repeticao` e a interface de tempo real aceitam IDs e teclas de 1 a 7.
-- **Commit Semântico:** `feat(integracao): habilita atalhos 1-7 no HUD da webcam e simula repeticoes na API`
+  - `/ia/simular-repeticao` e a interface de tempo real aceitam IDs e teclas de 1 a 8.
+- **Commit Semântico:** `feat(integracao): habilita atalhos 1-8 no HUD da webcam e simula repeticoes na API`
 
 ---
 
@@ -230,13 +255,13 @@ flowchart TD
 - **Objetivo:** Blindar o motor com testes automatizados para cada novo exercício e atualizar toda a documentação viva do projeto.
 - **Escopo Técnico:**
   - Em [`tests/test_pipeline_pontuacao.py`](tests/test_pipeline_pontuacao.py):
-    - Adicionar testes de ciclo ideal, incompletude e erro postural para cada uma das 4 novas FSMs.
+    - Adicionar testes de ciclo ideal, incompletude e erro postural para cada uma das 5 novas FSMs.
     - Adicionar teste do pipeline de pontuação completo (FSM + DTW + Gabarito) para cada novo exercício, garantindo score $\ge 95\%$ para execuções ideais.
   - Em [`tests/test_servico_ia_api.py`](tests/test_servico_ia_api.py):
-    - Validar simulação canônica dos 7 exercícios via `ServicoIA`.
+    - Validar simulação canônica dos 8 exercícios via `ServicoIA`.
   - Atualização dos documentos vivos:
     - Atualizar [`./DEVLOG.md`](./DEVLOG.md) com o histórico da sprint.
-    - Atualizar [`./CONTEXTO_IA.md`](./CONTEXTO_IA.md) com os 7 exercícios cadastrados.
+    - Atualizar [`./CONTEXTO_IA.md`](./CONTEXTO_IA.md) com os 8 exercícios cadastrados.
     - Atualizar [`./EXPLICACAO_IA.md`](./EXPLICACAO_IA.md) com a explicação biomecânica didática dos novos movimentos.
 - **Artefatos:**
   - [`tests/test_pipeline_pontuacao.py`](tests/test_pipeline_pontuacao.py)
@@ -246,7 +271,7 @@ flowchart TD
   - [`./EXPLICACAO_IA.md`](./EXPLICACAO_IA.md)
 - **Critério de Aceite (DoD):**
   - 100% dos testes aprovados no `pytest` sem quebras de regressão nos exercícios 1 a 3.
-- **Commit Semântico:** `test(pipeline): adiciona suite de testes para os 4 novos exercicios e atualiza documentacao`
+- **Commit Semântico:** `test(pipeline): adiciona suite de testes para os 5 novos exercicios e atualiza documentacao`
 
 ---
 
