@@ -5,7 +5,14 @@ import 'leaderboard_screen.dart';
 import 'lobby_dupla_screen.dart';
 
 class AmigosScreen extends StatefulWidget {
-  const AmigosScreen({super.key});
+  final VoidCallback? onBack;
+  final VoidCallback? onOpenLeaderboard;
+
+  const AmigosScreen({
+    super.key,
+    this.onBack,
+    this.onOpenLeaderboard,
+  });
 
   @override
   State<AmigosScreen> createState() => _AmigosScreenState();
@@ -448,7 +455,13 @@ class _AmigosScreenState extends State<AmigosScreen>
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () {
+            if (widget.onBack != null) {
+              widget.onBack!();
+            } else {
+              Navigator.pop(context);
+            }
+          },
         ),
         title: const Text(
           'AMIGOS',
@@ -463,10 +476,14 @@ class _AmigosScreenState extends State<AmigosScreen>
             icon: const Icon(Icons.leaderboard, color: Color(0xFF00E676)),
             tooltip: 'Ver Classificação',
             onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const LeaderboardScreen()),
-              );
+              if (widget.onOpenLeaderboard != null) {
+                widget.onOpenLeaderboard!();
+              } else {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const LeaderboardScreen()),
+                );
+              }
             },
           ),
           IconButton(

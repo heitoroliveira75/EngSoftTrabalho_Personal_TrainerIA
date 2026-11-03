@@ -3,7 +3,14 @@ import '../services/api_service.dart';
 import 'amigos_screen.dart';
 
 class LeaderboardScreen extends StatefulWidget {
-  const LeaderboardScreen({super.key});
+  final VoidCallback? onBack;
+  final VoidCallback? onOpenAmigos;
+
+  const LeaderboardScreen({
+    super.key,
+    this.onBack,
+    this.onOpenAmigos,
+  });
 
   @override
   State<LeaderboardScreen> createState() => _LeaderboardScreenState();
@@ -190,7 +197,13 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () {
+            if (widget.onBack != null) {
+              widget.onBack!();
+            } else {
+              Navigator.pop(context);
+            }
+          },
         ),
         title: const Text(
           'CLASSIFICAÇÃO',
@@ -205,10 +218,14 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
             icon: const Icon(Icons.group, color: Color(0xFF00E676)),
             tooltip: 'Gerenciar Amigos',
             onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const AmigosScreen()),
-              );
+              if (widget.onOpenAmigos != null) {
+                widget.onOpenAmigos!();
+              } else {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const AmigosScreen()),
+                );
+              }
             },
           ),
           IconButton(
@@ -582,10 +599,14 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
             const SizedBox(height: 20),
             ElevatedButton.icon(
               onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const AmigosScreen()),
-                ).then((_) => _carregarLeaderboard());
+                if (widget.onOpenAmigos != null) {
+                  widget.onOpenAmigos!();
+                } else {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const AmigosScreen()),
+                  ).then((_) => _carregarLeaderboard());
+                }
               },
               icon: const Icon(Icons.person_add),
               label: const Text('Convidar / Buscar Amigos'),
