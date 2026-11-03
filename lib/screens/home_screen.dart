@@ -141,26 +141,6 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
               actions: [
-                // Ícone para Leaderboard
-                IconButton(
-                  icon: const Icon(
-                    Icons.leaderboard_outlined,
-                    size: 26,
-                    color: Color(0xFF00E676),
-                  ),
-                  tooltip: 'Classificação',
-                  onPressed: () => _mudarAba(1),
-                ),
-                // Ícone para Amigos
-                IconButton(
-                  icon: const Icon(
-                    Icons.people_alt_outlined,
-                    size: 26,
-                    color: Color(0xFF00E676),
-                  ),
-                  tooltip: 'Amigos',
-                  onPressed: () => _mudarAba(2),
-                ),
                 // Ícone de perfil que navega para a tela de Perfil
                 IconButton(
                   icon: const Icon(

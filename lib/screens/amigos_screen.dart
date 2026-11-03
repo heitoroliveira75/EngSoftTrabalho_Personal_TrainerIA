@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
-import 'leaderboard_screen.dart';
 import 'lobby_dupla_screen.dart';
 
 class AmigosScreen extends StatefulWidget {
@@ -472,20 +471,6 @@ class _AmigosScreenState extends State<AmigosScreen>
           ),
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.leaderboard, color: Color(0xFF00E676)),
-            tooltip: 'Ver Classificação',
-            onPressed: () {
-              if (widget.onOpenLeaderboard != null) {
-                widget.onOpenLeaderboard!();
-              } else {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const LeaderboardScreen()),
-                );
-              }
-            },
-          ),
           IconButton(
             icon: const Icon(Icons.refresh, color: Colors.white70),
             tooltip: 'Atualizar',

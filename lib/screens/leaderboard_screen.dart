@@ -215,20 +215,6 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.group, color: Color(0xFF00E676)),
-            tooltip: 'Gerenciar Amigos',
-            onPressed: () {
-              if (widget.onOpenAmigos != null) {
-                widget.onOpenAmigos!();
-              } else {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => const AmigosScreen()),
-                );
-              }
-            },
-          ),
-          IconButton(
             icon: const Icon(Icons.refresh, color: Colors.white70),
             tooltip: 'Atualizar',
             onPressed: _carregarLeaderboard,
