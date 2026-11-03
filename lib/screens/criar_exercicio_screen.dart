@@ -187,8 +187,11 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
 
     setState(() => _salvando = true);
 
-    final listaExerciciosJson =
-        _exerciciosTreino.map((exercicio) => exercicio.toJson()).toList();
+    final listaExerciciosJson = _exerciciosTreino.asMap().entries.map((entry) {
+      final json = entry.value.toJson();
+      json['ordem'] = entry.key + 1;
+      return json;
+    }).toList();
 
     try {
       final resposta = await ApiService().criarTreino(
@@ -462,8 +465,10 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                const Text('Total de Repetições:',
-                                    style: TextStyle(color: Colors.white70, fontSize: 13)),
+                                const Expanded(
+                                  child: Text('Total de Repetições:',
+                                      style: TextStyle(color: Colors.white70, fontSize: 13)),
+                                ),
                                 Text('$totalRepsCalculado reps',
                                     style: const TextStyle(
                                         color: Colors.white, fontWeight: FontWeight.bold)),
@@ -475,8 +480,10 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text('Pontos Séries ($pontosPorSerie pts/série):',
-                                    style: const TextStyle(color: Colors.white60, fontSize: 12)),
+                                Expanded(
+                                  child: Text('Pontos Séries ($pontosPorSerie pts/série):',
+                                      style: const TextStyle(color: Colors.white60, fontSize: 12)),
+                                ),
                                 Text('+$pontosSeriesCalculado pts',
                                     style: const TextStyle(
                                         color: Color(0xFF64B5F6), fontWeight: FontWeight.w600)),
@@ -485,8 +492,10 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text('Pontos Repetições ($pontosPorRepeticao pts/rep):',
-                                    style: const TextStyle(color: Colors.white60, fontSize: 12)),
+                                Expanded(
+                                  child: Text('Pontos Repetições ($pontosPorRepeticao pts/rep):',
+                                      style: const TextStyle(color: Colors.white60, fontSize: 12)),
+                                ),
                                 Text('+$pontosRepsCalculado pts',
                                     style: const TextStyle(
                                         color: Color(0xFF64B5F6), fontWeight: FontWeight.w600)),
@@ -496,9 +505,11 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                const Text('Total deste Exercício:',
-                                    style: TextStyle(
-                                        color: Colors.white, fontWeight: FontWeight.bold)),
+                                const Expanded(
+                                  child: Text('Total deste Exercício:',
+                                      style: TextStyle(
+                                          color: Colors.white, fontWeight: FontWeight.bold)),
+                                ),
                                 Text('+$pontosTotalCalculado pts',
                                     style: const TextStyle(
                                         color: Color(0xFF00E676),
@@ -739,13 +750,21 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
                           ],
                         ),
                       )
-                    : ListView.builder(
+                    : ReorderableListView.builder(
                         itemCount: _exerciciosTreino.length,
+                        buildDefaultDragHandles: false,
+                        onReorderItem: (int oldIndex, int newIndex) {
+                          setState(() {
+                            final item = _exerciciosTreino.removeAt(oldIndex);
+                            _exerciciosTreino.insert(newIndex, item);
+                          });
+                        },
                         itemBuilder: (context, index) {
                           final item = _exerciciosTreino[index];
 
                           // Montagem lista de exercicios
                           return Container(
+                            key: ObjectKey(item),
                             margin: const EdgeInsets.only(bottom: 12),
                             decoration: BoxDecoration(
                               color: const Color(0xFF2D3139),
@@ -757,6 +776,20 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
                               child: Row(
                                 crossAxisAlignment: CrossAxisAlignment.center,
                                 children: [
+                                  // Drag handle para arrastar e reordenar
+                                  ReorderableDragStartListener(
+                                    index: index,
+                                    child: Container(
+                                      padding: const EdgeInsets.only(right: 10),
+                                      color: Colors.transparent,
+                                      child: const Icon(
+                                        Icons.drag_handle,
+                                        color: Colors.white38,
+                                        size: 24,
+                                      ),
+                                    ),
+                                  ),
+
                                   // Ícone
                                   Container(
                                     width: 44,
@@ -822,11 +855,14 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
 
                                             const SizedBox(width: 6),
 
-                                            Text(
-                                              '(${item.totalRepeticoes} totais)',
-                                              style: const TextStyle(
-                                                color: Colors.white60,
-                                                fontSize: 11,
+                                            Flexible(
+                                              child: Text(
+                                                '(${item.totalRepeticoes} totais)',
+                                                overflow: TextOverflow.ellipsis,
+                                                style: const TextStyle(
+                                                  color: Colors.white60,
+                                                  fontSize: 11,
+                                                ),
                                               ),
                                             ),
                                           ],

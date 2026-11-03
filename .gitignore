@@ -68,3 +68,7 @@ BD/frames_salvos/
 
 # Nested workspace clone
 EngSoftTrabalho_Personal_TrainerIA/
+
+# Android binaries (local APKs exceed GitHub 100MB limit)
+app-debug.apk
+*.apk

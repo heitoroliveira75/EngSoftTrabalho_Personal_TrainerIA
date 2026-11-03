@@ -17,14 +17,70 @@ class _TreinoSelecionadoScreenState extends State<TreinoSelecionadoScreen> {
   bool _salvo = false;
   bool _salvando = false;
   bool _treinando = false;
+  String? _idSalvo;
   int _indiceExercicioAtual = 0;
   List<bool> _exerciciosConcluidos = [];
+  late List<Map<String, dynamic>> _listaExercicios;
 
   @override
   void initState() {
     super.initState();
-    final exercicios = _obterListaExercicios();
-    _exerciciosConcluidos = List.filled(exercicios.length, false);
+    _salvo = widget.treinoData['salvo'] == true ||
+        widget.treinoData['ehMeusTreinos'] == true;
+    _idSalvo = widget.treinoData['idSalvo']?.toString() ??
+        widget.treinoData['id']?.toString();
+    final rawExercicios = _obterListaExercicios();
+    _listaExercicios = rawExercicios
+        .map<Map<String, dynamic>>((e) => Map<String, dynamic>.from(e as Map))
+        .toList();
+    _exerciciosConcluidos = List.filled(_listaExercicios.length, false);
+  }
+
+  void _aoReordenarExercicios(int oldIndex, int newIndex) async {
+    setState(() {
+      final item = _listaExercicios.removeAt(oldIndex);
+      _listaExercicios.insert(newIndex, item);
+
+      if (_exerciciosConcluidos.isNotEmpty &&
+          _exerciciosConcluidos.length == _listaExercicios.length) {
+        final status = _exerciciosConcluidos.removeAt(oldIndex);
+        _exerciciosConcluidos.insert(newIndex, status);
+      }
+
+      widget.treinoData['exercicios'] = _listaExercicios;
+    });
+
+    final idTreino = _idSalvo ??
+        widget.treinoData['idSalvo']?.toString() ??
+        widget.treinoData['id']?.toString();
+
+    // Sincroniza a nova ordem no backend caso o treino esteja persistido no banco
+    if (idTreino != null && idTreino.isNotEmpty && _salvo) {
+      final exerciciosPayload = _listaExercicios.asMap().entries.map((entry) {
+        final idx = entry.key;
+        final ex = entry.value;
+        final rawId = ex['exercicio_id'] ?? ex['id'] ?? (idx + 1);
+        final exId = int.tryParse(rawId.toString()) ?? (idx + 1);
+        return {
+          'exercicio_id': exId,
+          'ordem': idx + 1,
+          'series': ex['series'] ?? 3,
+          'repeticoes': ex['repeticoes'] ?? 10,
+          'nome': ex['nome'] ?? 'Exercício',
+          'grupo_muscular': ex['grupo_muscular'] ?? 'Geral',
+          'pontos_totais': ex['pontos'] ?? ex['pontos_totais'] ?? 45,
+        };
+      }).toList();
+
+      try {
+        await ApiService().editarTreino(
+          idTreino,
+          exercicios: exerciciosPayload,
+        );
+      } catch (e) {
+        debugPrint('Erro ao persistir nova ordem do treino no banco: $e');
+      }
+    }
   }
 
   List<dynamic> _obterListaExercicios() {
@@ -65,7 +121,7 @@ class _TreinoSelecionadoScreenState extends State<TreinoSelecionadoScreen> {
   }
 
   void _iniciarTreinoComCamera([int? indice]) {
-    final exercicios = _obterListaExercicios();
+    final exercicios = _listaExercicios;
     if (exercicios.isEmpty) return;
 
     if (_exerciciosConcluidos.length != exercicios.length) {
@@ -175,12 +231,103 @@ class _TreinoSelecionadoScreenState extends State<TreinoSelecionadoScreen> {
   }
 
   Future<void> _alternarSalvarTreino() async {
-    final novoStatus = !_salvo;
-    setState(() {
-      _salvo = novoStatus;
-    });
+    if (_salvando) return;
 
-    if (novoStatus) {
+    if (_salvo) {
+      // Pop-up de confirmação antes de remover
+      final bool? confirmar = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: const Color(0xFF1E232A),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: const BorderSide(color: Colors.white12),
+          ),
+          title: const Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, color: Colors.amber, size: 28),
+              SizedBox(width: 10),
+              Text(
+                'Remover Treino?',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
+              ),
+            ],
+          ),
+          content: Text(
+            'Deseja realmente remover o treino "${widget.treinoData['titulo'] ?? 'Treino'}" dos Meus Treinos?\n\nEle deixará de constar na sua lista de treinos.',
+            style: const TextStyle(color: Colors.white70, fontSize: 14),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancelar', style: TextStyle(color: Colors.grey)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.redAccent.shade700,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text(
+                'Remover',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+      );
+
+      if (confirmar != true) return;
+
+      setState(() => _salvando = true);
+
+      try {
+        final idParaExcluir = _idSalvo ??
+            widget.treinoData['idSalvo']?.toString() ??
+            widget.treinoData['id']?.toString();
+
+        if (idParaExcluir != null && idParaExcluir.isNotEmpty) {
+          await ApiService().excluirTreino(idParaExcluir);
+        }
+
+        if (mounted) {
+          setState(() {
+            _salvo = false;
+            _idSalvo = null;
+            _salvando = false;
+            widget.treinoData['salvo'] = false;
+            widget.treinoData['idSalvo'] = null;
+          });
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Treino removido dos Meus Treinos com sucesso!'),
+              backgroundColor: Color(0xFF00E676),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          setState(() => _salvando = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Erro ao remover treino: $e'),
+              backgroundColor: Colors.redAccent,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
+      }
+    } else {
+      // Salvar nos Meus Treinos
       setState(() => _salvando = true);
       final idUsuario = ApiService().idUsuarioAtual;
       final exercicios = (widget.treinoData['exercicios'] as List? ?? [])
@@ -209,45 +356,40 @@ class _TreinoSelecionadoScreenState extends State<TreinoSelecionadoScreen> {
           exercicios: exercicios,
         );
 
+        final novoId =
+            res['treino']?['id']?.toString() ?? res['id']?.toString();
+
         if (mounted) {
-          if (res['sucesso'] == true) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Treino salvo nos Meus Treinos com sucesso!'),
-                backgroundColor: Color(0xFF00E676),
-                duration: Duration(seconds: 2),
-              ),
-            );
-          } else {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: Text(res['mensagem'] ?? 'Treino salvo localmente.'),
-                backgroundColor: Colors.blueGrey,
-                duration: const Duration(seconds: 2),
-              ),
-            );
-          }
-        }
-      } catch (_) {
-        if (mounted) {
+          setState(() {
+            _salvo = true;
+            if (novoId != null) {
+              _idSalvo = novoId;
+              widget.treinoData['idSalvo'] = novoId;
+            }
+            widget.treinoData['salvo'] = true;
+            _salvando = false;
+          });
+
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Treino salvo localmente nos Meus Treinos.'),
-              backgroundColor: Colors.blueGrey,
+              content: Text('Treino salvo nos Meus Treinos com sucesso!'),
+              backgroundColor: Color(0xFF00E676),
               duration: Duration(seconds: 2),
             ),
           );
         }
-      } finally {
-        if (mounted) setState(() => _salvando = false);
+      } catch (e) {
+        if (mounted) {
+          setState(() => _salvando = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Erro ao salvar treino: $e'),
+              backgroundColor: Colors.redAccent,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
       }
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Treino removido dos salvos.'),
-          duration: Duration(seconds: 2),
-        ),
-      );
     }
   }
 
@@ -362,7 +504,7 @@ class _TreinoSelecionadoScreenState extends State<TreinoSelecionadoScreen> {
   Widget build(BuildContext context) {
     final Color corTema =
         widget.treinoData['corTema'] ?? const Color(0xFF00E676);
-    final exercicios = _obterListaExercicios();
+    final exercicios = _listaExercicios;
     final bool todosConcluidos =
         _exerciciosConcluidos.isNotEmpty && !_exerciciosConcluidos.contains(false);
 
@@ -429,22 +571,35 @@ class _TreinoSelecionadoScreenState extends State<TreinoSelecionadoScreen> {
               const Divider(color: Colors.grey, height: 1),
               const SizedBox(height: 16),
 
-              const Text(
-                'Exercícios',
-                style: TextStyle(
-                  color: Color(0xFF9E7AFF),
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Exercícios',
+                    style: TextStyle(
+                      color: Color(0xFF9E7AFF),
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  if (exercicios.length > 1)
+                    Text(
+                      'Arraste pelo ícone ≡ para reordenar',
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: 0.45),
+                        fontSize: 11,
+                      ),
+                    ),
+                ],
               ),
               const SizedBox(height: 12),
 
-              ListView.separated(
+              ReorderableListView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
+                buildDefaultDragHandles: false,
                 itemCount: exercicios.length,
-                separatorBuilder: (context, index) =>
-                    const SizedBox(height: 8),
+                onReorderItem: _aoReordenarExercicios,
                 itemBuilder: (context, index) {
                   final ex = exercicios[index];
                   final nomeEx = ex['nome'] ?? 'Exercício';
@@ -458,115 +613,132 @@ class _TreinoSelecionadoScreenState extends State<TreinoSelecionadoScreen> {
                   final ehOAtual =
                       index == _indiceExercicioAtual && !estaConcluido;
 
-                  return InkWell(
-                    borderRadius: BorderRadius.circular(12),
-                    onTap: () => _iniciarTreinoComCamera(index),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 10, vertical: 8),
-                      decoration: BoxDecoration(
-                        color: ehOAtual
-                            ? const Color(0xFF1F242C)
-                            : (estaConcluido
-                                ? const Color(0xFF12161C)
-                                : Colors.transparent),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
+                  return Container(
+                    key: ObjectKey(ex),
+                    margin: const EdgeInsets.only(bottom: 8),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(12),
+                      onTap: () => _iniciarTreinoComCamera(index),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 8),
+                        decoration: BoxDecoration(
                           color: ehOAtual
-                              ? corTema.withValues(alpha: 0.6)
+                              ? const Color(0xFF1F242C)
                               : (estaConcluido
-                                  ? const Color(0xFF00E676)
-                                      .withValues(alpha: 0.3)
-                                  : Colors.white10),
-                        ),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Container(
-                            width: 28,
-                            height: 28,
-                            margin: const EdgeInsets.only(right: 12),
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: estaConcluido
-                                  ? const Color(0xFF00E676)
-                                  : (ehOAtual
-                                      ? corTema.withValues(alpha: 0.2)
-                                      : Colors.white12),
-                            ),
-                            child: Center(
-                              child: estaConcluido
-                                  ? const Icon(Icons.check,
-                                      color: Colors.black, size: 18)
-                                  : (ehOAtual
-                                      ? Icon(Icons.play_arrow,
-                                          color: corTema, size: 18)
-                                      : Text(
-                                          '${index + 1}',
-                                          style: const TextStyle(
-                                            color: Colors.white70,
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        )),
-                            ),
+                                  ? const Color(0xFF12161C)
+                                  : Colors.transparent),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: ehOAtual
+                                ? corTema.withValues(alpha: 0.6)
+                                : (estaConcluido
+                                    ? const Color(0xFF00E676)
+                                        .withValues(alpha: 0.3)
+                                    : Colors.white10),
                           ),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            // Handle para arrastar e reordenar
+                            ReorderableDragStartListener(
+                              index: index,
+                              child: Container(
+                                padding: const EdgeInsets.only(right: 8, top: 4, bottom: 4),
+                                color: Colors.transparent,
+                                child: const Icon(
+                                  Icons.drag_handle,
+                                  color: Colors.white38,
+                                  size: 20,
+                                ),
+                              ),
+                            ),
+                            Container(
+                              width: 28,
+                              height: 28,
+                              margin: const EdgeInsets.only(right: 12),
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: estaConcluido
+                                    ? const Color(0xFF00E676)
+                                    : (ehOAtual
+                                        ? corTema.withValues(alpha: 0.2)
+                                        : Colors.white12),
+                              ),
+                              child: Center(
+                                child: estaConcluido
+                                    ? const Icon(Icons.check,
+                                        color: Colors.black, size: 18)
+                                    : (ehOAtual
+                                        ? Icon(Icons.play_arrow,
+                                            color: corTema, size: 18)
+                                        : Text(
+                                            '${index + 1}',
+                                            style: const TextStyle(
+                                              color: Colors.white70,
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.bold,
+                                            ),
+                                          )),
+                              ),
+                            ),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    nomeEx,
+                                    style: TextStyle(
+                                      color: estaConcluido
+                                          ? Colors.white54
+                                          : (ehOAtual
+                                              ? const Color(0xFF29B6F6)
+                                              : Colors.white),
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w500,
+                                      decoration: estaConcluido
+                                          ? TextDecoration.lineThrough
+                                          : null,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    '$series séries × $reps',
+                                    style: TextStyle(
+                                      color: Colors.grey[400],
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Row(
                               children: [
                                 Text(
-                                  nomeEx,
+                                  '+$pts pts',
                                   style: TextStyle(
                                     color: estaConcluido
-                                        ? Colors.white54
-                                        : (ehOAtual
-                                            ? const Color(0xFF29B6F6)
-                                            : Colors.white),
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w500,
-                                    decoration: estaConcluido
-                                        ? TextDecoration.lineThrough
-                                        : null,
+                                        ? const Color(0xFF00E676)
+                                        : corTema,
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.bold,
                                   ),
                                 ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  '$series séries × $reps',
-                                  style: TextStyle(
-                                    color: Colors.grey[400],
-                                    fontSize: 12,
-                                  ),
+                                const SizedBox(width: 8),
+                                Icon(
+                                  estaConcluido
+                                      ? Icons.check_circle_outline
+                                      : Icons.videocam_outlined,
+                                  size: 18,
+                                  color: estaConcluido
+                                      ? const Color(0xFF00E676)
+                                      : (ehOAtual ? corTema : Colors.white38),
                                 ),
                               ],
                             ),
-                          ),
-                          Row(
-                            children: [
-                              Text(
-                                '+$pts pts',
-                                style: TextStyle(
-                                  color: estaConcluido
-                                      ? const Color(0xFF00E676)
-                                      : corTema,
-                                  fontSize: 13,
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                              const SizedBox(width: 8),
-                              Icon(
-                                estaConcluido
-                                    ? Icons.check_circle_outline
-                                    : Icons.videocam_outlined,
-                                size: 18,
-                                color: estaConcluido
-                                    ? const Color(0xFF00E676)
-                                    : (ehOAtual ? corTema : Colors.white38),
-                              ),
-                            ],
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   );

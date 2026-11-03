@@ -26,6 +26,41 @@
 
 ## Histórico de Entradas
 
+### [Entrada #022] 2026-11-03 — Mecanismo de Arrastar e Soltar (Reorderable) e Persistência de Ordem dos Exercícios
+- **Objetivo / História de Usuário:**
+  - Permitir que o usuário reordene facilmente a sequência de exercícios por meio de um mecanismo intuitivo de **arrastar e soltar (drag and drop)** tanto na tela de **Criação de Treino** quanto na tela de **Treino Selecionado**.
+  - Garantir que a nova ordenação definida pelo usuário seja **automaticamente persistida no banco de dados** (atualizando tanto as relações na tabela `treino_exercicios` quanto os metadados JSON na coluna `descricao` do Supabase).
+- **Tasks Executadas e Artefatos Gerados:**
+  - `[TASK-REORDER-CRIAR]` Substituição do `ListView.builder` por `ReorderableListView.builder` com `onReorderItem`, identificadores de instância via `ObjectKey(item)` e alça visual de arrasto (`Icons.drag_handle` com `ReorderableDragStartListener`) na tela de criação de treino. Na serialização para a API (`_salvarTreino`), cada exercício recebe explicitamente seu atributo `'ordem': index + 1` $\rightarrow$ **Artefato:** `lib/screens/criar_exercicio_screen.dart`.
+  - `[TASK-REORDER-SELECIONADO]` Conversão da lista de exercícios em `treino_selecionado_screen.dart` para `ReorderableListView.builder` com `onReorderItem`, gerenciamento de estado dedicado (`_listaExercicios`), alça de arrasto em cada card e sincronização imediata com o backend FastAPI/Supabase via `ApiService().editarTreino(...)` com o payload ordenado $\rightarrow$ **Artefato:** `lib/screens/treino_selecionado_screen.dart`.
+  - `[TASK-REORDER-BACKEND]` Aprimoramento da ordenação em `_desempacotar_treino` com `sort(key=lambda te: te.get("ordem") or 0)` e extensão da função `editar_treino` em `BD/main.py` para persistir os índices de ordenação na tabela relacional `treino_exercicios` e sincronizar o JSON da coluna `descricao` $\rightarrow$ **Artefato:** `BD/main.py`.
+  - `[TASK-REORDER-TESTS]` Validação de integridade do código Flutter com `flutter analyze` (**0 erros / 0 avisos** nos módulos modificados) e suíte de testes de regressão automatizados com `pytest` (**63 aprovados**) $\rightarrow$ **Artefatos:** Relatórios de análise e testes.
+- **Decisões Técnicas e Observações:**
+  - Foi adotada a nova API moderna do Flutter 3.47+ (`onReorderItem`), que calcula e normaliza os índices de inserção sem necessidade de decrementos manuais de compensação, garantindo total compatibilidade futura.
+  - O uso de `buildDefaultDragHandles: false` em conjunto com `ReorderableDragStartListener` no ícone `Icons.drag_handle` foi escolhido para assegurar que a rolagem vertical tradicional da tela não sofra interferências ou conflitos acidentais com o gesto de arrasto.
+- **Estado Resultante:** Ambas as telas (`Criar Treino` e `Treino Selecionado`) agora contam com o mecanismo de arrastar e soltar responsivo e fluido, com persistência automática da ordenação no banco de dados e testes 100% aprovados.
+
+### [Entrada #021] 2026-11-03 - Integracao do Sistema de HUD de 5 Botoes, Responsividade e Persistencia de Login
+- **Objetivo / Historia de Usuario:**
+  - Puxar e aprimorar os mecanismos desenvolvidos pelo colaborador Arthur na branch `Frontend-arthur` (HUD persistente e correcoes de dimensionamento de botoes).
+  - Expandir o HUD de 3 para **5 botoes persistentes** na ordem estabelecida: **Home**, **Amigos**, **Treinar**, **Leaderboard (Ranking)** e **Perfil**, mantendo a barra visivel nas 5 abas principais e sumindo automaticamente em rotas secundarias (`Navigator.push`).
+  - Corrigir problemas de overflow e estouro de botoes em telas menores ou com zoom de fonte do sistema.
+  - Implementar **persistencia automatica de login** via `shared_preferences`, permitindo que o usuario permaneca autenticado entre reinicializacoes do app e acesse diretamente a tela inicial (`/home`).
+- **Tasks Executadas e Artefatos Gerados:**
+  - `[TASK-HUD-01-MAIN]` Insercao de `builder` com `SafeArea(bottom: true, top: false)` no `MaterialApp` para evitar sobreposicao da barra de navegacao do SO (Android/iOS) com os controles inferiores -> **Artefato:** `lib/main.dart`.
+  - `[TASK-HUD-02-SIZING]` Responsividade com `IntrinsicHeight`, `BoxConstraints(minHeight: 195)` e `Flexible` nos cards de "Criar Treinos" e "Treinos Padroes", e `Expanded` nas linhas de pontuacao de `CriarExercicioScreen` -> **Artefatos:** `lib/screens/training_menu_screen.dart`, `lib/screens/criar_exercicio_screen.dart`.
+  - `[TASK-HUD-03-CALLBACKS]` Implementacao de callbacks `onBack` e navegacao cruzada (`onOpenAmigos`, `onOpenLeaderboard`) nas telas secundarias, permitindo retorno imediato a Home (`_mudarAba(0)`) e remocao de botoes redundantes na AppBar -> **Artefatos:** `lib/screens/amigos_screen.dart`, `lib/screens/leaderboard_screen.dart`, `lib/screens/training_menu_screen.dart`, `lib/screens/profile_screen.dart`.
+  - `[TASK-HUD-04-HUD-5-BTNS]` Implementacao do `BottomNavigationBar` com 5 itens estilizados (`type: BottomNavigationBarType.fixed`), mantendo o HUD ativo em todas as 5 telas principais, com o botao "Hora de Treinar" acionando a aba 2 e o icone de perfil acionando a aba 4 -> **Artefato:** `lib/screens/home_screen.dart`.
+  - `[TASK-AUTH-PERSISTENCIA]` Adicao da dependencia `shared_preferences: ^2.2.2`, metodos `salvarSessaoLocal()`, `restaurarSessaoLocal()` e `limparSessaoLocal()` no `ApiService`, e verificacao de sessao antes de `runApp` com roteamento automatico para `/home` se autenticado -> **Artefatos:** `pubspec.yaml`, `lib/services/api_service.dart`, `lib/main.dart`.
+  - `[TASK-TREINO-FAVORITOS]` Inicializacao de estado `salvo = true` em Meus Treinos, cruzamento paralelo de treinos padroes com treinos do usuario, prevencao de duplicatas e icone interativo de estrela nos cards -> **Artefato:** `lib/screens/opcao_treinos_screen.dart`.
+  - `[TASK-TREINO-EXCLUSAO-MODAL]` Pop-up modal de confirmacao (`AlertDialog`) antes da exclusao, remocao fisica do treino no banco Supabase (`ApiService().excluirTreino`) preservando o catalogo padrao, e sincronizacao entre telas -> **Artefatos:** `lib/screens/opcao_treinos_screen.dart`, `lib/screens/treino_selecionado_screen.dart`.
+  - `[TASK-HUD-05-TESTS]` Validacao estatica com `flutter analyze` (0 erros) e execucao da suite de testes automatizados com `pytest` (63 aprovados) -> **Artefatos:** Relatorios de analise e testes.
+- **Decisoes Tecnicas e Observacoes:**
+  - O uso de `BottomNavigationBarType.fixed` foi mantido para evitar o comportamento padrao do Flutter de ocultar rotulos em barras com 4 ou mais itens.
+  - A sessao autenticada persiste o token JWT e metadados do usuario localmente, sendo revogada e limpa tanto no logout voluntario quanto em respostas de autenticacao invalida.
+  - A preservacao total das implementacoes recentes de `Banco-de-Dados` (treinos em dupla, lobby e sincronizacao RLS) foi verificada e validada.
+- **Estado Resultante:** 100% dos testes aprovados, codigo sem warnings de lint, login persistente e HUD de 5 botoes operando com fluidez nativa.
+
 ### [Entrada #020] 2026-11-02 — Correção de Pontuação para Ambos os Membros da Dupla e Trigger RLS Supabase
 - **Objetivo / História de Usuário:**
   - Garantir que a pontuação do treino em dupla seja devidamente creditada e persistida para **ambos os participantes (Host e Convidado)**, tanto no **Modo Remoto (2 Celulares)** quanto no **Modo Presencial (1 Celular Compartilhado)**, superando as restrições de Row-Level Security (RLS) do Supabase.
@@ -91,18 +126,28 @@
 ### [Entrada #016] 2026-10-31 — Migração para WebSocket Persistente e MediaPipe On-Device (Sprints WS-01, WS-02 e WS-03)
 - **Objetivo / História de Usuário:** Reduzir radicalmente a latência da análise biomecânica (de ~500–800ms para ~50–150ms) e o tráfego de rede (de ~30KB por frame JPEG para ~200 bytes por payload JSON), migrando a estimação de pose para o dispositivo móvel (Google ML Kit on-device) e estabelecendo canal de comunicação persistente via WebSocket bidirecional com o backend FastAPI.
 - **Tasks Executadas e Artefatos Gerados:**
-  - `[TASK-WS-01.1]` Adicionado endpoint WebSocket `/ia/ws/{usuario_id}` em `BD/api.py`, recebendo fluxos de ângulos contínuos, com suporte assíncrono em thread pool (`asyncio.to_thread`), heartbeat keep-alive (ping/pong) e troca in-place de exercícios sem fechar o socket $ightarrow$ **Artefato:** `BD/api.py`.
-  - `[TASK-WS-01.2]` Implementado getter `wsBaseUrl` em `lib/config/api_config.dart` mapeando `wss://` para nuvem (Render) e `ws://` para emuladores e ambiente local $ightarrow$ **Artefato:** `lib/config/api_config.dart`.
-  - `[TASK-WS-01.3]` Criado serviço cliente WebSocket `lib/services/ia_websocket_service.dart` com reconexão resiliente automática, heartbeat periódico de 20s contra timeout do Render, e métodos para streaming de ângulos, troca de exercício e reinicialização de série $ightarrow$ **Artefato:** `lib/services/ia_websocket_service.dart`.
-  - `[TASK-WS-01.4]` Criada suíte de testes automatizados do WebSocket com `TestClient` cobrindo conexão, streaming angular, ping/pong e troca dinâmica $ightarrow$ **Artefato:** `tests/test_websocket_ia.py` (3 testes aprovados).
-  - `[TASK-WS-02.1]` Integradas dependências `web_socket_channel: ^3.0.3` e `google_mlkit_pose_detection: ^0.16.1` no `pubspec.yaml`, com adição de permissão de câmera no `android/app/src/main/AndroidManifest.xml` $ightarrow$ **Artefatos:** `pubspec.yaml`, `AndroidManifest.xml`.
-  - `[TASK-WS-02.2]` Implementado `lib/services/pose_service.dart` em Dart puro, reproduzindo a geometria vetorial 2D de `calculo_angulos.py`, com suporte bilateral inteligente (membros contralaterais e webcams espelhadas) e **guarda defensiva multiplataforma** que previne chamadas nativas fora de Android/iOS $ightarrow$ **Artefato:** `lib/services/pose_service.dart`.
-  - `[TASK-WS-02.3]` Refatorado `lib/screens/camera_treino_screen.dart` para acoplar `PoseService` e `IAWebSocketService`, com loop a 150ms (~7 FPS) enviando telemetria ultra-leve, com transição in-place e **fallback transparente para modo clássico de imagens/simulação** em desktops Windows $ightarrow$ **Artefato:** `lib/screens/camera_treino_screen.dart`.
-  - `[TASK-WS-02.4]` Adicionado método `processarAngulosIA()` em `lib/services/api_service.dart` para requisições REST sem imagens como contingência $ightarrow$ **Artefato:** `lib/services/api_service.dart`.
-  - `[TASK-WS-03.1 a WS-03.4]` Adotada a **Opção A (Conservadora)** na política de contingência: rotas REST `/ia/processar-frame` preservadas como salvaguarda; HUD atualizado com telemetria ao vivo de latência em milissegundos e contagem de fotogramas; documentações sincronizadas $ightarrow$ **Artefatos:** `PLANO_MIGRACAO_WEBSOCKET_ONDEVICE.md`, `CONTEXTO_IA.md`, `EXPLICACAO_IA.md`, `DEVLOG.md`.
+  - `[TASK-WS-01.1]` Adicionado endpoint WebSocket `/ia/ws/{usuario_id}` em `BD/api.py`, recebendo fluxos de ângulos contínuos, com suporte assíncrono em thread pool (`asyncio.to_thread`), heartbeat keep-alive (ping/pong) e troca in-place de exercícios sem fechar o socket $
+ightarrow$ **Artefato:** `BD/api.py`.
+  - `[TASK-WS-01.2]` Implementado getter `wsBaseUrl` em `lib/config/api_config.dart` mapeando `wss://` para nuvem (Render) e `ws://` para emuladores e ambiente local $
+ightarrow$ **Artefato:** `lib/config/api_config.dart`.
+  - `[TASK-WS-01.3]` Criado serviço cliente WebSocket `lib/services/ia_websocket_service.dart` com reconexão resiliente automática, heartbeat periódico de 20s contra timeout do Render, e métodos para streaming de ângulos, troca de exercício e reinicialização de série $
+ightarrow$ **Artefato:** `lib/services/ia_websocket_service.dart`.
+  - `[TASK-WS-01.4]` Criada suíte de testes automatizados do WebSocket com `TestClient` cobrindo conexão, streaming angular, ping/pong e troca dinâmica $
+ightarrow$ **Artefato:** `tests/test_websocket_ia.py` (3 testes aprovados).
+  - `[TASK-WS-02.1]` Integradas dependências `web_socket_channel: ^3.0.3` e `google_mlkit_pose_detection: ^0.16.1` no `pubspec.yaml`, com adição de permissão de câmera no `android/app/src/main/AndroidManifest.xml` $
+ightarrow$ **Artefatos:** `pubspec.yaml`, `AndroidManifest.xml`.
+  - `[TASK-WS-02.2]` Implementado `lib/services/pose_service.dart` em Dart puro, reproduzindo a geometria vetorial 2D de `calculo_angulos.py`, com suporte bilateral inteligente (membros contralaterais e webcams espelhadas) e **guarda defensiva multiplataforma** que previne chamadas nativas fora de Android/iOS $
+ightarrow$ **Artefato:** `lib/services/pose_service.dart`.
+  - `[TASK-WS-02.3]` Refatorado `lib/screens/camera_treino_screen.dart` para acoplar `PoseService` e `IAWebSocketService`, com loop a 150ms (~7 FPS) enviando telemetria ultra-leve, com transição in-place e **fallback transparente para modo clássico de imagens/simulação** em desktops Windows $
+ightarrow$ **Artefato:** `lib/screens/camera_treino_screen.dart`.
+  - `[TASK-WS-02.4]` Adicionado método `processarAngulosIA()` em `lib/services/api_service.dart` para requisições REST sem imagens como contingência $
+ightarrow$ **Artefato:** `lib/services/api_service.dart`.
+  - `[TASK-WS-03.1 a WS-03.4]` Adotada a **Opção A (Conservadora)** na política de contingência: rotas REST `/ia/processar-frame` preservadas como salvaguarda; HUD atualizado com telemetria ao vivo de latência em milissegundos e contagem de fotogramas; documentações sincronizadas $
+ightarrow$ **Artefatos:** `PLANO_MIGRACAO_WEBSOCKET_ONDEVICE.md`, `CONTEXTO_IA.md`, `EXPLICACAO_IA.md`, `DEVLOG.md`.
 - **Decisões Técnicas e Observações Diferenciadas:**
   1. *Guarda Multiplataforma no Flutter (`PoseService.disponivel`):* O pacote `google_mlkit_pose_detection` não possui implementação desktop nativa para Windows. Para que a equipe possa continuar desenvolvendo e apresentando pelo Windows Desktop (`camera_windows`), foi implementada degradação graciosa: no Android/iOS usa ML Kit on-device + WebSocket (~200B); no Windows faz fallback para REST/Multipart ou simulação, sem crash.
-  2. *Heartbeat Keep-Alive no WebSocket:* Servidores no Render derrubam conexões ociosas após ~30s a 55s. Adicionou-se troca periódica de pacotes leves `{"tipo": "ping"}` $ightarrow$ `{"tipo": "pong"}` a cada 20s.
+  2. *Heartbeat Keep-Alive no WebSocket:* Servidores no Render derrubam conexões ociosas após ~30s a 55s. Adicionou-se troca periódica de pacotes leves `{"tipo": "ping"}` $
+ightarrow$ `{"tipo": "pong"}` a cada 20s.
   3. *Comutação de Exercícios In-Place:* Implementou-se payload `{"tipo": "trocar_exercicio"}` que reconfigura FSM e Gabarito no backend sem que o app precise destruir e restabelecer o handshake WebSocket.
   4. *Intervalo de Amostragem:* Fixado em 150ms (~7 FPS) na captura para balancear fluidez biomecânica e evitar saturação do subsistema de I/O de arquivos temporários do dispositivo móvel.
 - **Estado Resultante / Próximos Passos:** 100% dos testes aprovados (55 testes Python no `pytest` + 5 testes no `flutter test`), análise estática do Flutter com 0 issues (`flutter analyze` limpo). Pipeline pronto para validação em smartphone Android físico.

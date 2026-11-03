@@ -1,11 +1,17 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
-import 'leaderboard_screen.dart';
 import 'lobby_dupla_screen.dart';
 
 class AmigosScreen extends StatefulWidget {
-  const AmigosScreen({super.key});
+  final VoidCallback? onBack;
+  final VoidCallback? onOpenLeaderboard;
+
+  const AmigosScreen({
+    super.key,
+    this.onBack,
+    this.onOpenLeaderboard,
+  });
 
   @override
   State<AmigosScreen> createState() => _AmigosScreenState();
@@ -448,7 +454,13 @@ class _AmigosScreenState extends State<AmigosScreen>
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () {
+            if (widget.onBack != null) {
+              widget.onBack!();
+            } else {
+              Navigator.pop(context);
+            }
+          },
         ),
         title: const Text(
           'AMIGOS',
@@ -459,16 +471,6 @@ class _AmigosScreenState extends State<AmigosScreen>
           ),
         ),
         actions: [
-          IconButton(
-            icon: const Icon(Icons.leaderboard, color: Color(0xFF00E676)),
-            tooltip: 'Ver Classificação',
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => const LeaderboardScreen()),
-              );
-            },
-          ),
           IconButton(
             icon: const Icon(Icons.refresh, color: Colors.white70),
             tooltip: 'Atualizar',
@@ -914,19 +916,25 @@ class _AmigosScreenState extends State<AmigosScreen>
                                           children: [
                                             const Icon(Icons.bolt, size: 14, color: Colors.amberAccent),
                                             const SizedBox(width: 2),
-                                            Text(
-                                              '${user['sequencia'] ?? 0} dias streak',
-                                              style: const TextStyle(color: Colors.white70, fontSize: 11),
+                                            Flexible(
+                                              child: Text(
+                                                '${user['sequencia'] ?? 0} dias streak',
+                                                overflow: TextOverflow.ellipsis,
+                                                style: const TextStyle(color: Colors.white70, fontSize: 11),
+                                              ),
                                             ),
                                             const SizedBox(width: 8),
                                             const Icon(Icons.star, size: 13, color: Color(0xFF00E676)),
                                             const SizedBox(width: 2),
-                                            Text(
-                                              '${user['pontuacao_semanal'] ?? user['pontos'] ?? 0} pts',
-                                              style: const TextStyle(
-                                                color: Color(0xFF00E676),
-                                                fontSize: 11,
-                                                fontWeight: FontWeight.w600,
+                                            Flexible(
+                                              child: Text(
+                                                '${user['pontuacao_semanal'] ?? user['pontos'] ?? 0} pts',
+                                                overflow: TextOverflow.ellipsis,
+                                                style: const TextStyle(
+                                                  color: Color(0xFF00E676),
+                                                  fontSize: 11,
+                                                  fontWeight: FontWeight.w600,
+                                                ),
                                               ),
                                             ),
                                           ],

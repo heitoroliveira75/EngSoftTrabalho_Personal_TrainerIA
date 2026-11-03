@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import '../config/api_config.dart';
 
 class ApiService {
@@ -51,6 +52,58 @@ class ApiService {
         'Content-Type': 'application/json; charset=UTF-8',
         if (tokenAcesso != null) 'Authorization': 'Bearer $tokenAcesso',
       };
+
+  // ============================================================
+  // PERSISTÊNCIA LOCAL DE SESSÃO (shared_preferences)
+  // ============================================================
+
+  /// Salva os dados da sessão autenticada no armazenamento local do aparelho
+  Future<void> salvarSessaoLocal() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (tokenAcesso != null && tokenAcesso!.isNotEmpty) {
+        await prefs.setString('sessao_token', tokenAcesso!);
+      }
+      if (idUsuarioLogado != null && idUsuarioLogado!.isNotEmpty) {
+        await prefs.setString('sessao_user_id', idUsuarioLogado!);
+      }
+      if (usuarioLogado != null) {
+        await prefs.setString('sessao_usuario', jsonEncode(usuarioLogado));
+      }
+    } catch (_) {}
+  }
+
+  /// Restaura a sessão do armazenamento local se existir
+  Future<bool> restaurarSessaoLocal() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('sessao_token');
+      final userId = prefs.getString('sessao_user_id');
+      final userJson = prefs.getString('sessao_usuario');
+
+      if (token != null && token.isNotEmpty && userId != null && userId.isNotEmpty) {
+        tokenAcesso = token;
+        idUsuarioLogado = userId;
+        if (userJson != null && userJson.isNotEmpty) {
+          try {
+            usuarioLogado = jsonDecode(userJson) as Map<String, dynamic>;
+          } catch (_) {}
+        }
+        return true;
+      }
+    } catch (_) {}
+    return false;
+  }
+
+  /// Remove os dados persistidos no armazenamento local
+  Future<void> limparSessaoLocal() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('sessao_token');
+      await prefs.remove('sessao_user_id');
+      await prefs.remove('sessao_usuario');
+    } catch (_) {}
+  }
 
   // ============================================================
   // 1. AUTENTICAÇÃO E SESSÃO
@@ -122,6 +175,7 @@ class ApiService {
         if (data['sessao'] != null && data['sessao']['access_token'] != null) {
           tokenAcesso = data['sessao']['access_token'];
         }
+        await salvarSessaoLocal();
       }
 
       return data;
@@ -144,6 +198,7 @@ class ApiService {
       tokenAcesso = null;
       usuarioLogado = null;
       idUsuarioLogado = null;
+      await limparSessaoLocal();
 
       final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
       return data;
@@ -151,6 +206,7 @@ class ApiService {
       tokenAcesso = null;
       usuarioLogado = null;
       idUsuarioLogado = null;
+      await limparSessaoLocal();
       return {
         'sucesso': false,
         'mensagem': 'Erro ao comunicar logout: $e',

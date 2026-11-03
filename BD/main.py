@@ -554,6 +554,10 @@ def _desempacotar_treino(treino: Dict[str, Any]) -> Dict[str, Any]:
     # Verifica se treino_exercicios veio preenchido do Supabase
     treino_ex = treino.get("treino_exercicios") or []
     if treino_ex:
+        try:
+            treino_ex.sort(key=lambda te: te.get("ordem") if te.get("ordem") is not None else 0)
+        except Exception:
+            pass
         exercicios_da_relacao = []
         for te in treino_ex:
             ex_info = te.get("exercicios") or {}
@@ -787,20 +791,45 @@ def editar_treino(
                 return {"sucesso": False, "mensagem": "Treino não encontrado para atualização."}
 
         if exercicios is not None:
-            supabase.table("treino_exercicios").delete().eq("treino_id", treino_id).execute()
+            # Preserva e atualiza o JSON na coluna 'descricao' com a nova ordem dos exercícios
+            try:
+                res_atual = supabase.table("treinos").select("descricao").eq("id", treino_id).execute()
+                if res_atual.data:
+                    desc_atual = res_atual.data[0].get("descricao")
+                    payload_desc = {}
+                    if desc_atual and isinstance(desc_atual, str) and desc_atual.strip().startswith("{") and desc_atual.strip().endswith("}"):
+                        try:
+                            payload_desc = json.loads(desc_atual)
+                        except Exception:
+                            payload_desc = {}
+                    if not isinstance(payload_desc, dict):
+                        payload_desc = {}
+                    payload_desc["exercicios"] = exercicios
+                    supabase.table("treinos").update({"descricao": json.dumps(payload_desc, ensure_ascii=False)}).eq("id", treino_id).execute()
+            except Exception as e_desc:
+                print(f"Aviso ao atualizar JSON em descricao do treino: {e_desc}")
 
-            if exercicios:
-                registros_exercicios = [
-                    {
-                        "treino_id": treino_id,
-                        "exercicio_id": item["exercicio_id"],
-                        "ordem": item.get("ordem", 1),
-                        "series": item.get("series", 3),
-                        "repeticoes": item.get("repeticoes", 10)
-                    }
-                    for item in exercicios
-                ]
-                supabase.table("treino_exercicios").insert(registros_exercicios).execute()
+            try:
+                supabase.table("treino_exercicios").delete().eq("treino_id", treino_id).execute()
+
+                if exercicios:
+                    registros_exercicios = []
+                    for idx, item in enumerate(exercicios, start=1):
+                        ex_id = item.get("exercicio_id") or item.get("id")
+                        if ex_id is not None and str(ex_id).isdigit():
+                            ex_id = int(ex_id)
+                        else:
+                            ex_id = 1
+                        registros_exercicios.append({
+                            "treino_id": treino_id,
+                            "exercicio_id": ex_id,
+                            "ordem": item.get("ordem", idx),
+                            "series": item.get("series", 3),
+                            "repeticoes": item.get("repeticoes", 10)
+                        })
+                    supabase.table("treino_exercicios").insert(registros_exercicios).execute()
+            except Exception as e_rel:
+                print(f"Aviso ao atualizar treino_exercicios: {e_rel}")
 
         return {"sucesso": True, "mensagem": "Treino atualizado com sucesso!"}
     except Exception as erro:
