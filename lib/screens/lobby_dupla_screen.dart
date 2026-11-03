@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../models/sessao_dupla.dart';
@@ -28,117 +29,13 @@ class _LobbyDuplaScreenState extends State<LobbyDuplaScreen> {
   bool _carregando = true;
   String? _erroMensagem;
 
-  // Catálogo de Treinos Completos para Treino em Dupla (US-DUPLA)
-  final List<Map<String, dynamic>> _catalogoTreinos = [
-    {
-      'id': 'treino_circuito_ia',
-      'titulo': 'Circuito Completo IA (Ombros, Pernas & Bíceps)',
-      'dificuldade': 'Intermediário',
-      'descricao': 'Treino completo com análise biomecânica em tempo real',
-      'exercicios': [
-        {
-          'id': '16',
-          'exercicio_id': '16',
-          'nome': 'Desenvolvimento com Halteres',
-          'grupo_muscular': 'Ombro',
-          'series': 3,
-          'repeticoes': 10,
-        },
-        {
-          'id': '11',
-          'exercicio_id': '11',
-          'nome': 'Agachamento Livre',
-          'grupo_muscular': 'Pernas',
-          'series': 3,
-          'repeticoes': 10,
-        },
-        {
-          'id': '20',
-          'exercicio_id': '20',
-          'nome': 'Rosca Direta com Barra',
-          'grupo_muscular': 'Bíceps',
-          'series': 3,
-          'repeticoes': 12,
-        },
-      ],
-    },
-    {
-      'id': 'treino_superiores_ia',
-      'titulo': 'Treino Superior IA (Desenvolvimento & Rosca)',
-      'dificuldade': 'Iniciante',
-      'descricao': 'Foco em membros superiores e braços',
-      'exercicios': [
-        {
-          'id': '16',
-          'exercicio_id': '16',
-          'nome': 'Desenvolvimento com Halteres',
-          'grupo_muscular': 'Ombro',
-          'series': 3,
-          'repeticoes': 10,
-        },
-        {
-          'id': '20',
-          'exercicio_id': '20',
-          'nome': 'Rosca Direta com Barra',
-          'grupo_muscular': 'Bíceps',
-          'series': 3,
-          'repeticoes': 12,
-        },
-      ],
-    },
-    {
-      'id': 'treino_inferior_ombros_ia',
-      'titulo': 'Treino Pernas & Ombros IA (Agachamento & Halteres)',
-      'dificuldade': 'Iniciante',
-      'descricao': 'Foco em cadeia inferior e estabilização de ombro',
-      'exercicios': [
-        {
-          'id': '11',
-          'exercicio_id': '11',
-          'nome': 'Agachamento Livre',
-          'grupo_muscular': 'Pernas',
-          'series': 3,
-          'repeticoes': 12,
-        },
-        {
-          'id': '16',
-          'exercicio_id': '16',
-          'nome': 'Desenvolvimento com Halteres',
-          'grupo_muscular': 'Ombro',
-          'series': 3,
-          'repeticoes': 10,
-        },
-      ],
-    },
-    {
-      'id': '1',
-      'titulo': 'Corpo completo A',
-      'dificuldade': 'Iniciante',
-      'descricao': 'Treino balanceado de corpo inteiro',
-      'exercicios': [
-        {'id': '16', 'nome': 'Polichinelo', 'series': 3, 'repeticoes': 12, 'grupo_muscular': 'Cardio'},
-        {'id': '11', 'nome': 'Agachamento Livre', 'series': 3, 'repeticoes': 12, 'grupo_muscular': 'Pernas'},
-        {'id': '16', 'nome': 'Flexão com Joelhos', 'series': 3, 'repeticoes': 10, 'grupo_muscular': 'Peitoral'},
-        {'id': '16', 'nome': 'Abdominal Supra', 'series': 3, 'repeticoes': 15, 'grupo_muscular': 'Core'},
-      ],
-    },
-    {
-      'id': '2',
-      'titulo': 'Membros Inferiores & Core',
-      'dificuldade': 'Iniciante',
-      'descricao': 'Fortalecimento de pernas e estabilização lombar',
-      'exercicios': [
-        {'id': '11', 'nome': 'Agachamento Isométrico', 'series': 3, 'repeticoes': 12, 'grupo_muscular': 'Pernas'},
-        {'id': '11', 'nome': 'Afundo Alternado', 'series': 3, 'repeticoes': 10, 'grupo_muscular': 'Pernas'},
-        {'id': '16', 'nome': 'Abdominal Infra', 'series': 3, 'repeticoes': 12, 'grupo_muscular': 'Core'},
-        {'id': '11', 'nome': 'Elevação de Panturrilha', 'series': 3, 'repeticoes': 15, 'grupo_muscular': 'Pernas'},
-      ],
-    },
-  ];
-
-  late String _treinoSelecionadoId;
+  // Treinos disponíveis para a Sessão (carregados do usuário Host)
+  List<Map<String, dynamic>> _catalogoTreinos = [];
+  String? _treinoSelecionadoId;
+  bool _carregandoTreinosHost = false;
   bool _salvandoTreino = false;
   bool _iniciando = false;
+  bool _isMesmoAparelho = false;
 
   String _mapearIdExercicio(String? rawId, String exNome) {
     final nomeLower = exNome.toLowerCase();
@@ -161,7 +58,8 @@ class _LobbyDuplaScreenState extends State<LobbyDuplaScreen> {
     }
   }
 
-  Map<String, dynamic> get _treinoSelecionado {
+  Map<String, dynamic>? get _treinoSelecionado {
+    if (_catalogoTreinos.isEmpty) return null;
     return _catalogoTreinos.firstWhere(
       (t) => t['id']?.toString() == _treinoSelecionadoId,
       orElse: () => _catalogoTreinos.first,
@@ -171,12 +69,144 @@ class _LobbyDuplaScreenState extends State<LobbyDuplaScreen> {
   @override
   void initState() {
     super.initState();
-    _treinoSelecionadoId = _catalogoTreinos.first['id'];
     _carregarEstado();
+    if (widget.isHost) {
+      _carregarTreinosDoHost();
+    }
     // Polling a cada 1.5s para sincronizar status da dupla em tempo real
     _pollingTimer = Timer.periodic(const Duration(milliseconds: 1500), (_) {
       _carregarEstado(silencioso: true);
     });
+  }
+
+  /// Busca no banco de dados Supabase os treinos criados pelo usuário Host
+  Future<void> _carregarTreinosDoHost() async {
+    if (!widget.isHost) return;
+
+    setState(() => _carregandoTreinosHost = true);
+
+    try {
+      final idHost = ApiService().idUsuarioAtual;
+      final res = await ApiService().listarTreinosUsuario(idHost);
+
+      final List<Map<String, dynamic>> treinosEncontrados = [];
+
+      if (res['sucesso'] == true && res['treinos'] is List && (res['treinos'] as List).isNotEmpty) {
+        for (final t in (res['treinos'] as List)) {
+          if (t is! Map) continue;
+          final List<Map<String, dynamic>> exerciciosMapeados = [];
+
+          // 1. Tenta extrair diretamente de t['exercicios']
+          if (t['exercicios'] is List && (t['exercicios'] as List).isNotEmpty) {
+            for (final ex in t['exercicios']) {
+              if (ex is Map) {
+                final nomeEx = ex['nome']?.toString() ?? 'Exercício';
+                final rawId = (ex['id'] ?? ex['exercicio_id'])?.toString();
+                final idIA = _mapearIdExercicio(rawId, nomeEx);
+                final series = (ex['series'] as num?)?.toInt() ?? 3;
+                final reps = (ex['repeticoes'] as num?)?.toInt() ?? 10;
+                exerciciosMapeados.add({
+                  'id': idIA,
+                  'exercicio_id': idIA,
+                  'nome': nomeEx,
+                  'grupo_muscular': ex['grupo_muscular'] ?? 'Geral',
+                  'series': series,
+                  'repeticoes': reps,
+                });
+              }
+            }
+          }
+          // 2. Tenta extrair da relação relacional t['treino_exercicios']
+          else if (t['treino_exercicios'] is List && (t['treino_exercicios'] as List).isNotEmpty) {
+            for (final te in (t['treino_exercicios'] as List)) {
+              if (te is Map) {
+                final exInfo = te['exercicios'] as Map<String, dynamic>? ?? {};
+                final nomeEx = exInfo['nome'] ?? te['nome'] ?? 'Exercício';
+                final rawId = (te['exercicio_id'] ?? te['id'])?.toString();
+                final idIA = _mapearIdExercicio(rawId, nomeEx.toString());
+                final series = (te['series'] as num?)?.toInt() ?? 3;
+                final reps = (te['repeticoes'] as num?)?.toInt() ?? 10;
+                exerciciosMapeados.add({
+                  'id': idIA,
+                  'exercicio_id': idIA,
+                  'nome': nomeEx.toString(),
+                  'grupo_muscular': exInfo['grupo_muscular'] ?? 'Geral',
+                  'series': series,
+                  'repeticoes': reps,
+                });
+              }
+            }
+          }
+          // 3. Fallback: tenta desempacotar JSON em t['descricao']
+          else if (t['descricao'] != null && t['descricao'].toString().trim().startsWith('{')) {
+            try {
+              final Map<String, dynamic> parsed = jsonDecode(t['descricao'].toString());
+              if (parsed['exercicios'] is List) {
+                for (final ex in (parsed['exercicios'] as List)) {
+                  if (ex is Map) {
+                    final nomeEx = ex['nome']?.toString() ?? 'Exercício';
+                    final rawId = (ex['id'] ?? ex['exercicio_id'])?.toString();
+                    final idIA = _mapearIdExercicio(rawId, nomeEx);
+                    final series = (ex['series'] as num?)?.toInt() ?? 3;
+                    final reps = (ex['repeticoes'] as num?)?.toInt() ?? 10;
+                    exerciciosMapeados.add({
+                      'id': idIA,
+                      'exercicio_id': idIA,
+                      'nome': nomeEx,
+                      'grupo_muscular': ex['grupo_muscular'] ?? 'Geral',
+                      'series': series,
+                      'repeticoes': reps,
+                    });
+                  }
+                }
+              }
+            } catch (_) {}
+          }
+
+          treinosEncontrados.add({
+            'id': t['id']?.toString() ?? 'custom',
+            'titulo': t['nome'] ?? t['titulo'] ?? 'Treino Customizado',
+            'dificuldade': t['dificuldade'] ?? 'Personalizado',
+            'descricao': t['descricao_texto'] ?? 'Treino criado pelo usuário host',
+            'exercicios': exerciciosMapeados.isNotEmpty
+                ? exerciciosMapeados
+                : [
+                    {
+                      'id': '16',
+                      'exercicio_id': '16',
+                      'nome': 'Desenvolvimento com Halteres',
+                      'grupo_muscular': 'Ombro',
+                      'series': 3,
+                      'repeticoes': 10,
+                    }
+                  ],
+          });
+        }
+      }
+
+      if (mounted) {
+        setState(() {
+          _carregandoTreinosHost = false;
+          _catalogoTreinos = treinosEncontrados;
+          if (_catalogoTreinos.isNotEmpty) {
+            if (_treinoSelecionadoId == null ||
+                !_catalogoTreinos.any((t) => t['id']?.toString() == _treinoSelecionadoId)) {
+              _treinoSelecionadoId = _catalogoTreinos.first['id'].toString();
+            }
+          } else {
+            _treinoSelecionadoId = null;
+          }
+        });
+
+        if (_catalogoTreinos.isNotEmpty) {
+          _salvarConfiguracaoTreino();
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() => _carregandoTreinosHost = false);
+      }
+    }
   }
 
   @override
@@ -245,9 +275,11 @@ class _LobbyDuplaScreenState extends State<LobbyDuplaScreen> {
   }
 
   Future<void> _salvarConfiguracaoTreino() async {
+    final treino = _treinoSelecionado;
+    if (treino == null) return;
+
     setState(() => _salvandoTreino = true);
     try {
-      final treino = _treinoSelecionado;
       final rawExercicios = (treino['exercicios'] as List? ?? []);
 
       final List<Map<String, dynamic>> exerciciosFormatados = rawExercicios.map((e) {
@@ -307,8 +339,12 @@ class _LobbyDuplaScreenState extends State<LobbyDuplaScreen> {
 
   Future<void> _darPartidaNoTreino() async {
     if (_sessao == null) return;
-    if (_sessao!.isPendente) {
+    if (!_isMesmoAparelho && _sessao!.isPendente) {
       _mostrarAviso('Aguarde o parceiro aceitar o convite para iniciar!');
+      return;
+    }
+    if (widget.isHost && (_catalogoTreinos.isEmpty || _treinoSelecionado == null)) {
+      _mostrarAviso('Crie ou selecione um treino antes de iniciar!');
       return;
     }
 
@@ -377,6 +413,7 @@ class _LobbyDuplaScreenState extends State<LobbyDuplaScreen> {
           totalSeries: seriesEx,
           listaExercicios: listaEx,
           isModoDupla: true,
+          isMesmoAparelho: _isMesmoAparelho,
           sessaoDuplaId: widget.sessaoId,
           parceiroId: widget.amigoId,
           parceiroNome: widget.amigoNome,
@@ -548,13 +585,148 @@ class _LobbyDuplaScreenState extends State<LobbyDuplaScreen> {
                               ? widget.amigoNome
                               : '${ApiService().nomeUsuarioAtual} (Você)',
                           papel: 'Parceiro Convidado',
-                          isOnline: parceiroPronto,
+                          isOnline: _isMesmoAparelho || parceiroPronto,
                           isHost: false,
-                          statusTexto: parceiroPronto ? 'No Lobby (Pronto)' : 'Aguardando confirmação...',
+                          statusTexto: _isMesmoAparelho
+                              ? 'Presente (Mesmo Celular)'
+                              : (parceiroPronto ? 'No Lobby (Pronto)' : 'Aguardando confirmação...'),
                         ),
                       ],
                     ),
                   ),
+
+                  // Seletor de Formato: Mesmo Celular vs Celulares Separados
+                  if (widget.isHost) ...[
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1E232A),
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: Colors.white10),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'FORMATO DA SESSÃO',
+                            style: TextStyle(
+                              color: Colors.white60,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                              letterSpacing: 1.1,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              // Opção 1: Mesmo Celular (Presencial)
+                              Expanded(
+                                child: InkWell(
+                                  onTap: () => setState(() => _isMesmoAparelho = true),
+                                  borderRadius: BorderRadius.circular(10),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
+                                    decoration: BoxDecoration(
+                                      color: _isMesmoAparelho
+                                          ? const Color(0xFF00E676).withValues(alpha: 0.15)
+                                          : const Color(0xFF0D1117),
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(
+                                        color: _isMesmoAparelho
+                                            ? const Color(0xFF00E676)
+                                            : Colors.white12,
+                                        width: _isMesmoAparelho ? 1.5 : 1.0,
+                                      ),
+                                    ),
+                                    child: Column(
+                                      children: [
+                                        Icon(
+                                          Icons.phone_android,
+                                          color: _isMesmoAparelho ? const Color(0xFF00E676) : Colors.white60,
+                                          size: 26,
+                                        ),
+                                        const SizedBox(height: 6),
+                                        Text(
+                                          '1 Celular (Juntos)',
+                                          style: TextStyle(
+                                            color: _isMesmoAparelho ? Colors.white : Colors.white70,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 12,
+                                          ),
+                                          textAlign: TextAlign.center,
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          'Revezem a mesma câmera',
+                                          style: TextStyle(
+                                            color: _isMesmoAparelho ? const Color(0xFF00E676) : Colors.white38,
+                                            fontSize: 10,
+                                          ),
+                                          textAlign: TextAlign.center,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              // Opção 2: Celulares Separados (Remoto)
+                              Expanded(
+                                child: InkWell(
+                                  onTap: () => setState(() => _isMesmoAparelho = false),
+                                  borderRadius: BorderRadius.circular(10),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
+                                    decoration: BoxDecoration(
+                                      color: !_isMesmoAparelho
+                                          ? const Color(0xFF00E676).withValues(alpha: 0.15)
+                                          : const Color(0xFF0D1117),
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: Border.all(
+                                        color: !_isMesmoAparelho
+                                            ? const Color(0xFF00E676)
+                                            : Colors.white12,
+                                        width: !_isMesmoAparelho ? 1.5 : 1.0,
+                                      ),
+                                    ),
+                                    child: Column(
+                                      children: [
+                                        Icon(
+                                          Icons.devices,
+                                          color: !_isMesmoAparelho ? const Color(0xFF00E676) : Colors.white60,
+                                          size: 26,
+                                        ),
+                                        const SizedBox(height: 6),
+                                        Text(
+                                          '2 Celulares (Online)',
+                                          style: TextStyle(
+                                            color: !_isMesmoAparelho ? Colors.white : Colors.white70,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 12,
+                                          ),
+                                          textAlign: TextAlign.center,
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          'Cada um no seu aparelho',
+                                          style: TextStyle(
+                                            color: !_isMesmoAparelho ? const Color(0xFF00E676) : Colors.white38,
+                                            fontSize: 10,
+                                          ),
+                                          textAlign: TextAlign.center,
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
 
                   const SizedBox(height: 16),
 
@@ -598,138 +770,196 @@ class _LobbyDuplaScreenState extends State<LobbyDuplaScreen> {
                         const SizedBox(height: 14),
 
                         if (widget.isHost) ...[
-                          // Seletor de Treino Completo
-                          DropdownButtonFormField<String>(
-                            value: _treinoSelecionadoId,
-                            dropdownColor: const Color(0xFF1E232A),
-                            decoration: InputDecoration(
-                              labelText: 'Escolha o Treino Completo',
-                              labelStyle: const TextStyle(color: Colors.white70),
-                              filled: true,
-                              fillColor: const Color(0xFF0D1117),
-                              border: OutlineInputBorder(
+                          if (_carregandoTreinosHost)
+                            const Center(
+                              child: Padding(
+                                padding: EdgeInsets.all(20.0),
+                                child: CircularProgressIndicator(color: Color(0xFF00E676)),
+                              ),
+                            )
+                          else if (_catalogoTreinos.isEmpty) ...[
+                            Container(
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF0D1117),
                                 borderRadius: BorderRadius.circular(10),
-                                borderSide: const BorderSide(color: Colors.white24),
+                                border: Border.all(color: Colors.amber.withValues(alpha: 0.5)),
+                              ),
+                              child: Column(
+                                children: [
+                                  const Icon(Icons.fitness_center_outlined, color: Colors.amberAccent, size: 30),
+                                  const SizedBox(height: 8),
+                                  const Text(
+                                    'Você não possui treinos criados no seu perfil.',
+                                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 13),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                  const SizedBox(height: 6),
+                                  const Text(
+                                    'Crie rotinas em "Meus Treinos" para selecioná-las aqui na sessão em dupla.',
+                                    style: TextStyle(color: Colors.white60, fontSize: 12),
+                                    textAlign: TextAlign.center,
+                                  ),
+                                  const SizedBox(height: 12),
+                                  OutlinedButton.icon(
+                                    onPressed: _carregarTreinosDoHost,
+                                    icon: const Icon(Icons.refresh, size: 16),
+                                    label: const Text('Recarregar Meus Treinos'),
+                                    style: OutlinedButton.styleFrom(
+                                      foregroundColor: const Color(0xFF00E676),
+                                      side: const BorderSide(color: Color(0xFF00E676)),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
-                            items: _catalogoTreinos.map((t) {
-                              final totalEx = (t['exercicios'] as List? ?? []).length;
-                              return DropdownMenuItem<String>(
-                                value: t['id'].toString(),
-                                child: Text(
-                                  '${t['titulo']} ($totalEx ex)',
-                                  style: const TextStyle(color: Colors.white, fontSize: 13),
-                                  overflow: TextOverflow.ellipsis,
-                                ),
-                              );
-                            }).toList(),
-                            onChanged: (val) {
-                              if (val != null) {
-                                setState(() => _treinoSelecionadoId = val);
-                                _salvarConfiguracaoTreino();
-                              }
-                            },
-                          ),
-
-                          const SizedBox(height: 12),
-
-                          // Card de Detalhes dos Exercícios do Treino Escolhido
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF0D1117),
-                              borderRadius: BorderRadius.circular(10),
-                              border: Border.all(color: Colors.white12),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                          ] else ...[
+                            // Seletor de Treino do Host com botão de Recarregar
+                            Row(
                               children: [
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Expanded(
-                                      child: Text(
-                                        '${_treinoSelecionado['titulo']}',
-                                        style: const TextStyle(
-                                          color: Color(0xFF00E676),
-                                          fontWeight: FontWeight.bold,
-                                          fontSize: 14,
-                                        ),
+                                Expanded(
+                                  child: DropdownButtonFormField<String>(
+                                    value: _treinoSelecionadoId,
+                                    dropdownColor: const Color(0xFF1E232A),
+                                    decoration: InputDecoration(
+                                      labelText: 'Seus Treinos Cadastrados',
+                                      labelStyle: const TextStyle(color: Colors.white70),
+                                      filled: true,
+                                      fillColor: const Color(0xFF0D1117),
+                                      border: OutlineInputBorder(
+                                        borderRadius: BorderRadius.circular(10),
+                                        borderSide: const BorderSide(color: Colors.white24),
                                       ),
                                     ),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFF00E676).withValues(alpha: 0.15),
-                                        borderRadius: BorderRadius.circular(6),
-                                      ),
-                                      child: Text(
-                                        _treinoSelecionado['dificuldade'] ?? 'Intermediário',
-                                        style: const TextStyle(
-                                          color: Color(0xFF00E676),
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.bold,
+                                    items: _catalogoTreinos.map((t) {
+                                      final totalEx = (t['exercicios'] as List? ?? []).length;
+                                      return DropdownMenuItem<String>(
+                                        value: t['id'].toString(),
+                                        child: Text(
+                                          '${t['titulo']} ($totalEx ex)',
+                                          style: const TextStyle(color: Colors.white, fontSize: 13),
+                                          overflow: TextOverflow.ellipsis,
                                         ),
-                                      ),
-                                    ),
-                                  ],
+                                      );
+                                    }).toList(),
+                                    onChanged: (val) {
+                                      if (val != null) {
+                                        setState(() => _treinoSelecionadoId = val);
+                                        _salvarConfiguracaoTreino();
+                                      }
+                                    },
+                                  ),
                                 ),
-                                const SizedBox(height: 8),
-                                ...((_treinoSelecionado['exercicios'] as List? ?? []).asMap().entries.map((entry) {
-                                  final idx = entry.key + 1;
-                                  final ex = entry.value as Map<String, dynamic>;
-                                  return Padding(
-                                    padding: const EdgeInsets.symmetric(vertical: 4),
-                                    child: Row(
+                                const SizedBox(width: 8),
+                                IconButton(
+                                  icon: const Icon(Icons.refresh, color: Color(0xFF00E676)),
+                                  tooltip: 'Recarregar meus treinos',
+                                  onPressed: _carregarTreinosDoHost,
+                                ),
+                              ],
+                            ),
+
+                            const SizedBox(height: 12),
+
+                            // Card de Detalhes dos Exercícios do Treino Escolhido
+                            if (_treinoSelecionado != null)
+                              Container(
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF0D1117),
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(color: Colors.white12),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                       children: [
-                                        CircleAvatar(
-                                          radius: 10,
-                                          backgroundColor: const Color(0xFF00E676).withValues(alpha: 0.2),
+                                        Expanded(
                                           child: Text(
-                                            '$idx',
+                                            '${_treinoSelecionado!['titulo']}',
                                             style: const TextStyle(
                                               color: Color(0xFF00E676),
-                                              fontSize: 10,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 14,
+                                            ),
+                                          ),
+                                        ),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFF00E676).withValues(alpha: 0.15),
+                                            borderRadius: BorderRadius.circular(6),
+                                          ),
+                                          child: Text(
+                                            _treinoSelecionado!['dificuldade'] ?? 'Personalizado',
+                                            style: const TextStyle(
+                                              color: Color(0xFF00E676),
+                                              fontSize: 11,
                                               fontWeight: FontWeight.bold,
                                             ),
                                           ),
                                         ),
-                                        const SizedBox(width: 8),
-                                        Expanded(
-                                          child: Text(
-                                            ex['nome']?.toString() ?? 'Exercício',
-                                            style: const TextStyle(color: Colors.white, fontSize: 13),
-                                          ),
-                                        ),
-                                        Text(
-                                          '${ex['series'] ?? 3}x ${ex['repeticoes'] ?? 10} reps',
-                                          style: const TextStyle(color: Colors.white60, fontSize: 12),
-                                        ),
                                       ],
                                     ),
-                                  );
-                                })),
-                              ],
-                            ),
-                          ),
+                                    const SizedBox(height: 8),
+                                    ...((_treinoSelecionado!['exercicios'] as List? ?? []).asMap().entries.map((entry) {
+                                      final idx = entry.key + 1;
+                                      final ex = entry.value as Map<String, dynamic>;
+                                      return Padding(
+                                        padding: const EdgeInsets.symmetric(vertical: 4),
+                                        child: Row(
+                                          children: [
+                                            CircleAvatar(
+                                              radius: 10,
+                                              backgroundColor: const Color(0xFF00E676).withValues(alpha: 0.2),
+                                              child: Text(
+                                                '$idx',
+                                                style: const TextStyle(
+                                                  color: Color(0xFF00E676),
+                                                  fontSize: 10,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 8),
+                                            Expanded(
+                                              child: Text(
+                                                ex['nome']?.toString() ?? 'Exercício',
+                                                style: const TextStyle(color: Colors.white, fontSize: 13),
+                                              ),
+                                            ),
+                                            Text(
+                                              '${ex['series'] ?? 3}x ${ex['repeticoes'] ?? 10} reps',
+                                              style: const TextStyle(color: Colors.white60, fontSize: 12),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+                                    })),
+                                  ],
+                                ),
+                              ),
 
-                          const SizedBox(height: 12),
-                          OutlinedButton.icon(
-                            onPressed: _salvandoTreino ? null : _salvarConfiguracaoTreino,
-                            icon: _salvandoTreino
-                                ? const SizedBox(
-                                    width: 16,
-                                    height: 16,
-                                    child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF00E676)),
-                                  )
-                                : const Icon(Icons.sync, size: 18),
-                            label: const Text('Sincronizar Treino com Convidado'),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: const Color(0xFF00E676),
-                              side: const BorderSide(color: Color(0xFF00E676)),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            const SizedBox(height: 12),
+                            OutlinedButton.icon(
+                              onPressed: _salvandoTreino ? null : _salvarConfiguracaoTreino,
+                              icon: _salvandoTreino
+                                  ? const SizedBox(
+                                      width: 16,
+                                      height: 16,
+                                      child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF00E676)),
+                                    )
+                                  : const Icon(Icons.sync, size: 18),
+                              label: const Text('Sincronizar Treino com Convidado'),
+                              style: OutlinedButton.styleFrom(
+                                foregroundColor: const Color(0xFF00E676),
+                                side: const BorderSide(color: Color(0xFF00E676)),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              ),
                             ),
-                          ),
+                          ],
                         ] else ...[
                           // Visualização do Convidado
                           Container(
@@ -747,7 +977,7 @@ class _LobbyDuplaScreenState extends State<LobbyDuplaScreen> {
                                   children: [
                                     Expanded(
                                       child: Text(
-                                        _sessao?.dadosTreino['nome']?.toString() ?? 'Circuito Completo IA',
+                                        _sessao?.dadosTreino['nome']?.toString() ?? 'Circuito Completo',
                                         style: const TextStyle(
                                           color: Color(0xFF00E676),
                                           fontWeight: FontWeight.bold,
@@ -762,7 +992,7 @@ class _LobbyDuplaScreenState extends State<LobbyDuplaScreen> {
                                         borderRadius: BorderRadius.circular(6),
                                       ),
                                       child: Text(
-                                        _sessao?.dadosTreino['dificuldade']?.toString() ?? 'Dupla IA',
+                                        _sessao?.dadosTreino['dificuldade']?.toString() ?? 'Em Dupla',
                                         style: const TextStyle(
                                           color: Color(0xFF00E676),
                                           fontSize: 11,
@@ -810,7 +1040,7 @@ class _LobbyDuplaScreenState extends State<LobbyDuplaScreen> {
                                   }))
                                 else
                                   Text(
-                                    '${_sessao?.totalSeries ?? 3} séries por exercício em revezamento com IA',
+                                    '${_sessao?.totalSeries ?? 3} séries por exercício em revezamento',
                                     style: const TextStyle(color: Colors.white60, fontSize: 13),
                                   ),
                               ],
@@ -826,7 +1056,9 @@ class _LobbyDuplaScreenState extends State<LobbyDuplaScreen> {
                   // Botão de Ação Principal
                   if (widget.isHost)
                     ElevatedButton.icon(
-                      onPressed: (_iniciando || !parceiroPronto) ? null : _darPartidaNoTreino,
+                      onPressed: (_iniciando || !parceiroPronto || _catalogoTreinos.isEmpty || _treinoSelecionado == null)
+                          ? null
+                          : _darPartidaNoTreino,
                       icon: _iniciando
                           ? const SizedBox(
                               width: 20,
@@ -835,9 +1067,11 @@ class _LobbyDuplaScreenState extends State<LobbyDuplaScreen> {
                             )
                           : const Icon(Icons.play_arrow_rounded, size: 24),
                       label: Text(
-                        parceiroPronto
-                            ? '🚀 INICIAR TREINO EM DUPLA'
-                            : 'AGUARDANDO O PARCEIRO ACEITAR...',
+                        _catalogoTreinos.isEmpty
+                            ? 'CRIE UM TREINO PARA INICIAR'
+                            : (parceiroPronto
+                                ? '🚀 INICIAR TREINO EM DUPLA'
+                                : 'AGUARDANDO O PARCEIRO ACEITAR...'),
                         style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                       ),
                       style: ElevatedButton.styleFrom(

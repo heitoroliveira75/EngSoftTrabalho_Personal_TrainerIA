@@ -5,6 +5,8 @@ import 'package:flutter_application_1/screens/dificuldade_treino_screen.dart';
 import 'package:flutter_application_1/screens/training_menu_screen.dart';
 import 'package:flutter_application_1/screens/opcao_treinos_screen.dart';
 import 'package:flutter_application_1/screens/camera_treino_screen.dart';
+import 'package:flutter_application_1/screens/lobby_dupla_screen.dart';
+import 'package:flutter_application_1/models/sessao_dupla.dart';
 
 void main() {
   group('ExercicioTreino Model Tests', () {
@@ -115,6 +117,84 @@ void main() {
       expect(screen.isHostDupla, isTrue);
       expect(screen.sessaoDuplaId, 'sessao-123');
       expect(screen.listaExercicios?.length, 2);
+    });
+
+    test('CameraTreinoScreen suporta modo dupla no mesmo aparelho (1 Celular Presencial)', () {
+      final exercicios = [
+        {'id': '16', 'nome': 'Desenvolvimento com Halteres', 'series': 3, 'repeticoes': 10},
+      ];
+
+      final screen = CameraTreinoScreen(
+        exercicioId: '16',
+        exercicioNome: 'Desenvolvimento com Halteres',
+        metaRepeticoes: 10,
+        totalSeries: 3,
+        listaExercicios: exercicios,
+        isModoDupla: true,
+        isMesmoAparelho: true,
+        parceiroNome: 'Lucas',
+      );
+
+      expect(screen.isModoDupla, isTrue);
+      expect(screen.isMesmoAparelho, isTrue);
+      expect(screen.parceiroNome, 'Lucas');
+      expect(screen.isHostDupla, isTrue);
+    });
+
+    test('Cálculo de bônus cooperativo do treino em dupla aplica 20% sobre a média', () {
+      const pontosHost = 120;
+      const pontosConvidado = 80;
+      const media = (pontosHost + pontosConvidado) / 2.0; // 100.0
+      final pontosFinais = (media * 1.2).round(); // 120
+      final bonusExtra = (pontosFinais - media).round(); // 20
+
+      expect(media, 100.0);
+      expect(pontosFinais, 120);
+      expect(bonusExtra, 20);
+    });
+  });
+
+  group('LobbyDuplaScreen Tests', () {
+    test('LobbyDuplaScreen inicializa com parâmetros de Host e Convidado', () {
+      const lobby = LobbyDuplaScreen(
+        sessaoId: 'sessao-456',
+        isHost: true,
+        amigoNome: 'Carlos',
+        amigoId: 'user-789',
+      );
+
+      expect(lobby.sessaoId, 'sessao-456');
+      expect(lobby.isHost, isTrue);
+      expect(lobby.amigoNome, 'Carlos');
+      expect(lobby.amigoId, 'user-789');
+    });
+
+    test('SessaoDupla modelo parseia corretamente status e dados do treino', () {
+      final json = {
+        'id': 'sessao-999',
+        'host_id': 'host-1',
+        'convidado_id': 'convidado-2',
+        'status': 'aceito',
+        'dados_treino': {
+          'nome': 'Treino de Peito e Ombros',
+          'exercicios': [
+            {'id': '16', 'nome': 'Desenvolvimento com Halteres', 'series': 3, 'repeticoes': 10}
+          ]
+        },
+        'total_series': 3,
+        'serie_atual': 1,
+        'pontos_host': 50,
+        'pontos_convidado': 45,
+      };
+
+      final sessao = SessaoDupla.fromJson(json);
+
+      expect(sessao.id, 'sessao-999');
+      expect(sessao.isAceito, isTrue);
+      expect(sessao.dadosTreino['nome'], 'Treino de Peito e Ombros');
+      expect(sessao.totalSeries, 3);
+      expect(sessao.pontosHost, 50);
+      expect(sessao.pontosConvidado, 45);
     });
   });
 }

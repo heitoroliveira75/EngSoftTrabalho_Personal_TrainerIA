@@ -26,6 +26,35 @@
 
 ## Histórico de Entradas
 
+### [Entrada #020] 2026-11-02 — Correção de Pontuação para Ambos os Membros da Dupla e Trigger RLS Supabase
+- **Objetivo / História de Usuário:**
+  - Garantir que a pontuação do treino em dupla seja devidamente creditada e persistida para **ambos os participantes (Host e Convidado)**, tanto no **Modo Remoto (2 Celulares)** quanto no **Modo Presencial (1 Celular Compartilhado)**, superando as restrições de Row-Level Security (RLS) do Supabase.
+  - Disponibilizar novo arquivo executável compilado (`app-debug.apk`) na raiz do repositório para testes imediatos da equipe.
+- **Tasks Executadas e Artefatos Gerados:**
+  - `[TASK-DUPLA-PONTUACAO-REMOTO]` No modo remoto (2 celulares), o aplicativo do convidado ao detectar via polling que a sessão foi finalizada agora invoca o crédito de pontuação (`adicionarPontuacaoDiaria`) utilizando suas próprias credenciais de autenticação (JWT) e atualiza sua pontuação em tela $\rightarrow$ **Artefato:** `lib/screens/camera_treino_screen.dart`.
+  - `[TASK-DUPLA-PONTUACAO-TRIGGER-RLS]` No modo presencial (1 celular) e como salvaguarda geral, criação de trigger e função SQL com `SECURITY DEFINER` (`trg_creditar_pontos_treino_dupla` em `BD/script_credito_pontos_dupla.sql` e `BD/script_treino_dupla.sql`), permitindo ao PostgreSQL creditar as pontuações de ambos os atletas na tabela `usuarios` no momento da finalização da sessão, contornando a regra RLS de que um usuário não pode editar a linha de outro $\rightarrow$ **Artefatos:** `BD/script_credito_pontos_dupla.sql`, `BD/script_treino_dupla.sql`.
+  - `[TASK-DUPLA-BACKEND-OVERRIDE]` Atualização dos endpoints `/dupla/encerrar-sessao` e `/dupla/atualizar-turno` para aceitar pontuações consolidadas do cliente e aplicar o crédito no banco de dados $\rightarrow$ **Artefatos:** `BD/api.py`, `BD/main.py`.
+  - `[TASK-BUILD-APK-DEBUG]` Compilação e substituição do binário atualizado `app-debug.apk` na raiz do projeto $\rightarrow$ **Artefato:** `./app-debug.apk`.
+- **Decisões Técnicas e Observações:**
+  - Abordagem em duas camadas: no modo 2 celulares o convidado autenticado credita os próprios pontos via API; no modo 1 celular (onde o convidado não está logado no aparelho), o script SQL com trigger `SECURITY DEFINER` garante a gravação atômica dos pontos do parceiro no banco de dados.
+- **Estado Resultante:** 100% dos testes aprovados (11 testes Flutter + 8 testes de API Python + 63 testes biomecânicos) e APK debug atualizado na raiz.
+
+### [Entrada #019] 2026-11-02 — Treino em Dupla no Mesmo Aparelho (Modo Presencial 1 Celular) e Treinos Reais do Host
+- **Objetivo / História de Usuário:**
+  1. Disponibilizar a opção para a dupla treinar junta no **mesmo smartphone (Modo Presencial / 1 Celular)** ou em **smartphones separados (Modo Remoto / 2 Celulares)**, com o Host selecionando o formato desejado no lobby.
+  2. Substituir treinos estáticos/placeholders pelos treinos reais cadastrados pelo usuário Host no Supabase (`listarTreinosUsuario`).
+  3. No modo de 1 celular compartilhado, implementar alternância local de turnos sem polling de rede, pausando as repetições ao fim da série, orientando passar o aparelho ao parceiro através de modal explicativo, acumulando a pontuação de ambos os atletas e creditando o bônus cooperativo (+20%) ao final.
+- **Tasks Executadas e Artefatos Gerados:**
+  - `[TASK-DUPLA-PRESENCIAL-01]` Seletor visual de formato no lobby (`LobbyDuplaScreen`): botões para alternar entre "1 Celular (Presencial)" e "2 Celulares (Remoto)", adaptando os textos explicativos e os requisitos de início (no modo presencial não exige que o parceiro remoto entre via rede) $\rightarrow$ **Artefato:** `lib/screens/lobby_dupla_screen.dart`.
+  - `[TASK-DUPLA-PRESENCIAL-02]` Suporte a `isMesmoAparelho` em `CameraTreinoScreen`: alternância de turno local (`_turnoDoHostLocal`), supressão do overlay preto de descanso e do polling remoto, diálogo explicativo `_exibirDialogoIntervaloSerieMesmoAparelho()` com instrução de passagem de aparelho, cálculo e acumulação de pontos individuais e encerramento cooperativo bonificado $\rightarrow$ **Artefato:** `lib/screens/camera_treino_screen.dart`.
+  - `[TASK-DUPLA-PRESENCIAL-03]` Testes unitários expandidos em `test/treinos_test.dart` cobrindo o construtor com `isMesmoAparelho: true`, verificação matemática da bonificação cooperativa de 20% e parsing do modelo `SessaoDupla` $\rightarrow$ **Artefato:** `test/treinos_test.dart` (11 testes Flutter aprovados).
+  - `[TASK-UI-CLEANUP]` Limpeza e refinamento da interface de usuário nas telas de treino (`CameraTreinoScreen`, `TreinoSelecionadoScreen` e `LobbyDuplaScreen`), removendo o uso repetitivo do termo "IA" em botões, modais, banners de status e tooltips em prol de uma linguagem natural e fluida para o usuário final $\rightarrow$ **Artefatos:** `lib/screens/camera_treino_screen.dart`, `lib/screens/treino_selecionado_screen.dart`, `lib/screens/lobby_dupla_screen.dart`.
+  - `[TASK-DUPLA-PONTUACAO-FIX]` Correção crítica da persistência de pontos no treino em dupla: computação e crédito imediato no banco de dados (`usuarios`) ao concluir cada série tanto no modo 1 celular quanto no modo 2 celulares, sincronização dos pontos antes do encerramento e consolidação do bônus cooperativo (+20%) creditado no Supabase para ambos os atletas ao encerrar a sessão $\rightarrow$ **Artefatos:** `lib/screens/camera_treino_screen.dart`, `lib/services/api_service.dart`, `BD/main.py`, `BD/api.py`.
+- **Decisões Técnicas e Observações:**
+  - O modo de 1 celular permite que duplas que estão fisicamente no mesmo espaço (academia, praça ou casa) treinem com a IA sem depender de dois celulares conectados na mesma rede ou convites remotos pendentes.
+  - A pontuação de cada atleta é calculada individualmente pela IA a cada série executada e consolidada com o bônus de 20% ao término do treino completo.
+- **Estado Resultante:** 100% dos testes aprovados (11 testes Flutter + 8 testes de API Python + 63 testes biomecânicos).
+
 ### [Entrada #018] 2026-11-02 — Integração do Ciclo de Séries/Repetições e Seleção de Treino Completo em Dupla
 - **Objetivo / História de Usuário:**
   1. Integrar as correções da branch `feature/repeticao`: pausa automática das repetições ao atingir a meta, diálogo com intervalo de descanso entre séries e confirmação explícita para avançar de série/exercício.
@@ -34,9 +63,9 @@
 - **Tasks Executadas e Artefatos Gerados:**
   - `[TASK-REP-01]` Integração do ciclo de séries e repetições na tela `CameraTreinoScreen`: parâmetros `totalSeries`, getters dinâmicos `_totalSeriesAtual` e `_serieAtual`, monitoramento contínuo em `_verificarProgressoSeries()`, exibição no contador HUD (`SÉRIE X DE Y`) e diálogo de intervalo com confirmação explícita $\rightarrow$ **Artefato:** `lib/screens/camera_treino_screen.dart`.
   - `[TASK-REP-02]` Atualização de `TreinoSelecionadoScreen` para repassar a contagem de séries do exercício (`totalSeries: seriesEx`) à tela da câmera $\rightarrow$ **Artefato:** `lib/screens/treino_selecionado_screen.dart`.
-  - `[TASK-DUPLA-TREINO-01]` Expansão do catálogo de treinos no lobby em dupla (`LobbyDuplaScreen`) permitindo ao Host selecionar treinos completos (`Circuito Completo IA`, `Treino Superior IA`, `Treino Pernas & Ombros IA`, `Corpo completo A`, `Membros Inferiores & Core`), sincronizando em tempo real a lista completa de exercícios com o parceiro $\rightarrow$ **Artefato:** `lib/screens/lobby_dupla_screen.dart`.
+  - `[TASK-DUPLA-TREINO-01]` Carregamento dinâmico dos treinos reais do usuário Host no lobby em dupla (`LobbyDuplaScreen`) a partir do banco de dados (`ApiService().listarTreinosUsuario`), com parser resiliente de exercícios (`exercicios`, `treino_exercicios` e `descricao` JSON), botão de recarregamento e sincronização em tempo real da lista completa com o convidado $\rightarrow$ **Artefato:** `lib/screens/lobby_dupla_screen.dart`.
   - `[TASK-DUPLA-TREINO-02]` Adaptação da transição por turnos e exercícios em dupla em `CameraTreinoScreen`: diálogo de confirmação de série `_exibirDialogoIntervaloSerieDupla()`, avanço coordenado de exercício e série ao final dos ciclos de cada atleta, e polling reativo sincronizando o índice de exercício entre ambos $\rightarrow$ **Artefato:** `lib/screens/camera_treino_screen.dart`.
-  - `[TASK-TEST-01]` Testes automatizados expandidos com Flutter test cobrindo metas configuráveis de séries/repetições e treino em dupla com múltiplos exercícios $\rightarrow$ **Artefato:** `test/treinos_test.dart` (7 testes aprovados).
+  - `[TASK-TEST-01]` Testes automatizados expandidos com Flutter test cobrindo metas configuráveis de séries/repetições, inicialização do lobby e treino em dupla com múltiplos exercícios $\rightarrow$ **Artefato:** `test/treinos_test.dart` (8 testes aprovados).
 - **Decisões Técnicas e Observações:**
   - O fluxo em dupla respeita o revezamento por atleta em cada série. Ao concluir todas as séries de um exercício, o sistema sincroniza `novoIndiceExercicio` no backend (`/dupla/concluir-serie`), permitindo a ambos os atletas transitar automaticamente para o próximo exercício até a conclusão completa do treino.
 - **Estado Resultante:** 100% dos testes aprovados (63 testes Python + 7 testes Flutter).

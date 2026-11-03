@@ -2130,6 +2130,17 @@ def atualizar_turno_dupla(
     except Exception:
         pass
 
+    # Credita pontuação da série no perfil/Leaderboard do atleta que a concluiu
+    if pts > 0 and uid_str:
+        try:
+            adicionar_pontuacao_diaria(
+                usuario_id=uid_str,
+                pontos=pts,
+                incrementar_sequencia=True
+            )
+        except Exception:
+            pass
+
     sessao.update(campos_update)
     return {
         "sucesso": True,
@@ -2142,7 +2153,12 @@ def atualizar_turno_dupla(
     }
 
 
-def finalizar_sessao_dupla(sessao_id: str, solicitante_id: Optional[str] = None) -> Dict[str, Any]:
+def finalizar_sessao_dupla(
+    sessao_id: str,
+    solicitante_id: Optional[str] = None,
+    pontos_host_override: Optional[int] = None,
+    pontos_convidado_override: Optional[int] = None
+) -> Dict[str, Any]:
     """
     Encerra a sessão de treino em dupla, consolida a regra matemática de cooperação:
       Pontos Finais (cada um) = round(((Pontos_Host + Pontos_Convidado) / 2) * 1.20)
@@ -2162,6 +2178,11 @@ def finalizar_sessao_dupla(sessao_id: str, solicitante_id: Optional[str] = None)
     pontos_host = int(sessao.get("pontos_host") or 0)
     pontos_convidado = int(sessao.get("pontos_convidado") or 0)
 
+    if pontos_host_override is not None:
+        pontos_host = max(pontos_host, int(pontos_host_override))
+    if pontos_convidado_override is not None:
+        pontos_convidado = max(pontos_convidado, int(pontos_convidado_override))
+
     # Regra matemática cooperativa: Média aritmética com bônus de 20% (1.2x)
     soma_pontos = pontos_host + pontos_convidado
     media_pontos = soma_pontos / 2.0
@@ -2171,6 +2192,8 @@ def finalizar_sessao_dupla(sessao_id: str, solicitante_id: Optional[str] = None)
     agora = datetime.now(timezone.utc).isoformat()
     campos_encerramento = {
         "status": "finalizado",
+        "pontos_host": pontos_host,
+        "pontos_convidado": pontos_convidado,
         "pontos_finais_cada": pontos_finais_cada,
         "multiplicador_aplicado": multiplicador,
         "finalizado_em": agora,
@@ -2187,17 +2210,21 @@ def finalizar_sessao_dupla(sessao_id: str, solicitante_id: Optional[str] = None)
     except Exception:
         pass
 
-    # Credita pontuação no Supabase para ambos os participantes
-    resultado_credito_host = adicionar_pontuacao_diaria(
-        usuario_id=host_id,
-        pontos=pontos_finais_cada,
-        incrementar_sequencia=True
-    )
-    resultado_credito_convidado = adicionar_pontuacao_diaria(
-        usuario_id=convidado_id,
-        pontos=pontos_finais_cada,
-        incrementar_sequencia=True
-    )
+    # Credita pontuação consolidada no Supabase para ambos os participantes
+    resultado_credito_host = {"sucesso": False, "mensagem": "Pontos zerados"}
+    resultado_credito_convidado = {"sucesso": False, "mensagem": "Pontos zerados"}
+
+    if pontos_finais_cada > 0:
+        resultado_credito_host = adicionar_pontuacao_diaria(
+            usuario_id=host_id,
+            pontos=pontos_finais_cada,
+            incrementar_sequencia=True
+        )
+        resultado_credito_convidado = adicionar_pontuacao_diaria(
+            usuario_id=convidado_id,
+            pontos=pontos_finais_cada,
+            incrementar_sequencia=True
+        )
 
     sessao.update(campos_encerramento)
 

@@ -366,7 +366,7 @@ class _TreinoSelecionadoScreenState extends State<TreinoSelecionadoScreen> {
     final bool todosConcluidos =
         _exerciciosConcluidos.isNotEmpty && !_exerciciosConcluidos.contains(false);
 
-    String labelBotaoCamera = 'TREINAR COM CÂMERA IA';
+    String labelBotaoCamera = 'TREINAR COM CÂMERA';
     if (todosConcluidos) {
       labelBotaoCamera = 'TREINO CONCLUÍDO (FINALIZAR)';
     } else if (_indiceExercicioAtual > 0 &&

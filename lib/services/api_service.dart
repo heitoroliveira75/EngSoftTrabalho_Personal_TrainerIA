@@ -1286,7 +1286,11 @@ class ApiService {
   }
 
   /// Finaliza sessão de treino em dupla e aplica bônus de 20% para ambos
-  Future<Map<String, dynamic>> encerrarSessaoDupla(String sessaoId) async {
+  Future<Map<String, dynamic>> encerrarSessaoDupla(
+    String sessaoId, {
+    int? pontosHost,
+    int? pontosConvidado,
+  }) async {
     try {
       final uid = idUsuarioAtual;
       final url = Uri.parse('$baseUrl/dupla/encerrar-sessao');
@@ -1297,6 +1301,8 @@ class ApiService {
             body: jsonEncode({
               'sessao_id': sessaoId,
               'solicitante_id': uid,
+              if (pontosHost != null) 'pontos_host': pontosHost,
+              if (pontosConvidado != null) 'pontos_convidado': pontosConvidado,
             }),
           )
           .timeout(const Duration(seconds: 60));

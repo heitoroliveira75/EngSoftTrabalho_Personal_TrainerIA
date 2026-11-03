@@ -177,6 +177,8 @@ class ConcluirSerieDuplaRequest(BaseModel):
 class EncerrarDuplaRequest(BaseModel):
     sessao_id: str
     solicitante_id: Optional[str] = None
+    pontos_host: Optional[int] = None
+    pontos_convidado: Optional[int] = None
 
 
 # ============================================================
@@ -717,7 +719,9 @@ def rota_dupla_encerrar_sessao(req: EncerrarDuplaRequest):
     """Encerra a sessão, calcula ((PtsHost + PtsConvidado)/2)*1.2 e credita para ambos."""
     res = bd.finalizar_sessao_dupla(
         sessao_id=req.sessao_id,
-        solicitante_id=req.solicitante_id
+        solicitante_id=req.solicitante_id,
+        pontos_host_override=req.pontos_host,
+        pontos_convidado_override=req.pontos_convidado,
     )
     if not res.get("sucesso"):
         raise HTTPException(status_code=400, detail=res.get("mensagem", "Erro ao encerrar sessão."))
