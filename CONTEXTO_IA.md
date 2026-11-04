@@ -81,10 +81,10 @@ Estes arquivos compõem a frente de trabalho imediata da branch, homologada por 
 | [`./avaliador_pontuacao.py`](./avaliador_pontuacao.py) | Motor central de pontuação (`ResultadoPontuacaoRepeticao`), laudos pedagógicos hierárquicos, gamificação e `OrquestradorSessao` com interface **frame a frame**. | `calcular_pontuacao()`, `OrquestradorSessao`, `ResultadoPontuacaoRepeticao`, `ResumoPontuacaoSessao` | **Concluído na `TASK-06`** |
 | [`./servico_ia_api.py`](./servico_ia_api.py) | Serviço singleton em memória que gerencia instâncias de `OrquestradorSessao` por usuário, decodifica imagens em RAM via `cv2.imdecode` e provê simulação canônica. | `ServicoIA`, `serializar_resultado_repeticao()`, `serializar_resumo_sessao()` | **Concluído na Sprint US-02** |
 | [`./BD/api.py`](./BD/api.py) | Servidor FastAPI unificado expondo rotas REST do Banco e rotas `/ia/*` para o aplicativo móvel. | Rotas `/ia/reiniciar-sessao`, `/ia/processar-frame`, `/ia/simular-repeticao`, `/ia/resumo-sessao`, `/ia/finalizar-serie-e-pontuar` | **Concluído na Sprint US-02** |
-| [`tests/test_pipeline_pontuacao.py`](tests/test_pipeline_pontuacao.py) | Suíte de testes automatizados com `pytest` cobrindo geometria, deltas acumulados, transições de fase, retenção de erros, DTW vetorizado, segmentação canônica, orquestração e aceite AC1 a AC7. | Testes sem dependência de câmera | **Concluído (39 testes)** |
+| [`tests/test_pipeline_pontuacao.py`](tests/test_pipeline_pontuacao.py) | Suíte de testes automatizados com `pytest` cobrindo geometria, deltas acumulados, transições de fase, retenção de erros, DTW vetorizado, segmentação canônica, orquestração, aceite AC1 a AC7 e FSMs dos 6 exercícios. | Testes sem dependência de câmera | **Concluído (58 testes)** |
 | [`tests/test_servico_ia_api.py`](tests/test_servico_ia_api.py) | Suíte de testes do gerenciador de sessões de IA em memória, decodificação em RAM e simulações canônicas. | `test_servico_ia_*` | **Concluído (7 testes)** |
 | [`tests/test_api_ia_integrada.py`](tests/test_api_ia_integrada.py) | Suíte de testes end-to-end das rotas FastAPI de IA e envio automático de pontos para a gamificação. | `test_rota_ia_*` | **Concluído (6 testes)** |
-| **Total da Suíte Automatizada** | **52 testes aprovados no `pytest` com 100% de sucesso em ~2.4s** | `pytest` | **100% Aprovado** |
+| **Total da Suíte Automatizada** | **65 testes aprovados no `pytest` com 100% de sucesso** | `pytest` | **100% Aprovado** |
 | [`./pytest.ini`](./pytest.ini) | Configuração de execução do `pytest` com inclusão automática do diretório raiz no `pythonpath`. | Configuração de testes | **Ativo** |
 | [`./requirements.txt`](./requirements.txt) | Especificação das dependências oficiais da branch `IA` (`numpy`, `opencv-python`, `mediapipe`, `pytest`). | Gerenciamento de ambiente | **Ativo** |
 
@@ -231,6 +231,18 @@ Todas as classes herdam de `ExercicioBaseFSM` e seguem o ciclo de 4 estados (`0 
      - `EXTENSAO_INCOMPLETA` (Penalidade: 25.0 pts, desqualificador): transição direta `1 -> 3` sem estender no fundo.
      - `COTOVELO_AVANCADO` (Penalidade: 15.0 pts): nas fases `1, 2, 3`, `ombro > 35°` (projetando os braços para frente).
      - `SUBIDA_EXCESSIVA` (Penalidade: 15.0 pts): na fase `3`, `cotovelo < 50°`.
+
+6. **Flexão Diamante (`tecla "6"`, `FlexaoDiamante`)**
+   - **Articulações:** `["cotovelo", "ombro"]`
+   - **Transições (guiadas por `cotovelo` e `delta_cotovelo`):**
+     - `0 -> 1` (Descida / flexão dos cotovelos): `cotovelo < 140°` e `delta_cotovelo < 0`
+     - `1 -> 2` (Fundo / peito próximo às mãos): `cotovelo <= 90°`
+     - `1 -> 3` (Subida precoce / flexão curta): `delta_cotovelo > 0` e `cotovelo > 105°`
+     - `2 -> 3` (Início da subida concêntrica): `cotovelo > 100°` ou `delta_cotovelo > 0`
+     - `3 -> 0` (Retorno à prancha alta): `cotovelo >= 145°` (`repeticoes += 1`)
+   - **Erros detectados:**
+     - `FLEXAO_CURTA` (Penalidade: 25.0 pts, desqualificador): transição direta `1 -> 3` sem descer até 90°.
+     - `ABERTURA_EXCESSIVA` (Penalidade: 15.0 pts): nas fases `1, 2, 3`, `ombro > 75°` (cotovelos excessivamente abertos em vez de alinhados ao diamante).
 
 ---
 

@@ -26,6 +26,17 @@
 
 ## Histórico de Entradas
 
+### [Entrada #013] 2026-11-04 — [Expansão Biomecânica] Implementação da Flexão Diamante e Extração de Gabarito Especialista
+- **Objetivo / História de Usuário:** Implementar o reconhecimento, contagem automática e avaliação biomecânica da Flexão Diamante (visão frontal), com detecção de erros posturais imediatos e extração do gabarito oficial a partir de vídeo `Videos dataset/diamond_pushup.mp4`.
+- **Tasks Executadas e Artefatos Gerados:**
+  - `[TASK-FD.01]` Modelada a FSM `FlexaoDiamante` em `Códigos/exercicios_fsm.py` com o ciclo de 4 fases (`0: Prancha Alta`, `1: Descendo`, `2: Fundo`, `3: Subindo`), regras de transição guiadas por flexão/extensão de cotovelos, detecção de `FLEXAO_CURTA` (-25 pts, desqualificador) e `ABERTURA_EXCESSIVA` (-15 pts). Cadastrada no `CATALOGO_EXERCICIOS` sob a chave `"6"` (com alias `"flexao"`) e registrada em `ERROS_INCOMPLETUDE` em `Códigos/avaliador_pontuacao.py`.
+  - `[TASK-FD.02]` Extraído e validado o gabarito oficial em `Gabaritos/gabarito_especialista_flexao_diamante.json` a partir do vídeo `Videos dataset/diamond_pushup.mp4` via `Códigos/extrator_video.py`, selecionando a repetição 21 de execução biomecânica padrão ouro (zero erros posturais e 98.9% de score DTW).
+  - `[TASK-FD.03]` Habilitado o atalho `[6]Flexao` no HUD da webcam em `Códigos/app_tempo_real.py` e expandida a suíte em `tests/test_pipeline_pontuacao.py` com a classe `TestFlexaoDiamante` (atingindo 65 testes automatizados aprovados no projeto com 100% de sucesso).
+- **Decisões Técnicas e Observações:**
+  - Na visão frontal, o tronco oclui parcialmente quadris e pernas ao aproximar do solo; dessa forma, monitorar `["cotovelo", "ombro"]` garante 100% de visibilidade no MediaPipe e alta acurácia na profundidade da descida e alinhamento dos cotovelos ao formato de diamante.
+  - O pipeline central de pontuação, o segmentador canônico e o motor DTW operaram sem modificações, mantendo estrita conformidade com o Princípio Aberto/Fechado (OCP).
+- **Estado Resultante / Próximos Passos:** Flexão Diamante 100% implementada, com gabarito padrão ouro gerado e validada com 65/65 testes aprovados no `pytest`.
+
 ### [Entrada #012] 2026-11-04 — [Expansão Biomecânica] Implementação do Tríceps Corda e Extração de Gabarito Especialista
 - **Objetivo / História de Usuário:** Implementar o reconhecimento, contagem e avaliação biomecânica de Tríceps Corda na Polia (visão lateral/perfil), com detecção de erros posturais em tempo real e extração do gabarito oficial a partir de vídeo `Videos dataset/triceps.mp4`.
 - **Tasks Executadas e Artefatos Gerados:**

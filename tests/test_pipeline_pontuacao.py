@@ -1209,3 +1209,91 @@ class TestTricepsCorda:
         assert resultado_rep is not None
         assert resultado_rep.score_final >= 90.0
         assert resultado_rep.aprovado is True
+
+
+from exercicios_fsm import FlexaoDiamante
+
+class TestFlexaoDiamante:
+    """Testes unitários específicos da FSM e regras de Flexão Diamante."""
+
+    def test_ciclo_completo_execucao_ideal(self):
+        fsm = FlexaoDiamante()
+        pos = {}
+
+        # Fase 0 (Prancha Alta / Braços Estendidos)
+        assert fsm.fases[1] == 0
+        fsm.classificar({"cotovelo": 155.0, "ombro": 20.0}, pos, {"cotovelo": 0.0})
+        assert fsm.fases[1] == 0
+
+        # Fase 0 -> 1 (Descida / Flexão dos Cotovelos)
+        fsm.classificar({"cotovelo": 130.0, "ombro": 25.0}, pos, {"cotovelo": -15.0})
+        assert fsm.fases[1] == 1
+
+        # Fase 1 -> 2 (Fundo / Cotovelo <= 90°)
+        fsm.classificar({"cotovelo": 85.0, "ombro": 30.0}, pos, {"cotovelo": -15.0})
+        assert fsm.fases[1] == 2
+
+        # Fase 2 -> 3 (Subida / Extensão dos Braços)
+        fsm.classificar({"cotovelo": 110.0, "ombro": 25.0}, pos, {"cotovelo": 15.0})
+        assert fsm.fases[1] == 3
+
+        # Fase 3 -> 0 (Retorno à Prancha Alta >= 145°)
+        fsm.classificar({"cotovelo": 150.0, "ombro": 20.0}, pos, {"cotovelo": 15.0})
+        assert fsm.fases[1] == 0
+        assert fsm.repeticoes == 1
+        assert fsm.consumir_erros_repeticao() == []
+
+    def test_deteccao_erro_flexao_curta(self):
+        fsm = FlexaoDiamante()
+        pos = {}
+
+        # 0 -> 1
+        fsm.classificar({"cotovelo": 130.0, "ombro": 25.0}, pos, {"cotovelo": -15.0})
+        assert fsm.fases[1] == 1
+
+        # 1 -> 3 precoce (sobe antes de atingir 90°: delta > 0 e cotovelo > 105°)
+        erro = fsm.classificar({"cotovelo": 115.0, "ombro": 25.0}, pos, {"cotovelo": 15.0})
+        assert fsm.fases[1] == 3
+        assert erro == "FLEXAO_CURTA"
+        assert "FLEXAO_CURTA" in fsm.consumir_erros_repeticao()
+
+    def test_deteccao_erro_abertura_excessiva(self):
+        fsm = FlexaoDiamante()
+        pos = {}
+
+        # 0 -> 1 com ombro muito aberto (> 75°)
+        erro = fsm.classificar({"cotovelo": 130.0, "ombro": 80.0}, pos, {"cotovelo": -15.0})
+        assert erro == "ABERTURA_EXCESSIVA"
+        assert "ABERTURA_EXCESSIVA" in fsm.consumir_erros_repeticao()
+
+    def test_registro_catalogo_flexao_diamante(self):
+        conf_6 = obter_config_exercicio("6")
+        assert conf_6["id"] == "flexao_diamante"
+        assert conf_6["classe_fsm"] is FlexaoDiamante
+        assert conf_6["articulacoes"] == ["cotovelo", "ombro"]
+
+        conf_id = obter_config_exercicio("flexao_diamante")
+        assert conf_id["nome"] == "Flexao Diamante"
+
+        conf_alias = obter_config_exercicio("flexao")
+        assert conf_alias["id"] == "flexao_diamante"
+
+    def test_gabarito_especialista_flexao_diamante_e_orquestrador(self):
+        gab = GabaritoExercicio.carregar_json("gabarito_especialista_flexao_diamante.json")
+        assert gab.nome_exercicio == "flexao_diamante"
+        assert gab.articulacoes == ["cotovelo", "ombro"]
+        assert gab.total_frames >= 10
+
+        orq = OrquestradorSessao("6")
+        resultado_rep = None
+
+        for linha in gab.dados:
+            frame_angulos = {"cotovelo": float(linha[0]), "ombro": float(linha[1])}
+            _, rep = orq.processar_frame(frame_angulos, visivel=True)
+            if rep is not None:
+                resultado_rep = rep
+
+        assert resultado_rep is not None
+        assert resultado_rep.score_final >= 90.0
+        assert resultado_rep.aprovado is True
+
