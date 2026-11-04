@@ -26,6 +26,31 @@
 
 ## Histórico de Entradas
 
+### [Entrada #023] 2026-11-04 — Integração dos Novos Exercícios da Branch IA, Organização de Arquivos e Suporte no App Flutter
+- **Objetivo / História de Usuário:**
+  - Trazer as atualizações desenvolvidas pela equipe de IA na branch `IA` do GitHub para a branch de produção `Banco-de-Dados`, expandindo o catálogo motor de 3 para **7 exercícios biomecânicos completos**:
+    1. `desenvolvimento_ombro` (ID 1 / 16) — Desenvolvimento com Halteres;
+    2. `agachamento` (ID 2 / 11) — Agachamento Livre;
+    3. `rosca_biceps` (ID 3 / 20) — Rosca Direta de Bíceps;
+    4. `elevacao_lateral` (ID 4 / 17) — Elevação Lateral com Halteres;
+    5. `triceps_corda` (ID 5 / 24 / 23) — Tríceps Corda na Polia;
+    6. `flexao_diamante` (ID 6 / 5) — Flexão de Braço / Diamante;
+    7. `remada_baixa` (ID 7 / 7) — Remada Baixa na Polia com inclinação de tronco.
+  - Integrar a nova organização estrutural de arquivos introduzida pela equipe de IA (pastas `Códigos/` e `Gabaritos/`), mantendo interoperabilidade total e compatibilidade retroativa com os módulos de Backend, Treinos em Dupla, WebSockets e Frontend Flutter.
+  - Implementar o suporte analítico a todos os novos exercícios no aplicativo Flutter (cálculo de ângulos articulares em `PoseService`, mapeamento de IDs de catálogo em `TreinoSelecionadoScreen` e `LobbyDuplaScreen`, e barra visual de progresso dinâmico em `CameraTreinoScreen`).
+- **Tasks Executadas e Artefatos Gerados:**
+  - `[TASK-MERGE-GABARITOS]` Importação dos 7 gabaritos padrão-ouro de especialistas em JSON para o diretório canônico `Gabaritos/` e cópia de salvaguarda na raiz $\rightarrow$ **Artefatos:** `Gabaritos/*.json`.
+  - `[TASK-MERGE-CODIGOS-IA]` Importação e unificação do motor biomecânico atualizado (`exercicios_fsm.py`, `avaliador_pontuacao.py`, `gabarito.py`, `buffer_repeticao.py`, `calculo_angulos.py`, `servico_ia_api.py`, `app_tempo_real.py`, `comparar_exercicio.py`, `PLANO_SPRINT_NOVOS_EXERCICIOS.md`) nas pastas `Códigos/` e raiz $\rightarrow$ **Artefatos:** `Códigos/*.py`, `./*.py`.
+  - `[TASK-IA-ALIASES-UNIFICADOS]` Ampliação de `obter_config_exercicio` em `exercicios_fsm.py` para mapear transparentemente IDs numéricos ('1'..'7'), nomes textuais e IDs do catálogo do app Flutter ('16', '11', '20', '17', '24', '5', '7') $\rightarrow$ **Artefatos:** `exercicios_fsm.py`, `Códigos/exercicios_fsm.py`.
+  - `[TASK-FLUTTER-POSE-SERVICE]` Atualização do `PoseService` para calcular e validar com precisão os ângulos articulares de membros inferiores (`joelho`, `quadril`), remada baixa (`cotovelo`, `ombro`, `quadril`) e membros superiores (`cotovelo`, `ombro`) com suporte contralateral $\rightarrow$ **Artefato:** `lib/services/pose_service.dart`.
+  - `[TASK-FLUTTER-MAPPING-UI]` Atualização de `_mapearIdExercicio` em `treino_selecionado_screen.dart` e `lobby_dupla_screen.dart`, e extensão da barra de progresso em `camera_treino_screen.dart` para os 7 exercícios $\rightarrow$ **Artefatos:** `lib/screens/treino_selecionado_screen.dart`, `lib/screens/lobby_dupla_screen.dart`, `lib/screens/camera_treino_screen.dart`.
+  - `[TASK-BUILD-APK-DEBUG]` Compilação e atualização do executável Android com suporte a todos os exercícios $\rightarrow$ **Artefato:** `./app-debug.apk`.
+  - `[TASK-VALIDACAO-TESTS]` Execução da suíte completa de testes automatizados com `pytest` (**87 testes aprovados — 100% pass**) e validação de lint com `flutter analyze` $\rightarrow$ **Artefatos:** Relatórios de testes e análise.
+- **Decisões Técnicas e Observações:**
+  - A branch remota `IA` havia excluído a árvore de arquivos Flutter (`lib/`, `ios/`, etc.) para rodar testes Python isolados. A integração foi realizada por incorporação seletiva das pastas `Gabaritos/`, `Códigos/` e suítes de teste, preservando 100% da integridade do aplicativo Flutter e das rotas de treino em dupla e WebSockets presentes na branch `Banco-de-Dados`.
+  - Nenhuma alteração estrutural nas tabelas do banco de dados (Supabase) foi necessária, uma vez que o Supabase armazena os IDs e nomes de exercícios que já eram compatíveis com o catálogo do sistema.
+- **Estado Resultante:** Todos os 87 testes automatizados de backend, IA e WebSocket aprovados; aplicativo móvel compilado e compatível com os 7 exercícios em tempo real.
+
 ### [Entrada #022] 2026-11-03 — Mecanismo de Arrastar e Soltar (Reorderable) e Persistência de Ordem dos Exercícios
 - **Objetivo / História de Usuário:**
   - Permitir que o usuário reordene facilmente a sequência de exercícios por meio de um mecanismo intuitivo de **arrastar e soltar (drag and drop)** tanto na tela de **Criação de Treino** quanto na tela de **Treino Selecionado**.

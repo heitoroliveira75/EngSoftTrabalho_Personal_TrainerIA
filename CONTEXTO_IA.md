@@ -210,6 +210,23 @@ Todas as classes herdam de `ExercicioBaseFSM` e seguem o ciclo de 4 estados (`0 
      - `SUBIDA_INCOMPLETA`: transição direta `1 -> 3`.
      - `OMBRO_INSTAVEL`: nas fases `1, 2, 3`, `ombro > 40°`.
 
+4. **Elevação Lateral (`tecla "4"`, `ElevacaoLateral`)**
+   - **Articulações:** `["ombro", "cotovelo"]`
+   - **Erros detectados:** `ELEVACAO_CURTA` (25 pts), `ELEVACAO_EXCESSIVA` (15 pts), `COTOVELO_MUITO_FLEXIONADO` (15 pts).
+
+5. **Tríceps Corda (`tecla "5"`, `TricepsCorda`)**
+   - **Articulações:** `["cotovelo", "ombro"]`
+   - **Erros detectados:** `EXTENSAO_INCOMPLETA` (25 pts), `COTOVELO_AVANCADO` (15 pts), `SUBIDA_EXCESSIVA` (15 pts).
+
+6. **Flexão Diamante / Braço (`tecla "6"`, `FlexaoDiamante`)**
+   - **Articulações:** `["cotovelo", "ombro"]`
+   - **Erros detectados:** `FLEXAO_CURTA` (25 pts), `ABERTURA_EXCESSIVA` (15 pts).
+
+7. **Remada Baixa (`tecla "7"`, `RemadaBaixa`)**
+   - **Articulações:** `["cotovelo", "ombro", "quadril"]`
+   - **Erros detectados:** `REMADA_CURTA` (25 pts), `INCLINACAO_EXCESSIVA_TRONCO` (15 pts).
+
+
 ---
 
 ## 5. Diagnóstico de Débitos Técnicos e Estado de Fechamento
