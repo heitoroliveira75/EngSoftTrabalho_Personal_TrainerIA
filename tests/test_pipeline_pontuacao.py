@@ -358,6 +358,44 @@ class TestDTWEvaluator:
         res = dtw.calcular(serie, serie)
         assert res.score_similaridade == 100.0
 
+    def test_dtw_deadzone_fisiologica_e_normalizacao_articular(self):
+        # Valida que pequenas variações anatômicas dentro da deadzone (ex.: 5 graus)
+        # resultam em distância total zero e score 100%
+        t = np.linspace(0, np.pi, 30)
+        gabarito = np.column_stack((90.0 + 70.0 * np.sin(t), 80.0 + 70.0 * np.sin(t)))
+        # Usuário desvia 5.0 graus no cotovelo e 4.0 graus no ombro (ambos <= 6.0 graus de deadzone)
+        aluno_com_desvio_leve = np.column_stack((gabarito[:, 0] + 5.0, gabarito[:, 1] - 4.0))
+
+        dtw = DTWComparator(tolerancia=30.0, deadzone_graus=6.0, normalizar_por_articulacao=True)
+        res = dtw.compute(aluno_com_desvio_leve, gabarito, nomes_articulacoes=["cotovelo", "ombro"])
+
+        assert res.valido is True
+        assert pytest.approx(res.distancia_total, abs=1e-3) == 0.0
+        assert pytest.approx(res.distancia_normalizada, abs=1e-3) == 0.0
+        assert res.score_similaridade == 100.0
+        # Os desvios médios exibidos no relatório ainda registram os valores brutos para diagnóstico
+        assert pytest.approx(res.desvios_por_articulacao["cotovelo"], abs=1e-2) == 5.0
+        assert pytest.approx(res.desvios_por_articulacao["ombro"], abs=1e-2) == 4.0
+
+    def test_dtw_normalizacao_por_articulacao_invariancia_escala(self):
+        # Com normalização por raiz(D), um desvio idêntico por articulação gera
+        # o mesmo custo normalizado independente de serem 1 ou 2 articulações
+        t = np.linspace(0, np.pi, 25)
+        base = 90.0 + 50.0 * np.sin(t)
+        desvio_constante = 10.0  # Acima da deadzone de 6.0 graus -> desvio efetivo = 4.0 graus
+
+        # Caso 1D
+        dtw_1d = DTWComparator(tolerancia=30.0, deadzone_graus=6.0, normalizar_por_articulacao=True)
+        res_1d = dtw_1d.compute(base + desvio_constante, base)
+
+        # Caso 2D (ambas as articulações com o mesmo desvio)
+        base_2d = np.column_stack((base, base))
+        aluno_2d = np.column_stack((base + desvio_constante, base + desvio_constante))
+        res_2d = dtw_1d.compute(aluno_2d, base_2d)
+
+        assert pytest.approx(res_1d.distancia_normalizada, abs=1e-2) == res_2d.distancia_normalizada
+        assert pytest.approx(res_1d.score_similaridade, abs=1e-1) == res_2d.score_similaridade
+
 
 class TestSegmentadorCanonicoEGabarito:
     def _gerar_curva_ombro_com_margens(self, frames_movimento=45, margem_inicio=8, margem_fim=8):
@@ -869,9 +907,9 @@ class TestCriteriosAceiteUS01:
         assert resumo.repeticoes_aprovadas == 2
         assert resumo.repeticoes_reprovadas == 1
         assert pytest.approx(resumo.taxa_aprovacao, abs=0.2) == 66.7
-        assert pytest.approx(resumo.score_medio, abs=0.2) == 60.8
-        # Apenas repetições aprovadas somam pontos de gamificação (91.2/10 + 91.2/10 = 18.2)
-        assert pytest.approx(resumo.pontos_gamificacao, abs=0.2) == 18.2
+        assert pytest.approx(resumo.score_medio, abs=0.2) == 66.7
+        # Apenas repetições aprovadas somam pontos de gamificação (100.0/10 + 100.0/10 = 20.0)
+        assert pytest.approx(resumo.pontos_gamificacao, abs=0.2) == 20.0
         assert "Atenção recorrente" in resumo.recomendacao_prioritaria or "REPETICAO_INCOMPLETA" in resumo.recomendacao_prioritaria
 
     def test_ac6_verificacao_estatica_ausencia_duplicacao_consumidores(self):
