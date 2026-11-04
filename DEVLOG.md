@@ -26,6 +26,16 @@
 
 ## Histórico de Entradas
 
+### [Entrada #012] 2026-11-04 — [Expansão Biomecânica] Implementação do Tríceps Corda e Extração de Gabarito Especialista
+- **Objetivo / História de Usuário:** Implementar o reconhecimento, contagem e avaliação biomecânica de Tríceps Corda na Polia (visão lateral/perfil), com detecção de erros posturais em tempo real e extração do gabarito oficial a partir de vídeo `Videos dataset/triceps.mp4`.
+- **Tasks Executadas e Artefatos Gerados:**
+  - `[TASK-TC.01]` Modelada a FSM `TricepsCorda` em `Códigos/exercicios_fsm.py` com o ciclo de 4 fases (`0 -> 1 -> 2 -> 3 -> 0`), regras de transição guiadas por extensão de cotovelos, detecção de `EXTENSAO_INCOMPLETA` (-25 pts, desqualificador), `COTOVELO_AVANCADO` (-15 pts) e `SUBIDA_EXCESSIVA` (-15 pts). Cadastrada no `CATALOGO_EXERCICIOS` sob a chave `"5"` e registrada em `ERROS_INCOMPLETUDE` em `Códigos/avaliador_pontuacao.py`.
+  - `[TASK-TC.02]` Extraído o gabarito oficial em `Gabaritos/gabarito_especialista_triceps_corda.json` (49 fotogramas) a partir do vídeo `Videos dataset/triceps.mp4` via `Códigos/extrator_video.py` pelo perfil esquerdo.
+  - `[TASK-TC.03]` Habilitado o atalho `[5] Triceps` no HUD da webcam em `Códigos/app_tempo_real.py` e expandida a suíte em `tests/test_pipeline_pontuacao.py` com testes unitários e de integração DTW (atingindo 53 testes automatizados no pipeline).
+- **Decisões Técnicas e Observações:**
+  - Segmentador canônico em `Códigos/buffer_repeticao.py` aprimorado para descartar tentativas parciais na fase de aquecimento/ajuste do vídeo, garantindo que o padrão ouro contenha estritamente uma repetição válida completa.
+- **Estado Resultante / Próximos Passos:** Tríceps Corda 100% implementado, com gabarito extraído e 53/53 testes automatizados de pipeline aprovados com sucesso.
+
 ### [Entrada #011] 2026-11-04 — [Expansão Biomecânica] Implementação da Elevação Lateral e Extração de Gabarito Especialista
 - **Objetivo / História de Usuário:** Implementar o reconhecimento, contagem e avaliação biomecânica de Elevação Lateral de Ombros (visão frontal), com detecção de erros posturais em tempo real e extração do gabarito padrão ouro oficial a partir de vídeo `.mp4` de especialista.
 - **Tasks Executadas e Artefatos Gerados:**

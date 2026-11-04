@@ -1112,3 +1112,100 @@ class TestElevacaoLateral:
         assert resultado_rep is not None
         assert resultado_rep.score_final >= 95.0
         assert resultado_rep.aprovado is True
+
+
+from exercicios_fsm import TricepsCorda
+
+class TestTricepsCorda:
+    """Testes unitários específicos da FSM e regras de Tríceps Corda."""
+
+    def test_ciclo_completo_execucao_ideal(self):
+        fsm = TricepsCorda()
+        pos = {}
+
+        # Fase 0 (Topo / Repouso)
+        assert fsm.fases[1] == 0
+        fsm.classificar({"cotovelo": 80.0, "ombro": 15.0}, pos, {"cotovelo": 0.0})
+        assert fsm.fases[1] == 0
+
+        # Fase 0 -> 1 (Descida / Extensão)
+        fsm.classificar({"cotovelo": 105.0, "ombro": 15.0}, pos, {"cotovelo": 15.0})
+        assert fsm.fases[1] == 1
+
+        # Fase 1 -> 2 (Pico de extensão no fundo)
+        fsm.classificar({"cotovelo": 152.0, "ombro": 15.0}, pos, {"cotovelo": 20.0})
+        assert fsm.fases[1] == 2
+
+        # Fase 2 -> 3 (Retorno / Flexão controlada)
+        fsm.classificar({"cotovelo": 130.0, "ombro": 15.0}, pos, {"cotovelo": -15.0})
+        assert fsm.fases[1] == 3
+
+        # Fase 3 -> 0 (Retorno ao topo)
+        fsm.classificar({"cotovelo": 80.0, "ombro": 15.0}, pos, {"cotovelo": -15.0})
+        assert fsm.fases[1] == 0
+        assert fsm.repeticoes == 1
+        assert fsm.consumir_erros_repeticao() == []
+
+    def test_deteccao_erro_extensao_incompleta(self):
+        fsm = TricepsCorda()
+        pos = {}
+
+        # 0 -> 1
+        fsm.classificar({"cotovelo": 105.0, "ombro": 15.0}, pos, {"cotovelo": 15.0})
+        assert fsm.fases[1] == 1
+
+        # 1 -> 3 precoce (sobe antes de atingir 145°)
+        erro = fsm.classificar({"cotovelo": 120.0, "ombro": 15.0}, pos, {"cotovelo": -10.0})
+        assert fsm.fases[1] == 3
+        assert erro == "EXTENSAO_INCOMPLETA"
+        assert "EXTENSAO_INCOMPLETA" in fsm.consumir_erros_repeticao()
+
+    def test_deteccao_erro_cotovelo_avancado(self):
+        fsm = TricepsCorda()
+        pos = {}
+
+        # 0 -> 1 com ombro projetado para frente (> 35°)
+        erro = fsm.classificar({"cotovelo": 105.0, "ombro": 45.0}, pos, {"cotovelo": 15.0})
+        assert erro == "COTOVELO_AVANCADO"
+        assert "COTOVELO_AVANCADO" in fsm.consumir_erros_repeticao()
+
+    def test_deteccao_erro_subida_excessiva(self):
+        fsm = TricepsCorda()
+        pos = {}
+
+        # 0 -> 1 -> 2 -> 3
+        fsm.classificar({"cotovelo": 105.0, "ombro": 15.0}, pos, {"cotovelo": 15.0})
+        fsm.classificar({"cotovelo": 150.0, "ombro": 15.0}, pos, {"cotovelo": 20.0})
+        fsm.classificar({"cotovelo": 130.0, "ombro": 15.0}, pos, {"cotovelo": -10.0})
+        # Na fase 3, sobe demais (< 50°)
+        erro = fsm.classificar({"cotovelo": 45.0, "ombro": 15.0}, pos, {"cotovelo": -10.0})
+        assert erro == "SUBIDA_EXCESSIVA"
+        assert "SUBIDA_EXCESSIVA" in fsm.consumir_erros_repeticao()
+
+    def test_registro_catalogo_triceps_corda(self):
+        conf_5 = obter_config_exercicio("5")
+        assert conf_5["id"] == "triceps_corda"
+        assert conf_5["classe_fsm"] is TricepsCorda
+        assert conf_5["articulacoes"] == ["cotovelo", "ombro"]
+
+        conf_id = obter_config_exercicio("triceps_corda")
+        assert conf_id["nome"] == "Triceps Corda"
+
+    def test_gabarito_especialista_triceps_corda_e_orquestrador(self):
+        gab = GabaritoExercicio.carregar_json("gabarito_especialista_triceps_corda.json")
+        assert gab.nome_exercicio == "triceps_corda"
+        assert gab.articulacoes == ["cotovelo", "ombro"]
+        assert gab.total_frames >= 30
+
+        orq = OrquestradorSessao("5")
+        resultado_rep = None
+
+        for linha in gab.dados:
+            frame_angulos = {"cotovelo": float(linha[0]), "ombro": float(linha[1])}
+            _, rep = orq.processar_frame(frame_angulos, visivel=True)
+            if rep is not None:
+                resultado_rep = rep
+
+        assert resultado_rep is not None
+        assert resultado_rep.score_final >= 90.0
+        assert resultado_rep.aprovado is True

@@ -206,6 +206,32 @@ Todas as classes herdam de `ExercicioBaseFSM` e seguem o ciclo de 4 estados (`0 
      - `SUBIDA_INCOMPLETA`: transição direta `1 -> 3`.
      - `OMBRO_INSTAVEL`: nas fases `1, 2, 3`, `ombro > 40°`.
 
+4. **Elevação Lateral (`tecla "4"`, `ElevacaoLateral`)**
+   - **Articulações:** `["ombro", "cotovelo"]`
+   - **Transições (guiadas por `ombro` e `delta_ombro`):**
+     - `0 -> 1` (Início da subida): `ombro > 45°` e `delta_ombro > 0`
+     - `1 -> 2` (Pico de abdução / linha dos ombros): `ombro >= 80°`
+     - `1 -> 3` (Descida precoce / incompleta): `delta_ombro < 0` e `ombro < 70°`
+     - `2 -> 3` (Início da descida controlada): `ombro < 100°` e `delta_ombro < 0`
+     - `3 -> 0` (Retorno ao repouso): `ombro <= 50°` (`repeticoes += 1`)
+   - **Erros detectados:**
+     - `ELEVACAO_CURTA` (Penalidade: 25.0 pts, desqualificador): transição direta `1 -> 3` sem atingir 80°.
+     - `ELEVACAO_EXCESSIVA` (Penalidade: 15.0 pts): na fase `2`, `ombro > 115°`.
+     - `COTOVELO_MUITO_FLEXIONADO` (Penalidade: 15.0 pts): nas fases `1, 2, 3`, `cotovelo < 110°`.
+
+5. **Tríceps Corda (`tecla "5"`, `TricepsCorda`)**
+   - **Articulações:** `["cotovelo", "ombro"]`
+   - **Transições (guiadas por `cotovelo` e `delta_cotovelo`):**
+     - `0 -> 1` (Início da extensão): `cotovelo > 95°` e `delta_cotovelo > 0`
+     - `1 -> 2` (Pico de extensão no fundo): `cotovelo >= 145°`
+     - `1 -> 3` (Subida precoce / incompleta): `delta_cotovelo < 0` e `cotovelo < 130°`
+     - `2 -> 3` (Início do retorno excêntrico): `cotovelo < 140°` ou `delta_cotovelo < 0`
+     - `3 -> 0` (Retorno ao topo): `cotovelo <= 85°` (`repeticoes += 1`)
+   - **Erros detectados:**
+     - `EXTENSAO_INCOMPLETA` (Penalidade: 25.0 pts, desqualificador): transição direta `1 -> 3` sem estender no fundo.
+     - `COTOVELO_AVANCADO` (Penalidade: 15.0 pts): nas fases `1, 2, 3`, `ombro > 35°` (projetando os braços para frente).
+     - `SUBIDA_EXCESSIVA` (Penalidade: 15.0 pts): na fase `3`, `cotovelo < 50°`.
+
 ---
 
 ## 5. Diagnóstico de Débitos Técnicos e Estado de Fechamento

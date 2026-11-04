@@ -88,7 +88,7 @@ def desenhar_painel_hud(
     # Linha 1: Exercício ativo, lado e atalhos
     cv2.putText(
         frame,
-        f"Exercicio: {nome_exercicio} ({lado.upper()}) | [1] Ombro [2] Agach [3] Rosca [4] Elevacao [L] Lado [Q] Sair",
+        f"Exercicio: {nome_exercicio} ({lado.upper()}) | [1] Ombro [2] Agach [3] Rosca [4] Elev [5] Triceps [L] Lado [Q] Sair",
         (12, 25),
         cv2.FONT_HERSHEY_SIMPLEX,
         0.52,

@@ -325,6 +325,76 @@ class ElevacaoLateral(ExercicioBaseFSM):
         return erros_no_frame[0] if erros_no_frame else None
 
 
+class TricepsCorda(ExercicioBaseFSM):
+    """
+    Avalia o Tríceps Corda na Polia (Cable Triceps Pushdown).
+    Articulações: ['cotovelo', 'ombro']
+    """
+
+    NOMES_FASES = {
+        0: "Topo (Cotovelos Flexionados)",
+        1: "Descendo (Extensao dos Bracos)",
+        2: "Pico (Extensao Maxima no Fundo)",
+        3: "Subindo (Retorno Controlado)",
+    }
+
+    MENSAGENS_ERRO = {
+        "EXTENSAO_INCOMPLETA": "Estenda completamente os bracos no fundo (pelo menos 145 graus) antes de subir.",
+        "COTOVELO_AVANCADO": "Mantenha os cotovelos fixos ao lado do tronco (ombro < 35 graus), sem projeta-los para frente.",
+        "SUBIDA_EXCESSIVA": "Controle o retorno na subida; nao deixe o cabo puxar os bracos excessivamente (< 50 graus).",
+    }
+
+    PENALIDADES_ERRO = {
+        "EXTENSAO_INCOMPLETA": 25.0,
+        "COTOVELO_AVANCADO": 15.0,
+        "SUBIDA_EXCESSIVA": 15.0,
+    }
+
+    def identificar_fase(self, angulos: dict, posicoes: dict, angulos_deltas: dict) -> int:
+        cotovelo = angulos.get("cotovelo", 80.0)
+        delta_cotovelo = angulos_deltas.get("cotovelo", 0.0)
+        fase = self.fases[1]
+
+        if fase == 0:
+            if cotovelo > 95.0 and delta_cotovelo > 0:
+                fase = 1
+                self.erros_repeticao_atual = []
+        elif fase == 1:
+            if cotovelo >= 145.0:
+                fase = 2
+            elif delta_cotovelo < 0 and cotovelo < 130.0:
+                fase = 3
+        elif fase == 2:
+            if cotovelo < 140.0 or delta_cotovelo < 0:
+                fase = 3
+        elif fase == 3:
+            if cotovelo <= 85.0:
+                fase = 0
+                self.repeticoes += 1
+
+        return fase
+
+    def classificar(self, angulos: dict, posicoes: dict, angulos_deltas: dict) -> Optional[str]:
+        fase_anterior = self.fases[1]
+        fase_atual = self.identificar_fase(angulos, posicoes, angulos_deltas)
+
+        self.fases[0] = fase_anterior
+        self.fases[1] = fase_atual
+
+        erros_no_frame = []
+        if self.fases[0] == 1 and self.fases[1] == 3:
+            erros_no_frame.append("EXTENSAO_INCOMPLETA")
+        if self.fases[1] in (1, 2, 3) and angulos.get("ombro", 0.0) > 35.0:
+            erros_no_frame.append("COTOVELO_AVANCADO")
+        if (self.fases[0] == 3 or self.fases[1] == 3) and angulos.get("cotovelo", 80.0) < 50.0:
+            erros_no_frame.append("SUBIDA_EXCESSIVA")
+
+        for err in erros_no_frame:
+            self.registrar_erro(err)
+
+        return erros_no_frame[0] if erros_no_frame else None
+
+
 # Catálogo central que liga as teclas de atalho ou IDs aos componentes de cada exercício
 CATALOGO_EXERCICIOS: Dict[str, Dict[str, Any]] = {
     "1": {
@@ -354,6 +424,13 @@ CATALOGO_EXERCICIOS: Dict[str, Dict[str, Any]] = {
         "classe_fsm": ElevacaoLateral,
         "articulacoes": ["ombro", "cotovelo"],
         "arquivo_gabarito": "gabarito_especialista_elevacao_lateral.json",
+    },
+    "5": {
+        "id": "triceps_corda",
+        "nome": "Triceps Corda",
+        "classe_fsm": TricepsCorda,
+        "articulacoes": ["cotovelo", "ombro"],
+        "arquivo_gabarito": "gabarito_especialista_triceps_corda.json",
     },
 }
 

@@ -77,6 +77,8 @@ O catálogo central (`CATALOGO_EXERCICIOS`) suporta **3 exercícios clássicos**
 1. **Desenvolvimento de Ombro (Shoulder Press):** Monitora cotovelo e ombro; detecta repetição incompleta, descida excessiva do braço e ombro caído.
 2. **Agachamento Livre (Squat):** Monitora joelho e quadril; detecta agachamento curto (falta de profundidade) e inclinação excessiva do tronco.
 3. **Rosca Direta de Bíceps (Bicep Curl):** Monitora cotovelo e estabilidade do ombro; detecta flexão incompleta e projeção incorreta do ombro.
+4. **Elevação Lateral de Ombros (Lateral Raise):** Monitora ombro e cotovelo; detecta elevação curta (não atingir a linha dos ombros), elevação excessiva (> 115°, prevenindo pinçamento articular) e cotovelo muito dobrado (< 110°). Conta com gabarito padrão ouro oficial extraído a partir de vídeo gravado em `Videos dataset/elevacaolateral.mp4`.
+5. **Tríceps Corda na Polia (Cable Triceps Pushdown):** Monitora cotovelo (extensão para baixo) e estabilidade do ombro; detecta extensão incompleta no fundo, avanço dos cotovelos (ombro > 35°) e subida excessiva dos cabos. Conta com gabarito especialista oficial extraído a partir de vídeo gravado em `Videos dataset/triceps.mp4`.
 * Todos os exercícios contam com alternância de lado (**Direito** ou **Esquerdo**).
 
 ### 3.2. Módulos Ativos do Sistema
