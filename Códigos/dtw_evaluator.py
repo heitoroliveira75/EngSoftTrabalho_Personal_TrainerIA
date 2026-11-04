@@ -57,8 +57,10 @@ class DTWComparator:
 
     def __init__(
         self,
-        tolerancia: float = 15.0,
-        janela: Optional[Union[int, float]] = None
+        tolerancia: float = 30.0,
+        janela: Optional[Union[int, float]] = None,
+        deadzone_graus: float = 6.0,
+        normalizar_por_articulacao: bool = True,
     ):
         """
         Args:
@@ -66,9 +68,15 @@ class DTWComparator:
             janela: Restrição de Sakoe-Chiba. Se float (ex.: 0.20), representa proporção (20%)
                     da série máxima; se int, representa o número absoluto de frames; se None,
                     executa alinhamento global irrestrito.
+            deadzone_graus: Margem fisiológica de tolerância (em graus). Desvios articulares
+                            menores ou iguais a este limiar não acumulam distância de custo.
+            normalizar_por_articulacao: Se True, divide a norma euclidiana por sqrt(D), tornando
+                                        o custo local médio e justo independente da contagem de articulações.
         """
         self.tolerancia = float(tolerancia)
         self.janela = janela
+        self.deadzone_graus = float(deadzone_graus)
+        self.normalizar_por_articulacao = bool(normalizar_por_articulacao)
 
     def compute(
         self,
@@ -77,6 +85,8 @@ class DTWComparator:
         nomes_articulacoes: Optional[List[str]] = None,
         tolerancia: Optional[float] = None,
         janela: Optional[Union[int, float]] = None,
+        deadzone_graus: Optional[float] = None,
+        normalizar_por_articulacao: Optional[bool] = None,
         lancar_excecao: bool = False
     ) -> DTWResult:
         """
@@ -88,6 +98,8 @@ class DTWComparator:
             nomes_articulacoes: Nomes das D articulações para o mapa de desvios.
             tolerancia: Sobrescrita pontual do fator tau de tolerância angular em graus.
             janela: Sobrescrita pontual da janela de Sakoe-Chiba.
+            deadzone_graus: Sobrescrita pontual da margem fisiológica em graus.
+            normalizar_por_articulacao: Sobrescrita da normalização de dimensões por sqrt(D).
             lancar_excecao: Se True, lança ValueError em dados inválidos. Se False (padrão),
                             degrada graciosamente retornando DTWResult com valido=False.
 
@@ -145,10 +157,20 @@ class DTWComparator:
         else:
             w_eff = max(n, m)  # Sem restrição prática, cobre toda a matriz
 
-        # 4. Matriz de Custo Local Vetorizada via NumPy 3D Broadcasting
+        # 4. Matriz de Custo Local Vetorizada com Deadzone e Normalização por Articulação
         # a[:, None, :] -> (n, 1, dims); b[None, :, :] -> (1, m, dims)
-        diferencas = a[:, None, :] - b[None, :, :]
-        custo = np.linalg.norm(diferencas, axis=2)
+        deadzone = self.deadzone_graus if deadzone_graus is None else float(deadzone_graus)
+        norm_art = self.normalizar_por_articulacao if normalizar_por_articulacao is None else bool(normalizar_por_articulacao)
+
+        diferencas_brutas = np.abs(a[:, None, :] - b[None, :, :])
+        if deadzone > 0.0:
+            diferencas_efetivas = np.maximum(0.0, diferencas_brutas - deadzone)
+        else:
+            diferencas_efetivas = diferencas_brutas
+
+        custo = np.linalg.norm(diferencas_efetivas, axis=2)
+        if norm_art and dims > 1:
+            custo = custo / np.sqrt(dims)
 
         # 5. Programação Dinâmica da Matriz de Custo Acumulado
         acumulado = np.full((n, m), np.inf, dtype=float)
