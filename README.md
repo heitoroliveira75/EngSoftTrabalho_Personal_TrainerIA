@@ -25,7 +25,7 @@ O **PersonAI** nasceu para ser mais do que apenas uma lista digital de exercíci
 
 O projeto foi construído sobre uma arquitetura moderna, desacoplada e segura em três camadas:
 
-![alt text](<Arquitetura do sistema 08_10.png>)
+![Arquitetura do Sistema](system_design_architecture.png)
 
 ### Como tudo se conecta:
 1. **Frontend (Flutter):** Aplicação multiplataforma (Android, iOS, Desktop e Web) com interface responsiva, gerenciando a interação do usuário através de um serviço centralizado ([ApiService](lib/services/api_service.dart)).
