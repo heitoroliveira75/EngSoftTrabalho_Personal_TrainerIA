@@ -1297,3 +1297,94 @@ class TestFlexaoDiamante:
         assert resultado_rep.score_final >= 90.0
         assert resultado_rep.aprovado is True
 
+
+from exercicios_fsm import RemadaBaixa
+
+class TestRemadaBaixa:
+    """Testes unitários específicos da FSM e regras da Remada Baixa."""
+
+    def test_ciclo_completo_execucao_ideal(self):
+        fsm = RemadaBaixa()
+        pos = {}
+
+        # Fase 0 (Repouso: braços estendidos à frente, cotovelo >= 140°)
+        assert fsm.fases[1] == 0
+        fsm.classificar({"cotovelo": 160.0, "ombro": 60.0, "quadril": 100.0}, pos, {"cotovelo": 0.0})
+        assert fsm.fases[1] == 0
+
+        # Fase 0 -> 1 (Puxando: cotovelo < 140°, delta < 0)
+        fsm.classificar({"cotovelo": 125.0, "ombro": 45.0, "quadril": 105.0}, pos, {"cotovelo": -15.0})
+        assert fsm.fases[1] == 1
+
+        # Fase 1 -> 2 (Pico de contração: cotovelo <= 85°)
+        fsm.classificar({"cotovelo": 75.0, "ombro": 45.0, "quadril": 110.0}, pos, {"cotovelo": -20.0})
+        assert fsm.fases[1] == 2
+
+        # Fase 2 -> 3 (Retorno excêntrico: cotovelo > 95° ou delta > 0)
+        fsm.classificar({"cotovelo": 110.0, "ombro": 40.0, "quadril": 105.0}, pos, {"cotovelo": 20.0})
+        assert fsm.fases[1] == 3
+
+        # Fase 3 -> 0 (Retorno ao repouso: cotovelo >= 145°)
+        fsm.classificar({"cotovelo": 155.0, "ombro": 60.0, "quadril": 100.0}, pos, {"cotovelo": 20.0})
+        assert fsm.fases[1] == 0
+        assert fsm.repeticoes == 1
+        assert fsm.consumir_erros_repeticao() == []
+
+    def test_deteccao_erro_remada_curta(self):
+        fsm = RemadaBaixa()
+        pos = {}
+
+        # 0 -> 1
+        fsm.classificar({"cotovelo": 125.0, "ombro": 45.0, "quadril": 105.0}, pos, {"cotovelo": -15.0})
+        assert fsm.fases[1] == 1
+
+        # 1 -> 3 precoce (retorna antes de puxar até 85°: delta > 0 e cotovelo >= 130°)
+        erro = fsm.classificar({"cotovelo": 132.0, "ombro": 50.0, "quadril": 105.0}, pos, {"cotovelo": 10.0})
+        assert fsm.fases[1] == 3
+        assert erro == "REMADA_CURTA"
+        assert "REMADA_CURTA" in fsm.consumir_erros_repeticao()
+
+    def test_deteccao_erro_inclinacao_excessiva_tronco(self):
+        fsm = RemadaBaixa()
+        pos = {}
+
+        # 0 -> 1 puxando, mas jogando o tronco para trás (quadril > 125°)
+        erro = fsm.classificar({"cotovelo": 120.0, "ombro": 45.0, "quadril": 132.0}, pos, {"cotovelo": -15.0})
+        assert erro == "INCLINACAO_EXCESSIVA_TRONCO"
+        assert "INCLINACAO_EXCESSIVA_TRONCO" in fsm.consumir_erros_repeticao()
+
+    def test_registro_catalogo_remada_baixa(self):
+        conf_7 = obter_config_exercicio("7")
+        assert conf_7["id"] == "remada_baixa"
+        assert conf_7["classe_fsm"] is RemadaBaixa
+        assert conf_7["articulacoes"] == ["cotovelo", "ombro", "quadril"]
+
+        conf_id = obter_config_exercicio("remada_baixa")
+        assert conf_id["nome"] == "Remada Baixa"
+
+        conf_alias = obter_config_exercicio("remada")
+        assert conf_alias["id"] == "remada_baixa"
+
+    def test_gabarito_especialista_remada_baixa_e_orquestrador(self):
+        gab = GabaritoExercicio.carregar_json("gabarito_especialista_remada_baixa.json")
+        assert gab.nome_exercicio == "remada_baixa"
+        assert gab.articulacoes == ["cotovelo", "ombro", "quadril"]
+        assert gab.total_frames >= 30
+
+        orq = OrquestradorSessao("7")
+        resultado_rep = None
+
+        for linha in gab.dados:
+            frame_angulos = {
+                "cotovelo": float(linha[0]),
+                "ombro": float(linha[1]),
+                "quadril": float(linha[2])
+            }
+            _, rep = orq.processar_frame(frame_angulos, visivel=True)
+            if rep is not None:
+                resultado_rep = rep
+
+        assert resultado_rep is not None
+        assert resultado_rep.score_final >= 95.0
+        assert resultado_rep.aprovado is True
+

@@ -73,13 +73,14 @@ Aqui está o coração da avaliação técnica:
 Neste momento, a branch `IA` possui seu núcleo completamente homologado:
 
 ### 3.1. Exercícios Já Mapeados
-O catálogo central (`CATALOGO_EXERCICIOS`) suporta **6 exercícios mapeados**:
+O catálogo central (`CATALOGO_EXERCICIOS`) suporta **7 exercícios mapeados**:
 1. **Desenvolvimento de Ombro (Shoulder Press):** Monitora cotovelo e ombro; detecta repetição incompleta, descida excessiva do braço e ombro caído.
 2. **Agachamento Livre (Squat):** Monitora joelho e quadril; detecta agachamento curto (falta de profundidade) e inclinação excessiva do tronco.
 3. **Rosca Direta de Bíceps (Bicep Curl):** Monitora cotovelo e estabilidade do ombro; detecta flexão incompleta e projeção incorreta do ombro.
 4. **Elevação Lateral de Ombros (Lateral Raise):** Monitora ombro e cotovelo; detecta elevação curta (não atingir a linha dos ombros), elevação excessiva (> 115°, prevenindo pinçamento articular) e cotovelo muito dobrado (< 110°). Conta com gabarito padrão ouro oficial extraído a partir de vídeo gravado em `Videos dataset/elevacaolateral.mp4`.
 5. **Tríceps Corda na Polia (Cable Triceps Pushdown):** Monitora cotovelo (extensão para baixo) e estabilidade do ombro; detecta extensão incompleta no fundo, avanço dos cotovelos (ombro > 35°) e subida excessiva dos cabos. Conta com gabarito especialista oficial extraído a partir de vídeo gravado em `Videos dataset/triceps.mp4`.
 6. **Flexão Diamante (Diamond Push-up):** Monitora cotovelo e ombro em visão frontal durante a prancha no solo; detecta flexão curta (`FLEXAO_CURTA`, se o usuário subir antes de atingir $\le 90^\circ$ no fundo) e cotovelos excessivamente abertos (`ABERTURA_EXCESSIVA`, ombro $> 75^\circ$, preservando a ativação de tríceps). Conta com gabarito especialista padrão ouro oficial extraído a partir de vídeo gravado em `Videos dataset/diamond_pushup.mp4`.
+7. **Remada Baixa / Remada na Polia (Seated Cable Row):** Monitora cotovelo, ombro e inclinação do quadril/tronco em visão lateral/perfil; detecta puxada curta (`REMADA_CURTA`, não puxar o cabo até o abdômen a $\le 85^\circ$) e inclinação excessiva das costas para trás (`INCLINACAO_EXCESSIVA_TRONCO`, quadril $> 125^\circ$, evitando o "roubo" de usar o impulso lombar em vez dos dorsais). Conta com gabarito especialista oficial homologado com 100% de pontuação a partir de vídeo gravado em `Videos dataset/remadabaixa.mp4`.
 * Todos os exercícios contam com alternância de lado (**Direito** ou **Esquerdo**).
 
 ### 3.2. Módulos Ativos do Sistema
@@ -92,8 +93,8 @@ O catálogo central (`CATALOGO_EXERCICIOS`) suporta **6 exercícios mapeados**:
 * [`extrator_video.py`](./extrator_video.py): Extrai, por pose detectada, o número do frame, os ângulos articulares e a visibilidade. Não calcula deltas; no fluxo de avaliação, essa responsabilidade é do `OrquestradorSessao`. Também segmenta vídeos de especialistas para gerar gabaritos.
 * [`comparar_exercicio.py`](./comparar_exercicio.py): CLI multi-exercício integrada ao orquestrador, com relatório por repetição e resumo da sessão.
 * [`app_tempo_real.py`](./app_tempo_real.py): Aplicação completa com webcam (OpenCV), desenho do esqueleto na tela, painel HUD superior com contagem de repetições, fase atual, ângulos ao vivo, alertas vermelhos de erro e veredito final da última repetição com score DTW.
-* [`tests/test_pipeline_pontuacao.py`](./tests/test_pipeline_pontuacao.py): Suíte com **58 testes automatizados** (e 65 no total do repositório) aprovados com 100% de sucesso, cobrindo cálculo de ângulos, FSMs dos 6 exercícios, DTW, segmentador canônico, gabaritos, orquestração frame a frame, gamificação, contrato do extrator e a suíte completa de aceite AC1 a AC7 (incluindo extensibilidade OCP).
-* **Gabaritos JSON oficiais em `Gabaritos/`:** Ombro, Agachamento, Rosca Bíceps, Elevação Lateral, Tríceps Corda e Flexão Diamante.
+* [`tests/test_pipeline_pontuacao.py`](./tests/test_pipeline_pontuacao.py): Suíte com **63 testes automatizados** (e 70 no total do repositório) aprovados com 100% de sucesso, cobrindo cálculo de ângulos, FSMs dos 7 exercícios, DTW, segmentador canônico, gabaritos, orquestração frame a frame, gamificação, contrato do extrator e a suíte completa de aceite AC1 a AC7 (incluindo extensibilidade OCP).
+* **Gabaritos JSON oficiais em `Gabaritos/`:** Ombro, Agachamento, Rosca Bíceps, Elevação Lateral, Tríceps Corda, Flexão Diamante e Remada Baixa.
 
 ### 3.3. Como um Humano Pode Testar Hoje no Computador
 Se você clonar o repositório e tiver Python instalado:

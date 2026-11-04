@@ -26,6 +26,17 @@
 
 ## Histórico de Entradas
 
+### [Entrada #014] 2026-11-04 — [Expansão Biomecânica] Implementação da Remada Baixa e Extração de Gabarito Especialista
+- **Objetivo / História de Usuário:** Implementar o reconhecimento, contagem automática e avaliação biomecânica da Remada Baixa / Remada na Polia (visão lateral/perfil esquerdo), com detecção de puxada incompleta e inclinação excessiva das costas (roubo no tronco), além de extrair o gabarito oficial a partir de vídeo gravado em `Videos dataset/remadabaixa.mp4`.
+- **Tasks Executadas e Artefatos Gerados:**
+  - `[TASK-RB.01]` Modelada a FSM `RemadaBaixa` em `Códigos/exercicios_fsm.py` com o ciclo de 4 fases (`0: Braços Estendidos`, `1: Puxando`, `2: Pico de Contração`, `3: Retornando`), regras de transição guiadas por flexão/extensão de cotovelos, detecção de `REMADA_CURTA` (-25 pts, desqualificador) e `INCLINACAO_EXCESSIVA_TRONCO` (-15 pts, `quadril > 125°`). Cadastrada no `CATALOGO_EXERCICIOS` sob a chave `"7"` (com alias `"remada"`) e registrada em `ERROS_INCOMPLETUDE` em `Códigos/avaliador_pontuacao.py`.
+  - `[TASK-RB.02]` Extraído e validado o gabarito oficial em `Gabaritos/gabarito_especialista_remada_baixa.json` (51 fotogramas) a partir do vídeo `Videos dataset/remadabaixa.mp4` via `Códigos/extrator_video.py` pelo perfil esquerdo (100% de visibilidade dos pontos), homologado com nota máxima de 100.0% no orquestrador.
+  - `[TASK-RB.03]` Habilitado o atalho `[7]Remada` no HUD da webcam em `Códigos/app_tempo_real.py` e expandida a suíte em `tests/test_pipeline_pontuacao.py` com a classe `TestRemadaBaixa` (atingindo 70 testes automatizados aprovados no projeto com 100% de sucesso).
+- **Decisões Técnicas e Observações:**
+  - O enquadramento lateral em 3/4 no vídeo `remadabaixa.mp4` garantiu 100% de visibilidade ininterrupta no perfil esquerdo (contra apenas 22% no lado oposto), permitindo rastrear o cotovelo de $46.9^\circ$ a $171.9^\circ$ e a inclinação lombar/quadril sem ruídos.
+  - A FSM foi calibrada para exigir cotovelo $\ge 130^\circ$ para detecção de abandono/puxada curta, evitando falsos positivos por micro-oscilações transitórias na puxada concêntrica.
+- **Estado Resultante / Próximos Passos:** Remada Baixa 100% implementada, com gabarito oficial extraído e validada com 70/70 testes aprovados no `pytest`.
+
 ### [Entrada #013] 2026-11-04 — [Expansão Biomecânica] Implementação da Flexão Diamante e Extração de Gabarito Especialista
 - **Objetivo / História de Usuário:** Implementar o reconhecimento, contagem automática e avaliação biomecânica da Flexão Diamante (visão frontal), com detecção de erros posturais imediatos e extração do gabarito oficial a partir de vídeo `Videos dataset/diamond_pushup.mp4`.
 - **Tasks Executadas e Artefatos Gerados:**

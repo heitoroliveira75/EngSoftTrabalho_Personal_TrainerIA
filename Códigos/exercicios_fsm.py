@@ -461,6 +461,72 @@ class FlexaoDiamante(ExercicioBaseFSM):
         return erros_no_frame[0] if erros_no_frame else None
 
 
+class RemadaBaixa(ExercicioBaseFSM):
+    """
+    Avalia a Remada Baixa / Remada na Polia (Seated Cable Row) em visão lateral/diagonal.
+    Articulações: ['cotovelo', 'ombro', 'quadril']
+    """
+
+    NOMES_FASES = {
+        0: "Bracos Estendidos (Repouso)",
+        1: "Puxando (Flexao dos Cotovelos)",
+        2: "Pico de Contracao (Barra no Abdomen)",
+        3: "Retornando (Extensao Controlada)",
+    }
+
+    MENSAGENS_ERRO = {
+        "REMADA_CURTA": "Puxe a barra ate o abdomen (cotovelo <= 85 graus) antes de retornar.",
+        "INCLINACAO_EXCESSIVA_TRONCO": "Mantenha o tronco firme (quadril <= 125 graus); evite jogar o corpo para tras.",
+    }
+
+    PENALIDADES_ERRO = {
+        "REMADA_CURTA": 25.0,
+        "INCLINACAO_EXCESSIVA_TRONCO": 15.0,
+    }
+
+    def identificar_fase(self, angulos: dict, posicoes: dict, angulos_deltas: dict) -> int:
+        cotovelo = angulos.get("cotovelo", 160.0)
+        delta_cotovelo = angulos_deltas.get("cotovelo", 0.0)
+        fase = self.fases[1]
+
+        if fase == 0:
+            if cotovelo < 140.0 and delta_cotovelo < 0:
+                fase = 1
+                self.erros_repeticao_atual = []
+        elif fase == 1:
+            if cotovelo <= 85.0:
+                fase = 2
+            elif delta_cotovelo > 0 and cotovelo >= 130.0:
+                fase = 3
+        elif fase == 2:
+            if cotovelo > 95.0 or delta_cotovelo > 0:
+                fase = 3
+        elif fase == 3:
+            if cotovelo >= 145.0:
+                fase = 0
+                self.repeticoes += 1
+
+        return fase
+
+    def classificar(self, angulos: dict, posicoes: dict, angulos_deltas: dict) -> Optional[str]:
+        fase_anterior = self.fases[1]
+        fase_atual = self.identificar_fase(angulos, posicoes, angulos_deltas)
+
+        self.fases[0] = fase_anterior
+        self.fases[1] = fase_atual
+
+        erros_no_frame = []
+        if self.fases[0] == 1 and self.fases[1] == 3:
+            erros_no_frame.append("REMADA_CURTA")
+        if self.fases[1] in (1, 2, 3) and angulos.get("quadril", 90.0) > 125.0:
+            erros_no_frame.append("INCLINACAO_EXCESSIVA_TRONCO")
+
+        for err in erros_no_frame:
+            self.registrar_erro(err)
+
+        return erros_no_frame[0] if erros_no_frame else None
+
+
 # Catálogo central que liga as teclas de atalho ou IDs aos componentes de cada exercício
 CATALOGO_EXERCICIOS: Dict[str, Dict[str, Any]] = {
     "1": {
@@ -505,6 +571,13 @@ CATALOGO_EXERCICIOS: Dict[str, Dict[str, Any]] = {
         "articulacoes": ["cotovelo", "ombro"],
         "arquivo_gabarito": "gabarito_especialista_flexao_diamante.json",
     },
+    "7": {
+        "id": "remada_baixa",
+        "nome": "Remada Baixa",
+        "classe_fsm": RemadaBaixa,
+        "articulacoes": ["cotovelo", "ombro", "quadril"],
+        "arquivo_gabarito": "gabarito_especialista_remada_baixa.json",
+    },
 }
 
 
@@ -519,6 +592,9 @@ def obter_config_exercicio(identificador: str) -> Dict[str, Any]:
 
     if chave == "flexao":
         return CATALOGO_EXERCICIOS["6"]
+
+    if chave in ("remada", "remada_baixa"):
+        return CATALOGO_EXERCICIOS["7"]
 
     for item in CATALOGO_EXERCICIOS.values():
         if item["id"].lower() == chave:
