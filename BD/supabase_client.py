@@ -17,11 +17,14 @@ SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_PUBLISHABLE_KEY")
 
 
-# Verifica se as configurações existem com fallback seguro para testes e desenvolvimento local
-if not SUPABASE_URL or not SUPABASE_KEY:
-    SUPABASE_URL = SUPABASE_URL or "https://placeholder-project.supabase.co"
-    SUPABASE_KEY = SUPABASE_KEY or "placeholder-anon-key"
-    print("Aviso: SUPABASE_URL ou chave não encontrada no .env. Operando em modo de desenvolvimento/teste local.")
+# Verifica se as configurações existem
+if not SUPABASE_URL:
+    raise RuntimeError("SUPABASE_URL não foi encontrada no .env")
+
+if not SUPABASE_KEY:
+    raise RuntimeError(
+        "SUPABASE_PUBLISHABLE_KEY ou SUPABASE_SERVICE_ROLE_KEY não foi encontrada no .env"
+    )
 
 
 # Cria o cliente Supabase
@@ -30,4 +33,4 @@ supabase: Client = create_client(
     SUPABASE_KEY
 )
 
-print("Supabase configurado")
+print("Supabase conectado")

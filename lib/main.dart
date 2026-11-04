@@ -17,28 +17,19 @@ import 'screens/redefinir_senha_screen.dart';
 import 'screens/training_menu_screen.dart';
 import 'screens/treinos_screen.dart';
 
-void main() async {
+void main() {
   WidgetsFlutterBinding.ensureInitialized();
-  final logado = await ApiService().restaurarSessaoLocal();
-  runApp(MeuAppTreino(usuarioLogado: logado));
+  runApp(const MeuAppTreino());
 }
 
 class MeuAppTreino extends StatelessWidget {
-  final bool usuarioLogado;
-  const MeuAppTreino({super.key, this.usuarioLogado = false});
+  const MeuAppTreino({super.key});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'PersonAI',
-      builder: (context, child) {
-        return SafeArea(
-          top: false,
-          bottom: true,
-          child: child ?? const SizedBox.shrink(),
-        );
-      },
+      title: 'Personal Trainer IA',
       theme: ThemeData(
         brightness: Brightness.dark,
         scaffoldBackgroundColor: const Color(0xFF0D1117),
@@ -49,7 +40,7 @@ class MeuAppTreino extends StatelessWidget {
           surface: Color(0xFF1E232A),
         ),
       ),
-      initialRoute: usuarioLogado ? '/home' : '/login',
+      initialRoute: '/login',
       routes: {
         '/login': (context) => const LoginScreen(),
         '/cadastro': (context) => const CadastroScreen(),
@@ -70,7 +61,6 @@ class MeuAppTreino extends StatelessWidget {
         '/alterar-senha': (context) => const ChangePasswordScreen(),
         '/leaderboard': (context) => const LeaderboardScreen(),
         '/amigos': (context) => const AmigosScreen(),
-        '/camera-treino': (context) => const CameraTreinoScreen(),
       },
     );
   }

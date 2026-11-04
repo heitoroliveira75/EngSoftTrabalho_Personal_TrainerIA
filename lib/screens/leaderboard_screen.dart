@@ -3,14 +3,7 @@ import '../services/api_service.dart';
 import 'amigos_screen.dart';
 
 class LeaderboardScreen extends StatefulWidget {
-  final VoidCallback? onBack;
-  final VoidCallback? onOpenAmigos;
-
-  const LeaderboardScreen({
-    super.key,
-    this.onBack,
-    this.onOpenAmigos,
-  });
+  const LeaderboardScreen({super.key});
 
   @override
   State<LeaderboardScreen> createState() => _LeaderboardScreenState();
@@ -197,13 +190,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () {
-            if (widget.onBack != null) {
-              widget.onBack!();
-            } else {
-              Navigator.pop(context);
-            }
-          },
+          onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
           'CLASSIFICAÇÃO',
@@ -214,6 +201,16 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
           ),
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.group, color: Color(0xFF00E676)),
+            tooltip: 'Gerenciar Amigos',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const AmigosScreen()),
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.refresh, color: Colors.white70),
             tooltip: 'Atualizar',
@@ -585,14 +582,10 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
             const SizedBox(height: 20),
             ElevatedButton.icon(
               onPressed: () {
-                if (widget.onOpenAmigos != null) {
-                  widget.onOpenAmigos!();
-                } else {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const AmigosScreen()),
-                  ).then((_) => _carregarLeaderboard());
-                }
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => const AmigosScreen()),
+                ).then((_) => _carregarLeaderboard());
               },
               icon: const Icon(Icons.person_add),
               label: const Text('Convidar / Buscar Amigos'),
@@ -631,39 +624,31 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           // 2º Lugar
-          Expanded(
-            child: _buildPodiumStep(
-              posicao: 2,
-              nome: segundo['nome'] as String,
-              pontos: (segundo['pontos'] as num).toInt(),
-              sequencia: (segundo['sequencia'] as num).toInt(),
-              cor: const Color(0xFFC0C0C0), // Prata
-              altura: 75,
-            ),
+          _buildPodiumStep(
+            posicao: 2,
+            nome: segundo['nome'] as String,
+            pontos: (segundo['pontos'] as num).toInt(),
+            sequencia: (segundo['sequencia'] as num).toInt(),
+            cor: const Color(0xFFC0C0C0), // Prata
+            altura: 75,
           ),
-          const SizedBox(width: 8),
           // 1º Lugar
-          Expanded(
-            child: _buildPodiumStep(
-              posicao: 1,
-              nome: primeiro['nome'] as String,
-              pontos: (primeiro['pontos'] as num).toInt(),
-              sequencia: (primeiro['sequencia'] as num).toInt(),
-              cor: const Color(0xFFFFD700), // Ouro
-              altura: 100,
-            ),
+          _buildPodiumStep(
+            posicao: 1,
+            nome: primeiro['nome'] as String,
+            pontos: (primeiro['pontos'] as num).toInt(),
+            sequencia: (primeiro['sequencia'] as num).toInt(),
+            cor: const Color(0xFFFFD700), // Ouro
+            altura: 100,
           ),
-          const SizedBox(width: 8),
           // 3º Lugar
-          Expanded(
-            child: _buildPodiumStep(
-              posicao: 3,
-              nome: terceiro['nome'] as String,
-              pontos: (terceiro['pontos'] as num).toInt(),
-              sequencia: (terceiro['sequencia'] as num).toInt(),
-              cor: const Color(0xFFCD7F32), // Bronze
-              altura: 60,
-            ),
+          _buildPodiumStep(
+            posicao: 3,
+            nome: terceiro['nome'] as String,
+            pontos: (terceiro['pontos'] as num).toInt(),
+            sequencia: (terceiro['sequencia'] as num).toInt(),
+            cor: const Color(0xFFCD7F32), // Bronze
+            altura: 60,
           ),
         ],
       ),
@@ -683,8 +668,8 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
       children: [
         Icon(Icons.workspace_premium, color: cor, size: 28),
         const SizedBox(height: 4),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 4),
+        SizedBox(
+          width: 85,
           child: Text(
             nome,
             textAlign: TextAlign.center,
@@ -703,15 +688,12 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
           children: [
             Icon(Icons.star, size: 11, color: cor),
             const SizedBox(width: 2),
-            Flexible(
-              child: Text(
-                '$pontos pts',
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: cor,
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                ),
+            Text(
+              '$pontos pts',
+              style: TextStyle(
+                color: cor,
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
               ),
             ),
           ],
@@ -721,22 +703,18 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
           mainAxisSize: MainAxisSize.min,
           children: [
             const Icon(Icons.bolt, size: 11, color: Colors.amberAccent),
-            Flexible(
-              child: Text(
-                '$sequencia d streak',
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: Colors.white70,
-                  fontSize: 10,
-                ),
+            Text(
+              '$sequencia d streak',
+              style: const TextStyle(
+                color: Colors.white70,
+                fontSize: 10,
               ),
             ),
           ],
         ),
         const SizedBox(height: 6),
         Container(
-          width: double.infinity,
-          constraints: const BoxConstraints(maxWidth: 85),
+          width: 70,
           height: altura,
           decoration: BoxDecoration(
             color: cor.withValues(alpha: 0.2),
@@ -855,25 +833,19 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
                   children: [
                     const Icon(Icons.bolt, size: 14, color: Colors.amberAccent),
                     const SizedBox(width: 2),
-                    Flexible(
-                      child: Text(
-                        '$sequencia dias streak',
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(color: Colors.white70, fontSize: 11),
-                      ),
+                    Text(
+                      '$sequencia dias streak',
+                      style: const TextStyle(color: Colors.white70, fontSize: 11),
                     ),
                     const SizedBox(width: 8),
                     const Icon(Icons.star, size: 13, color: Color(0xFF00E676)),
                     const SizedBox(width: 2),
-                    Flexible(
-                      child: Text(
-                        '$pontos pts sem.',
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Color(0xFF00E676),
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                        ),
+                    Text(
+                      '$pontos pts sem.',
+                      style: const TextStyle(
+                        color: Color(0xFF00E676),
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
                       ),
                     ),
                   ],

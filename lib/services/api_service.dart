@@ -1,6 +1,5 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
 import '../config/api_config.dart';
 
 class ApiService {
@@ -54,58 +53,6 @@ class ApiService {
       };
 
   // ============================================================
-  // PERSISTÊNCIA LOCAL DE SESSÃO (shared_preferences)
-  // ============================================================
-
-  /// Salva os dados da sessão autenticada no armazenamento local do aparelho
-  Future<void> salvarSessaoLocal() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      if (tokenAcesso != null && tokenAcesso!.isNotEmpty) {
-        await prefs.setString('sessao_token', tokenAcesso!);
-      }
-      if (idUsuarioLogado != null && idUsuarioLogado!.isNotEmpty) {
-        await prefs.setString('sessao_user_id', idUsuarioLogado!);
-      }
-      if (usuarioLogado != null) {
-        await prefs.setString('sessao_usuario', jsonEncode(usuarioLogado));
-      }
-    } catch (_) {}
-  }
-
-  /// Restaura a sessão do armazenamento local se existir
-  Future<bool> restaurarSessaoLocal() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final token = prefs.getString('sessao_token');
-      final userId = prefs.getString('sessao_user_id');
-      final userJson = prefs.getString('sessao_usuario');
-
-      if (token != null && token.isNotEmpty && userId != null && userId.isNotEmpty) {
-        tokenAcesso = token;
-        idUsuarioLogado = userId;
-        if (userJson != null && userJson.isNotEmpty) {
-          try {
-            usuarioLogado = jsonDecode(userJson) as Map<String, dynamic>;
-          } catch (_) {}
-        }
-        return true;
-      }
-    } catch (_) {}
-    return false;
-  }
-
-  /// Remove os dados persistidos no armazenamento local
-  Future<void> limparSessaoLocal() async {
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.remove('sessao_token');
-      await prefs.remove('sessao_user_id');
-      await prefs.remove('sessao_usuario');
-    } catch (_) {}
-  }
-
-  // ============================================================
   // 1. AUTENTICAÇÃO E SESSÃO
   // ============================================================
 
@@ -127,7 +74,7 @@ class ApiService {
               'senha': senha,
             }),
           )
-          .timeout(const Duration(seconds: 60));
+          .timeout(const Duration(seconds: 15));
 
       final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
       if (data['sucesso'] == true && data['usuario'] != null) {
@@ -161,7 +108,7 @@ class ApiService {
               'senha': senha,
             }),
           )
-          .timeout(const Duration(seconds: 60));
+          .timeout(const Duration(seconds: 15));
 
       final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
 
@@ -175,7 +122,6 @@ class ApiService {
         if (data['sessao'] != null && data['sessao']['access_token'] != null) {
           tokenAcesso = data['sessao']['access_token'];
         }
-        await salvarSessaoLocal();
       }
 
       return data;
@@ -198,7 +144,6 @@ class ApiService {
       tokenAcesso = null;
       usuarioLogado = null;
       idUsuarioLogado = null;
-      await limparSessaoLocal();
 
       final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
       return data;
@@ -206,7 +151,6 @@ class ApiService {
       tokenAcesso = null;
       usuarioLogado = null;
       idUsuarioLogado = null;
-      await limparSessaoLocal();
       return {
         'sucesso': false,
         'mensagem': 'Erro ao comunicar logout: $e',
@@ -248,7 +192,7 @@ class ApiService {
             headers: _headers,
             body: jsonEncode({'email': email}),
           )
-          .timeout(const Duration(seconds: 60));
+          .timeout(const Duration(seconds: 15));
 
       final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
       return data;
@@ -278,7 +222,7 @@ class ApiService {
               'nova_senha': novaSenha,
             }),
           )
-          .timeout(const Duration(seconds: 60));
+          .timeout(const Duration(seconds: 15));
 
       final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
       return data;
@@ -308,7 +252,7 @@ class ApiService {
               if (email != null) 'email': email,
             }),
           )
-          .timeout(const Duration(seconds: 60));
+          .timeout(const Duration(seconds: 15));
 
       final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
       return data;
@@ -376,7 +320,7 @@ class ApiService {
               if (checagem != null) 'checagem': checagem,
             }),
           )
-          .timeout(const Duration(seconds: 60));
+          .timeout(const Duration(seconds: 15));
 
       final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
       if (data['sucesso'] == true) {
@@ -542,7 +486,7 @@ class ApiService {
               if (exercicios != null) 'exercicios': exercicios,
             }),
           )
-          .timeout(const Duration(seconds: 60));
+          .timeout(const Duration(seconds: 15));
 
       final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
       return data;
@@ -573,7 +517,7 @@ class ApiService {
               if (exercicios != null) 'exercicios': exercicios,
             }),
           )
-          .timeout(const Duration(seconds: 60));
+          .timeout(const Duration(seconds: 15));
 
       final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
       return data;
@@ -717,7 +661,7 @@ class ApiService {
                 'incrementar_sequencia': incrementarSequencia,
             }),
           )
-          .timeout(const Duration(seconds: 60));
+          .timeout(const Duration(seconds: 15));
 
       final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
       if (data['sucesso'] == true) {
@@ -766,7 +710,7 @@ class ApiService {
               'sequencia': sequencia,
             }),
           )
-          .timeout(const Duration(seconds: 60));
+          .timeout(const Duration(seconds: 15));
 
       final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
       if (data['sucesso'] == true) {
@@ -801,7 +745,7 @@ class ApiService {
               'maior_sequencia': maiorSequencia,
             }),
           )
-          .timeout(const Duration(seconds: 60));
+          .timeout(const Duration(seconds: 15));
 
       final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
       if (data['sucesso'] == true) {
@@ -833,7 +777,7 @@ class ApiService {
               'checagem': checagem,
             }),
           )
-          .timeout(const Duration(seconds: 60));
+          .timeout(const Duration(seconds: 15));
 
       final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
       if (data['sucesso'] == true) {
@@ -955,7 +899,7 @@ class ApiService {
               'amigo_id': amigoId,
             }),
           )
-          .timeout(const Duration(seconds: 60));
+          .timeout(const Duration(seconds: 15));
       return jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
     } catch (e) {
       return {'sucesso': false, 'mensagem': 'Erro ao enviar solicitação: $e'};
@@ -972,7 +916,7 @@ class ApiService {
             headers: _headers,
             body: jsonEncode({'status': status}),
           )
-          .timeout(const Duration(seconds: 60));
+          .timeout(const Duration(seconds: 15));
       return jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
     } catch (e) {
       return {'sucesso': false, 'mensagem': 'Erro ao responder solicitação: $e'};
@@ -999,7 +943,7 @@ class ApiService {
       final url = Uri.parse('$baseUrl/pontuacao/$usuarioId/resetar-checagem');
       final response = await http
           .post(url, headers: _headers)
-          .timeout(const Duration(seconds: 60));
+          .timeout(const Duration(seconds: 15));
 
       final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
       if (data['sucesso'] == true) {
@@ -1014,357 +958,5 @@ class ApiService {
       };
     }
   }
-
-  // ============================================================
-  // 6. SERVIÇOS DE IA E AVALIAÇÃO BIOMECÂNICA
-  // ============================================================
-
-  /// Reinicia ou inicializa a sessão de IA para um determinado exercício ('1', '2' ou '3')
-  Future<Map<String, dynamic>> reiniciarSessaoIA({
-    required String exercicioId,
-    String? usuarioId,
-  }) async {
-    try {
-      final uid = usuarioId ?? idUsuarioAtual ?? 'anonimo';
-      final url = Uri.parse('$baseUrl/ia/reiniciar-sessao');
-      final response = await http
-          .post(
-            url,
-            headers: _headers,
-            body: jsonEncode({
-              'usuario_id': uid,
-              'exercicio_id': exercicioId,
-            }),
-          )
-          .timeout(const Duration(seconds: 10));
-      return jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
-    } catch (e) {
-      return {'sucesso': false, 'mensagem': 'Erro ao reiniciar sessão IA: $e'};
-    }
-  }
-
-  /// Processa fotograma capturado da câmera (multipart) e devolve análise biomecânica em tempo real
-  Future<Map<String, dynamic>> processarFrameIA({
-    required List<int> imageBytes,
-    required String exercicioId,
-    String? usuarioId,
-    String lado = 'direito',
-  }) async {
-    try {
-      final uid = usuarioId ?? idUsuarioAtual ?? 'anonimo';
-      final url = Uri.parse('$baseUrl/ia/processar-frame');
-      final request = http.MultipartRequest('POST', url);
-      request.fields['usuario_id'] = uid;
-      request.fields['exercicio'] = exercicioId;
-      request.fields['lado'] = lado;
-
-      request.files.add(
-        http.MultipartFile.fromBytes('frame', imageBytes, filename: 'frame.jpg'),
-      );
-
-      final streamedResponse = await request.send().timeout(const Duration(seconds: 5));
-      final response = await http.Response.fromStream(streamedResponse);
-      return jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
-    } catch (e) {
-      return {'sucesso': false, 'mensagem': 'Erro ao processar frame: $e'};
-    }
-  }
-
-  /// Envia ângulos calculados localmente (sem imagem) para o endpoint leve do servidor.
-  /// Alternativa REST ao WebSocket — útil para fallback e testes sintéticos.
-  Future<Map<String, dynamic>> processarAngulosIA({
-    required Map<String, double> angulos,
-    required String exercicioId,
-    String? usuarioId,
-    bool visivel = true,
-  }) async {
-    try {
-      final uid = usuarioId ?? idUsuarioAtual ?? 'anonimo';
-      final url = Uri.parse('$baseUrl/ia/processar-angulos');
-      final response = await http
-          .post(
-            url,
-            headers: _headers,
-            body: jsonEncode({
-              'usuario_id': uid,
-              'exercicio_id': exercicioId,
-              'angulos': angulos,
-              'visivel': visivel,
-            }),
-          )
-          .timeout(const Duration(seconds: 5));
-      return jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
-    } catch (e) {
-      return {'sucesso': false, 'mensagem': 'Erro ao processar ângulos: $e'};
-    }
-  }
-
-    /// Simula uma repetição canônica completa no orquestrador (modo banca avaliadora / offline)
-  Future<Map<String, dynamic>> simularRepeticaoIA({
-    required String exercicioId,
-    String? usuarioId,
-    String tipoCenario = 'ideal',
-  }) async {
-    try {
-      final uid = usuarioId ?? idUsuarioAtual ?? 'anonimo';
-      final url = Uri.parse('$baseUrl/ia/simular-repeticao');
-      final response = await http
-          .post(
-            url,
-            headers: _headers,
-            body: jsonEncode({
-              'usuario_id': uid,
-              'exercicio_id': exercicioId,
-              'tipo_cenario': tipoCenario,
-            }),
-          )
-          .timeout(const Duration(seconds: 10));
-      return jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
-    } catch (e) {
-      return {'sucesso': false, 'mensagem': 'Erro ao simular repetição: $e'};
-    }
-  }
-
-  /// Retorna o laudo da série realizada com taxa de aprovação e recomendação técnica
-  Future<Map<String, dynamic>> obterResumoSessaoIA({String? usuarioId}) async {
-    try {
-      final uid = usuarioId ?? idUsuarioAtual ?? 'anonimo';
-      final url = Uri.parse('$baseUrl/ia/resumo-sessao?usuario_id=$uid');
-      final response = await http.get(url, headers: _headers).timeout(const Duration(seconds: 10));
-      return jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
-    } catch (e) {
-      return {'sucesso': false, 'mensagem': 'Erro ao obter resumo da sessão: $e'};
-    }
-  }
-
-  /// Consolida os pontos da série executada com IA no perfil do atleta e no Leaderboard
-  Future<Map<String, dynamic>> finalizarSerieEPontuarIA({
-    String? usuarioId,
-    bool incrementarSequencia = true,
-  }) async {
-    try {
-      final uid = usuarioId ?? idUsuarioAtual ?? 'anonimo';
-      final url = Uri.parse('$baseUrl/ia/finalizar-serie-e-pontuar');
-      final response = await http
-          .post(
-            url,
-            headers: _headers,
-            body: jsonEncode({
-              'usuario_id': uid,
-              'incrementar_sequencia': incrementarSequencia,
-            }),
-          )
-          .timeout(const Duration(seconds: 60));
-      return jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
-    } catch (e) {
-      return {'sucesso': false, 'mensagem': 'Erro ao finalizar série IA: $e'};
-    }
-  }
-
-  // ============================================================
-  // 8. TREINOS EM DUPLA (COOPERATIVO)
-  // ============================================================
-
-  /// Host convida um amigo para sessão de treino cooperativo
-  Future<Map<String, dynamic>> convidarParaTreinoEmDupla({
-    required String convidadoId,
-    String? treinoId,
-    Map<String, dynamic>? dadosTreino,
-    int totalSeries = 3,
-  }) async {
-    try {
-      final hostId = idUsuarioAtual;
-      if (hostId == null) {
-        return {'sucesso': false, 'mensagem': 'Usuário não está autenticado.'};
-      }
-      final url = Uri.parse('$baseUrl/dupla/convidar');
-      final response = await http
-          .post(
-            url,
-            headers: _headers,
-            body: jsonEncode({
-              'host_id': hostId,
-              'convidado_id': convidadoId,
-              'treino_id': treinoId,
-              'dados_treino': dadosTreino ?? {},
-              'total_series': totalSeries,
-            }),
-          )
-          .timeout(const Duration(seconds: 60));
-      return jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
-    } catch (e) {
-      return {'sucesso': false, 'mensagem': 'Erro ao enviar convite de treino em dupla: $e'};
-    }
-  }
-
-  /// Convidado consulta convites pendentes de treino em dupla recebidos
-  Future<Map<String, dynamic>> listarConvitesTreinoPendentes() async {
-    try {
-      final uid = idUsuarioAtual;
-      if (uid == null) {
-        return {'sucesso': false, 'mensagem': 'Usuário não está autenticado.', 'convites': []};
-      }
-      final url = Uri.parse('$baseUrl/dupla/convites/pendentes?usuario_id=$uid');
-      final response = await http.get(url, headers: _headers).timeout(const Duration(seconds: 10));
-      return jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
-    } catch (e) {
-      return {'sucesso': false, 'mensagem': 'Erro ao listar convites: $e', 'convites': []};
-    }
-  }
-
-  /// Aceita, recusa ou cancela um convite de treino em dupla
-  Future<Map<String, dynamic>> responderConviteTreino({
-    required String sessaoId,
-    required String resposta,
-  }) async {
-    try {
-      final uid = idUsuarioAtual;
-      if (uid == null) {
-        return {'sucesso': false, 'mensagem': 'Usuário não está autenticado.'};
-      }
-      final url = Uri.parse('$baseUrl/dupla/responder-convite');
-      final response = await http
-          .post(
-            url,
-            headers: _headers,
-            body: jsonEncode({
-              'sessao_id': sessaoId,
-              'usuario_id': uid,
-              'resposta': resposta,
-            }),
-          )
-          .timeout(const Duration(seconds: 60));
-      return jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
-    } catch (e) {
-      return {'sucesso': false, 'mensagem': 'Erro ao responder convite: $e'};
-    }
-  }
-
-  /// Host seleciona o treino da dupla no Lobby
-  Future<Map<String, dynamic>> selecionarTreinoDupla({
-    required String sessaoId,
-    String? treinoId,
-    Map<String, dynamic>? dadosTreino,
-    int totalSeries = 3,
-  }) async {
-    try {
-      final hostId = idUsuarioAtual;
-      if (hostId == null) {
-        return {'sucesso': false, 'mensagem': 'Usuário não está autenticado.'};
-      }
-      final url = Uri.parse('$baseUrl/dupla/selecionar-treino');
-      final response = await http
-          .post(
-            url,
-            headers: _headers,
-            body: jsonEncode({
-              'sessao_id': sessaoId,
-              'host_id': hostId,
-              'treino_id': treinoId,
-              'dados_treino': dadosTreino ?? {},
-              'total_series': totalSeries,
-            }),
-          )
-          .timeout(const Duration(seconds: 60));
-      return jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
-    } catch (e) {
-      return {'sucesso': false, 'mensagem': 'Erro ao configurar treino da dupla: $e'};
-    }
-  }
-
-  /// Host inicia a sessão de treino em dupla (passa para 'em_andamento')
-  Future<Map<String, dynamic>> iniciarTreinoDupla({required String sessaoId}) async {
-    try {
-      final hostId = idUsuarioAtual;
-      if (hostId == null) {
-        return {'sucesso': false, 'mensagem': 'Usuário não está autenticado.'};
-      }
-      final url = Uri.parse('$baseUrl/dupla/iniciar-treino');
-      final response = await http
-          .post(
-            url,
-            headers: _headers,
-            body: jsonEncode({
-              'sessao_id': sessaoId,
-              'host_id': hostId,
-            }),
-          )
-          .timeout(const Duration(seconds: 60));
-      return jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
-    } catch (e) {
-      return {'sucesso': false, 'mensagem': 'Erro ao iniciar treino em dupla: $e'};
-    }
-  }
-
-  /// Consulta estado em tempo real da sessão em dupla (polling)
-  Future<Map<String, dynamic>> obterEstadoSessaoDupla(String sessaoId) async {
-    try {
-      final url = Uri.parse('$baseUrl/dupla/estado/$sessaoId');
-      final response = await http.get(url, headers: _headers).timeout(const Duration(seconds: 10));
-      return jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
-    } catch (e) {
-      return {'sucesso': false, 'mensagem': 'Erro ao consultar estado da sessão: $e'};
-    }
-  }
-
-  /// Conclui série pelo atleta da vez, pontua e passa turno para o parceiro
-  Future<Map<String, dynamic>> concluirSerieDupla({
-    required String sessaoId,
-    required int pontosSerie,
-    String? proximoTurnoId,
-    int? novaSerie,
-    int? novoIndiceExercicio,
-  }) async {
-    try {
-      final uid = idUsuarioAtual;
-      if (uid == null) {
-        return {'sucesso': false, 'mensagem': 'Usuário não está autenticado.'};
-      }
-      final url = Uri.parse('$baseUrl/dupla/concluir-serie');
-      final response = await http
-          .post(
-            url,
-            headers: _headers,
-            body: jsonEncode({
-              'sessao_id': sessaoId,
-              'usuario_id': uid,
-              'pontos_serie': pontosSerie,
-              'proximo_turno_id': proximoTurnoId,
-              'nova_serie': novaSerie,
-              'novo_indice_exercicio': novoIndiceExercicio,
-            }),
-          )
-          .timeout(const Duration(seconds: 60));
-      return jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
-    } catch (e) {
-      return {'sucesso': false, 'mensagem': 'Erro ao concluir série em dupla: $e'};
-    }
-  }
-
-  /// Finaliza sessão de treino em dupla e aplica bônus de 20% para ambos
-  Future<Map<String, dynamic>> encerrarSessaoDupla(
-    String sessaoId, {
-    int? pontosHost,
-    int? pontosConvidado,
-  }) async {
-    try {
-      final uid = idUsuarioAtual;
-      final url = Uri.parse('$baseUrl/dupla/encerrar-sessao');
-      final response = await http
-          .post(
-            url,
-            headers: _headers,
-            body: jsonEncode({
-              'sessao_id': sessaoId,
-              'solicitante_id': uid,
-              if (pontosHost != null) 'pontos_host': pontosHost,
-              if (pontosConvidado != null) 'pontos_convidado': pontosConvidado,
-            }),
-          )
-          .timeout(const Duration(seconds: 60));
-      return jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
-    } catch (e) {
-      return {'sucesso': false, 'mensagem': 'Erro ao encerrar sessão em dupla: $e'};
-    }
-  }
 }
+

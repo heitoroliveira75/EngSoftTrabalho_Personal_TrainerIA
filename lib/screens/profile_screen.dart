@@ -8,9 +8,7 @@ import 'leaderboard_screen.dart';
 import 'login_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
-  final VoidCallback? onBack;
-
-  const ProfileScreen({super.key, this.onBack});
+  const ProfileScreen({super.key});
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -127,22 +125,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
         // Seta de voltar + texto "PERFIL" clicáveis
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () {
-            if (widget.onBack != null) {
-              widget.onBack!();
-            } else {
-              Navigator.pop(context);
-            }
-          },
+          onPressed: () => Navigator.pop(context),
         ),
         title: GestureDetector(
-          onTap: () {
-            if (widget.onBack != null) {
-              widget.onBack!();
-            } else {
-              Navigator.pop(context);
-            }
-          },
+          onTap: () => Navigator.pop(context),
           child: const Text(
             'PERFIL',
             style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),

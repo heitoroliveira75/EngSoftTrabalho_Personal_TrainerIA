@@ -1,17 +1,10 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
-import 'lobby_dupla_screen.dart';
+import 'leaderboard_screen.dart';
 
 class AmigosScreen extends StatefulWidget {
-  final VoidCallback? onBack;
-  final VoidCallback? onOpenLeaderboard;
-
-  const AmigosScreen({
-    super.key,
-    this.onBack,
-    this.onOpenLeaderboard,
-  });
+  const AmigosScreen({super.key});
 
   @override
   State<AmigosScreen> createState() => _AmigosScreenState();
@@ -31,23 +24,17 @@ class _AmigosScreenState extends State<AmigosScreen>
   List<Map<String, dynamic>> _solicitacoesPendentes = [];
   List<Map<String, dynamic>> _resultadosBusca = [];
   bool _buscou = false;
-  Timer? _convitesDuplaTimer;
-  bool _exibindoDialogoConvite = false;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
     _carregarAmigos();
-    _convitesDuplaTimer = Timer.periodic(const Duration(seconds: 3), (_) {
-      _verificarConvitesTreinoDupla();
-    });
   }
 
   @override
   void dispose() {
     _debounceTimer?.cancel();
-    _convitesDuplaTimer?.cancel();
     _tabController.dispose();
     _buscaController.dispose();
     super.dispose();
@@ -262,189 +249,6 @@ class _AmigosScreenState extends State<AmigosScreen>
     }
   }
 
-  Future<void> _verificarConvitesTreinoDupla() async {
-    if (_exibindoDialogoConvite || !mounted) return;
-    try {
-      final res = await ApiService().listarConvitesTreinoPendentes();
-      if (!mounted) return;
-      if (res['sucesso'] == true && res['convites'] is List) {
-        final convites = List<Map<String, dynamic>>.from(
-          (res['convites'] as List).map((e) => Map<String, dynamic>.from(e as Map)),
-        );
-        if (convites.isNotEmpty) {
-          final convite = convites.first;
-          _exibirDialogoConviteRecebido(convite);
-        }
-      }
-    } catch (_) {}
-  }
-
-  void _exibirDialogoConviteRecebido(Map<String, dynamic> convite) {
-    if (_exibindoDialogoConvite || !mounted) return;
-    _exibindoDialogoConvite = true;
-
-    final sessaoId = convite['id']?.toString() ?? '';
-    final hostNome = convite['host_nome']?.toString() ?? 'Seu amigo';
-    final hostId = convite['host_id']?.toString() ?? '';
-
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF1E232A),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: const Row(
-          children: [
-            Text('🏋️', style: TextStyle(fontSize: 24)),
-            SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                'Convite para Treino em Dupla!',
-                style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-            ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              '$hostNome convidou você para realizarem um treino cooperativo juntos!',
-              style: const TextStyle(color: Colors.white70, fontSize: 14),
-            ),
-            const SizedBox(height: 12),
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: const Color(0xFF00E676).withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: const Color(0xFF00E676).withValues(alpha: 0.4)),
-              ),
-              child: const Row(
-                children: [
-                  Icon(Icons.bolt, color: Color(0xFF00E676), size: 20),
-                  SizedBox(width: 6),
-                  Expanded(
-                    child: Text(
-                      'Bônus de +20% na pontuação de ambos ao concluírem o treino!',
-                      style: TextStyle(color: Color(0xFF00E676), fontSize: 12, fontWeight: FontWeight.bold),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () async {
-              Navigator.pop(ctx);
-              _exibindoDialogoConvite = false;
-              await ApiService().responderConviteTreino(
-                sessaoId: sessaoId,
-                resposta: 'recusado',
-              );
-            },
-            child: const Text('Recusar', style: TextStyle(color: Colors.white60)),
-          ),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF00E676),
-              foregroundColor: Colors.black,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            ),
-            onPressed: () async {
-              Navigator.pop(ctx);
-              _exibindoDialogoConvite = false;
-              final res = await ApiService().responderConviteTreino(
-                sessaoId: sessaoId,
-                resposta: 'aceito',
-              );
-              if (mounted) {
-                if (res['sucesso'] == true) {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => LobbyDuplaScreen(
-                        sessaoId: sessaoId,
-                        isHost: false,
-                        amigoNome: hostNome,
-                        amigoId: hostId,
-                      ),
-                    ),
-                  );
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(res['mensagem'] ?? 'Erro ao aceitar convite.'),
-                      backgroundColor: Colors.redAccent,
-                    ),
-                  );
-                }
-              }
-            },
-            child: const Text('Aceitar e Entrar no Lobby', style: TextStyle(fontWeight: FontWeight.bold)),
-          ),
-        ],
-      ),
-    ).then((_) {
-      _exibindoDialogoConvite = false;
-    });
-  }
-
-  Future<void> _iniciarTreinoComAmigo(String amigoId, String amigoNome) async {
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => const Center(
-        child: CircularProgressIndicator(color: Color(0xFF00E676)),
-      ),
-    );
-
-    try {
-      final res = await ApiService().convidarParaTreinoEmDupla(
-        convidadoId: amigoId,
-      );
-
-      if (mounted) Navigator.pop(context); // Fecha loading
-
-      if (mounted) {
-        if (res['sucesso'] == true && res['sessao_id'] != null) {
-          final sessaoId = res['sessao_id'].toString();
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => LobbyDuplaScreen(
-                sessaoId: sessaoId,
-                isHost: true,
-                amigoNome: amigoNome,
-                amigoId: amigoId,
-              ),
-            ),
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(res['mensagem'] ?? 'Não foi possível convidar o amigo.'),
-              backgroundColor: Colors.redAccent,
-            ),
-          );
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        Navigator.pop(context);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Erro ao enviar convite: $e'),
-            backgroundColor: Colors.redAccent,
-          ),
-        );
-      }
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -454,13 +258,7 @@ class _AmigosScreenState extends State<AmigosScreen>
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () {
-            if (widget.onBack != null) {
-              widget.onBack!();
-            } else {
-              Navigator.pop(context);
-            }
-          },
+          onPressed: () => Navigator.pop(context),
         ),
         title: const Text(
           'AMIGOS',
@@ -471,6 +269,16 @@ class _AmigosScreenState extends State<AmigosScreen>
           ),
         ),
         actions: [
+          IconButton(
+            icon: const Icon(Icons.leaderboard, color: Color(0xFF00E676)),
+            tooltip: 'Ver Classificação',
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => const LeaderboardScreen()),
+              );
+            },
+          ),
           IconButton(
             icon: const Icon(Icons.refresh, color: Colors.white70),
             tooltip: 'Atualizar',
@@ -641,19 +449,6 @@ class _AmigosScreenState extends State<AmigosScreen>
                     ],
                   ),
                 ),
-                ElevatedButton.icon(
-                  onPressed: () => _iniciarTreinoComAmigo(amigoId, nome),
-                  icon: const Icon(Icons.fitness_center, size: 15),
-                  label: const Text('Dupla'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF00E676),
-                    foregroundColor: Colors.black,
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                    textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                  ),
-                ),
-                const SizedBox(width: 4),
                 IconButton(
                   icon: const Icon(Icons.person_remove_outlined, color: Colors.redAccent),
                   tooltip: 'Remover Amigo',
@@ -916,25 +711,19 @@ class _AmigosScreenState extends State<AmigosScreen>
                                           children: [
                                             const Icon(Icons.bolt, size: 14, color: Colors.amberAccent),
                                             const SizedBox(width: 2),
-                                            Flexible(
-                                              child: Text(
-                                                '${user['sequencia'] ?? 0} dias streak',
-                                                overflow: TextOverflow.ellipsis,
-                                                style: const TextStyle(color: Colors.white70, fontSize: 11),
-                                              ),
+                                            Text(
+                                              '${user['sequencia'] ?? 0} dias streak',
+                                              style: const TextStyle(color: Colors.white70, fontSize: 11),
                                             ),
                                             const SizedBox(width: 8),
                                             const Icon(Icons.star, size: 13, color: Color(0xFF00E676)),
                                             const SizedBox(width: 2),
-                                            Flexible(
-                                              child: Text(
-                                                '${user['pontuacao_semanal'] ?? user['pontos'] ?? 0} pts',
-                                                overflow: TextOverflow.ellipsis,
-                                                style: const TextStyle(
-                                                  color: Color(0xFF00E676),
-                                                  fontSize: 11,
-                                                  fontWeight: FontWeight.w600,
-                                                ),
+                                            Text(
+                                              '${user['pontuacao_semanal'] ?? user['pontos'] ?? 0} pts',
+                                              style: const TextStyle(
+                                                color: Color(0xFF00E676),
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.w600,
                                               ),
                                             ),
                                           ],
