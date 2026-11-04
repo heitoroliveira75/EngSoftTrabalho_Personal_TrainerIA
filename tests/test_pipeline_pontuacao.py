@@ -6,6 +6,11 @@ Cobre cálculo geométrico, deltas angulares, FSMs, segmentação, DTW e orquest
 import pytest
 import numpy as np
 import sys
+from pathlib import Path
+_DIR_CODIGOS = Path(__file__).resolve().parent.parent / "Códigos"
+if str(_DIR_CODIGOS) not in sys.path:
+    sys.path.insert(0, str(_DIR_CODIGOS))
+from typing import Optional, List, Dict, Any
 from types import ModuleType, SimpleNamespace
 from calculo_angulos import calcular_angulo, calcular_deltas_angulares
 
@@ -877,10 +882,11 @@ class TestCriteriosAceiteUS01:
         """
         import pathlib
         raiz = pathlib.Path(__file__).resolve().parent.parent
+        pasta_codigos = raiz / "Códigos" if (raiz / "Códigos").exists() else raiz
         consumidores = [
-            raiz / "app_tempo_real.py",
-            raiz / "comparar_exercicio.py",
-            raiz / "exemplo_integracao.py",
+            pasta_codigos / "app_tempo_real.py",
+            pasta_codigos / "comparar_exercicio.py",
+            pasta_codigos / "exemplo_integracao.py",
         ]
 
         for script in consumidores:
@@ -972,3 +978,99 @@ class TestCriteriosAceiteUS01:
             assert resumo.repeticoes_aprovadas == 1
         finally:
             CATALOGO_EXERCICIOS.pop(chave_teste, None)
+
+
+from exercicios_fsm import ElevacaoLateral
+
+class TestElevacaoLateral:
+    """Testes unitários específicos da FSM e regras de Elevação Lateral."""
+
+    def test_ciclo_completo_execucao_ideal(self):
+        fsm = ElevacaoLateral()
+        pos = {}
+
+        # Fase 0 (Repouso)
+        assert fsm.fases[1] == 0
+        fsm.classificar({"ombro": 20.0, "cotovelo": 160.0}, pos, {"ombro": 0.0})
+        assert fsm.fases[1] == 0
+
+        # Fase 0 -> 1 (Subida)
+        fsm.classificar({"ombro": 48.0, "cotovelo": 160.0}, pos, {"ombro": 10.0})
+        assert fsm.fases[1] == 1
+
+        # Fase 1 -> 2 (Pico na linha dos ombros)
+        fsm.classificar({"ombro": 88.0, "cotovelo": 160.0}, pos, {"ombro": 10.0})
+        assert fsm.fases[1] == 2
+
+        # Fase 2 -> 3 (Descida controlada)
+        fsm.classificar({"ombro": 70.0, "cotovelo": 160.0}, pos, {"ombro": -10.0})
+        assert fsm.fases[1] == 3
+
+        # Fase 3 -> 0 (Retorno ao repouso)
+        fsm.classificar({"ombro": 25.0, "cotovelo": 160.0}, pos, {"ombro": -10.0})
+        assert fsm.fases[1] == 0
+        assert fsm.repeticoes == 1
+        assert fsm.consumir_erros_repeticao() == []
+
+    def test_deteccao_erro_elevacao_curta(self):
+        fsm = ElevacaoLateral()
+        pos = {}
+
+        # 0 -> 1
+        fsm.classificar({"ombro": 48.0, "cotovelo": 160.0}, pos, {"ombro": 10.0})
+        assert fsm.fases[1] == 1
+
+        # 1 -> 3 precoce (desce antes de atingir 80°)
+        erro = fsm.classificar({"ombro": 60.0, "cotovelo": 160.0}, pos, {"ombro": -8.0})
+        assert fsm.fases[1] == 3
+        assert erro == "ELEVACAO_CURTA"
+        assert "ELEVACAO_CURTA" in fsm.consumir_erros_repeticao()
+
+    def test_deteccao_erro_elevacao_excessiva(self):
+        fsm = ElevacaoLateral()
+        pos = {}
+
+        # 0 -> 1
+        fsm.classificar({"ombro": 48.0, "cotovelo": 160.0}, pos, {"ombro": 10.0})
+        # 1 -> 2 com elevação exagerada (> 115°)
+        erro = fsm.classificar({"ombro": 120.0, "cotovelo": 160.0}, pos, {"ombro": 10.0})
+        assert fsm.fases[1] == 2
+        assert erro == "ELEVACAO_EXCESSIVA"
+        assert "ELEVACAO_EXCESSIVA" in fsm.consumir_erros_repeticao()
+
+    def test_deteccao_erro_cotovelo_muito_flexionado(self):
+        fsm = ElevacaoLateral()
+        pos = {}
+
+        # 0 -> 1 com cotovelo dobrado excessivamente (< 110°)
+        erro = fsm.classificar({"ombro": 48.0, "cotovelo": 100.0}, pos, {"ombro": 10.0})
+        assert erro == "COTOVELO_MUITO_FLEXIONADO"
+        assert "COTOVELO_MUITO_FLEXIONADO" in fsm.consumir_erros_repeticao()
+
+    def test_registro_catalogo_elevacao_lateral(self):
+        conf_4 = obter_config_exercicio("4")
+        assert conf_4["id"] == "elevacao_lateral"
+        assert conf_4["classe_fsm"] is ElevacaoLateral
+        assert conf_4["articulacoes"] == ["ombro", "cotovelo"]
+
+        conf_id = obter_config_exercicio("elevacao_lateral")
+        assert conf_id["nome"] == "Elevacao Lateral"
+
+    def test_gabarito_especialista_elevacao_lateral_e_orquestrador(self):
+        gab = GabaritoExercicio.carregar_json("gabarito_especialista_elevacao_lateral.json")
+        assert gab.nome_exercicio == "elevacao_lateral"
+        assert gab.articulacoes == ["ombro", "cotovelo"]
+        assert gab.total_frames >= 30
+
+        orq = OrquestradorSessao("4")
+        resultado_rep = None
+
+        for linha in gab.dados:
+            frame_angulos = {"ombro": float(linha[0]), "cotovelo": float(linha[1])}
+            _, rep = orq.processar_frame(frame_angulos, visivel=True)
+            if rep is not None:
+                resultado_rep = rep
+
+        assert resultado_rep is not None
+        assert resultado_rep.score_final >= 95.0
+        assert resultado_rep.aprovado is True

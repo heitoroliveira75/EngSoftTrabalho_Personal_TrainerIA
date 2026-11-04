@@ -255,6 +255,76 @@ class RoscaBiceps(ExercicioBaseFSM):
         return erros_no_frame[0] if erros_no_frame else None
 
 
+class ElevacaoLateral(ExercicioBaseFSM):
+    """
+    Avalia a Elevação Lateral de Ombros (Lateral Raise).
+    Articulações: ['ombro', 'cotovelo']
+    """
+
+    NOMES_FASES = {
+        0: "Bracos Abaixados (Repouso)",
+        1: "Subindo (Abducao Lateral)",
+        2: "Pico (Linha dos Ombros)",
+        3: "Descendo (Retorno Controlado)",
+    }
+
+    MENSAGENS_ERRO = {
+        "ELEVACAO_CURTA": "Eleve os bracos ate a linha dos ombros (pelo menos 80 graus) antes de descer.",
+        "ELEVACAO_EXCESSIVA": "Evite elevar os bracos acima de 105 graus para proteger a articulacao dos ombros.",
+        "COTOVELO_MUITO_FLEXIONADO": "Mantenha os cotovelos firmes (acima de 110 graus), sem dobrar excessivamente os bracos.",
+    }
+
+    PENALIDADES_ERRO = {
+        "ELEVACAO_CURTA": 25.0,
+        "ELEVACAO_EXCESSIVA": 15.0,
+        "COTOVELO_MUITO_FLEXIONADO": 15.0,
+    }
+
+    def identificar_fase(self, angulos: dict, posicoes: dict, angulos_deltas: dict) -> int:
+        ombro = angulos.get("ombro", 20.0)
+        delta_ombro = angulos_deltas.get("ombro", 0.0)
+        fase = self.fases[1]
+
+        if fase == 0:
+            if ombro > 45.0 and delta_ombro > 0:
+                fase = 1
+                self.erros_repeticao_atual = []
+        elif fase == 1:
+            if ombro >= 80.0:
+                fase = 2
+            elif delta_ombro < 0 and ombro < 70.0:
+                fase = 3
+        elif fase == 2:
+            if ombro < 100.0 and delta_ombro < 0:
+                fase = 3
+        elif fase == 3:
+            if ombro <= 50.0:
+                fase = 0
+                self.repeticoes += 1
+
+        return fase
+
+    def classificar(self, angulos: dict, posicoes: dict, angulos_deltas: dict) -> Optional[str]:
+        fase_anterior = self.fases[1]
+        fase_atual = self.identificar_fase(angulos, posicoes, angulos_deltas)
+
+        self.fases[0] = fase_anterior
+        self.fases[1] = fase_atual
+
+        erros_no_frame = []
+        if self.fases[0] == 1 and self.fases[1] == 3:
+            erros_no_frame.append("ELEVACAO_CURTA")
+        if self.fases[1] == 2 and angulos.get("ombro", 20.0) > 115.0:
+            erros_no_frame.append("ELEVACAO_EXCESSIVA")
+        if self.fases[1] in (1, 2, 3) and angulos.get("cotovelo", 160.0) < 110.0:
+            erros_no_frame.append("COTOVELO_MUITO_FLEXIONADO")
+
+        for err in erros_no_frame:
+            self.registrar_erro(err)
+
+        return erros_no_frame[0] if erros_no_frame else None
+
+
 # Catálogo central que liga as teclas de atalho ou IDs aos componentes de cada exercício
 CATALOGO_EXERCICIOS: Dict[str, Dict[str, Any]] = {
     "1": {
@@ -277,6 +347,13 @@ CATALOGO_EXERCICIOS: Dict[str, Dict[str, Any]] = {
         "classe_fsm": RoscaBiceps,
         "articulacoes": ["cotovelo", "ombro"],
         "arquivo_gabarito": "gabarito_especialista_rosca.json",
+    },
+    "4": {
+        "id": "elevacao_lateral",
+        "nome": "Elevacao Lateral",
+        "classe_fsm": ElevacaoLateral,
+        "articulacoes": ["ombro", "cotovelo"],
+        "arquivo_gabarito": "gabarito_especialista_elevacao_lateral.json",
     },
 }
 

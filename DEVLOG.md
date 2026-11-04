@@ -26,6 +26,17 @@
 
 ## Histórico de Entradas
 
+### [Entrada #011] 2026-11-04 — [Expansão Biomecânica] Implementação da Elevação Lateral e Extração de Gabarito Especialista
+- **Objetivo / História de Usuário:** Implementar o reconhecimento, contagem e avaliação biomecânica de Elevação Lateral de Ombros (visão frontal), com detecção de erros posturais em tempo real e extração do gabarito padrão ouro oficial a partir de vídeo `.mp4` de especialista.
+- **Tasks Executadas e Artefatos Gerados:**
+  - `[TASK-EL.01]` Modelada a FSM `ElevacaoLateral` em `Códigos/exercicios_fsm.py` com o ciclo de 4 fases (`0 -> 1 -> 2 -> 3 -> 0`), regras de transição guiadas por abdução de ombros, detecção de `ELEVACAO_CURTA` (-25 pts), `ELEVACAO_EXCESSIVA` (-15 pts) e `COTOVELO_MUITO_FLEXIONADO` (-15 pts). Cadastrada no `CATALOGO_EXERCICIOS` sob a chave `"4"` e registrada em `ERROS_INCOMPLETUDE` em `Códigos/avaliador_pontuacao.py`.
+  - `[TASK-EL.02]` Extraído o gabarito oficial em `Gabaritos/gabarito_especialista_elevacao_lateral.json` (42 fotogramas) a partir do vídeo `Videos dataset/elevacaolateral.mp4` via `Códigos/extrator_video.py`.
+  - `[TASK-EL.03]` Habilitado o atalho `[4]` no HUD da webcam em `Códigos/app_tempo_real.py` e expandida a suíte em `tests/test_pipeline_pontuacao.py` com 6 novos testes unitários e de integração DTW (atingindo score 98.8% na execução canônica).
+- **Decisões Técnicas e Observações:**
+  - Ajuste fino dos limiares da FSM aos padrões reais de musculação: fechamento em $\le 50^\circ$ (mantendo tensão contínua nos deltoides) e tolerância de cotovelo até $110^\circ$ (permitindo a semiflexão protetora do braço de alavanca).
+  - O pipeline central de pontuação e o motor DTW operaram sem modificações, comprovando a eficácia do Princípio Aberto/Fechado (OCP).
+- **Estado Resultante / Próximos Passos:** Elevação Lateral 100% implementada, com gabarito extraído do vídeo e validada com sucesso em 45 testes automatizados de pipeline + 7 testes de API.
+
 ### [Entrada #010] 2026-10-27 — [Sprint US-02] Unificação do Back-end FastAPI com o Motor de IA e Guia para Frontend
 - **Objetivo / História de Usuário:** Unificar a camada de Back-end (FastAPI) com o motor biomecânico de IA da branch `IA` para viabilizar a demonstração funcional, expondo rotas REST em memória para streaming de fotogramas, simulação canônica de repetições e integração direta com a pontuação diária e gamificação do Supabase, deixando o consumo simplificado para a equipe de Frontend Flutter.
 - **Tasks Executadas e Artefatos Gerados:**
