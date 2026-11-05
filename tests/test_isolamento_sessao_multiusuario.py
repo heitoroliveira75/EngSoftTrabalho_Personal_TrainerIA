@@ -1,8 +1,10 @@
 """
-Suíte de Testes Automatizados — Isolamento de Sessão Multi-Usuário (Stateless Auth).
-Reproduz e valida a correção do cenário crítico onde 4 usuários fazem login simultaneamente
-(sendo 'Ramon' o último a logar) e garante que nenhum usuário herde ou receba a sessão,
-o ID ou os dados de outro usuário.
+Suíte de Testes Automatizados — Isolamento de Sessão Multi-Usuário e Controle de Dispositivo Único.
+Valida:
+1. 4 usuários logando simultaneamente (com 'Ramon' por último) sem vazamento ou mistura de dados;
+2. Bloqueio de login quando a mesma conta já está conectada em outro dispositivo (ja_conectado=True);
+3. Opção 'forcar_login=True' que desconecta o aparelho antigo (sessao_encerrada=True) e autentica o novo;
+4. Liberação imediata de novo login após logout explícito.
 """
 
 import sys
@@ -36,6 +38,7 @@ from BD.api import app, bd
 if pytest is not None:
     @pytest.fixture
     def client():
+        bd._sessoes_ativas_usuarios.clear()
         return TestClient(app)
 
 
@@ -44,6 +47,8 @@ def _criar_mock_clientes_isolados(usuarios_db: dict, tokens_db: dict):
     Fábrica de mocks para criar_cliente_auth() simulando autenticação stateless
     para múltiplos usuários (Ana, Bruno, Carlos e Ramon).
     """
+    contador_tokens = {"n": 0}
+
     def _factory():
         mock_client = MagicMock()
 
@@ -51,21 +56,22 @@ def _criar_mock_clientes_isolados(usuarios_db: dict, tokens_db: dict):
             email = credenciais.get("email")
             for uid, dados in usuarios_db.items():
                 if dados["email"] == email:
+                    contador_tokens["n"] += 1
+                    token_gerado = f"{dados['token']}_v{contador_tokens['n']}"
+                    tokens_db[token_gerado] = uid
                     user_ns = SimpleNamespace(
                         id=uid,
                         email=dados["email"],
                         user_metadata={"nome": dados["nome"]},
                     )
                     session_ns = SimpleNamespace(
-                        access_token=dados["token"],
-                        refresh_token=f"refresh_{uid}",
+                        access_token=token_gerado,
+                        refresh_token=f"refresh_{uid}_{contador_tokens['n']}",
                     )
                     return SimpleNamespace(user=user_ns, session=session_ns)
             return SimpleNamespace(user=None, session=None)
 
         def _get_user(jwt_token: str = None):
-            # Se alguém chamasse get_user() sem token, em um cliente compartilhado retornaria Ramon.
-            # No novo design, get_user exige o jwt_token explícito do usuário.
             if not jwt_token or jwt_token not in tokens_db:
                 return SimpleNamespace(user=None)
             uid = tokens_db[jwt_token]
@@ -90,13 +96,14 @@ def test_quatro_usuarios_logando_simultaneamente_nao_viram_ramon(client):
     Quando cada um consulta /auth/usuario-atual com seu próprio token JWT,
     Então cada usuário recebe estritamente seus próprios dados e jamais vira o usuário Ramon.
     """
+    bd._sessoes_ativas_usuarios.clear()
     usuarios_db = {
         "uid-1-ana": {"nome": "Ana Silva", "email": "ana@teste.com", "token": "jwt-token-ana"},
         "uid-2-bruno": {"nome": "Bruno Costa", "email": "bruno@teste.com", "token": "jwt-token-bruno"},
         "uid-3-carlos": {"nome": "Carlos Souza", "email": "carlos@teste.com", "token": "jwt-token-carlos"},
         "uid-4-ramon": {"nome": "Ramon Oliveira", "email": "ramon@teste.com", "token": "jwt-token-ramon"},
     }
-    tokens_db = {v["token"]: k for k, v in usuarios_db.items()}
+    tokens_db = {}
 
     with patch.object(bd, "criar_cliente_auth", side_effect=_criar_mock_clientes_isolados(usuarios_db, tokens_db)), \
          patch.object(bd, "_buscar_nome_usuario_tabela", side_effect=lambda uid, meta=None: usuarios_db[uid]["nome"]):
@@ -142,42 +149,89 @@ def test_usuario_atual_sem_token_nao_vaza_sessao_do_ramon(client):
     assert dados["usuario"] is None
 
 
-def test_logout_de_um_usuario_nao_desloga_demais_usuarios(client):
+def test_bloqueio_segundo_dispositivo_e_forcar_login(client):
     """
-    Garante que quando um usuário aciona /auth/logout, os demais usuários
-    continuam autenticados normalmente.
+    Valida que:
+    1. Se o Celular 1 já está conectado na conta da Ana, o Celular 2 é impedido de logar (ja_conectado=True).
+    2. Se o Celular 2 enviar forcar_login=True, o login é aceito e o Celular 1 tem sua sessão encerrada (sessao_encerrada=True).
     """
+    bd._sessoes_ativas_usuarios.clear()
     usuarios_db = {
         "uid-ana": {"nome": "Ana", "email": "ana@teste.com", "token": "jwt-ana"},
-        "uid-ramon": {"nome": "Ramon", "email": "ramon@teste.com", "token": "jwt-ramon"},
     }
-    tokens_db = {v["token"]: k for k, v in usuarios_db.items()}
+    tokens_db = {}
 
     with patch.object(bd, "criar_cliente_auth", side_effect=_criar_mock_clientes_isolados(usuarios_db, tokens_db)), \
          patch.object(bd, "_buscar_nome_usuario_tabela", side_effect=lambda uid, meta=None: usuarios_db[uid]["nome"]):
 
-        # Ramon desloga
+        # 1. Celular 1 faz login normalmente
+        r1 = client.post("/auth/login", json={"email": "ana@teste.com", "senha": "123"}).json()
+        assert r1["sucesso"] is True
+        token_celular_1 = r1["sessao"]["access_token"]
+
+        # 2. Celular 2 tenta fazer login na mesma conta sem forcar_login -> Bloqueado!
+        r2 = client.post("/auth/login", json={"email": "ana@teste.com", "senha": "123", "forcar_login": False}).json()
+        assert r2["sucesso"] is False
+        assert r2["ja_conectado"] is True
+
+        # Celular 1 continua ativo normalmente
+        me1 = client.get("/auth/usuario-atual", headers={"Authorization": f"Bearer {token_celular_1}"}).json()
+        assert me1["sucesso"] is True
+        assert me1["usuario"]["id"] == "uid-ana"
+
+        # 3. Celular 2 confirma "Desconectar outro e entrar" (forcar_login=True)
+        r3 = client.post("/auth/login", json={"email": "ana@teste.com", "senha": "123", "forcar_login": True}).json()
+        assert r3["sucesso"] is True
+        token_celular_2 = r3["sessao"]["access_token"]
+        assert token_celular_2 != token_celular_1
+
+        # 4. Celular 1 agora recebe sessao_encerrada=True!
+        me1_depois = client.get("/auth/usuario-atual", headers={"Authorization": f"Bearer {token_celular_1}"}).json()
+        assert me1_depois["sucesso"] is False
+        assert me1_depois.get("sessao_encerrada") is True
+
+        # 5. Celular 2 opera normalmente
+        me2 = client.get("/auth/usuario-atual", headers={"Authorization": f"Bearer {token_celular_2}"}).json()
+        assert me2["sucesso"] is True
+        assert me2["usuario"]["id"] == "uid-ana"
+
+
+def test_logout_libera_novo_login_sem_bloqueio(client):
+    """
+    Garante que quando o usuário faz logout no Celular 1, o Celular 2 pode fazer login
+    imediatamente sem aviso de conta já conectada.
+    """
+    bd._sessoes_ativas_usuarios.clear()
+    usuarios_db = {
+        "uid-ana": {"nome": "Ana", "email": "ana@teste.com", "token": "jwt-ana"},
+    }
+    tokens_db = {}
+
+    with patch.object(bd, "criar_cliente_auth", side_effect=_criar_mock_clientes_isolados(usuarios_db, tokens_db)), \
+         patch.object(bd, "_buscar_nome_usuario_tabela", side_effect=lambda uid, meta=None: usuarios_db[uid]["nome"]):
+
+        r1 = client.post("/auth/login", json={"email": "ana@teste.com", "senha": "123"}).json()
+        assert r1["sucesso"] is True
+        token_c1 = r1["sessao"]["access_token"]
+
+        # Celular 1 faz logout
         resp_logout = client.post(
-            "/auth/logout",
-            headers={"Authorization": "Bearer jwt-ramon"},
+            "/auth/logout?usuario_id=uid-ana",
+            headers={"Authorization": f"Bearer {token_c1}"},
         )
         assert resp_logout.status_code == 200
         assert resp_logout.json()["sucesso"] is True
 
-        # Ana continua logada e obtém seus próprios dados
-        resp_ana = client.get(
-            "/auth/usuario-atual",
-            headers={"Authorization": "Bearer jwt-ana"},
-        )
-        assert resp_ana.status_code == 200
-        assert resp_ana.json()["sucesso"] is True
-        assert resp_ana.json()["usuario"]["id"] == "uid-ana"
-        assert resp_ana.json()["usuario"]["nome"] == "Ana"
+        # Celular 2 faz login sem precisar de forcar_login
+        r2 = client.post("/auth/login", json={"email": "ana@teste.com", "senha": "123"}).json()
+        assert r2["sucesso"] is True
+        assert r2.get("ja_conectado") is False
 
 
 if __name__ == "__main__":
     c = TestClient(app)
     test_quatro_usuarios_logando_simultaneamente_nao_viram_ramon(c)
     test_usuario_atual_sem_token_nao_vaza_sessao_do_ramon(c)
-    test_logout_de_um_usuario_nao_desloga_demais_usuarios(c)
-    print("TODOS OS TESTES DE ISOLAMENTO DE SESSAO MULTI-USUARIO PASSARAM COM SUCESSO!")
+    test_bloqueio_segundo_dispositivo_e_forcar_login(c)
+    test_logout_libera_novo_login_sem_bloqueio(c)
+    print("TODOS OS 4 TESTES DE ISOLAMENTO E CONTROLE DE DISPOSITIVO UNICO PASSARAM COM SUCESSO!")

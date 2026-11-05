@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import 'amigos_screen.dart';
 import 'leaderboard_screen.dart';
+import 'login_screen.dart';
 import 'profile_screen.dart';
 import 'training_menu_screen.dart';
 
@@ -39,6 +40,10 @@ class _HomeScreenState extends State<HomeScreen> {
     var usuarioId = ApiService().idUsuarioAtual;
     if (usuarioId == null) {
       final userRes = await ApiService().obterUsuarioAtual();
+      if (userRes['sessao_encerrada'] == true && mounted) {
+        _redirecionarSessaoEncerrada(userRes['mensagem']?.toString());
+        return;
+      }
       if (userRes['sucesso'] == true && ApiService().idUsuarioAtual != null) {
         usuarioId = ApiService().idUsuarioAtual;
       }
@@ -46,6 +51,10 @@ class _HomeScreenState extends State<HomeScreen> {
 
     if (usuarioId != null) {
       final res = await ApiService().verPontuacao(usuarioId);
+      if (res['sessao_encerrada'] == true && mounted) {
+        _redirecionarSessaoEncerrada(res['mensagem']?.toString());
+        return;
+      }
       if (mounted && res['sucesso'] == true) {
         setState(() {
           if (res['nome'] != null && res['nome'].toString().trim().isNotEmpty) {
@@ -72,6 +81,23 @@ class _HomeScreenState extends State<HomeScreen> {
         });
       }
     }
+  }
+
+  void _redirecionarSessaoEncerrada(String? mensagem) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          mensagem ?? 'Sua conta foi conectada em outro dispositivo.',
+        ),
+        backgroundColor: Colors.orangeAccent,
+      ),
+    );
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (context) => const LoginScreen()),
+      (route) => false,
+    );
   }
 
   void _iniciarTreino() {

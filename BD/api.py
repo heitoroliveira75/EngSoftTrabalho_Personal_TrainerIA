@@ -46,6 +46,7 @@ class CriarContaRequest(BaseModel):
 class LoginRequest(BaseModel):
     email: str
     senha: str
+    forcar_login: Optional[bool] = False
 
 class EditarPerfilRequest(BaseModel):
     nome: Optional[str] = None
@@ -218,13 +219,16 @@ def api_criar_conta(req: CriarContaRequest):
 
 @app.post("/auth/login")
 def api_fazer_login(req: LoginRequest):
-    resposta = bd.fazer_login(req.email, req.senha)
+    resposta = bd.fazer_login(req.email, req.senha, forcar_login=bool(req.forcar_login))
     return resposta
 
 @app.post("/auth/logout")
-def api_deslogar(authorization: Optional[str] = Header(None)):
+def api_deslogar(
+    usuario_id: Optional[str] = Query(None),
+    authorization: Optional[str] = Header(None),
+):
     token = _extrair_token_bearer(authorization)
-    resposta = bd.deslogar_perfil(token=token)
+    resposta = bd.deslogar_perfil(token=token, usuario_id=usuario_id)
     return resposta
 
 @app.get("/auth/usuario-atual")
@@ -236,6 +240,13 @@ def api_obter_usuario_atual(
     usuario = bd.obter_usuario_atual(token=token, usuario_id=usuario_id)
     if not usuario:
         return {"sucesso": False, "mensagem": "Nenhum usuário logado no momento.", "usuario": None}
+    if usuario.get("sessao_encerrada") is True:
+        return {
+            "sucesso": False,
+            "sessao_encerrada": True,
+            "mensagem": "Sua sessão foi encerrada porque sua conta foi acessada em outro dispositivo.",
+            "usuario": None,
+        }
     return {"sucesso": True, "usuario": usuario}
 
 @app.post("/auth/esqueceu-senha")
@@ -371,10 +382,17 @@ def api_excluir_treino(treino_id: str):
 # ============================================================
 
 @app.get("/pontuacao/{usuario_id}")
-def api_ver_pontuacao(usuario_id: str):
+def api_ver_pontuacao(usuario_id: str, authorization: Optional[str] = Header(None)):
     """
     Retorna as pontuações (diária, semanal e total), além da sequência e checagem do usuário.
     """
+    token = _extrair_token_bearer(authorization)
+    if token and not bd.verificar_e_atualizar_sessao_ativa(usuario_id, token):
+        return {
+            "sucesso": False,
+            "sessao_encerrada": True,
+            "mensagem": "Sua sessão foi encerrada porque sua conta foi acessada em outro dispositivo.",
+        }
     resposta = bd.ver_pontuacao(usuario_id)
     return resposta
 

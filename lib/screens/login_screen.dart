@@ -24,7 +24,7 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  Future<void> _executarLogin() async {
+  Future<void> _executarLogin({bool forcarLogin = false}) async {
     final email = _emailController.text.trim();
     final senha = _senhaController.text.trim();
 
@@ -45,6 +45,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final resposta = await ApiService().fazerLogin(
       email: email,
       senha: senha,
+      forcarLogin: forcarLogin,
     );
 
     if (!mounted) return;
@@ -69,6 +70,55 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
         (route) => false,
       );
+    } else if (resposta['ja_conectado'] == true) {
+      final confirmar = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: const Color(0xFF1E232A),
+          title: const Row(
+            children: [
+              Icon(Icons.devices_other, color: Colors.orangeAccent),
+              SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Conta já conectada',
+                  style: TextStyle(color: Colors.white, fontSize: 18),
+                ),
+              ),
+            ],
+          ),
+          content: Text(
+            resposta['mensagem'] != null
+                ? '${resposta['mensagem']}\n\nDeseja desconectar o outro aparelho e entrar neste dispositivo?'
+                : 'Este usuário já está conectado em outro dispositivo.\n\nDeseja desconectar o outro aparelho e entrar neste dispositivo?',
+            style: const TextStyle(color: Colors.white70),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text(
+                'Cancelar',
+                style: TextStyle(color: Colors.white60),
+              ),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF00E676),
+                foregroundColor: Colors.black,
+              ),
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text(
+                'Desconectar outro e entrar',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+      );
+
+      if (confirmar == true && mounted) {
+        await _executarLogin(forcarLogin: true);
+      }
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -144,7 +194,7 @@ class _LoginScreenState extends State<LoginScreen> {
 
                     // Botão Continuar / Login
                     ElevatedButton(
-                      onPressed: _carregando ? null : _executarLogin,
+                      onPressed: _carregando ? null : () => _executarLogin(),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF030712), // Preto / quase preto
                         foregroundColor: Colors.white,

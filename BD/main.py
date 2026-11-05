@@ -1,4 +1,5 @@
 import json
+import time
 import uuid
 from datetime import datetime, timezone
 from typing import Optional, List, Dict, Any, Union
@@ -6,8 +7,13 @@ from supabase_client import supabase, criar_cliente_auth
 
 
 # ============================================================
-# 1. AUTENTICAÇÃO E SESSÃO (STATELESS / ISOLADA POR USUÁRIO)
+# 1. AUTENTICAÇÃO E SESSÃO (STATELESS + CONTROLE DE DISPOSITIVO ÚNICO)
 # ============================================================
+
+# Registro de sessões ativas por usuário: {usuario_id: {"token": str, "ultima_atividade": float}}
+_sessoes_ativas_usuarios: Dict[str, Dict[str, Any]] = {}
+TEMPO_EXPIRACAO_SESSAO_SEGUNDOS: int = 900  # 15 minutos de inatividade
+
 
 def _limpar_token(token: Optional[str]) -> Optional[str]:
     """Remove o prefixo 'Bearer ' de um token JWT e retorna None se vazio."""
@@ -17,6 +23,66 @@ def _limpar_token(token: Optional[str]) -> Optional[str]:
     if limpo.lower().startswith("bearer "):
         limpo = limpo[7:].strip()
     return limpo if limpo else None
+
+
+def _sessao_esta_ativa_em_outro_dispositivo(usuario_id: str, token_novo: Optional[str] = None) -> bool:
+    """
+    Verifica se o usuário já possui uma sessão ativa recente em outro dispositivo.
+    Se a sessão anterior expirou por inatividade, limpa automaticamente.
+    """
+    uid = str(usuario_id).strip()
+    registro = _sessoes_ativas_usuarios.get(uid)
+    if not registro:
+        return False
+
+    agora = time.time()
+    ultima = float(registro.get("ultima_atividade") or 0.0)
+    if (agora - ultima) > TEMPO_EXPIRACAO_SESSAO_SEGUNDOS:
+        _sessoes_ativas_usuarios.pop(uid, None)
+        return False
+
+    token_ativo = registro.get("token")
+    if token_novo and token_ativo and token_novo == token_ativo:
+        return False
+
+    return True
+
+
+def _registrar_sessao_ativa(usuario_id: str, token: Optional[str]) -> None:
+    """Registra ou substitui o dispositivo ativo para o usuário."""
+    uid = str(usuario_id).strip()
+    if not uid:
+        return
+    _sessoes_ativas_usuarios[uid] = {
+        "token": token or f"sessao_{uuid.uuid4().hex}",
+        "ultima_atividade": time.time(),
+    }
+
+
+def verificar_e_atualizar_sessao_ativa(
+    usuario_id: Optional[str],
+    token: Optional[str] = None,
+) -> bool:
+    """
+    Verifica se o dispositivo atual ainda é o dono da sessão ativa do usuário.
+    Retorna False caso outro dispositivo tenha assumido a conta (forçar login).
+    """
+    if not usuario_id:
+        return True
+    uid = str(usuario_id).strip()
+    token_limpo = _limpar_token(token)
+    registro = _sessoes_ativas_usuarios.get(uid)
+    if not registro:
+        if token_limpo:
+            _registrar_sessao_ativa(uid, token_limpo)
+        return True
+
+    token_ativo = registro.get("token")
+    if token_limpo and token_ativo and token_limpo != token_ativo:
+        return False
+
+    registro["ultima_atividade"] = time.time()
+    return True
 
 
 def _buscar_nome_usuario_tabela(
@@ -79,11 +145,13 @@ def criar_conta(nome: str, email: str, senha: str) -> Dict[str, Any]:
         return {"sucesso": False, "mensagem": str(erro)}
 
 
-def fazer_login(email: str, senha: str) -> Dict[str, Any]:
+def fazer_login(email: str, senha: str, forcar_login: bool = False) -> Dict[str, Any]:
     """
-    Autentica o usuário com e-mail e senha em uma instância isolada (stateless),
-    retornando os dados exclusivos do usuário e seus tokens de sessão sem afetar
-    outros usuários logados simultaneamente no servidor.
+    Autentica o usuário com e-mail e senha em uma instância isolada (stateless).
+    Verifica se o usuário já possui sessão ativa em outro dispositivo:
+      - Se já estiver conectado e forcar_login=False, bloqueia o login e retorna ja_conectado=True.
+      - Se forcar_login=True (ou não houver outra sessão ativa), invalida a sessão anterior
+        e registra o novo dispositivo como único ativo.
     """
     if not email or not senha:
         return {"sucesso": False, "mensagem": "E-mail e senha são obrigatórios."}
@@ -98,13 +166,29 @@ def fazer_login(email: str, senha: str) -> Dict[str, Any]:
         if not resposta.user:
             return {"sucesso": False, "mensagem": "Credenciais inválidas ou usuário não encontrado."}
 
+        uid = str(resposta.user.id)
+        access_token = resposta.session.access_token if resposta.session else None
+        refresh_token = resposta.session.refresh_token if resposta.session else None
+
+        # Verifica se já há outro dispositivo conectado nesta conta
+        if not forcar_login and _sessao_esta_ativa_em_outro_dispositivo(uid):
+            return {
+                "sucesso": False,
+                "ja_conectado": True,
+                "mensagem": "Esta conta já está conectada em outro dispositivo.",
+            }
+
+        # Registra o dispositivo atual como único dono da sessão ativa
+        _registrar_sessao_ativa(uid, access_token)
+
         metadata = dict(resposta.user.user_metadata or {})
-        nome_usuario = _buscar_nome_usuario_tabela(resposta.user.id, metadata)
+        nome_usuario = _buscar_nome_usuario_tabela(uid, metadata)
         if nome_usuario and not metadata.get("nome"):
             metadata["nome"] = nome_usuario
 
         return {
             "sucesso": True,
+            "ja_conectado": False,
             "mensagem": "Login realizado com sucesso!",
             "usuario": {
                 "id": resposta.user.id,
@@ -113,18 +197,37 @@ def fazer_login(email: str, senha: str) -> Dict[str, Any]:
                 "user_metadata": metadata
             },
             "sessao": {
-                "access_token": resposta.session.access_token if resposta.session else None,
-                "refresh_token": resposta.session.refresh_token if resposta.session else None
+                "access_token": access_token,
+                "refresh_token": refresh_token
             }
         }
     except Exception as erro:
         return {"sucesso": False, "mensagem": str(erro)}
 
 
-def deslogar_perfil(token: Optional[str] = None) -> Dict[str, Any]:
+def deslogar_perfil(
+    token: Optional[str] = None,
+    usuario_id: Optional[str] = None,
+) -> Dict[str, Any]:
     """
-    Encerra a sessão de forma isolada sem deslogar outros usuários ativos no servidor.
+    Encerra a sessão ativa do usuário no servidor sem afetar os demais usuários,
+    liberando a conta imediatamente para novo login em qualquer dispositivo.
     """
+    token_limpo = _limpar_token(token)
+    uid_limpo = str(usuario_id).strip() if usuario_id and str(usuario_id).strip() else None
+
+    if uid_limpo and uid_limpo in _sessoes_ativas_usuarios:
+        reg = _sessoes_ativas_usuarios.get(uid_limpo)
+        if not token_limpo or not reg or reg.get("token") == token_limpo:
+            _sessoes_ativas_usuarios.pop(uid_limpo, None)
+    elif token_limpo:
+        para_remover = [
+            k for k, v in _sessoes_ativas_usuarios.items()
+            if v.get("token") == token_limpo
+        ]
+        for k in para_remover:
+            _sessoes_ativas_usuarios.pop(k, None)
+
     return {"sucesso": True, "mensagem": "Logout realizado com sucesso."}
 
 
@@ -135,8 +238,7 @@ def obter_usuario_atual(
     """
     Retorna os dados do usuário autenticado correspondente ESTRITAMENTE ao token JWT
     ou ao usuario_id da requisição atual.
-    Jamais consulta sessão global em memória no servidor para evitar vazamento de sessão
-    entre múltiplos usuários simultâneos.
+    Se outro dispositivo tiver assumido a sessão via forcar_login, retorna {"sessao_encerrada": True}.
     """
     token_limpo = _limpar_token(token)
     uid_limpo = str(usuario_id).strip() if usuario_id and str(usuario_id).strip() else None
@@ -151,10 +253,12 @@ def obter_usuario_atual(
             resposta = cliente_auth.auth.get_user(token_limpo)
             if resposta and resposta.user:
                 user_obj = resposta.user
-                # Se o cliente também informou usuario_id e ele diverge do token, rejeita mistura de sessão
-                if not uid_limpo or str(user_obj.id) == uid_limpo:
+                uid_resolvido = str(user_obj.id)
+                if not uid_limpo or uid_resolvido == uid_limpo:
+                    if not verificar_e_atualizar_sessao_ativa(uid_resolvido, token_limpo):
+                        return {"sessao_encerrada": True}
                     metadata = dict(user_obj.user_metadata or {})
-                    nome = _buscar_nome_usuario_tabela(user_obj.id, metadata)
+                    nome = _buscar_nome_usuario_tabela(uid_resolvido, metadata)
                     if nome and not metadata.get("nome"):
                         metadata["nome"] = nome
                     return {
@@ -168,6 +272,8 @@ def obter_usuario_atual(
 
     # 2. Fallback seguro apenas se o próprio cliente identificou seu usuario_id
     if uid_limpo:
+        if not verificar_e_atualizar_sessao_ativa(uid_limpo, token_limpo):
+            return {"sessao_encerrada": True}
         try:
             res = (
                 supabase
