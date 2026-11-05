@@ -26,6 +26,18 @@
 
 ## Histórico de Entradas
 
+### [Entrada #024] 2026-11-04 — Criação e Aplicação do Ícone Oficial do Aplicativo PersonAI
+- **Objetivo / Demanda:**
+  - Criar um ícone de identidade visual moderna para o aplicativo **PersonAI** baseado no conceito de Visão Computacional (silhueta de atleta formada por landmarks e nós neurais em neon verde `#00E676` e ciano `#29B6F6` sobre fundo grafite escuro).
+  - Aplicar e embutir o ícone no aplicativo móvel em todas as densidades de tela do Android (`mipmap-mdpi`, `hdpi`, `xhdpi`, `xxhdpi`, `xxxhdpi`) e compilar novo binário `.apk`.
+- **Tasks Executadas e Artefatos Gerados:**
+  - `[TASK-ICON-GEN]` Geração da arte visual 3D em alta definição $\rightarrow$ **Artefato:** `assets/icon/app_icon.png`.
+  - `[TASK-ICON-MIPMAPS]` Redimensionamento vetorial em 5 densidades para o Android via OpenCV $\rightarrow$ **Artefatos:** `android/app/src/main/res/mipmap-*/ic_launcher.png`.
+  - `[TASK-ICON-BUILD-APK]` Recompilação do aplicativo móvel para gerar o executável com o novo ícone instalado $\rightarrow$ **Artefato:** `./app-debug.apk`.
+- **Commits Incrementais:**
+  - `8bd058e` / `feat(app): adiciona novo icone personalizado do aplicativo PersonAI`
+- **Estado Resultante:** O aplicativo agora exibe o novo ícone oficial diretamente no launcher do Android.
+
 ### [Entrada #023] 2026-11-04 — Integração dos Novos Exercícios da Branch IA, Organização de Arquivos e Suporte no App Flutter
 - **Objetivo / História de Usuário:**
   - Trazer as atualizações desenvolvidas pela equipe de IA na branch `IA` do GitHub para a branch de produção `Banco-de-Dados`, expandindo o catálogo motor de 3 para **7 exercícios biomecânicos completos**:
