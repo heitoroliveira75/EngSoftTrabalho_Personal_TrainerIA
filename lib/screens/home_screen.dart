@@ -20,6 +20,7 @@ class _HomeScreenState extends State<HomeScreen> {
   // VARIÁVEIS DE DADOS E NAVEGAÇÃO
   // ===========================================================================
   int _abaSelecionada = 0; // 0 = Home, 1 = Amigos, 2 = Treinar, 3 = Leaderboard, 4 = Perfil
+  String nomeUsuario = 'Atleta';
   int pontosTotais = 0;
   int pontosSemana = 0;
   int maiorSequencia = 0;
@@ -30,15 +31,28 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    nomeUsuario = ApiService().nomeUsuarioAtual;
     _carregarPontuacoes();
   }
 
   Future<void> _carregarPontuacoes() async {
-    final usuarioId = ApiService().idUsuarioAtual;
+    var usuarioId = ApiService().idUsuarioAtual;
+    if (usuarioId == null) {
+      final userRes = await ApiService().obterUsuarioAtual();
+      if (userRes['sucesso'] == true && ApiService().idUsuarioAtual != null) {
+        usuarioId = ApiService().idUsuarioAtual;
+      }
+    }
+
     if (usuarioId != null) {
       final res = await ApiService().verPontuacao(usuarioId);
       if (mounted && res['sucesso'] == true) {
         setState(() {
+          if (res['nome'] != null && res['nome'].toString().trim().isNotEmpty) {
+            nomeUsuario = res['nome'].toString().trim();
+          } else {
+            nomeUsuario = ApiService().nomeUsuarioAtual;
+          }
           pontosTotais = (res['pontuacao_total'] as num?)?.toInt() ?? 0;
           pontosSemana = (res['pontuacao_semanal'] as num?)?.toInt() ?? 0;
           pontosHoje = (res['pontuacao_diaria'] as num?)?.toInt() ?? 0;
@@ -56,32 +70,6 @@ class _HomeScreenState extends State<HomeScreen> {
             maiorSequencia = sequenciaAtual;
           }
         });
-      }
-    } else {
-      final userRes = await ApiService().obterUsuarioAtual();
-      if (userRes['sucesso'] == true && ApiService().idUsuarioAtual != null) {
-        final res =
-            await ApiService().verPontuacao(ApiService().idUsuarioAtual!);
-        if (mounted && res['sucesso'] == true) {
-          setState(() {
-            pontosTotais = (res['pontuacao_total'] as num?)?.toInt() ?? 0;
-            pontosSemana = (res['pontuacao_semanal'] as num?)?.toInt() ?? 0;
-            pontosHoje = (res['pontuacao_diaria'] as num?)?.toInt() ?? 0;
-            sequenciaAtual = (res['sequencia'] as num?)?.toInt() ??
-                (res['pontuacoes'] is Map
-                    ? (res['pontuacoes']['sequencia'] as num?)?.toInt()
-                    : null) ??
-                ApiService().sequenciaAtual;
-            maiorSequencia = (res['maior_sequencia'] as num?)?.toInt() ??
-                (res['pontuacoes'] is Map
-                    ? (res['pontuacoes']['maior_sequencia'] as num?)?.toInt()
-                    : null) ??
-                ApiService().maiorSequenciaAtual;
-            if (sequenciaAtual > maiorSequencia) {
-              maiorSequencia = sequenciaAtual;
-            }
-          });
-        }
       }
     }
   }
@@ -216,12 +204,12 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 1. Saudação do Usuário
-            FutureBuilder<Map<String, dynamic>>(
-              future: ApiService().obterUsuarioAtual(),
-              builder: (context, snapshot) {
-                final nome = snapshot.data?['usuario']?['nome'] ??
-                    ApiService().nomeUsuarioAtual;
+            // 1. Saudação do Usuário (isolada por sessão local, sem consultar estado global)
+            Builder(
+              builder: (context) {
+                final nome = (nomeUsuario.isNotEmpty && nomeUsuario != 'Usuário')
+                    ? nomeUsuario
+                    : ApiService().nomeUsuarioAtual;
                 final primeiroNome =
                     nome.isNotEmpty ? nome.split(' ')[0] : 'Atleta';
                 return Column(

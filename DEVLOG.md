@@ -26,6 +26,16 @@
 
 ## Histórico de Entradas
 
+### [Entrada #025] 2026-11-05 — Correção Crítica de Isolamento de Sessão Multi-Usuário (Stateless Auth)
+- **Objetivo / Problema Relatado:**
+  - Quando múltiplos usuários faziam login simultaneamente no aplicativo (ex.: 4 atletas logando na mesma janela de tempo), todos os aparelhos passavam a exibir a conta, o nome e os dados do último usuário autenticado (ex.: "Ramon").
+  - **Diagnóstico Técnico:** O servidor FastAPI compartilhava uma única instância global `supabase` em memória (`BD/supabase_client.py`). Ao executar `supabase.auth.sign_in_with_password(...)` em `fazer_login`, o cliente `supabase-py` armazenava a sessão do último usuário logado na memória do servidor e sobrescrevia o header global `Authorization` do cliente PostgREST. Em seguida, a `HomeScreen` do Flutter invocava `ApiService().obterUsuarioAtual()` (`GET /auth/usuario-atual`) a cada build; como o backend chamava `supabase.auth.get_user()` sem ler o token JWT do header `Authorization`, o servidor devolvia o usuário "Ramon" para todos os aparelhos, e o `ApiService` sobrescrevia `idUsuarioLogado` e `usuarioLogado` localmente nos celulares dos outros atletas.
+- **Tasks Executadas e Artefatos Gerados:**
+  - `[TASK-AUTH-ISOLATION-01]` Isolamento Stateless de Clientes Auth no Backend: Configuração de `ClientOptions(auto_refresh_token=False, persist_session=False)` e criação da fábrica `criar_cliente_auth()` em `./BD/supabase_client.py`; refatoração de `fazer_login`, `criar_conta`, `deslogar_perfil`, `obter_usuario_atual`, `redefinir_senha_com_codigo`, `alterar_senha`, `ver_perfil`, `editar_perfil` e `criar_treino` em `./BD/main.py` e extração explícita do header `Authorization: Bearer <token>` em `./BD/api.py` $\rightarrow$ **Artefatos:** `./BD/supabase_client.py`, `./BD/main.py`, `./BD/api.py`.
+  - `[TASK-AUTH-ISOLATION-02]` Blindagem de Sessão Local no App Flutter: Proteção contra colisão de IDs em `obterUsuarioAtual`, `verPerfil` e `verPontuacao` em `./lib/services/api_service.dart`, e remoção do `FutureBuilder` redundante na árvore de build de `./lib/screens/home_screen.dart` $\rightarrow$ **Artefatos:** `./lib/services/api_service.dart`, `./lib/screens/home_screen.dart`.
+  - `[TASK-AUTH-ISOLATION-03]` Suíte de Testes de Isolamento Multi-Usuário: Criação de testes automatizados simulando 4 usuários logando simultaneamente (com "Ramon" por último), tentativa de acesso sem token e logout isolado $\rightarrow$ **Artefato:** `tests/test_isolamento_sessao_multiusuario.py`.
+- **Estado Resultante:** Sessões 100% isoladas por token JWT/ID de usuário tanto no servidor quanto no cliente móvel; todos os testes de isolamento e `flutter test` / `flutter analyze` aprovados.
+
 ### [Entrada #024] 2026-11-04 — Criação e Aplicação do Ícone Oficial: Chevron Atlético (Padrão Nike / Gymshark)
 - **Objetivo / Demanda:**
   - Criar um ícone de identidade visual esportiva, minimalista e sóbria para o **PersonAI**, inspirado no padrão estético da Nike Training Club e Gymshark (fundo preto absoluto `#000000` com emblema plano 2D em branco puro sólido `#FFFFFF`).

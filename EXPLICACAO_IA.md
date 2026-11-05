@@ -253,7 +253,10 @@ Para aumentar o engajamento, a retenção e o incentivo mútuo entre alunos, o s
 7. **Persistência de Pontos e Compatibilidade com RLS (Row-Level Security):**
    * O Supabase restringe que um usuário edite dados de outro via Row-Level Security. Para garantir que ambos os atletas recebam os pontos com total confiabilidade:
      * **No Modo Remoto (2 Celulares):** O smartphone do convidado detecta o encerramento da sessão via polling e realiza a chamada de crédito de pontuação utilizando a sua própria sessão de login autenticada.
-     * **No Modo Presencial (1 Celular):** Como o convidado não está logado no aparelho compartilhado, o banco de dados executa a trigger 	rg_creditar_pontos_treino_dupla com permissão de sistema (SECURITY DEFINER), creditando automaticamente a pontuação e atualizando as métricas de ambos na tabela usuarios.
+     * **No Modo Presencial (1 Celular):** Como o convidado não está logado no aparelho compartilhado, o banco de dados executa a trigger `trg_creditar_pontos_treino_dupla` com permissão de sistema (`SECURITY DEFINER`), creditando automaticamente a pontuação e atualizando as métricas de ambos na tabela `usuarios`.
+
+8. **Isolamento Stateless de Sessão Multi-Usuário (`BD/supabase_client.py` + `BD/main.py`):**
+   * Para evitar qualquer cruzamento de contas quando vários atletas fazem login ao mesmo tempo, todas as operações de autenticação utilizam instâncias efêmeras e isoladas (`criar_cliente_auth()` com `persist_session=False`), e a rota `/auth/usuario-atual` valida estritamente o token JWT (`Authorization: Bearer <token>`) de cada aparelho. Assim, o estado global do servidor nunca armazena nem mistura sessões entre usuários concorrentes.
 
 ---
 

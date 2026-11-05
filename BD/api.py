@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Query, UploadFile, File, Form, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, Query, Header, UploadFile, File, Form, WebSocket, WebSocketDisconnect
 import asyncio
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
@@ -201,6 +201,16 @@ def health():
 # ROTAS - 1. AUTENTICAÇÃO E SESSÃO
 # ============================================================
 
+def _extrair_token_bearer(authorization: Optional[str]) -> Optional[str]:
+    """Extrai o token JWT do header Authorization: Bearer <token>."""
+    if not authorization or not isinstance(authorization, str):
+        return None
+    valor = authorization.strip()
+    if valor.lower().startswith("bearer "):
+        valor = valor[7:].strip()
+    return valor if valor else None
+
+
 @app.post("/auth/criar-conta")
 def api_criar_conta(req: CriarContaRequest):
     resposta = bd.criar_conta(req.nome, req.email, req.senha)
@@ -212,13 +222,18 @@ def api_fazer_login(req: LoginRequest):
     return resposta
 
 @app.post("/auth/logout")
-def api_deslogar():
-    resposta = bd.deslogar_perfil()
+def api_deslogar(authorization: Optional[str] = Header(None)):
+    token = _extrair_token_bearer(authorization)
+    resposta = bd.deslogar_perfil(token=token)
     return resposta
 
 @app.get("/auth/usuario-atual")
-def api_obter_usuario_atual():
-    usuario = bd.obter_usuario_atual()
+def api_obter_usuario_atual(
+    usuario_id: Optional[str] = Query(None),
+    authorization: Optional[str] = Header(None),
+):
+    token = _extrair_token_bearer(authorization)
+    usuario = bd.obter_usuario_atual(token=token, usuario_id=usuario_id)
     if not usuario:
         return {"sucesso": False, "mensagem": "Nenhum usuário logado no momento.", "usuario": None}
     return {"sucesso": True, "usuario": usuario}
@@ -308,10 +323,11 @@ def api_listar_treinos_usuario(usuario_id: str):
     return resposta
 
 @app.post("/treinos")
-def api_criar_treino(req: CriarTreinoRequest):
+def api_criar_treino(req: CriarTreinoRequest, authorization: Optional[str] = Header(None)):
     usuario_id = req.usuario_id
     if not usuario_id and not req.pre_montado:
-        usuario_atual = bd.obter_usuario_atual()
+        token = _extrair_token_bearer(authorization)
+        usuario_atual = bd.obter_usuario_atual(token=token)
         if usuario_atual and usuario_atual.get("id"):
             usuario_id = str(usuario_atual["id"])
 
