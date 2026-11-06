@@ -87,7 +87,10 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
   Map<String, dynamic> get _exercicioAtual =>
       _exercicios.isNotEmpty ? _exercicios[_indiceAtual] : {};
   String get _exercicioIdAtual =>
-      (_exercicioAtual['exercicio_id'] ?? _exercicioAtual['id'] ?? widget.exercicioId).toString();
+      (_exercicioAtual['exercicio_id'] ??
+              _exercicioAtual['id'] ??
+              widget.exercicioId)
+          .toString();
   String get _exercicioNomeAtual =>
       _exercicioAtual['nome']?.toString() ?? widget.exercicioNome;
   int get _metaRepsAtual =>
@@ -97,17 +100,21 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
     if (val is num && val > 0) return val.toInt();
     return widget.totalSeries > 0 ? widget.totalSeries : 3;
   }
+
   int get _serieAtual => (_seriesConcluidas + 1).clamp(1, _totalSeriesAtual);
   bool get _temProximoExercicio => (_indiceAtual + 1) < _exercicios.length;
-  String? get _proximoExercicioNome =>
-      _temProximoExercicio ? _exercicios[_indiceAtual + 1]['nome']?.toString() : null;
+  String? get _proximoExercicioNome => _temProximoExercicio
+      ? _exercicios[_indiceAtual + 1]['nome']?.toString()
+      : null;
 
   @override
   void initState() {
     super.initState();
     if (widget.listaExercicios != null && widget.listaExercicios!.isNotEmpty) {
       _exercicios = List<Map<String, dynamic>>.from(widget.listaExercicios!);
-      _indiceAtual = (widget.indiceInicial >= 0 && widget.indiceInicial < _exercicios.length)
+      _indiceAtual =
+          (widget.indiceInicial >= 0 &&
+              widget.indiceInicial < _exercicios.length)
           ? widget.indiceInicial
           : 0;
     } else {
@@ -116,7 +123,7 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
           'exercicio_id': widget.exercicioId,
           'nome': widget.exercicioNome,
           'repeticoes': widget.metaRepeticoes,
-        }
+        },
       ];
       _indiceAtual = 0;
     }
@@ -132,7 +139,9 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
         exercicioId: _exercicioIdAtual,
       );
       if (mounted && res['sucesso'] == true) {
-        debugPrint('Sessão IA inicializada com sucesso: ${res['exercicio_nome']}');
+        debugPrint(
+          'Sessão IA inicializada com sucesso: ${res['exercicio_nome']}',
+        );
       }
     } catch (e) {
       debugPrint('Aviso ao inicializar sessão IA: $e');
@@ -161,7 +170,10 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
 
       // Notifica o backend via WebSocket (se conectado) ou REST para alternar exercício
       if (_wsService != null && _wsService!.conectado) {
-        _wsService!.trocarExercicio(exercicioId: _exercicioIdAtual, lado: _lado);
+        _wsService!.trocarExercicio(
+          exercicioId: _exercicioIdAtual,
+          lado: _lado,
+        );
       }
       await _iniciarSessaoIA();
 
@@ -190,8 +202,7 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
       if (_availableCameras.isEmpty) {
         if (!mounted) return;
         setState(() {
-          _errorMessage =
-              'Nenhuma câmera detectada no dispositivo.\nVocê pode utilizar o botão de Simulação para demonstrar a IA.';
+          _errorMessage = 'Nenhuma câmera detectada no dispositivo.\nVocê pode utilizar o botão de Simulação para demonstrar a IA.';
           _isLoading = false;
         });
         return;
@@ -299,7 +310,9 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
       }
 
       if (res['ultima_repeticao'] != null && res['ultima_repeticao'] is Map) {
-        _ultimaRepeticao = Map<String, dynamic>.from(res['ultima_repeticao'] as Map);
+        _ultimaRepeticao = Map<String, dynamic>.from(
+          res['ultima_repeticao'] as Map,
+        );
       }
     });
 
@@ -342,7 +355,10 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
           _latenciaSw.start();
 
           if (poseRes != null) {
-            _wsService!.enviarAngulos(poseRes.angulos, visivel: poseRes.visivel);
+            _wsService!.enviarAngulos(
+              poseRes.angulos,
+              visivel: poseRes.visivel,
+            );
           } else {
             _wsService!.enviarAngulos({}, visivel: false);
           }
@@ -407,8 +423,11 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
             });
           }
 
-          if (res['ultima_repeticao'] != null && res['ultima_repeticao'] is Map) {
-            _ultimaRepeticao = Map<String, dynamic>.from(res['ultima_repeticao'] as Map);
+          if (res['ultima_repeticao'] != null &&
+              res['ultima_repeticao'] is Map) {
+            _ultimaRepeticao = Map<String, dynamic>.from(
+              res['ultima_repeticao'] as Map,
+            );
           }
         });
 
@@ -446,12 +465,16 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
 
       if (res['sucesso'] == true) {
         setState(() {
-          _repeticoes = (res['repeticoes'] as num?)?.toInt() ?? (_repeticoes + 1);
+          _repeticoes =
+              (res['repeticoes'] as num?)?.toInt() ?? (_repeticoes + 1);
           _faseNome = 'Pico de Contração';
           _alertaImediato = res['alerta_imediato']?.toString();
           _mostrandoFeedbackSucesso = true;
-          if (res['ultima_repeticao'] != null && res['ultima_repeticao'] is Map) {
-            _ultimaRepeticao = Map<String, dynamic>.from(res['ultima_repeticao'] as Map);
+          if (res['ultima_repeticao'] != null &&
+              res['ultima_repeticao'] is Map) {
+            _ultimaRepeticao = Map<String, dynamic>.from(
+              res['ultima_repeticao'] as Map,
+            );
           }
         });
 
@@ -533,11 +556,19 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: Row(
           children: const [
-            Icon(Icons.check_circle_outline, color: Color(0xFF00E676), size: 28),
+            Icon(
+              Icons.check_circle_outline,
+              color: Color(0xFF00E676),
+              size: 28,
+            ),
             SizedBox(width: 10),
             Text(
               'Série Completa!',
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 18,
+              ),
             ),
           ],
         ),
@@ -562,7 +593,10 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
                 children: [
                   const Text(
                     'Séries Concluídas:',
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   Text(
                     '$_seriesConcluidas / $_totalSeriesAtual',
@@ -588,7 +622,9 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF00E676),
               foregroundColor: Colors.black,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
             onPressed: () => Navigator.pop(ctx),
             label: Text(
@@ -638,14 +674,20 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
         barrierDismissible: false,
         builder: (ctx) => AlertDialog(
           backgroundColor: const Color(0xFF161B22),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           title: Row(
             children: const [
               Icon(Icons.workspace_premium, color: Color(0xFF00E676), size: 28),
               SizedBox(width: 10),
               Text(
                 'Série Concluída com IA',
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
               ),
             ],
           ),
@@ -665,12 +707,17 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(color: const Color(0xFF00E676)),
                 ),
+                width: double.maxFinite,
+                height: 400,
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     const Text(
                       'Pontos Conquistados:',
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     Text(
                       '+$pontos pts',
@@ -713,7 +760,9 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
                 style: OutlinedButton.styleFrom(
                   foregroundColor: Colors.white70,
                   side: const BorderSide(color: Colors.white24),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
                 onPressed: () {
                   _indicesConcluidos.add(_indiceAtual);
@@ -731,7 +780,9 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF00E676),
                   foregroundColor: Colors.black,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
                 onPressed: () {
                   Navigator.pop(ctx);
@@ -748,7 +799,9 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF00E676),
                   foregroundColor: Colors.black,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
                 onPressed: () {
                   _indicesConcluidos.add(_indiceAtual);
@@ -760,7 +813,10 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
                     'indicesConcluidos': _indicesConcluidos.toList(),
                   });
                 },
-                label: const Text('Concluir Treino Completo', style: TextStyle(fontWeight: FontWeight.bold)),
+                label: const Text(
+                  'Concluir Treino Completo',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
               ),
             ],
           ],
@@ -795,10 +851,14 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          _isStreaming ? 'Transmissão com a IA retomada' : 'Transmissão pausada',
+          _isStreaming
+              ? 'Transmissão com a IA retomada'
+              : 'Transmissão pausada',
         ),
         duration: const Duration(seconds: 1),
-        backgroundColor: _isStreaming ? const Color(0xFF00E676) : Colors.orangeAccent,
+        backgroundColor: _isStreaming
+            ? const Color(0xFF00E676)
+            : Colors.orangeAccent,
       ),
     );
   }
@@ -859,7 +919,11 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.videocam_off, size: 64, color: Colors.orangeAccent),
+              const Icon(
+                Icons.videocam_off,
+                size: 64,
+                color: Colors.orangeAccent,
+              ),
               const SizedBox(height: 16),
               Text(
                 _errorMessage!,
@@ -884,7 +948,10 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
 
     if (_controller == null || !_controller!.value.isInitialized) {
       return const Center(
-        child: Text('Câmera não inicializada.', style: TextStyle(color: Colors.white)),
+        child: Text(
+          'Câmera não inicializada.',
+          style: TextStyle(color: Colors.white),
+        ),
       );
     }
 
@@ -943,7 +1010,10 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
                 children: [
                   if (totalEx > 1) ...[
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
                         color: const Color(0xFF00E676).withValues(alpha: 0.2),
                         borderRadius: BorderRadius.circular(6),
@@ -952,14 +1022,18 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
                         '$numAtual/$totalEx',
                         style: const TextStyle(
                           color: Color(0xFF00E676),
-                          fontSize: 11,
+                          fontSize: 20,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),
                     const SizedBox(width: 6),
                   ],
-                  const Icon(Icons.fitness_center, color: Color(0xFF00E676), size: 16),
+                  const Icon(
+                    Icons.fitness_center,
+                    color: Color(0xFF00E676),
+                    size: 16,
+                  ),
                   const SizedBox(width: 6),
                   Flexible(
                     child: Text(
@@ -968,7 +1042,7 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
                       style: const TextStyle(
                         color: Colors.white,
                         fontWeight: FontWeight.bold,
-                        fontSize: 13,
+                        fontSize: 20,
                       ),
                     ),
                   ),
@@ -1002,11 +1076,13 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
       feedbackIcon = Icons.stars_rounded;
     } else if (!_servidorConectado && _framesEnviados == 0) {
       bannerColor = Colors.orangeAccent;
-      feedbackText = _alertaImediato ?? 'Conectando ao servidor IA no Render...';
+      feedbackText =
+          _alertaImediato ?? 'Conectando ao servidor IA no Render...';
       feedbackIcon = Icons.cloud_sync;
     } else if (!_corpoVisivel && _framesEnviados > 0) {
       bannerColor = Colors.orangeAccent;
-      feedbackText = 'Afaste-se da câmera (~1.5m a 2m) para enquadrar corpo e braços';
+      feedbackText =
+          'Afaste-se da câmera (~1.5m a 2m) para enquadrar corpo e braços';
       feedbackIcon = Icons.accessibility_new;
     } else if (_alertaImediato != null && _alertaImediato!.isNotEmpty) {
       bannerColor = Colors.redAccent;
@@ -1025,7 +1101,9 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
     if (faseLower.contains('subind') || faseLower.contains('ascend')) {
       corFase = Colors.amber;
       iconeFase = Icons.arrow_upward;
-    } else if (faseLower.contains('pico') || faseLower.contains('cont') || faseLower.contains('topo')) {
+    } else if (faseLower.contains('pico') ||
+        faseLower.contains('cont') ||
+        faseLower.contains('topo')) {
       corFase = const Color(0xFF00E676);
       iconeFase = Icons.local_fire_department;
     } else if (faseLower.contains('desc') || faseLower.contains('excen')) {
@@ -1068,7 +1146,7 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
                     style: const TextStyle(
                       color: Colors.black,
                       fontWeight: FontWeight.bold,
-                      fontSize: 13,
+                      fontSize: 30,
                     ),
                   ),
                 ),
@@ -1076,14 +1154,14 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
                   const SizedBox(
                     width: 14,
                     height: 14,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.black,
+                    ),
                   ),
               ],
             ),
           ),
-
-          const SizedBox(height: 6),
-
           // Pílula de Telemetria e Diagnóstico da Conexão em Tempo Real
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
@@ -1124,7 +1202,10 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
             children: [
               // Chip da Fase Atual
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFF161B22).withValues(alpha: 0.9),
                   borderRadius: BorderRadius.circular(12),
@@ -1158,11 +1239,16 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
                       : entry.key;
                   final ang = (entry.value as num).toStringAsFixed(0);
                   return Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xFF161B22).withValues(alpha: 0.9),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.cyanAccent.withValues(alpha: 0.6)),
+                      border: Border.all(
+                        color: Colors.cyanAccent.withValues(alpha: 0.6),
+                      ),
                     ),
                     child: Text(
                       '$nomeArt: $ang°',
@@ -1205,7 +1291,9 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
                       style: TextStyle(
                         color: progressoPct >= 80
                             ? const Color(0xFF00E676)
-                            : (progressoPct >= 40 ? Colors.amber : Colors.cyanAccent),
+                            : (progressoPct >= 40
+                                  ? Colors.amber
+                                  : Colors.cyanAccent),
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
                       ),
@@ -1222,7 +1310,9 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
                     valueColor: AlwaysStoppedAnimation<Color>(
                       progressoPct >= 80
                           ? const Color(0xFF00E676)
-                          : (progressoPct >= 40 ? Colors.amber : Colors.cyanAccent),
+                          : (progressoPct >= 40
+                                ? Colors.amber
+                                : Colors.cyanAccent),
                     ),
                   ),
                 ),
@@ -1266,11 +1356,16 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
                 ),
                 const SizedBox(height: 3),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFF00E676).withValues(alpha: 0.18),
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: const Color(0xFF00E676).withValues(alpha: 0.5)),
+                    border: Border.all(
+                      color: const Color(0xFF00E676).withValues(alpha: 0.5),
+                    ),
                   ),
                   child: Text(
                     'SÉRIE $_serieAtual DE $_totalSeriesAtual',
@@ -1330,8 +1425,12 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
             IconButton(
               iconSize: 28,
               icon: Icon(
-                _isStreaming ? Icons.pause_circle_filled : Icons.play_circle_filled,
-                color: _isStreaming ? Colors.orangeAccent : const Color(0xFF00E676),
+                _isStreaming
+                    ? Icons.pause_circle_filled
+                    : Icons.play_circle_filled,
+                color: _isStreaming
+                    ? Colors.orangeAccent
+                    : const Color(0xFF00E676),
               ),
               tooltip: _isStreaming ? 'Pausar IA' : 'Retomar IA',
               onPressed: _toggleStreaming,
@@ -1343,14 +1442,22 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.white12,
                 foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
               ),
               icon: _isSimulando
                   ? const SizedBox(
                       width: 16,
                       height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.white,
+                      ),
                     )
                   : const Icon(Icons.bolt, color: Colors.amber, size: 18),
               label: const Text('Simular Rep', style: TextStyle(fontSize: 12)),
@@ -1362,14 +1469,22 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF00E676),
                 foregroundColor: Colors.black,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 10,
+                ),
               ),
               icon: _isFinalizando
                   ? const SizedBox(
                       width: 16,
                       height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.black,
+                      ),
                     )
                   : const Icon(Icons.check_circle, size: 18),
               label: const Text(
