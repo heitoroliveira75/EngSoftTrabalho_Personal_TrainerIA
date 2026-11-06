@@ -385,13 +385,16 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
                                 child: Row(
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
-                                    Text(
-                                      item['nome'] as String,
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w500,
+                                    Expanded(
+                                      child: Text(
+                                        item['nome'] as String,
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.w500,
+                                        ),
                                       ),
                                     ),
+                                    const SizedBox(width: 8),
                                     Text(
                                       '+${item['pontosSerie']} pts/série',
                                       style: const TextStyle(
@@ -614,12 +617,14 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
                 icon: const Icon(Icons.remove_circle_outline, color: Colors.white70, size: 24),
                 onPressed: onDecrementar,
               ),
-              Text(
-                '$valor',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
+              Flexible(
+                child: Text(
+                  '$valor',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
               IconButton(
@@ -832,7 +837,6 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
                                             Flexible(
                                               child: Text(
                                                 '(${item.totalRepeticoes} totais)',
-                                                overflow: TextOverflow.ellipsis,
                                                 style: const TextStyle(
                                                   color: Colors.white60,
                                                   fontSize: 11,
@@ -894,12 +898,14 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
                       children: [
                         Icon(Icons.add, color: Color(0xFF00E676), size: 20),
                         SizedBox(width: 8),
-                        Text(
-                          'Adicionar Exercício',
-                          style: TextStyle(
-                            color: Color(0xFF00E676),
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
+                        Flexible(
+                          child: Text(
+                            'Adicionar Exercício',
+                            style: TextStyle(
+                              color: Color(0xFF00E676),
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
                           ),
                         ),
                       ],
@@ -935,12 +941,14 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
                             children: [
                               Icon(Icons.check, color: Color(0xFF2196F3), size: 20),
                               SizedBox(width: 8),
-                              Text(
-                                'Salvar Treino',
-                                style: TextStyle(
-                                  color: Color(0xFF2196F3),
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
+                              Flexible(
+                                child: Text(
+                                  'Salvar Treino',
+                                  style: TextStyle(
+                                    color: Color(0xFF2196F3),
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
+                                  ),
                                 ),
                               ),
                             ],

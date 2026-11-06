@@ -576,9 +576,11 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
           children: [
             Icon(Icons.check_circle_outline, color: Color(0xFF00E676), size: 28),
             SizedBox(width: 10),
-            Text(
-              'Série Completa!',
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+            Flexible(
+              child: Text(
+                'Série Completa!',
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+              ),
             ),
           ],
         ),
@@ -601,10 +603,13 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    'Séries Concluídas:',
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                  const Flexible(
+                    child: Text(
+                      'Séries Concluídas:',
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    ),
                   ),
+                  const SizedBox(width: 8),
                   Text(
                     '$_seriesConcluidas / $_totalSeriesAtual',
                     style: const TextStyle(
@@ -696,9 +701,11 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
           children: [
             Icon(Icons.check_circle_outline, color: Color(0xFF00E676), size: 28),
             SizedBox(width: 10),
-            Text(
-              'Série Concluída!',
-              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+            Flexible(
+              child: Text(
+                'Série Concluída!',
+                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+              ),
             ),
           ],
         ),
@@ -721,10 +728,13 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    'Série Atual:',
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                  const Flexible(
+                    child: Text(
+                      'Série Atual:',
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    ),
                   ),
+                  const SizedBox(width: 8),
                   Text(
                     '$_serieAtualDupla / $_totalSeriesAtual',
                     style: const TextStyle(
@@ -785,13 +795,15 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
         builder: (ctx) => AlertDialog(
           backgroundColor: const Color(0xFF161B22),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-          title: Row(
-            children: const [
+          title: const Row(
+            children: [
               Icon(Icons.workspace_premium, color: Color(0xFF00E676), size: 28),
               SizedBox(width: 10),
-              Text(
-                'Série Concluída com IA',
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+              Flexible(
+                child: Text(
+                  'Série Concluída com IA',
+                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+                ),
               ),
             ],
           ),
@@ -814,10 +826,13 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    const Text(
-                      'Pontos Conquistados:',
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    const Flexible(
+                      child: Text(
+                        'Pontos Conquistados:',
+                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                      ),
                     ),
+                    const SizedBox(width: 8),
                     Text(
                       '+$pontos pts',
                       style: const TextStyle(
@@ -1134,66 +1149,66 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
                 ),
               ),
 
-          // Título do Exercício, Contador de Exercícios e Lado
-          Expanded(
-            child: Container(
-              margin: const EdgeInsets.symmetric(horizontal: 10),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: const Color(0xFF161B22).withValues(alpha: 0.85),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.white12),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  if (totalEx > 1) ...[
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF00E676).withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        '$numAtual/$totalEx',
-                        style: const TextStyle(
-                          color: Color(0xFF00E676),
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
+              // Título do Exercício, Contador de Exercícios e Lado
+              Expanded(
+                child: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 10),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF161B22).withValues(alpha: 0.85),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.white12),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      if (totalEx > 1) ...[
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF00E676).withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            '$numAtual/$totalEx',
+                            style: const TextStyle(
+                              color: Color(0xFF00E676),
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                      ],
+                      const Icon(Icons.fitness_center, color: Color(0xFF00E676), size: 16),
+                      const SizedBox(width: 6),
+                      Flexible(
+                        child: Text(
+                          _exercicioNomeAtual,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 6),
-                  ],
-                  const Icon(Icons.fitness_center, color: Color(0xFF00E676), size: 16),
-                  const SizedBox(width: 6),
-                  Flexible(
-                    child: Text(
-                      _exercicioNomeAtual,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
-                      ),
-                    ),
+                    ],
                   ),
-                ],
+                ),
               ),
-            ),
-          ),
 
-          // Alternar Câmera
-          if (_availableCameras.length > 1)
-            CircleAvatar(
-              backgroundColor: Colors.black54,
-              child: IconButton(
-                icon: const Icon(Icons.flip_camera_ios, color: Colors.white),
-                onPressed: _switchCamera,
-              ),
-            ),
-        ],
-      ),
+              // Alternar Câmera
+              if (_availableCameras.length > 1)
+                CircleAvatar(
+                  backgroundColor: Colors.black54,
+                  child: IconButton(
+                    icon: const Icon(Icons.flip_camera_ios, color: Colors.white),
+                    onPressed: _switchCamera,
+                  ),
+                ),
+            ],
+          ),
         ],
       ),
     );
@@ -1546,48 +1561,54 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
             ),
 
             // Botão de Demonstração Instantânea (Banca / Avaliação)
-            ElevatedButton.icon(
-              onPressed: _isSimulando ? null : _simularRepeticaoDemo,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.white12,
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            Flexible(
+              child: ElevatedButton.icon(
+                onPressed: _isSimulando ? null : _simularRepeticaoDemo,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white12,
+                  foregroundColor: Colors.white,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                ),
+                icon: _isSimulando
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                      )
+                    : const Icon(Icons.bolt, color: Colors.amber, size: 18),
+                label: const Text('Simular Rep', style: TextStyle(fontSize: 12)),
               ),
-              icon: _isSimulando
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
-                    )
-                  : const Icon(Icons.bolt, color: Colors.amber, size: 18),
-              label: const Text('Simular Rep', style: TextStyle(fontSize: 12)),
             ),
 
+            const SizedBox(width: 8),
+
             // Botão Finalizar Série / Concluir Série Dupla
-            ElevatedButton.icon(
-              onPressed: _isFinalizando
-                  ? null
-                  : (widget.isModoDupla ? _concluirSerieDupla : _finalizarSerie),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF00E676),
-                foregroundColor: Colors.black,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              ),
-              icon: _isFinalizando
-                  ? const SizedBox(
-                      width: 16,
-                      height: 16,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
-                    )
-                  : Icon(
-                      widget.isModoDupla ? Icons.arrow_forward_rounded : Icons.check_circle,
-                      size: 18,
-                    ),
-              label: Text(
-                widget.isModoDupla ? 'Passar Vez ➡️' : 'Finalizar',
-                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+            Flexible(
+              child: ElevatedButton.icon(
+                onPressed: _isFinalizando
+                    ? null
+                    : (widget.isModoDupla ? _concluirSerieDupla : _finalizarSerie),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF00E676),
+                  foregroundColor: Colors.black,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                ),
+                icon: _isFinalizando
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
+                      )
+                    : Icon(
+                        widget.isModoDupla ? Icons.arrow_forward_rounded : Icons.check_circle,
+                        size: 18,
+                      ),
+                label: Text(
+                  widget.isModoDupla ? 'Passar Vez ➡️' : 'Finalizar',
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                ),
               ),
             ),
           ],
@@ -1880,7 +1901,10 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('Pontos do Host:', style: TextStyle(color: Colors.white60, fontSize: 13)),
+                      const Flexible(
+                        child: Text('Pontos do Host:', style: TextStyle(color: Colors.white60, fontSize: 13)),
+                      ),
+                      const SizedBox(width: 8),
                       Text('$pontosHost pts', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                     ],
                   ),
@@ -1888,7 +1912,10 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('Pontos do Convidado:', style: TextStyle(color: Colors.white60, fontSize: 13)),
+                      const Flexible(
+                        child: Text('Pontos do Convidado:', style: TextStyle(color: Colors.white60, fontSize: 13)),
+                      ),
+                      const SizedBox(width: 8),
                       Text('$pontosConvidado pts', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                     ],
                   ),
@@ -1896,7 +1923,10 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('Média da Dupla:', style: TextStyle(color: Colors.white70, fontSize: 13)),
+                      const Flexible(
+                        child: Text('Média da Dupla:', style: TextStyle(color: Colors.white70, fontSize: 13)),
+                      ),
+                      const SizedBox(width: 8),
                       Text('${media.toStringAsFixed(1)} pts', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
                     ],
                   ),
@@ -1904,7 +1934,10 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      const Text('🔥 Bônus Cooperativo (1.2x):', style: TextStyle(color: Color(0xFF00E676), fontSize: 13, fontWeight: FontWeight.bold)),
+                      const Flexible(
+                        child: Text('🔥 Bônus Cooperativo (1.2x):', style: TextStyle(color: Color(0xFF00E676), fontSize: 13, fontWeight: FontWeight.bold)),
+                      ),
+                      const SizedBox(width: 8),
                       Text('+$bonusExtra pts (+20%)', style: const TextStyle(color: Color(0xFF00E676), fontWeight: FontWeight.bold)),
                     ],
                   ),
@@ -1922,7 +1955,10 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Total Creditado a Você:', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  const Flexible(
+                    child: Text('Total Creditado a Você:', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                  ),
+                  const SizedBox(width: 8),
                   Text(
                     '$pontosFinais ⭐',
                     style: const TextStyle(color: Color(0xFF00E676), fontSize: 20, fontWeight: FontWeight.bold),
@@ -2023,9 +2059,11 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
                 children: [
                   const Icon(Icons.bolt, color: Colors.amber, size: 18),
                   const SizedBox(width: 6),
-                  Text(
-                    'Você: $meusPontos pts   •   ${widget.parceiroNome ?? "Parceiro"}: $pontosParceiro pts',
-                    style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                  Flexible(
+                    child: Text(
+                      'Você: $meusPontos pts   •   ${widget.parceiroNome ?? "Parceiro"}: $pontosParceiro pts',
+                      style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                    ),
                   ),
                 ],
               ),
@@ -2034,25 +2072,29 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                OutlinedButton.icon(
-                  onPressed: () {
-                    setState(() => _isMeuTurno = true);
-                  },
-                  icon: const Icon(Icons.play_arrow, size: 16),
-                  label: const Text('Assumir Vez (Demo)'),
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: const Color(0xFF00E676),
-                    side: const BorderSide(color: Color(0xFF00E676)),
+                Flexible(
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      setState(() => _isMeuTurno = true);
+                    },
+                    icon: const Icon(Icons.play_arrow, size: 16),
+                    label: const Text('Assumir Vez (Demo)'),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: const Color(0xFF00E676),
+                      side: const BorderSide(color: Color(0xFF00E676)),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
-                ElevatedButton.icon(
-                  onPressed: _encerrarTreinoDupla,
-                  icon: const Icon(Icons.flag_rounded, size: 16),
-                  label: const Text('Encerrar Treino'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.redAccent,
-                    foregroundColor: Colors.white,
+                Flexible(
+                  child: ElevatedButton.icon(
+                    onPressed: _encerrarTreinoDupla,
+                    icon: const Icon(Icons.flag_rounded, size: 16),
+                    label: const Text('Encerrar Treino'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.redAccent,
+                      foregroundColor: Colors.white,
+                    ),
                   ),
                 ),
               ],

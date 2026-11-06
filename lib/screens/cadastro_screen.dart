@@ -288,23 +288,27 @@ class _CadastroScreenState extends State<CadastroScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text(
-                      'Já possui uma conta? ',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 13,
+                    const Flexible(
+                      child: Text(
+                        'Já possui uma conta? ',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 13,
+                        ),
                       ),
                     ),
-                    GestureDetector(
-                      onTap: () {
-                        Navigator.pop(context);
-                      },
-                      child: const Text(
-                        'Faça login.',
-                        style: TextStyle(
-                          color: Color(0xFFE91E63), // Rosa vibrante
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
+                    Flexible(
+                      child: GestureDetector(
+                        onTap: () {
+                          Navigator.pop(context);
+                        },
+                        child: const Text(
+                          'Faça login.',
+                          style: TextStyle(
+                            color: Color(0xFFE91E63), // Rosa vibrante
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
                         ),
                       ),
                     ),
@@ -355,7 +359,7 @@ class _CadastroScreenState extends State<CadastroScreen> {
       style: ElevatedButton.styleFrom(
         backgroundColor: Colors.white,
         foregroundColor: Colors.black87,
-        padding: const EdgeInsets.symmetric(vertical: 14),
+        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(10.0),
         ),
@@ -366,11 +370,13 @@ class _CadastroScreenState extends State<CadastroScreen> {
         children: [
           icon,
           const SizedBox(width: 8),
-          Text(
-            text,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
+          Flexible(
+            child: Text(
+              text,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ],

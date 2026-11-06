@@ -181,23 +181,27 @@ class _EsqueceuSenhaScreenState extends State<EsqueceuSenhaScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    const Text(
-                      'Se lembra da sua senha? ',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 13,
+                    const Flexible(
+                      child: Text(
+                        'Se lembra da sua senha? ',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 13,
+                        ),
                       ),
                     ),
-                    GestureDetector(
-                      onTap: () {
-                        Navigator.pop(context);
-                      },
-                      child: const Text(
-                        'Faça login.',
-                        style: TextStyle(
-                          color: Color(0xFFE91E63), // Rosa vibrante
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
+                    Flexible(
+                      child: GestureDetector(
+                        onTap: () {
+                          Navigator.pop(context);
+                        },
+                        child: const Text(
+                          'Faça login.',
+                          style: TextStyle(
+                            color: Color(0xFFE91E63), // Rosa vibrante
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
                         ),
                       ),
                     ),
