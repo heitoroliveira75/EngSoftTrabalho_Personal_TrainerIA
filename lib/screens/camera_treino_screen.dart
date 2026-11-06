@@ -1230,7 +1230,7 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
                   ],
                 ),
               ),
-              /*
+
               // Chips de Ângulos
               if (_angulos.isNotEmpty)
                 ..._angulos.entries.take(2).map((entry) {
@@ -1259,7 +1259,7 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
                       ),
                     ),
                   );
-                }),*/
+                }),
             ],
           ),
 
