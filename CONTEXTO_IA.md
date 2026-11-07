@@ -88,7 +88,8 @@ Estes arquivos compõem a frente de trabalho imediata da branch, homologada por 
 | [`tests/test_api_ia_integrada.py`](tests/test_api_ia_integrada.py) | Suíte de testes end-to-end das rotas FastAPI de IA e envio automático de pontos para a gamificação. | `test_rota_ia_*` | **Concluído (6 testes)** |
 | [`tests/test_websocket_ia.py`](tests/test_websocket_ia.py) | Suíte de testes do canal persistente WebSocket, fluxo angular, keep-alive ping e troca dinâmica de exercício. | `test_websocket_ia_*` | **Concluído (3 testes)** |
 | [`tests/test_treino_dupla_api.py`](tests/test_treino_dupla_api.py) | Suíte de testes automatizados do fluxo cooperativo de treinos em dupla, alternância de turnos por série e fórmula de bônus (+20%). | `test_dupla_*` | **Concluído (8 testes)** |
-| **Total da Suíte Automatizada** | **63 testes aprovados no `pytest` + 5 testes no `flutter test` com 100% de sucesso** | `pytest` + `flutter test` | **100% Aprovado (68 testes)** |
+| [`tests/test_isolamento_sessao_multiusuario.py`](tests/test_isolamento_sessao_multiusuario.py) | Suíte de testes de isolamento stateless de autenticação multi-usuário, garantindo ausência de vazamento de sessão entre atletas concorrentes. | `test_quatro_usuarios_*`, `test_usuario_atual_*`, `test_logout_*` | **Concluído (3 testes)** |
+| **Total da Suíte Automatizada** | **90 testes aprovados no `pytest` + 11 testes no `flutter test` com 100% de sucesso** | `pytest` + `flutter test` | **100% Aprovado (101 testes)** |
 | [`./pytest.ini`](./pytest.ini) | Configuração de execução do `pytest` com inclusão automática do diretório raiz no `pythonpath`. | Configuração de testes | **Ativo** |
 | [`./requirements.txt`](./requirements.txt) | Especificação das dependências oficiais da branch `IA` (`numpy`, `opencv-python`, `mediapipe`, `pytest`). | Gerenciamento de ambiente | **Ativo** |
 
