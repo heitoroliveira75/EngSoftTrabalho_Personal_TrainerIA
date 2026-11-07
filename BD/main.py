@@ -1,24 +1,125 @@
 import json
+import time
 import uuid
 from datetime import datetime, timezone
 from typing import Optional, List, Dict, Any, Union
-from supabase_client import supabase
+from supabase_client import supabase, criar_cliente_auth
 
 
 # ============================================================
-# 1. AUTENTICAÇÃO E SESSÃO
+# 1. AUTENTICAÇÃO E SESSÃO (STATELESS + CONTROLE DE DISPOSITIVO ÚNICO)
 # ============================================================
+
+# Registro de sessões ativas por usuário: {usuario_id: {"token": str, "ultima_atividade": float}}
+_sessoes_ativas_usuarios: Dict[str, Dict[str, Any]] = {}
+TEMPO_EXPIRACAO_SESSAO_SEGUNDOS: int = 900  # 15 minutos de inatividade
+
+
+def _limpar_token(token: Optional[str]) -> Optional[str]:
+    """Remove o prefixo 'Bearer ' de um token JWT e retorna None se vazio."""
+    if not token or not isinstance(token, str):
+        return None
+    limpo = token.strip()
+    if limpo.lower().startswith("bearer "):
+        limpo = limpo[7:].strip()
+    return limpo if limpo else None
+
+
+def _sessao_esta_ativa_em_outro_dispositivo(usuario_id: str, token_novo: Optional[str] = None) -> bool:
+    """
+    Verifica se o usuário já possui uma sessão ativa recente em outro dispositivo.
+    Se a sessão anterior expirou por inatividade, limpa automaticamente.
+    """
+    uid = str(usuario_id).strip()
+    registro = _sessoes_ativas_usuarios.get(uid)
+    if not registro:
+        return False
+
+    agora = time.time()
+    ultima = float(registro.get("ultima_atividade") or 0.0)
+    if (agora - ultima) > TEMPO_EXPIRACAO_SESSAO_SEGUNDOS:
+        _sessoes_ativas_usuarios.pop(uid, None)
+        return False
+
+    token_ativo = registro.get("token")
+    if token_novo and token_ativo and token_novo == token_ativo:
+        return False
+
+    return True
+
+
+def _registrar_sessao_ativa(usuario_id: str, token: Optional[str]) -> None:
+    """Registra ou substitui o dispositivo ativo para o usuário."""
+    uid = str(usuario_id).strip()
+    if not uid:
+        return
+    _sessoes_ativas_usuarios[uid] = {
+        "token": token or f"sessao_{uuid.uuid4().hex}",
+        "ultima_atividade": time.time(),
+    }
+
+
+def verificar_e_atualizar_sessao_ativa(
+    usuario_id: Optional[str],
+    token: Optional[str] = None,
+) -> bool:
+    """
+    Verifica se o dispositivo atual ainda é o dono da sessão ativa do usuário.
+    Retorna False caso outro dispositivo tenha assumido a conta (forçar login).
+    """
+    if not usuario_id:
+        return True
+    uid = str(usuario_id).strip()
+    token_limpo = _limpar_token(token)
+    registro = _sessoes_ativas_usuarios.get(uid)
+    if not registro:
+        if token_limpo:
+            _registrar_sessao_ativa(uid, token_limpo)
+        return True
+
+    token_ativo = registro.get("token")
+    if token_limpo and token_ativo and token_limpo != token_ativo:
+        return False
+
+    registro["ultima_atividade"] = time.time()
+    return True
+
+
+def _buscar_nome_usuario_tabela(
+    usuario_id: str,
+    fallback_metadata: Optional[Dict[str, Any]] = None,
+) -> str:
+    """Busca o nome cadastrado na tabela 'usuarios' para o ID informado, com fallback seguro."""
+    if usuario_id:
+        try:
+            res = (
+                supabase
+                .table("usuarios")
+                .select("nome")
+                .eq("id", str(usuario_id))
+                .limit(1)
+                .execute()
+            )
+            if res.data and res.data[0].get("nome"):
+                return str(res.data[0]["nome"]).strip()
+        except Exception:
+            pass
+    if isinstance(fallback_metadata, dict) and fallback_metadata.get("nome"):
+        return str(fallback_metadata["nome"]).strip()
+    return ""
+
 
 def criar_conta(nome: str, email: str, senha: str) -> Dict[str, Any]:
     """
-    Cria uma nova conta no Supabase Auth.
+    Cria uma nova conta no Supabase Auth usando um cliente isolado por requisição.
     A trigger do banco insere automaticamente o usuário na tabela 'usuarios'.
     """
     if not nome or not email or not senha:
         return {"sucesso": False, "mensagem": "Nome, e-mail e senha são obrigatórios."}
 
     try:
-        resposta = supabase.auth.sign_up({
+        cliente_auth = criar_cliente_auth()
+        resposta = cliente_auth.auth.sign_up({
             "email": email.strip(),
             "password": senha.strip(),
             "options": {
@@ -44,15 +145,20 @@ def criar_conta(nome: str, email: str, senha: str) -> Dict[str, Any]:
         return {"sucesso": False, "mensagem": str(erro)}
 
 
-def fazer_login(email: str, senha: str) -> Dict[str, Any]:
+def fazer_login(email: str, senha: str, forcar_login: bool = False) -> Dict[str, Any]:
     """
-    Autentica o usuário com e-mail e senha, retornando os dados do usuário e tokens de sessão.
+    Autentica o usuário com e-mail e senha em uma instância isolada (stateless).
+    Verifica se o usuário já possui sessão ativa em outro dispositivo:
+      - Se já estiver conectado e forcar_login=False, bloqueia o login e retorna ja_conectado=True.
+      - Se forcar_login=True (ou não houver outra sessão ativa), invalida a sessão anterior
+        e registra o novo dispositivo como único ativo.
     """
     if not email or not senha:
         return {"sucesso": False, "mensagem": "E-mail e senha são obrigatórios."}
 
     try:
-        resposta = supabase.auth.sign_in_with_password({
+        cliente_auth = criar_cliente_auth()
+        resposta = cliente_auth.auth.sign_in_with_password({
             "email": email.strip(),
             "password": senha.strip()
         })
@@ -60,49 +166,136 @@ def fazer_login(email: str, senha: str) -> Dict[str, Any]:
         if not resposta.user:
             return {"sucesso": False, "mensagem": "Credenciais inválidas ou usuário não encontrado."}
 
+        uid = str(resposta.user.id)
+        access_token = resposta.session.access_token if resposta.session else None
+        refresh_token = resposta.session.refresh_token if resposta.session else None
+
+        # Verifica se já há outro dispositivo conectado nesta conta
+        if not forcar_login and _sessao_esta_ativa_em_outro_dispositivo(uid):
+            return {
+                "sucesso": False,
+                "ja_conectado": True,
+                "mensagem": "Esta conta já está conectada em outro dispositivo.",
+            }
+
+        # Registra o dispositivo atual como único dono da sessão ativa
+        _registrar_sessao_ativa(uid, access_token)
+
+        metadata = dict(resposta.user.user_metadata or {})
+        nome_usuario = _buscar_nome_usuario_tabela(uid, metadata)
+        if nome_usuario and not metadata.get("nome"):
+            metadata["nome"] = nome_usuario
+
         return {
             "sucesso": True,
+            "ja_conectado": False,
             "mensagem": "Login realizado com sucesso!",
             "usuario": {
                 "id": resposta.user.id,
                 "email": resposta.user.email,
-                "user_metadata": resposta.user.user_metadata
+                "nome": nome_usuario,
+                "user_metadata": metadata
             },
             "sessao": {
-                "access_token": resposta.session.access_token if resposta.session else None,
-                "refresh_token": resposta.session.refresh_token if resposta.session else None
+                "access_token": access_token,
+                "refresh_token": refresh_token
             }
         }
     except Exception as erro:
         return {"sucesso": False, "mensagem": str(erro)}
 
 
-def deslogar_perfil() -> Dict[str, Any]:
+def deslogar_perfil(
+    token: Optional[str] = None,
+    usuario_id: Optional[str] = None,
+) -> Dict[str, Any]:
     """
-    Encerra a sessão ativa do usuário no Supabase.
+    Encerra a sessão ativa do usuário no servidor sem afetar os demais usuários,
+    liberando a conta imediatamente para novo login em qualquer dispositivo.
     """
-    try:
-        supabase.auth.sign_out()
-        return {"sucesso": True, "mensagem": "Logout realizado com sucesso."}
-    except Exception as erro:
-        return {"sucesso": False, "mensagem": str(erro)}
+    token_limpo = _limpar_token(token)
+    uid_limpo = str(usuario_id).strip() if usuario_id and str(usuario_id).strip() else None
+
+    if uid_limpo and uid_limpo in _sessoes_ativas_usuarios:
+        reg = _sessoes_ativas_usuarios.get(uid_limpo)
+        if not token_limpo or not reg or reg.get("token") == token_limpo:
+            _sessoes_ativas_usuarios.pop(uid_limpo, None)
+    elif token_limpo:
+        para_remover = [
+            k for k, v in _sessoes_ativas_usuarios.items()
+            if v.get("token") == token_limpo
+        ]
+        for k in para_remover:
+            _sessoes_ativas_usuarios.pop(k, None)
+
+    return {"sucesso": True, "mensagem": "Logout realizado com sucesso."}
 
 
-def obter_usuario_atual() -> Optional[Dict[str, Any]]:
+def obter_usuario_atual(
+    token: Optional[str] = None,
+    usuario_id: Optional[str] = None,
+) -> Optional[Dict[str, Any]]:
     """
-    Retorna os dados do usuário autenticado no momento no cliente Supabase.
+    Retorna os dados do usuário autenticado correspondente ESTRITAMENTE ao token JWT
+    ou ao usuario_id da requisição atual.
+    Se outro dispositivo tiver assumido a sessão via forcar_login, retorna {"sessao_encerrada": True}.
     """
-    try:
-        resposta = supabase.auth.get_user()
-        if resposta and resposta.user:
-            return {
-                "id": resposta.user.id,
-                "email": resposta.user.email,
-                "user_metadata": resposta.user.user_metadata
-            }
+    token_limpo = _limpar_token(token)
+    uid_limpo = str(usuario_id).strip() if usuario_id and str(usuario_id).strip() else None
+
+    if not token_limpo and not uid_limpo:
         return None
-    except Exception:
-        return None
+
+    # 1. Se houver token JWT na requisição, valida de forma stateless no Supabase Auth
+    if token_limpo:
+        try:
+            cliente_auth = criar_cliente_auth()
+            resposta = cliente_auth.auth.get_user(token_limpo)
+            if resposta and resposta.user:
+                user_obj = resposta.user
+                uid_resolvido = str(user_obj.id)
+                if not uid_limpo or uid_resolvido == uid_limpo:
+                    if not verificar_e_atualizar_sessao_ativa(uid_resolvido, token_limpo):
+                        return {"sessao_encerrada": True}
+                    metadata = dict(user_obj.user_metadata or {})
+                    nome = _buscar_nome_usuario_tabela(uid_resolvido, metadata)
+                    if nome and not metadata.get("nome"):
+                        metadata["nome"] = nome
+                    return {
+                        "id": user_obj.id,
+                        "email": user_obj.email,
+                        "nome": nome,
+                        "user_metadata": metadata,
+                    }
+        except Exception:
+            pass
+
+    # 2. Fallback seguro apenas se o próprio cliente identificou seu usuario_id
+    if uid_limpo:
+        if not verificar_e_atualizar_sessao_ativa(uid_limpo, token_limpo):
+            return {"sessao_encerrada": True}
+        try:
+            res = (
+                supabase
+                .table("usuarios")
+                .select("*")
+                .eq("id", uid_limpo)
+                .limit(1)
+                .execute()
+            )
+            if res.data:
+                u = res.data[0]
+                nome = str(u.get("nome") or "").strip()
+                return {
+                    "id": str(u.get("id") or uid_limpo),
+                    "email": str(u.get("email") or "").strip(),
+                    "nome": nome,
+                    "user_metadata": {"nome": nome},
+                }
+        except Exception:
+            pass
+
+    return None
 
 
 def solicitar_redefinicao_senha(email: str, redirect_to: Optional[str] = None) -> Dict[str, Any]:
@@ -117,7 +310,8 @@ def solicitar_redefinicao_senha(email: str, redirect_to: Optional[str] = None) -
         if redirect_to:
             opcoes["redirect_to"] = redirect_to
 
-        supabase.auth.reset_password_for_email(
+        cliente_auth = criar_cliente_auth()
+        cliente_auth.auth.reset_password_for_email(
             email.strip(),
             options=opcoes if opcoes else None
         )
@@ -132,15 +326,16 @@ def solicitar_redefinicao_senha(email: str, redirect_to: Optional[str] = None) -
 
 def redefinir_senha_com_codigo(email: str, token: str, nova_senha: str) -> Dict[str, Any]:
     """
-    Valida o token/código OTP recebido por e-mail e define a nova senha do usuário.
-    Ideal para aplicações desktop, mobile ou terminais CLI.
+    Valida o token/código OTP recebido por e-mail e define a nova senha do usuário
+    em uma instância isolada de autenticação.
     """
     if not email or not token or not nova_senha:
         return {"sucesso": False, "mensagem": "E-mail, token e nova senha são obrigatórios."}
 
     try:
-        # 1. Valida o código/token de recuperação e estabelece uma sessão temporária
-        res_otp = supabase.auth.verify_otp({
+        cliente_auth = criar_cliente_auth()
+        # 1. Valida o código/token de recuperação na instância isolada
+        res_otp = cliente_auth.auth.verify_otp({
             "email": email.strip(),
             "token": token.strip(),
             "type": "recovery"
@@ -149,8 +344,8 @@ def redefinir_senha_com_codigo(email: str, token: str, nova_senha: str) -> Dict[
         if not res_otp.user:
             return {"sucesso": False, "mensagem": "Código de recuperação inválido ou expirado."}
 
-        # 2. Com a sessão recuperada, atualiza a senha do usuário
-        res_update = supabase.auth.update_user({
+        # 2. Com a sessão isolada recuperada, atualiza a senha do usuário
+        res_update = cliente_auth.auth.update_user({
             "password": nova_senha.strip()
         })
 
@@ -162,18 +357,22 @@ def redefinir_senha_com_codigo(email: str, token: str, nova_senha: str) -> Dict[
         return {"sucesso": False, "mensagem": str(erro)}
 
 
-def alterar_senha(nova_senha: str, senha_atual: Optional[str] = None, email: Optional[str] = None) -> Dict[str, Any]:
+def alterar_senha(
+    nova_senha: str,
+    senha_atual: Optional[str] = None,
+    email: Optional[str] = None,
+) -> Dict[str, Any]:
     """
-    Atualiza a senha do usuário atualmente autenticado ou valida com senha atual se informada.
+    Atualiza a senha do usuário validando a senha atual em uma instância isolada de autenticação.
     """
     if not nova_senha:
         return {"sucesso": False, "mensagem": "A nova senha é obrigatória."}
 
     try:
-        # Se email e senha_atual forem fornecidos, valida a senha atual antes de alterar
+        cliente_auth = criar_cliente_auth()
         if email and senha_atual:
             try:
-                auth_res = supabase.auth.sign_in_with_password({
+                auth_res = cliente_auth.auth.sign_in_with_password({
                     "email": email.strip(),
                     "password": senha_atual.strip()
                 })
@@ -181,8 +380,10 @@ def alterar_senha(nova_senha: str, senha_atual: Optional[str] = None, email: Opt
                     return {"sucesso": False, "mensagem": "Senha atual incorreta."}
             except Exception as auth_err:
                 return {"sucesso": False, "mensagem": f"Senha atual incorreta: {auth_err}"}
+        else:
+            return {"sucesso": False, "mensagem": "E-mail e senha atual são obrigatórios para alterar a senha."}
 
-        res = supabase.auth.update_user({
+        res = cliente_auth.auth.update_user({
             "password": nova_senha.strip()
         })
 
@@ -196,8 +397,7 @@ def alterar_senha(nova_senha: str, senha_atual: Optional[str] = None, email: Opt
 
 def atualizar_senha(nova_senha: str) -> Dict[str, Any]:
     """
-    Atualiza a senha do usuário atualmente autenticado (com sessão ativa).
-    Útil caso o usuário já esteja logado ou tenha acessado via link de recuperação em app Web.
+    Atualiza a senha do usuário.
     """
     return alterar_senha(nova_senha=nova_senha)
 
@@ -223,21 +423,21 @@ def ver_perfil(usuario_id: str) -> Dict[str, Any]:
         )
 
         if not resultado.data:
-            # Fallback para os metadados do auth se a linha da tabela usuarios ainda não estiver criada
-            usuario_auth = obter_usuario_atual()
-            if usuario_auth and usuario_auth.get("id") == usuario_id:
-                nome = usuario_auth.get("user_metadata", {}).get("nome", "")
+            # Fallback via RPC SECURITY DEFINER caso RLS restrinja leitura direta na tabela usuarios
+            mapa = _obter_mapa_usuarios()
+            dados_rpc = mapa.get(str(usuario_id))
+            if dados_rpc:
                 return {
                     "sucesso": True,
                     "perfil": {
-                        "id": usuario_id,
-                        "email": usuario_auth.get("email", ""),
-                        "nome": nome,
+                        "id": str(usuario_id),
+                        "email": "",
+                        "nome": dados_rpc.get("nome") or "Usuário",
                         "pontuacao_diaria": 0,
-                        "pontuacao_semanal": 0,
-                        "pontuacao_total": 0,
-                        "sequencia": 0,
-                        "maior_sequencia": 0,
+                        "pontuacao_semanal": dados_rpc.get("pontuacao_semanal") or 0,
+                        "pontuacao_total": dados_rpc.get("pontuacao_total") or 0,
+                        "sequencia": dados_rpc.get("sequencia") or 0,
+                        "maior_sequencia": dados_rpc.get("maior_sequencia") or 0,
                         "checagem": False,
                     }
                 }
@@ -289,15 +489,6 @@ def editar_perfil(
         return {"sucesso": False, "mensagem": "Nenhum dado informado para atualização."}
 
     try:
-        # Atualiza metadata do auth se houver nome
-        if nome is not None and nome.strip() != "":
-            try:
-                supabase.auth.update_user({
-                    "data": {"nome": nome.strip()}
-                })
-            except Exception:
-                pass
-
         resultado = (
             supabase
             .table("usuarios")
@@ -623,12 +814,9 @@ def listar_treinos(usuario_id: str) -> Dict[str, Any]:
     """
     Lista todos os treinos criados por um usuário específico com os respectivos exercícios vinculados.
     """
-    if not usuario_id:
-        usuario_auth = obter_usuario_atual()
-        if usuario_auth and usuario_auth.get("id"):
-            usuario_id = str(usuario_auth["id"])
-        else:
-            return {"sucesso": False, "mensagem": "ID do usuário é obrigatório.", "treinos": []}
+    if not usuario_id or not str(usuario_id).strip():
+        return {"sucesso": False, "mensagem": "ID do usuário é obrigatório.", "treinos": []}
+    usuario_id = str(usuario_id).strip()
 
     try:
         resultado = (
@@ -682,20 +870,8 @@ def criar_treino(
     if not nome:
         return {"sucesso": False, "mensagem": "Nome do treino é obrigatório."}
 
-    if not pre_montado and not usuario_id:
-        usuario_auth = obter_usuario_atual()
-        if usuario_auth and usuario_auth.get("id"):
-            usuario_id = str(usuario_auth["id"])
-        else:
-            try:
-                res_u = supabase.table("usuarios").select("id").limit(1).execute()
-                if res_u.data:
-                    usuario_id = str(res_u.data[0]["id"])
-            except Exception:
-                pass
-
-        if not usuario_id:
-            return {"sucesso": False, "mensagem": "ID do usuário é obrigatório para treinos personalizados."}
+    if not pre_montado and (not usuario_id or not str(usuario_id).strip()):
+        return {"sucesso": False, "mensagem": "ID do usuário é obrigatório para treinos personalizados."}
 
     try:
         # Serializa os exercícios e metadados em JSON para persistência garantida na coluna 'descricao'

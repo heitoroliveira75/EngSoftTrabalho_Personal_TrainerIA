@@ -26,6 +26,58 @@
 
 ## Histórico de Entradas
 
+### [Entrada #025] 2026-11-05 — Correção Crítica de Isolamento de Sessão Multi-Usuário (Stateless Auth)
+- **Objetivo / Problema Relatado:**
+  - Quando múltiplos usuários faziam login simultaneamente no aplicativo (ex.: 4 atletas logando na mesma janela de tempo), todos os aparelhos passavam a exibir a conta, o nome e os dados do último usuário autenticado (ex.: "Ramon").
+  - **Diagnóstico Técnico:** O servidor FastAPI compartilhava uma única instância global `supabase` em memória (`BD/supabase_client.py`). Ao executar `supabase.auth.sign_in_with_password(...)` em `fazer_login`, o cliente `supabase-py` armazenava a sessão do último usuário logado na memória do servidor e sobrescrevia o header global `Authorization` do cliente PostgREST. Em seguida, a `HomeScreen` do Flutter invocava `ApiService().obterUsuarioAtual()` (`GET /auth/usuario-atual`) a cada build; como o backend chamava `supabase.auth.get_user()` sem ler o token JWT do header `Authorization`, o servidor devolvia o usuário "Ramon" para todos os aparelhos, e o `ApiService` sobrescrevia `idUsuarioLogado` e `usuarioLogado` localmente nos celulares dos outros atletas.
+- **Tasks Executadas e Artefatos Gerados:**
+  - `[TASK-AUTH-ISOLATION-01]` Isolamento Stateless de Clientes Auth no Backend: Configuração de `ClientOptions(auto_refresh_token=False, persist_session=False)` e criação da fábrica `criar_cliente_auth()` em `./BD/supabase_client.py`; refatoração de `fazer_login`, `criar_conta`, `deslogar_perfil`, `obter_usuario_atual`, `redefinir_senha_com_codigo`, `alterar_senha`, `ver_perfil`, `editar_perfil` e `criar_treino` em `./BD/main.py` e extração explícita do header `Authorization: Bearer <token>` em `./BD/api.py` $\rightarrow$ **Artefatos:** `./BD/supabase_client.py`, `./BD/main.py`, `./BD/api.py`.
+  - `[TASK-AUTH-ISOLATION-02]` Blindagem de Sessão Local no App Flutter: Proteção contra colisão de IDs em `obterUsuarioAtual`, `verPerfil` e `verPontuacao` em `./lib/services/api_service.dart`, e remoção do `FutureBuilder` redundante na árvore de build de `./lib/screens/home_screen.dart` $\rightarrow$ **Artefatos:** `./lib/services/api_service.dart`, `./lib/screens/home_screen.dart`.
+  - `[TASK-AUTH-ISOLATION-03]` Suíte de Testes de Isolamento Multi-Usuário: Criação de testes automatizados simulando 4 usuários logando simultaneamente (com "Ramon" por último), tentativa de acesso sem token e logout isolado $\rightarrow$ **Artefato:** `tests/test_isolamento_sessao_multiusuario.py`.
+  - `[TASK-AUTH-SINGLE-DEVICE]` Controle de Dispositivo Único Ativo por Conta: Detecção de conta já conectada em outro aparelho (`ja_conectado: True`) no login com modal de confirmação em `./lib/screens/login_screen.dart` ("Desconectar outro e entrar" via `forcar_login: True`), invalidação automática da sessão do dispositivo antigo (`sessao_encerrada: True`) e liberação imediata no logout $\rightarrow$ **Artefatos:** `./BD/main.py`, `./BD/api.py`, `./lib/services/api_service.dart`, `./lib/screens/login_screen.dart`, `./lib/screens/home_screen.dart`, `tests/test_isolamento_sessao_multiusuario.py`.
+- **Estado Resultante:** Sessões 100% isoladas por token JWT/ID de usuário tanto no servidor quanto no cliente móvel, com bloqueio de login simultâneo na mesma conta e opção de desconectar o aparelho anterior; todos os testes de isolamento e `flutter analyze` aprovados.
+
+### [Entrada #024] 2026-11-04 — Criação e Aplicação do Ícone Oficial: Chevron Atlético (Padrão Nike / Gymshark)
+- **Objetivo / Demanda:**
+  - Criar um ícone de identidade visual esportiva, minimalista e sóbria para o **PersonAI**, inspirado no padrão estético da Nike Training Club e Gymshark (fundo preto absoluto `#000000` com emblema plano 2D em branco puro sólido `#FFFFFF`).
+  - Adoção do **Chevron Atlético Duplo** apontando para cima (`∧`), simbolizando a flexão de força biomecânica, contração muscular e superação física contínua sem artifícios ou exageros de IA.
+  - Aplicar e embutir o ícone no aplicativo móvel em todas as densidades de tela do Android (`mipmap-mdpi`, `hdpi`, `xhdpi`, `xxhdpi`, `xxxhdpi`) e compilar novo binário `.apk`.
+- **Tasks Executadas e Artefatos Gerados:**
+  - `[TASK-ICON-GEN]` Geração da arte vetorial plana 2D do Chevron Atlético $\rightarrow$ **Artefato:** `assets/icon/app_icon.png`.
+  - `[TASK-ICON-MIPMAPS]` Redimensionamento em 5 densidades para o Android via OpenCV $\rightarrow$ **Artefatos:** `android/app/src/main/res/mipmap-*/ic_launcher.png`.
+  - `[TASK-ICON-BUILD-APK]` Recompilação do aplicativo móvel para gerar o executável com o novo ícone instalado $\rightarrow$ **Artefato:** `./app-debug.apk`.
+- **Commits Incrementais:**
+  - `8bd058e` / `feat(app): adiciona novo icone personalizado do aplicativo PersonAI`
+  - `a6f2dad` / `style(app): atualiza icone do app para versao minimalista e sobria`
+  - `67905c4` / `style(app): adota monograma 'P' escultural em titanio fosco como icone oficial`
+  - `02cf4db` / `style(app): implementa icone oficial chevron atletico no padrao Nike`
+- **Estado Resultante:** O aplicativo agora conta com identidade esportiva autêntica, limpa e com alto impacto visual de alto nível.
+
+### [Entrada #023] 2026-11-04 — Integração dos Novos Exercícios da Branch IA, Organização de Arquivos e Suporte no App Flutter
+- **Objetivo / História de Usuário:**
+  - Trazer as atualizações desenvolvidas pela equipe de IA na branch `IA` do GitHub para a branch de produção `Banco-de-Dados`, expandindo o catálogo motor de 3 para **7 exercícios biomecânicos completos**:
+    1. `desenvolvimento_ombro` (ID 1 / 16) — Desenvolvimento com Halteres;
+    2. `agachamento` (ID 2 / 11) — Agachamento Livre;
+    3. `rosca_biceps` (ID 3 / 20) — Rosca Direta de Bíceps;
+    4. `elevacao_lateral` (ID 4 / 17) — Elevação Lateral com Halteres;
+    5. `triceps_corda` (ID 5 / 24 / 23) — Tríceps Corda na Polia;
+    6. `flexao_diamante` (ID 6 / 5) — Flexão de Braço / Diamante;
+    7. `remada_baixa` (ID 7 / 7) — Remada Baixa na Polia com inclinação de tronco.
+  - Integrar a nova organização estrutural de arquivos introduzida pela equipe de IA (pastas `Códigos/` e `Gabaritos/`), mantendo interoperabilidade total e compatibilidade retroativa com os módulos de Backend, Treinos em Dupla, WebSockets e Frontend Flutter.
+  - Implementar o suporte analítico a todos os novos exercícios no aplicativo Flutter (cálculo de ângulos articulares em `PoseService`, mapeamento de IDs de catálogo em `TreinoSelecionadoScreen` e `LobbyDuplaScreen`, e barra visual de progresso dinâmico em `CameraTreinoScreen`).
+- **Tasks Executadas e Artefatos Gerados:**
+  - `[TASK-MERGE-GABARITOS]` Importação dos 7 gabaritos padrão-ouro de especialistas em JSON para o diretório canônico `Gabaritos/` e cópia de salvaguarda na raiz $\rightarrow$ **Artefatos:** `Gabaritos/*.json`.
+  - `[TASK-MERGE-CODIGOS-IA]` Importação e unificação do motor biomecânico atualizado (`exercicios_fsm.py`, `avaliador_pontuacao.py`, `gabarito.py`, `buffer_repeticao.py`, `calculo_angulos.py`, `servico_ia_api.py`, `app_tempo_real.py`, `comparar_exercicio.py`, `PLANO_SPRINT_NOVOS_EXERCICIOS.md`) nas pastas `Códigos/` e raiz $\rightarrow$ **Artefatos:** `Códigos/*.py`, `./*.py`.
+  - `[TASK-IA-ALIASES-UNIFICADOS]` Ampliação de `obter_config_exercicio` em `exercicios_fsm.py` para mapear transparentemente IDs numéricos ('1'..'7'), nomes textuais e IDs do catálogo do app Flutter ('16', '11', '20', '17', '24', '5', '7') $\rightarrow$ **Artefatos:** `exercicios_fsm.py`, `Códigos/exercicios_fsm.py`.
+  - `[TASK-FLUTTER-POSE-SERVICE]` Atualização do `PoseService` para calcular e validar com precisão os ângulos articulares de membros inferiores (`joelho`, `quadril`), remada baixa (`cotovelo`, `ombro`, `quadril`) e membros superiores (`cotovelo`, `ombro`) com suporte contralateral $\rightarrow$ **Artefato:** `lib/services/pose_service.dart`.
+  - `[TASK-FLUTTER-MAPPING-UI]` Atualização de `_mapearIdExercicio` em `treino_selecionado_screen.dart` e `lobby_dupla_screen.dart`, e extensão da barra de progresso em `camera_treino_screen.dart` para os 7 exercícios $\rightarrow$ **Artefatos:** `lib/screens/treino_selecionado_screen.dart`, `lib/screens/lobby_dupla_screen.dart`, `lib/screens/camera_treino_screen.dart`.
+  - `[TASK-BUILD-APK-DEBUG]` Compilação e atualização do executável Android com suporte a todos os exercícios $\rightarrow$ **Artefato:** `./app-debug.apk`.
+  - `[TASK-VALIDACAO-TESTS]` Execução da suíte completa de testes automatizados com `pytest` (**87 testes aprovados — 100% pass**) e validação de lint com `flutter analyze` $\rightarrow$ **Artefatos:** Relatórios de testes e análise.
+- **Decisões Técnicas e Observações:**
+  - A branch remota `IA` havia excluído a árvore de arquivos Flutter (`lib/`, `ios/`, etc.) para rodar testes Python isolados. A integração foi realizada por incorporação seletiva das pastas `Gabaritos/`, `Códigos/` e suítes de teste, preservando 100% da integridade do aplicativo Flutter e das rotas de treino em dupla e WebSockets presentes na branch `Banco-de-Dados`.
+  - Nenhuma alteração estrutural nas tabelas do banco de dados (Supabase) foi necessária, uma vez que o Supabase armazena os IDs e nomes de exercícios que já eram compatíveis com o catálogo do sistema.
+- **Estado Resultante:** Todos os 87 testes automatizados de backend, IA e WebSocket aprovados; aplicativo móvel compilado e compatível com os 7 exercícios em tempo real.
+
 ### [Entrada #022] 2026-11-03 — Mecanismo de Arrastar e Soltar (Reorderable) e Persistência de Ordem dos Exercícios
 - **Objetivo / História de Usuário:**
   - Permitir que o usuário reordene facilmente a sequência de exercícios por meio de um mecanismo intuitivo de **arrastar e soltar (drag and drop)** tanto na tela de **Criação de Treino** quanto na tela de **Treino Selecionado**.

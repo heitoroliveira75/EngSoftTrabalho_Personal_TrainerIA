@@ -101,20 +101,37 @@ class _TreinoSelecionadoScreenState extends State<TreinoSelecionadoScreen> {
 
   String _mapearIdExercicio(String? rawId, String exNome) {
     final nomeLower = exNome.toLowerCase();
-    if (rawId == '11' ||
-        rawId == '2' ||
+    final raw = (rawId ?? '').trim();
+    if (raw == '11' ||
+        raw == '2' ||
         nomeLower.contains('agacha') ||
         nomeLower.contains('squat') ||
         nomeLower.contains('perna')) {
       return '11';
-    } else if (rawId == '20' ||
-        rawId == '3' ||
+    } else if (raw == '20' ||
+        raw == '3' ||
         nomeLower.contains('rosca') ||
         nomeLower.contains('biceps') ||
-        nomeLower.contains('bíceps') ||
-        nomeLower.contains('braço') ||
-        nomeLower.contains('braco')) {
+        nomeLower.contains('bíceps')) {
       return '20';
+    } else if (raw == '17' ||
+        raw == '4' ||
+        nomeLower.contains('eleva') ||
+        nomeLower.contains('lateral')) {
+      return '17';
+    } else if (raw == '24' ||
+        raw == '23' ||
+        raw == '5' ||
+        nomeLower.contains('triceps') ||
+        nomeLower.contains('tríceps') ||
+        nomeLower.contains('corda')) {
+      return '24';
+    } else if (raw == '6' ||
+        nomeLower.contains('diamante') ||
+        (nomeLower.contains('flex') && !nomeLower.contains('mesa') && !nomeLower.contains('cadeira'))) {
+      return '5';
+    } else if (raw == '7' || nomeLower.contains('remada')) {
+      return '7';
     } else {
       return '16';
     }

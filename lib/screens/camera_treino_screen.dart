@@ -550,6 +550,24 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
       final cotovelo = (_angulos['cotovelo'] as num?)?.toDouble() ?? 160.0;
       // Repouso: ~160°, Topo da Flexão: ~80°
       return ((160.0 - cotovelo) / (160.0 - 80.0)).clamp(0.0, 1.0);
+    } else if (nomeLower.contains('eleva') || nomeLower.contains('lateral')) {
+      // Elevação lateral: ombro de 25° a 90°
+      final ombro = (_angulos['ombro'] as num?)?.toDouble() ?? 25.0;
+      return ((ombro - 25.0) / (90.0 - 25.0)).clamp(0.0, 1.0);
+    } else if (nomeLower.contains('triceps') ||
+        nomeLower.contains('tríceps') ||
+        nomeLower.contains('corda')) {
+      // Tríceps corda: cotovelo de 85° a 150°
+      final cotovelo = (_angulos['cotovelo'] as num?)?.toDouble() ?? 85.0;
+      return ((cotovelo - 85.0) / (150.0 - 85.0)).clamp(0.0, 1.0);
+    } else if (nomeLower.contains('flex') || nomeLower.contains('diamante')) {
+      // Flexão de braço / diamante: cotovelo de 160° a 85°
+      final cotovelo = (_angulos['cotovelo'] as num?)?.toDouble() ?? 160.0;
+      return ((160.0 - cotovelo) / (160.0 - 85.0)).clamp(0.0, 1.0);
+    } else if (nomeLower.contains('remada')) {
+      // Remada baixa: cotovelo de 160° a 80°
+      final cotovelo = (_angulos['cotovelo'] as num?)?.toDouble() ?? 160.0;
+      return ((160.0 - cotovelo) / (160.0 - 80.0)).clamp(0.0, 1.0);
     } else {
       // Desenvolvimento com halteres: cotovelo de 85° a 165°
       final cotovelo = (_angulos['cotovelo'] as num?)?.toDouble() ?? 85.0;

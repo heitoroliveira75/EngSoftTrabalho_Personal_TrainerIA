@@ -128,6 +128,9 @@ def extrair_primeira_repeticao(
             angulos_deltas=deltas
         )
         if dados_rep is not None:
+            erros_fsm = buffer.fsm.consumir_erros_repeticao()
+            if any("INCOMPLET" in e or "CURT" in e for e in erros_fsm):
+                continue
             return dados_rep
 
     if lancar_excecao:
