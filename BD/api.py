@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Query, UploadFile, File, Form, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, HTTPException, Query, Header, UploadFile, File, Form, WebSocket, WebSocketDisconnect
 import asyncio
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
@@ -46,6 +46,7 @@ class CriarContaRequest(BaseModel):
 class LoginRequest(BaseModel):
     email: str
     senha: str
+    forcar_login: Optional[bool] = False
 
 class EditarPerfilRequest(BaseModel):
     nome: Optional[str] = None
@@ -177,6 +178,8 @@ class ConcluirSerieDuplaRequest(BaseModel):
 class EncerrarDuplaRequest(BaseModel):
     sessao_id: str
     solicitante_id: Optional[str] = None
+    pontos_host: Optional[int] = None
+    pontos_convidado: Optional[int] = None
 
 
 # ============================================================
@@ -199,6 +202,16 @@ def health():
 # ROTAS - 1. AUTENTICAÇÃO E SESSÃO
 # ============================================================
 
+def _extrair_token_bearer(authorization: Optional[str]) -> Optional[str]:
+    """Extrai o token JWT do header Authorization: Bearer <token>."""
+    if not authorization or not isinstance(authorization, str):
+        return None
+    valor = authorization.strip()
+    if valor.lower().startswith("bearer "):
+        valor = valor[7:].strip()
+    return valor if valor else None
+
+
 @app.post("/auth/criar-conta")
 def api_criar_conta(req: CriarContaRequest):
     resposta = bd.criar_conta(req.nome, req.email, req.senha)
@@ -206,19 +219,34 @@ def api_criar_conta(req: CriarContaRequest):
 
 @app.post("/auth/login")
 def api_fazer_login(req: LoginRequest):
-    resposta = bd.fazer_login(req.email, req.senha)
+    resposta = bd.fazer_login(req.email, req.senha, forcar_login=bool(req.forcar_login))
     return resposta
 
 @app.post("/auth/logout")
-def api_deslogar():
-    resposta = bd.deslogar_perfil()
+def api_deslogar(
+    usuario_id: Optional[str] = Query(None),
+    authorization: Optional[str] = Header(None),
+):
+    token = _extrair_token_bearer(authorization)
+    resposta = bd.deslogar_perfil(token=token, usuario_id=usuario_id)
     return resposta
 
 @app.get("/auth/usuario-atual")
-def api_obter_usuario_atual():
-    usuario = bd.obter_usuario_atual()
+def api_obter_usuario_atual(
+    usuario_id: Optional[str] = Query(None),
+    authorization: Optional[str] = Header(None),
+):
+    token = _extrair_token_bearer(authorization)
+    usuario = bd.obter_usuario_atual(token=token, usuario_id=usuario_id)
     if not usuario:
         return {"sucesso": False, "mensagem": "Nenhum usuário logado no momento.", "usuario": None}
+    if usuario.get("sessao_encerrada") is True:
+        return {
+            "sucesso": False,
+            "sessao_encerrada": True,
+            "mensagem": "Sua sessão foi encerrada porque sua conta foi acessada em outro dispositivo.",
+            "usuario": None,
+        }
     return {"sucesso": True, "usuario": usuario}
 
 @app.post("/auth/esqueceu-senha")
@@ -306,10 +334,11 @@ def api_listar_treinos_usuario(usuario_id: str):
     return resposta
 
 @app.post("/treinos")
-def api_criar_treino(req: CriarTreinoRequest):
+def api_criar_treino(req: CriarTreinoRequest, authorization: Optional[str] = Header(None)):
     usuario_id = req.usuario_id
     if not usuario_id and not req.pre_montado:
-        usuario_atual = bd.obter_usuario_atual()
+        token = _extrair_token_bearer(authorization)
+        usuario_atual = bd.obter_usuario_atual(token=token)
         if usuario_atual and usuario_atual.get("id"):
             usuario_id = str(usuario_atual["id"])
 
@@ -353,10 +382,17 @@ def api_excluir_treino(treino_id: str):
 # ============================================================
 
 @app.get("/pontuacao/{usuario_id}")
-def api_ver_pontuacao(usuario_id: str):
+def api_ver_pontuacao(usuario_id: str, authorization: Optional[str] = Header(None)):
     """
     Retorna as pontuações (diária, semanal e total), além da sequência e checagem do usuário.
     """
+    token = _extrair_token_bearer(authorization)
+    if token and not bd.verificar_e_atualizar_sessao_ativa(usuario_id, token):
+        return {
+            "sucesso": False,
+            "sessao_encerrada": True,
+            "mensagem": "Sua sessão foi encerrada porque sua conta foi acessada em outro dispositivo.",
+        }
     resposta = bd.ver_pontuacao(usuario_id)
     return resposta
 
@@ -717,7 +753,9 @@ def rota_dupla_encerrar_sessao(req: EncerrarDuplaRequest):
     """Encerra a sessão, calcula ((PtsHost + PtsConvidado)/2)*1.2 e credita para ambos."""
     res = bd.finalizar_sessao_dupla(
         sessao_id=req.sessao_id,
-        solicitante_id=req.solicitante_id
+        solicitante_id=req.solicitante_id,
+        pontos_host_override=req.pontos_host,
+        pontos_convidado_override=req.pontos_convidado,
     )
     if not res.get("sucesso"):
         raise HTTPException(status_code=400, detail=res.get("mensagem", "Erro ao encerrar sessão."))

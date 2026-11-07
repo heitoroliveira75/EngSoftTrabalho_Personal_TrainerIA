@@ -57,7 +57,13 @@ class GabaritoExercicio:
         caminho_final = caminho_arquivo
         if not os.path.exists(caminho_final):
             raiz_projeto = os.path.dirname(os.path.abspath(__file__))
-            candidato = os.path.join(raiz_projeto, os.path.basename(caminho_arquivo))
+            nome_base = os.path.basename(caminho_arquivo)
+            raiz_repo = os.path.dirname(raiz_projeto)
+            candidato = os.path.join(raiz_projeto, nome_base)
+            for cand in [os.path.join("Gabaritos", nome_base), os.path.join(raiz_repo, "Gabaritos", nome_base), candidato]:
+                if os.path.exists(cand):
+                    candidato = cand
+                    break
             if os.path.exists(candidato):
                 caminho_final = candidato
         with open(caminho_final, "r", encoding="utf-8") as f:
@@ -147,6 +153,29 @@ def garantir_gabaritos_padrao(sobrescrever: bool = False) -> None:
             dados=dados_rosca,
             descricao="Gabarito padrão ouro para Rosca Direta de Bíceps (recorte FSM).",
         ).salvar_json(arq_rosca)
+
+    # 4. Elevação Lateral: Ombro (20° -> 90° -> 20°), Cotovelo estável (~160°)
+    pasta_gabaritos = "Gabaritos" if os.path.exists("Gabaritos") else "."
+    arq_elevacao = os.path.join(pasta_gabaritos, "gabarito_especialista_elevacao_lateral.json")
+    if sobrescrever or not os.path.exists(arq_elevacao):
+        serie_elev: List[Dict[str, float]] = []
+        for _ in range(5):
+            serie_elev.append({"ombro": 20.0, "cotovelo": 160.0})
+        for val_t in t:
+            serie_elev.append({
+                "ombro": float(20.0 + 70.0 * np.sin(val_t)),
+                "cotovelo": float(160.0 - 5.0 * np.sin(val_t)),
+            })
+        for _ in range(5):
+            serie_elev.append({"ombro": 20.0, "cotovelo": 160.0})
+
+        dados_elev = extrair_primeira_repeticao("elevacao_lateral", serie_angulos=serie_elev, lancar_excecao=True)
+        GabaritoExercicio(
+            nome_exercicio="elevacao_lateral",
+            articulacoes=["ombro", "cotovelo"],
+            dados=dados_elev,
+            descricao="Gabarito padrão ouro para Elevação Lateral (recorte FSM).",
+        ).salvar_json(arq_elevacao)
 
 
 if __name__ == "__main__":

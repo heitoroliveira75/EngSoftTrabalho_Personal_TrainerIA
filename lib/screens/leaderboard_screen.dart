@@ -803,13 +803,12 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
           ),
           CircleAvatar(
             radius: 18,
-            backgroundColor: isMe ? const Color(0xFF00E676) : const Color(0xFF8A5CF5),
+            backgroundColor: isMe ? const Color(0xFF00E676) : const Color(0xFF1E232A),
             child: Text(
               letraAvatar,
               style: TextStyle(
                 color: isMe ? const Color(0xFF0D1117) : Colors.white,
                 fontWeight: FontWeight.bold,
-                fontSize: 15,
               ),
             ),
           ),
@@ -823,12 +822,12 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
                     Flexible(
                       child: Text(
                         nome,
-                        overflow: TextOverflow.ellipsis,
                         style: TextStyle(
                           color: isMe ? const Color(0xFF00E676) : Colors.white,
                           fontWeight: FontWeight.bold,
-                          fontSize: 15,
+                          fontSize: 14,
                         ),
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                     if (isMe) ...[
@@ -856,9 +855,12 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
                   children: [
                     const Icon(Icons.bolt, size: 14, color: Colors.amberAccent),
                     const SizedBox(width: 2),
-                    Text(
-                      '$sequencia dias streak',
-                      style: const TextStyle(color: Colors.white70, fontSize: 11),
+                    Flexible(
+                      child: Text(
+                        '$sequencia dias streak',
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(color: Colors.white70, fontSize: 11),
+                      ),
                     ),
                     const SizedBox(width: 8),
                     const Icon(Icons.star, size: 13, color: Color(0xFF00E676)),
@@ -888,6 +890,13 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
                   color: Colors.white,
                   fontWeight: FontWeight.bold,
                   fontSize: 14,
+                ),
+              ),
+              Text(
+                _criterioOrdenacao == 'streak' ? '$pontos pts sem.' : '$sequencia d streak',
+                style: const TextStyle(
+                  color: Colors.white38,
+                  fontSize: 10,
                 ),
               ),
             ],

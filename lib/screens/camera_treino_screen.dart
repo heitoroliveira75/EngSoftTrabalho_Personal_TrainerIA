@@ -22,6 +22,7 @@ class CameraTreinoScreen extends StatefulWidget {
   final List<Map<String, dynamic>>? listaExercicios;
   final int indiceInicial;
   final bool isModoDupla;
+  final bool isMesmoAparelho;
   final String? sessaoDuplaId;
   final String? parceiroId;
   final String? parceiroNome;
@@ -41,6 +42,7 @@ class CameraTreinoScreen extends StatefulWidget {
     this.listaExercicios,
     this.indiceInicial = 0,
     this.isModoDupla = false,
+    this.isMesmoAparelho = false,
     this.sessaoDuplaId,
     this.parceiroId,
     this.parceiroNome,
@@ -86,7 +88,7 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
 
   // Telemetria e Diagnóstico em Tempo Real
   int _latenciaMs = 0;
-  String _statusConexao = 'Iniciando IA...';
+  String _statusConexao = 'Iniciando conexão...';
   bool _servidorConectado = false;
 
   // Serviços de Pose On-Device e WebSocket
@@ -96,6 +98,7 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
 
   // Controle de Treino em Dupla (US-DUPLA)
   bool _isMeuTurno = true;
+  bool _turnoDoHostLocal = true;
   int _serieAtualDupla = 1;
   int _totalSeriesDupla = 3;
   int _pontosAcumuladosHost = 0;
@@ -103,6 +106,15 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
   Timer? _duplaPollingTimer;
   int _tempoDescansoSegundos = 0;
   Timer? _descansoTimer;
+
+  String get _nomeHost => (ApiService().nomeUsuarioAtual?.trim().isNotEmpty == true)
+      ? ApiService().nomeUsuarioAtual!
+      : 'Host';
+  String get _nomeConvidado => (widget.parceiroNome?.trim().isNotEmpty == true)
+      ? widget.parceiroNome!
+      : 'Parceiro';
+  String get _nomeAtletaTurnoAtual => _turnoDoHostLocal ? _nomeHost : _nomeConvidado;
+  String get _nomeProximoAtleta => _turnoDoHostLocal ? _nomeConvidado : _nomeHost;
 
   Map<String, dynamic> get _exercicioAtual =>
       _exercicios.isNotEmpty ? _exercicios[_indiceAtual] : {};
@@ -150,10 +162,15 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
     _iniciarWebSocket();
     _iniciarSessaoIA();
     if (widget.isModoDupla) {
-      _isMeuTurno = widget.isHostDupla;
-      _iniciarPollingDupla();
-      if (!_isMeuTurno) {
-        _iniciarContadorDescanso();
+      if (widget.isMesmoAparelho) {
+        _isMeuTurno = true;
+        _turnoDoHostLocal = true;
+      } else {
+        _isMeuTurno = widget.isHostDupla;
+        _iniciarPollingDupla();
+        if (!_isMeuTurno) {
+          _iniciarContadorDescanso();
+        }
       }
     }
     _setupCameras();
@@ -189,7 +206,7 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
         _isFinalizando = false;
         _isSending = false;
         _isStreaming = true;
-        _statusConexao = 'Iniciando IA para novo exercício...';
+        _statusConexao = 'Carregando próximo exercício...';
       });
 
       // Notifica o backend via WebSocket (se conectado) ou REST para alternar exercício
@@ -198,7 +215,7 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
       }
       await _iniciarSessaoIA();
 
-      // Rearma o timer de envio periódico de frames da câmera para a IA
+      // Rearma o timer de envio periódico de frames da câmera
       if (!mounted) return;
       _startPeriodicSending();
 
@@ -224,7 +241,7 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
         if (!mounted) return;
         setState(() {
           _errorMessage =
-              'Nenhuma câmera detectada no dispositivo.\nVocê pode utilizar o botão de Simulação para demonstrar a IA.';
+              'Nenhuma câmera detectada no dispositivo.\nVocê pode utilizar o botão de Simulação para demonstrar a execução.';
           _isLoading = false;
         });
         return;
@@ -312,7 +329,7 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
       _framesEnviados++;
       if (lat > 0) _latenciaMs = lat;
       _servidorConectado = true;
-      _statusConexao = '🟢 IA Conectada (WS) • ${_latenciaMs}ms';
+      _statusConexao = '🟢 Conectado (WS) • ${_latenciaMs}ms';
       _corpoVisivel = res['corpo_visivel'] ?? false;
       _repeticoes = (res['repeticoes'] as num?)?.toInt() ?? _repeticoes;
       _faseNome = res['fase_nome']?.toString() ?? _faseNome;
@@ -422,7 +439,7 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
           _framesEnviados++;
           _latenciaMs = lat;
           _servidorConectado = true;
-          _statusConexao = '🟢 IA Conectada • ${_latenciaMs}ms';
+          _statusConexao = '🟢 Conectado • ${_latenciaMs}ms';
           _corpoVisivel = res['corpo_visivel'] ?? false;
           _repeticoes = (res['repeticoes'] as num?)?.toInt() ?? _repeticoes;
           _faseNome = res['fase_nome']?.toString() ?? _faseNome;
@@ -496,7 +513,7 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
 
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Repetição canônica validada pelo motor de IA!'),
+            content: Text('Repetição validada com sucesso!'),
             backgroundColor: Color(0xFF00E676),
             duration: Duration(seconds: 2),
           ),
@@ -533,6 +550,24 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
       final cotovelo = (_angulos['cotovelo'] as num?)?.toDouble() ?? 160.0;
       // Repouso: ~160°, Topo da Flexão: ~80°
       return ((160.0 - cotovelo) / (160.0 - 80.0)).clamp(0.0, 1.0);
+    } else if (nomeLower.contains('eleva') || nomeLower.contains('lateral')) {
+      // Elevação lateral: ombro de 25° a 90°
+      final ombro = (_angulos['ombro'] as num?)?.toDouble() ?? 25.0;
+      return ((ombro - 25.0) / (90.0 - 25.0)).clamp(0.0, 1.0);
+    } else if (nomeLower.contains('triceps') ||
+        nomeLower.contains('tríceps') ||
+        nomeLower.contains('corda')) {
+      // Tríceps corda: cotovelo de 85° a 150°
+      final cotovelo = (_angulos['cotovelo'] as num?)?.toDouble() ?? 85.0;
+      return ((cotovelo - 85.0) / (150.0 - 85.0)).clamp(0.0, 1.0);
+    } else if (nomeLower.contains('flex') || nomeLower.contains('diamante')) {
+      // Flexão de braço / diamante: cotovelo de 160° a 85°
+      final cotovelo = (_angulos['cotovelo'] as num?)?.toDouble() ?? 160.0;
+      return ((160.0 - cotovelo) / (160.0 - 85.0)).clamp(0.0, 1.0);
+    } else if (nomeLower.contains('remada')) {
+      // Remada baixa: cotovelo de 160° a 80°
+      final cotovelo = (_angulos['cotovelo'] as num?)?.toDouble() ?? 160.0;
+      return ((160.0 - cotovelo) / (160.0 - 80.0)).clamp(0.0, 1.0);
     } else {
       // Desenvolvimento com halteres: cotovelo de 85° a 165°
       final cotovelo = (_angulos['cotovelo'] as num?)?.toDouble() ?? 85.0;
@@ -545,6 +580,12 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
     if (_isProcessandoFimDeSerie || _isFinalizando) return;
 
     if (widget.isModoDupla) {
+      if (widget.isMesmoAparelho) {
+        _isProcessandoFimDeSerie = true;
+        _timer?.cancel();
+        _exibirDialogoIntervaloSerieMesmoAparelho();
+        return;
+      }
       if (!_isMeuTurno) return;
       _isProcessandoFimDeSerie = true;
       _timer?.cancel();
@@ -801,7 +842,7 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
               SizedBox(width: 10),
               Flexible(
                 child: Text(
-                  'Série Concluída com IA',
+                  'Série Concluída',
                   style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
                 ),
               ),
@@ -956,7 +997,7 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          _isStreaming ? 'Transmissão com a IA retomada' : 'Transmissão pausada',
+          _isStreaming ? 'Câmera retomada' : 'Câmera pausada',
         ),
         duration: const Duration(seconds: 1),
         backgroundColor: _isStreaming ? const Color(0xFF00E676) : Colors.orangeAccent,
@@ -994,15 +1035,15 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
             // Feed da Câmera
             _buildCameraPreview(),
 
-            // Se for treino em dupla e NÃO for a minha vez, exibe tela de descanso em overlay
-            if (widget.isModoDupla && !_isMeuTurno)
+            // Se for treino em dupla e NÃO for a minha vez (somente em modo 2 celulares), exibe tela de descanso em overlay
+            if (widget.isModoDupla && !_isMeuTurno && !widget.isMesmoAparelho)
               _buildDescansoDuplaOverlay(),
 
             // HUD Superior: Barra de Informações do Treino
             _buildTopBar(),
 
             // HUD Central: Card de Feedback Postural em Tempo Real
-            if (!widget.isModoDupla || _isMeuTurno)
+            if (!widget.isModoDupla || _isMeuTurno || widget.isMesmoAparelho)
               _buildFeedbackOverlay(),
 
             // HUD Inferior: Controles de Treino e Simulação
@@ -1042,7 +1083,7 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
                   foregroundColor: Colors.black,
                 ),
                 icon: const Icon(Icons.play_arrow),
-                label: const Text('Simular Repetição com IA'),
+                label: const Text('Simular Repetição'),
               ),
             ],
           ),
@@ -1086,9 +1127,11 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
               margin: const EdgeInsets.only(bottom: 10),
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
               decoration: BoxDecoration(
-                color: _isMeuTurno
+                color: widget.isMesmoAparelho
                     ? const Color(0xFF00E676).withValues(alpha: 0.95)
-                    : Colors.amber[800]!.withValues(alpha: 0.95),
+                    : (_isMeuTurno
+                        ? const Color(0xFF00E676).withValues(alpha: 0.95)
+                        : Colors.amber[800]!.withValues(alpha: 0.95)),
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: const [
                   BoxShadow(color: Colors.black45, blurRadius: 6, offset: Offset(0, 2)),
@@ -1097,16 +1140,20 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
               child: Row(
                 children: [
                   Icon(
-                    _isMeuTurno ? Icons.play_circle_fill : Icons.pause_circle_filled,
+                    widget.isMesmoAparelho
+                        ? Icons.phone_android
+                        : (_isMeuTurno ? Icons.play_circle_fill : Icons.pause_circle_filled),
                     color: Colors.black,
                     size: 20,
                   ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      _isMeuTurno
-                          ? '🟢 SUA VEZ! Série $_serieAtualDupla/$_totalSeriesDupla • Execute com IA'
-                          : '🟠 VEZ DE ${widget.parceiroNome ?? "PARCEIRO"}! Série $_serieAtualDupla/$_totalSeriesDupla • Descanse',
+                      widget.isMesmoAparelho
+                          ? '📱 VEZ DE ${_nomeAtletaTurnoAtual.toUpperCase()}! Série $_serieAtualDupla/$_totalSeriesDupla • Sua Vez'
+                          : (_isMeuTurno
+                              ? '🟢 SUA VEZ! Série $_serieAtualDupla/$_totalSeriesDupla'
+                              : '🟠 VEZ DE ${widget.parceiroNome ?? "PARCEIRO"}! Série $_serieAtualDupla/$_totalSeriesDupla • Descanse'),
                       style: const TextStyle(
                         color: Colors.black,
                         fontWeight: FontWeight.bold,
@@ -1115,7 +1162,7 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
                     ),
                   ),
                   GestureDetector(
-                    onTap: _encerrarTreinoDupla,
+                    onTap: widget.isMesmoAparelho ? _finalizarTreinoDuplaMesmoAparelho : _encerrarTreinoDupla,
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
@@ -1149,66 +1196,66 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
                 ),
               ),
 
-              // Título do Exercício, Contador de Exercícios e Lado
-              Expanded(
-                child: Container(
-                  margin: const EdgeInsets.symmetric(horizontal: 10),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF161B22).withValues(alpha: 0.85),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: Colors.white12),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      if (totalEx > 1) ...[
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF00E676).withValues(alpha: 0.2),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            '$numAtual/$totalEx',
-                            style: const TextStyle(
-                              color: Color(0xFF00E676),
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                      ],
-                      const Icon(Icons.fitness_center, color: Color(0xFF00E676), size: 16),
-                      const SizedBox(width: 6),
-                      Flexible(
-                        child: Text(
-                          _exercicioNomeAtual,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13,
-                          ),
+          // Título do Exercício, Contador de Exercícios e Lado
+          Expanded(
+            child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: const Color(0xFF161B22).withValues(alpha: 0.85),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.white12),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  if (totalEx > 1) ...[
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF00E676).withValues(alpha: 0.2),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: Text(
+                        '$numAtual/$totalEx',
+                        style: const TextStyle(
+                          color: Color(0xFF00E676),
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
-                    ],
+                    ),
+                    const SizedBox(width: 6),
+                  ],
+                  const Icon(Icons.fitness_center, color: Color(0xFF00E676), size: 16),
+                  const SizedBox(width: 6),
+                  Flexible(
+                    child: Text(
+                      _exercicioNomeAtual,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
                   ),
-                ),
+                ],
               ),
-
-              // Alternar Câmera
-              if (_availableCameras.length > 1)
-                CircleAvatar(
-                  backgroundColor: Colors.black54,
-                  child: IconButton(
-                    icon: const Icon(Icons.flip_camera_ios, color: Colors.white),
-                    onPressed: _switchCamera,
-                  ),
-                ),
-            ],
+            ),
           ),
+
+          // Alternar Câmera
+          if (_availableCameras.length > 1)
+            CircleAvatar(
+              backgroundColor: Colors.black54,
+              child: IconButton(
+                icon: const Icon(Icons.flip_camera_ios, color: Colors.white),
+                onPressed: _switchCamera,
+              ),
+            ),
+        ],
+      ),
         ],
       ),
     );
@@ -1225,7 +1272,7 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
       feedbackIcon = Icons.stars_rounded;
     } else if (!_servidorConectado && _framesEnviados == 0) {
       bannerColor = Colors.orangeAccent;
-      feedbackText = _alertaImediato ?? 'Conectando ao servidor IA no Render...';
+      feedbackText = _alertaImediato ?? 'Conectando ao servidor...';
       feedbackIcon = Icons.cloud_sync;
     } else if (!_corpoVisivel && _framesEnviados > 0) {
       bannerColor = Colors.orangeAccent;
@@ -1339,11 +1386,8 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
           const SizedBox(height: 6),
 
           // Chips de Fase e Ângulos Biomecânicos em Tempo Real
-          Wrap(
-            alignment: WrapAlignment.center,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            spacing: 6,
-            runSpacing: 6,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               // Chip da Fase Atual
               Container(
@@ -1358,15 +1402,12 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
                   children: [
                     Icon(iconeFase, color: corFase, size: 14),
                     const SizedBox(width: 4),
-                    Flexible(
-                      child: Text(
-                        'Fase: $_faseNome',
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: corFase,
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                        ),
+                    Text(
+                      'Fase: $_faseNome',
+                      style: TextStyle(
+                        color: corFase,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ],
@@ -1374,13 +1415,15 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
               ),
 
               // Chips de Ângulos
-              if (_angulos.isNotEmpty)
+              if (_angulos.isNotEmpty) ...[
+                const SizedBox(width: 6),
                 ..._angulos.entries.take(2).map((entry) {
                   final nomeArt = entry.key.length > 7
                       ? entry.key.substring(0, 7)
                       : entry.key;
                   final ang = (entry.value as num).toStringAsFixed(0);
                   return Container(
+                    margin: const EdgeInsets.only(left: 4),
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
                       color: const Color(0xFF161B22).withValues(alpha: 0.9),
@@ -1397,6 +1440,7 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
                     ),
                   );
                 }),
+              ],
             ],
           ),
 
@@ -1556,7 +1600,7 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
                 _isStreaming ? Icons.pause_circle_filled : Icons.play_circle_filled,
                 color: _isStreaming ? Colors.orangeAccent : const Color(0xFF00E676),
               ),
-              tooltip: _isStreaming ? 'Pausar IA' : 'Retomar IA',
+              tooltip: _isStreaming ? 'Pausar Câmera' : 'Retomar Câmera',
               onPressed: _toggleStreaming,
             ),
 
@@ -1588,7 +1632,9 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
               child: ElevatedButton.icon(
                 onPressed: _isFinalizando
                     ? null
-                    : (widget.isModoDupla ? _concluirSerieDupla : _finalizarSerie),
+                    : (widget.isModoDupla
+                        ? (widget.isMesmoAparelho ? _concluirSerieDuplaMesmoAparelho : _concluirSerieDupla)
+                        : _finalizarSerie),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF00E676),
                   foregroundColor: Colors.black,
@@ -1632,7 +1678,7 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
   }
 
   void _iniciarPollingDupla() {
-    if (!widget.isModoDupla || widget.sessaoDuplaId == null) return;
+    if (!widget.isModoDupla || widget.sessaoDuplaId == null || widget.isMesmoAparelho) return;
     _duplaPollingTimer?.cancel();
     _duplaPollingTimer = Timer.periodic(const Duration(milliseconds: 1500), (_) async {
       if (!mounted) return;
@@ -1648,7 +1694,30 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
         // Se a sessão foi finalizada pelo parceiro
         if (status == 'finalizado' && !_isFinalizando) {
           _duplaPollingTimer?.cancel();
-          _exibirResumoDuplaConcluido(sessao);
+
+          final pHost = (sessao['pontos_host'] as num?)?.toInt() ?? _pontosAcumuladosHost;
+          final pConvidado = (sessao['pontos_convidado'] as num?)?.toInt() ?? _pontosAcumuladosConvidado;
+          final media = (sessao['media_dupla'] as num?)?.toDouble() ?? ((pHost + pConvidado) / 2.0);
+          final pontosFinais = (sessao['pontos_finais_cada'] as num?)?.toInt() ?? (media * 1.20).round();
+          final bonusExtra = (pontosFinais - media).round() > 0 ? (pontosFinais - media).round() : 10;
+
+          // O próprio atleta logado credita os pontos do treino na sua conta com seu token autenticado
+          if (meuId != null && bonusExtra > 0) {
+            try {
+              await ApiService().adicionarPontuacaoDiaria(
+                usuarioId: meuId,
+                pontos: bonusExtra,
+                incrementarSequencia: true,
+              );
+              await ApiService().verPontuacao(meuId);
+            } catch (e) {
+              debugPrint('Erro ao sincronizar pontos do parceiro ao finalizar: $e');
+            }
+          }
+
+          if (mounted) {
+            _exibirResumoDuplaConcluido(sessao);
+          }
           return;
         }
 
@@ -1724,16 +1793,33 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
     setState(() => _isFinalizando = true);
     _timer?.cancel();
 
-    int pontosSerie = 0;
+    int pontosSerie = (_repeticoes > 0 ? (_repeticoes * 5 + 30) : 30);
     try {
       final res = await ApiService().finalizarSerieEPontuarIA(incrementarSequencia: false);
       if (res['sucesso'] == true) {
-        pontosSerie = (res['pontos_atribuidos'] as num?)?.toInt() ?? (_repeticoes * 5 + 30);
-      } else {
-        pontosSerie = _repeticoes * 5 + 30;
+        final pts = (res['pontos_atribuidos'] as num?)?.toInt();
+        if (pts != null && pts > 0) pontosSerie = pts;
       }
-    } catch (_) {
-      pontosSerie = _repeticoes * 5 + 30;
+    } catch (_) {}
+
+    // Computa e credita a pontuação da série no banco para o atleta local
+    final uidLocal = ApiService().idUsuarioAtual;
+    if (uidLocal != null && pontosSerie > 0) {
+      try {
+        await ApiService().adicionarPontuacaoDiaria(
+          usuarioId: uidLocal,
+          pontos: pontosSerie,
+          incrementarSequencia: true,
+        );
+      } catch (e) {
+        debugPrint('Erro ao creditar pontuação diária da série remota: $e');
+      }
+    }
+
+    if (widget.isHostDupla) {
+      _pontosAcumuladosHost += pontosSerie;
+    } else {
+      _pontosAcumuladosConvidado += pontosSerie;
     }
 
     int? proximaSerieCalc;
@@ -1762,6 +1848,17 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
     }
 
     if (treinoFinalizado) {
+      if (widget.sessaoDuplaId != null && widget.sessaoDuplaId!.isNotEmpty) {
+        try {
+          await ApiService().concluirSerieDupla(
+            sessaoId: widget.sessaoDuplaId!,
+            pontosSerie: pontosSerie,
+            proximoTurnoId: null,
+            novaSerie: proximaSerieCalc,
+            novoIndiceExercicio: proximoIndiceExCalc,
+          );
+        } catch (_) {}
+      }
       await _encerrarTreinoDupla();
       return;
     }
@@ -1827,6 +1924,304 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
     }
   }
 
+  void _concluirSerieDuplaMesmoAparelho() {
+    if (_isProcessandoFimDeSerie || _isFinalizando) return;
+    _isProcessandoFimDeSerie = true;
+    _timer?.cancel();
+    _exibirDialogoIntervaloSerieMesmoAparelho();
+  }
+
+  Future<void> _exibirDialogoIntervaloSerieMesmoAparelho() async {
+    _timer?.cancel();
+
+    final bool isHost = _turnoDoHostLocal;
+    final bool isUltimaSerie = _serieAtualDupla >= _totalSeriesAtual;
+    final bool temProx = _temProximoExercicio;
+
+    String mensagemBotao;
+    String descricao;
+
+    if (isHost) {
+      mensagemBotao = 'Passar Aparelho para $_nomeConvidado ➔';
+      descricao = '$_nomeHost concluiu a Série $_serieAtualDupla com $_repeticoes repetições! Agora passe o aparelho para $_nomeConvidado realizar a Série $_serieAtualDupla.';
+    } else {
+      if (!isUltimaSerie) {
+        mensagemBotao = 'Devolver para $_nomeHost (Série ${_serieAtualDupla + 1}) ➔';
+        descricao = '$_nomeConvidado concluiu a Série $_serieAtualDupla! Ambos finalizaram. Devolva o aparelho para $_nomeHost para iniciar a Série ${_serieAtualDupla + 1}.';
+      } else if (temProx) {
+        mensagemBotao = 'Próximo Exercício: $_proximoExercicioNome ➔';
+        descricao = 'Exercício finalizado com sucesso pela dupla! Devolva o aparelho para $_nomeHost para iniciar o próximo exercício.';
+      } else {
+        mensagemBotao = 'Ver Resultado da Dupla 🎉';
+        descricao = 'Parabéns aos dois atletas! Todas as séries e exercícios foram concluídos pela dupla!';
+      }
+    }
+
+    await showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF161B22),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            const Icon(Icons.phone_android, color: Color(0xFF00E676), size: 28),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Série Feita por $_nomeAtletaTurnoAtual!',
+                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Exercício: $_exercicioNomeAtual',
+              style: const TextStyle(color: Colors.white70, fontSize: 14),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFF00E676).withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFF00E676)),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Flexible(
+                    child: Text(
+                      'Série Atual:',
+                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    '$_serieAtualDupla / $_totalSeriesAtual',
+                    style: const TextStyle(
+                      color: Color(0xFF00E676),
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              descricao,
+              style: const TextStyle(color: Colors.white70, fontSize: 13),
+            ),
+          ],
+        ),
+        actions: [
+          ElevatedButton.icon(
+            icon: const Icon(Icons.check, size: 20),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF00E676),
+              foregroundColor: Colors.black,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            onPressed: () {
+              Navigator.pop(ctx);
+              _avancarTurnoMesmoAparelho();
+            },
+            label: Text(
+              mensagemBotao,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _avancarTurnoMesmoAparelho() async {
+    setState(() => _isFinalizando = true);
+    _timer?.cancel();
+
+    int pontosSerie = (_repeticoes > 0 ? (_repeticoes * 5 + 30) : 30);
+    try {
+      final res = await ApiService().finalizarSerieEPontuarIA(incrementarSequencia: false);
+      if (res['sucesso'] == true) {
+        final pts = (res['pontos_atribuidos'] as num?)?.toInt();
+        if (pts != null && pts > 0) pontosSerie = pts;
+      }
+    } catch (_) {}
+
+    final bool foiHost = _turnoDoHostLocal;
+
+    if (foiHost) {
+      _pontosAcumuladosHost += pontosSerie;
+      final hostId = ApiService().idUsuarioAtual;
+      if (hostId != null && pontosSerie > 0) {
+        try {
+          await ApiService().adicionarPontuacaoDiaria(
+            usuarioId: hostId,
+            pontos: pontosSerie,
+            incrementarSequencia: true,
+          );
+        } catch (e) {
+          debugPrint('Erro ao creditar pontuação host na série: $e');
+        }
+      }
+    } else {
+      _pontosAcumuladosConvidado += pontosSerie;
+      if (widget.parceiroId != null && widget.parceiroId!.isNotEmpty && pontosSerie > 0) {
+        try {
+          await ApiService().adicionarPontuacaoDiaria(
+            usuarioId: widget.parceiroId!,
+            pontos: pontosSerie,
+            incrementarSequencia: true,
+          );
+        } catch (e) {
+          debugPrint('Erro ao creditar pontuação parceiro na série: $e');
+        }
+      }
+    }
+
+    // Se houver sessão remota no backend, sincroniza a série na tabela sessoes_treino_dupla
+    if (widget.sessaoDuplaId != null && widget.sessaoDuplaId!.isNotEmpty) {
+      try {
+        await ApiService().concluirSerieDupla(
+          sessaoId: widget.sessaoDuplaId!,
+          pontosSerie: pontosSerie,
+          proximoTurnoId: foiHost ? widget.parceiroId : ApiService().idUsuarioAtual,
+          novaSerie: _serieAtualDupla,
+          novoIndiceExercicio: _indiceAtual,
+        );
+      } catch (_) {}
+    }
+
+    bool trocouEx = false;
+    bool treinoFinalizado = false;
+
+    if (foiHost) {
+      // Passa para o convidado na MESMA série e mesmo exercício
+      _turnoDoHostLocal = false;
+    } else {
+      // Convidado finalizou a série atual
+      if (_serieAtualDupla < _totalSeriesAtual) {
+        _serieAtualDupla++;
+        _turnoDoHostLocal = true;
+      } else {
+        // Todas as séries deste exercício foram finalizadas pela dupla!
+        _indicesConcluidos.add(_indiceAtual);
+        if (_temProximoExercicio) {
+          _indiceAtual++;
+          _serieAtualDupla = 1;
+          _turnoDoHostLocal = true;
+          trocouEx = true;
+        } else {
+          treinoFinalizado = true;
+        }
+      }
+    }
+
+    if (treinoFinalizado) {
+      await _finalizarTreinoDuplaMesmoAparelho();
+      return;
+    }
+
+    if (!mounted) return;
+
+    setState(() {
+      _isFinalizando = false;
+      _isProcessandoFimDeSerie = false;
+      _repeticoes = 0;
+      _faseNome = 'Repouso';
+      _faseNumero = 0;
+      _alertaImediato = null;
+    });
+
+    if (trocouEx) {
+      await _iniciarSessaoIA();
+      if (_wsService != null && _wsService!.conectado) {
+        _wsService!.trocarExercicio(exercicioId: _exercicioIdAtual, lado: _lado);
+      }
+    } else {
+      await _iniciarSessaoIA();
+    }
+
+    if (mounted) {
+      _startPeriodicSending();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            foiHost
+                ? 'Série concluída por $_nomeHost (+$pontosSerie pts)! Celular com $_nomeConvidado.'
+                : 'Série concluída por $_nomeConvidado (+$pontosSerie pts)! Celular com $_nomeHost.',
+          ),
+          backgroundColor: const Color(0xFF00E676),
+          duration: const Duration(seconds: 3),
+        ),
+      );
+    }
+  }
+
+  Future<void> _finalizarTreinoDuplaMesmoAparelho() async {
+    setState(() => _isFinalizando = true);
+    _timer?.cancel();
+
+    final media = (_pontosAcumuladosHost + _pontosAcumuladosConvidado) / 2.0;
+    final pontosFinais = (media * 1.20).round();
+    final bonusExtra = (pontosFinais - media).round() > 0 ? (pontosFinais - media).round() : 10;
+
+    // Credita o bônus cooperativo (+20%) no banco para ambos os atletas
+    final hostId = ApiService().idUsuarioAtual;
+    if (hostId != null && bonusExtra > 0) {
+      try {
+        await ApiService().adicionarPontuacaoDiaria(
+          usuarioId: hostId,
+          pontos: bonusExtra,
+          incrementarSequencia: true,
+        );
+      } catch (e) {
+        debugPrint('Erro ao creditar bônus host: $e');
+      }
+    }
+
+    if (widget.parceiroId != null && widget.parceiroId!.isNotEmpty && bonusExtra > 0) {
+      try {
+        await ApiService().adicionarPontuacaoDiaria(
+          usuarioId: widget.parceiroId!,
+          pontos: bonusExtra,
+          incrementarSequencia: true,
+        );
+      } catch (e) {
+        debugPrint('Erro ao creditar bônus parceiro: $e');
+      }
+    }
+
+    if (widget.sessaoDuplaId != null && widget.sessaoDuplaId!.isNotEmpty) {
+      try {
+        await ApiService().encerrarSessaoDupla(
+          widget.sessaoDuplaId!,
+          pontosHost: _pontosAcumuladosHost,
+          pontosConvidado: _pontosAcumuladosConvidado,
+        );
+      } catch (e) {
+        debugPrint('Aviso ao sincronizar encerramento de dupla no backend: $e');
+      }
+    }
+
+    if (mounted) {
+      setState(() => _isFinalizando = false);
+      _exibirResumoDuplaConcluido({
+        'sucesso': true,
+        'pontos_host': _pontosAcumuladosHost,
+        'pontos_convidado': _pontosAcumuladosConvidado,
+        'media_dupla': media,
+        'pontos_finais_cada': pontosFinais,
+      });
+    }
+  }
+
   Future<void> _encerrarTreinoDupla() async {
     setState(() => _isFinalizando = true);
     _duplaPollingTimer?.cancel();
@@ -1834,7 +2229,27 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
     _timer?.cancel();
 
     try {
-      final res = await ApiService().encerrarSessaoDupla(widget.sessaoDuplaId!);
+      final res = await ApiService().encerrarSessaoDupla(
+        widget.sessaoDuplaId!,
+        pontosHost: _pontosAcumuladosHost,
+        pontosConvidado: _pontosAcumuladosConvidado,
+      );
+
+      // Credita o bônus cooperativo (+20%) para o usuário local autenticado
+      final media = (res['media_dupla'] as num?)?.toDouble() ?? ((_pontosAcumuladosHost + _pontosAcumuladosConvidado) / 2.0);
+      final pontosFinais = (res['pontos_finais_cada'] as num?)?.toInt() ?? (media * 1.20).round();
+      final bonusExtra = (pontosFinais - media).round() > 0 ? (pontosFinais - media).round() : 10;
+      final meuId = ApiService().idUsuarioAtual;
+      if (meuId != null && bonusExtra > 0) {
+        try {
+          await ApiService().adicionarPontuacaoDiaria(
+            usuarioId: meuId,
+            pontos: bonusExtra,
+            incrementarSequencia: true,
+          );
+        } catch (_) {}
+      }
+
       if (!mounted) return;
       setState(() => _isFinalizando = false);
 
@@ -1975,9 +2390,22 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
               foregroundColor: Colors.black,
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
             ),
-            onPressed: () {
-              Navigator.pop(ctx);
-              Navigator.pop(context);
+            onPressed: () async {
+              final uid = ApiService().idUsuarioAtual;
+              if (uid != null) {
+                try {
+                  await ApiService().verPontuacao(uid);
+                } catch (_) {}
+              }
+              if (mounted) {
+                Navigator.pop(ctx);
+                Navigator.pop(context, {
+                  'concluido': true,
+                  'acao': 'finalizar_dupla',
+                  'treinoConcluido': true,
+                  'pontosFinais': pontosFinais,
+                });
+              }
             },
             child: const Text('Concluir e Voltar', style: TextStyle(fontWeight: FontWeight.bold)),
           ),

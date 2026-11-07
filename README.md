@@ -25,11 +25,11 @@ O **PersonAI** nasceu para ser mais do que apenas uma lista digital de exercíci
 
 O projeto foi construído sobre uma arquitetura moderna, desacoplada e segura em três camadas:
 
-![alt text](<Arquitetura do sistema 08_10.png>)
+![Arquitetura do Sistema](system_design_architecture.png)
 
 ### Como tudo se conecta:
 1. **Frontend (Flutter):** Aplicação multiplataforma (Android, iOS, Desktop e Web) com interface responsiva, gerenciando a interação do usuário através de um serviço centralizado ([ApiService](lib/services/api_service.dart)).
-2. **Backend (Python & FastAPI):** Atua como o cérebro das regras de negócio ([BD/api.py](BD/api.py) e [BD/main.py](BD/main.py)), processando validações, lógica de pontuação, amizades, leaderboard e isolando o acesso direto ao banco.
+2. **Backend (Python & FastAPI):** Atua como o cérebro das regras de negócio ([BD/api.py](BD/api.py) e [BD/main.py](BD/main.py)), processando validações, lógica de pontuação, amizades, leaderboard e isolando o acesso direto ao banco. Está **hospedado na nuvem via Render**, garantindo alta disponibilidade sem depender de servidores locais.
 3. **Motor de IA & Visão Computacional:** Pipeline biomecânico em tempo real com MediaPipe Pose, FSM ([exercicios_fsm.py](exercicios_fsm.py)), comparador DTW ([dtw_evaluator.py](dtw_evaluator.py)) e orquestrador de sessão ([servico_ia_api.py](servico_ia_api.py)). Documentações detalhadas em [GUIA_INTEGRACAO_FRONT_IA.md](GUIA_INTEGRACAO_FRONT_IA.md) e [EXPLICACAO_IA.md](EXPLICACAO_IA.md).
 4. **Banco de Dados & Autenticação (Supabase / PostgreSQL):** Gerencia identidades e sessões com GoTrue (JWT), além de tabelas relacionais com triggers automáticos para apuração de pontuação e proteção de dados via Row Level Security (RLS) e RPCs seguras.
 

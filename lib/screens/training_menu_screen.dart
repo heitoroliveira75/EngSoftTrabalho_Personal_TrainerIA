@@ -6,7 +6,9 @@ import 'dificuldade_treino_screen.dart';
 import 'opcao_treinos_screen.dart';
 
 class TrainingMenuScreen extends StatefulWidget {
-  const TrainingMenuScreen({super.key});
+  final VoidCallback? onBack;
+
+  const TrainingMenuScreen({super.key, this.onBack});
 
   @override
   State<TrainingMenuScreen> createState() => _TrainingMenuScreenState();
@@ -49,10 +51,22 @@ class _TrainingMenuScreenState extends State<TrainingMenuScreen> {
         elevation: 0,
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () {
+            if (widget.onBack != null) {
+              widget.onBack!();
+            } else {
+              Navigator.pop(context);
+            }
+          },
         ),
         title: GestureDetector(
-          onTap: () => Navigator.pop(context),
+          onTap: () {
+            if (widget.onBack != null) {
+              widget.onBack!();
+            } else {
+              Navigator.pop(context);
+            }
+          },
           child: const Text(
             'TREINO',
             style: TextStyle(
@@ -156,7 +170,7 @@ class _TrainingMenuScreenState extends State<TrainingMenuScreen> {
             const SizedBox(height: spacing),
 
             // 2. Row com Criar Treinos e Treinos Padrões
-            IntrinsicHeight( // este é para todos terem a mesma altura
+            IntrinsicHeight(
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import '../config/api_config.dart';
 
 class ApiService {
@@ -53,6 +54,58 @@ class ApiService {
       };
 
   // ============================================================
+  // PERSISTÊNCIA LOCAL DE SESSÃO (shared_preferences)
+  // ============================================================
+
+  /// Salva os dados da sessão autenticada no armazenamento local do aparelho
+  Future<void> salvarSessaoLocal() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (tokenAcesso != null && tokenAcesso!.isNotEmpty) {
+        await prefs.setString('sessao_token', tokenAcesso!);
+      }
+      if (idUsuarioLogado != null && idUsuarioLogado!.isNotEmpty) {
+        await prefs.setString('sessao_user_id', idUsuarioLogado!);
+      }
+      if (usuarioLogado != null) {
+        await prefs.setString('sessao_usuario', jsonEncode(usuarioLogado));
+      }
+    } catch (_) {}
+  }
+
+  /// Restaura a sessão do armazenamento local se existir
+  Future<bool> restaurarSessaoLocal() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('sessao_token');
+      final userId = prefs.getString('sessao_user_id');
+      final userJson = prefs.getString('sessao_usuario');
+
+      if (token != null && token.isNotEmpty && userId != null && userId.isNotEmpty) {
+        tokenAcesso = token;
+        idUsuarioLogado = userId;
+        if (userJson != null && userJson.isNotEmpty) {
+          try {
+            usuarioLogado = jsonDecode(userJson) as Map<String, dynamic>;
+          } catch (_) {}
+        }
+        return true;
+      }
+    } catch (_) {}
+    return false;
+  }
+
+  /// Remove os dados persistidos no armazenamento local
+  Future<void> limparSessaoLocal() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('sessao_token');
+      await prefs.remove('sessao_user_id');
+      await prefs.remove('sessao_usuario');
+    } catch (_) {}
+  }
+
+  // ============================================================
   // 1. AUTENTICAÇÃO E SESSÃO
   // ============================================================
 
@@ -96,6 +149,7 @@ class ApiService {
   Future<Map<String, dynamic>> fazerLogin({
     required String email,
     required String senha,
+    bool forcarLogin = false,
   }) async {
     try {
       final url = Uri.parse('$baseUrl/auth/login');
@@ -106,6 +160,7 @@ class ApiService {
             body: jsonEncode({
               'email': email,
               'senha': senha,
+              'forcar_login': forcarLogin,
             }),
           )
           .timeout(const Duration(seconds: 60));
@@ -122,6 +177,7 @@ class ApiService {
         if (data['sessao'] != null && data['sessao']['access_token'] != null) {
           tokenAcesso = data['sessao']['access_token'];
         }
+        await salvarSessaoLocal();
       }
 
       return data;
@@ -136,7 +192,12 @@ class ApiService {
   /// Desloga o usuário chamando o endpoint Python /auth/logout
   Future<Map<String, dynamic>> deslogar() async {
     try {
-      final url = Uri.parse('$baseUrl/auth/logout');
+      final uidLocal = idUsuarioAtual;
+      final url = Uri.parse('$baseUrl/auth/logout').replace(
+        queryParameters: {
+          if (uidLocal != null && uidLocal.isNotEmpty) 'usuario_id': uidLocal,
+        },
+      );
       final response = await http
           .post(url, headers: _headers)
           .timeout(const Duration(seconds: 10));
@@ -144,6 +205,7 @@ class ApiService {
       tokenAcesso = null;
       usuarioLogado = null;
       idUsuarioLogado = null;
+      await limparSessaoLocal();
 
       final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
       return data;
@@ -151,6 +213,7 @@ class ApiService {
       tokenAcesso = null;
       usuarioLogado = null;
       idUsuarioLogado = null;
+      await limparSessaoLocal();
       return {
         'sucesso': false,
         'mensagem': 'Erro ao comunicar logout: $e',
@@ -158,20 +221,53 @@ class ApiService {
     }
   }
 
-  /// Obtém o usuário autenticado atualmente no backend
+  /// Obtém o usuário autenticado atualmente no backend de forma isolada por sessão/token
   Future<Map<String, dynamic>> obterUsuarioAtual() async {
     try {
-      final url = Uri.parse('$baseUrl/auth/usuario-atual');
+      final uidLocal = idUsuarioAtual;
+      final uri = Uri.parse('$baseUrl/auth/usuario-atual').replace(
+        queryParameters: {
+          if (uidLocal != null && uidLocal.isNotEmpty) 'usuario_id': uidLocal,
+        },
+      );
       final response = await http
-          .get(url, headers: _headers)
+          .get(uri, headers: _headers)
           .timeout(const Duration(seconds: 10));
 
       final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+      if (data['sessao_encerrada'] == true) {
+        tokenAcesso = null;
+        usuarioLogado = null;
+        idUsuarioLogado = null;
+        await limparSessaoLocal();
+        return data;
+      }
       if (data['sucesso'] == true && data['usuario'] != null) {
-        usuarioLogado = Map<String, dynamic>.from(data['usuario'] as Map);
-        if (data['usuario']['id'] != null) {
-          idUsuarioLogado = data['usuario']['id'].toString();
+        final mapaRecebido = Map<String, dynamic>.from(data['usuario'] as Map);
+        final idRecebido = mapaRecebido['id']?.toString();
+
+        // Blindagem contra colisão de sessão: se já há um usuário logado localmente,
+        // jamais permite sobrescrever seu ID com o de outro usuário
+        if (uidLocal != null &&
+            uidLocal.isNotEmpty &&
+            idRecebido != null &&
+            idRecebido.isNotEmpty &&
+            idRecebido != uidLocal) {
+          return {
+            'sucesso': true,
+            'usuario': usuarioLogado ?? {'id': uidLocal, 'nome': nomeUsuarioAtual},
+          };
         }
+
+        if (usuarioLogado == null) {
+          usuarioLogado = mapaRecebido;
+        } else {
+          usuarioLogado!.addAll(mapaRecebido);
+        }
+        if (idRecebido != null && idRecebido.isNotEmpty) {
+          idUsuarioLogado ??= idRecebido;
+        }
+        await salvarSessaoLocal();
       }
       return data;
     } catch (e) {
@@ -278,14 +374,16 @@ class ApiService {
 
       final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
       if (data['sucesso'] == true && data['perfil'] != null) {
-        idUsuarioLogado ??= usuarioId;
-        if (data['perfil']['id'] != null) {
-          idUsuarioLogado = data['perfil']['id'].toString();
-        }
-        if (usuarioLogado == null) {
-          usuarioLogado = Map<String, dynamic>.from(data['perfil'] as Map);
-        } else {
-          usuarioLogado!.addAll(Map<String, dynamic>.from(data['perfil'] as Map));
+        final perfilMapa = Map<String, dynamic>.from(data['perfil'] as Map);
+        final idPerfil = perfilMapa['id']?.toString() ?? usuarioId;
+        if (idUsuarioLogado == null || idUsuarioLogado == idPerfil) {
+          idUsuarioLogado ??= idPerfil;
+          if (usuarioLogado == null) {
+            usuarioLogado = perfilMapa;
+          } else {
+            usuarioLogado!.addAll(perfilMapa);
+          }
+          await salvarSessaoLocal();
         }
       }
       return data;
@@ -602,11 +700,21 @@ class ApiService {
           .timeout(const Duration(seconds: 10));
 
       final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
-      if (data['sucesso'] == true) {
+      if (data['sessao_encerrada'] == true) {
+        tokenAcesso = null;
+        usuarioLogado = null;
+        idUsuarioLogado = null;
+        await limparSessaoLocal();
+        return data;
+      }
+      if (data['sucesso'] == true && (idUsuarioLogado == null || idUsuarioLogado == usuarioId)) {
         idUsuarioLogado ??= usuarioId;
         usuarioLogado ??= {'id': usuarioId};
         if (usuarioLogado!['id'] == null) {
           usuarioLogado!['id'] = usuarioId;
+        }
+        if (data['nome'] != null && data['nome'].toString().trim().isNotEmpty) {
+          usuarioLogado!['nome'] = data['nome'].toString().trim();
         }
         if (data['pontuacao_diaria'] != null) {
           usuarioLogado!['pontuacao_diaria'] = data['pontuacao_diaria'];
@@ -1286,7 +1394,11 @@ class ApiService {
   }
 
   /// Finaliza sessão de treino em dupla e aplica bônus de 20% para ambos
-  Future<Map<String, dynamic>> encerrarSessaoDupla(String sessaoId) async {
+  Future<Map<String, dynamic>> encerrarSessaoDupla(
+    String sessaoId, {
+    int? pontosHost,
+    int? pontosConvidado,
+  }) async {
     try {
       final uid = idUsuarioAtual;
       final url = Uri.parse('$baseUrl/dupla/encerrar-sessao');
@@ -1297,6 +1409,8 @@ class ApiService {
             body: jsonEncode({
               'sessao_id': sessaoId,
               'solicitante_id': uid,
+              if (pontosHost != null) 'pontos_host': pontosHost,
+              if (pontosConvidado != null) 'pontos_convidado': pontosConvidado,
             }),
           )
           .timeout(const Duration(seconds: 60));

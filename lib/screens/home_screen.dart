@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import 'amigos_screen.dart';
 import 'leaderboard_screen.dart';
+import 'login_screen.dart';
 import 'profile_screen.dart';
 import 'training_menu_screen.dart';
 
@@ -19,28 +20,48 @@ class _HomeScreenState extends State<HomeScreen> {
   // ===========================================================================
   // VARIÁVEIS DE DADOS E NAVEGAÇÃO
   // ===========================================================================
-  int _abaSelecionada = 0; // 0 = Início, 1 = Ranking, 2 = Amigos
+  int _abaSelecionada = 0; // 0 = Home, 1 = Amigos, 2 = Treinar, 3 = Leaderboard, 4 = Perfil
+  String nomeUsuario = 'Atleta';
   int pontosTotais = 0;
   int pontosSemana = 0;
   int maiorSequencia = 0;
   int sequenciaAtual = 0;
   int pontosHoje = 0;
   int metaHoje = 200;
-  bool _carregandoPontos = false;
 
   @override
   void initState() {
     super.initState();
+    nomeUsuario = ApiService().nomeUsuarioAtual;
     _carregarPontuacoes();
   }
 
   Future<void> _carregarPontuacoes() async {
-    final usuarioId = ApiService().idUsuarioAtual;
+    var usuarioId = ApiService().idUsuarioAtual;
+    if (usuarioId == null) {
+      final userRes = await ApiService().obterUsuarioAtual();
+      if (userRes['sessao_encerrada'] == true && mounted) {
+        _redirecionarSessaoEncerrada(userRes['mensagem']?.toString());
+        return;
+      }
+      if (userRes['sucesso'] == true && ApiService().idUsuarioAtual != null) {
+        usuarioId = ApiService().idUsuarioAtual;
+      }
+    }
+
     if (usuarioId != null) {
-      setState(() => _carregandoPontos = true);
       final res = await ApiService().verPontuacao(usuarioId);
+      if (res['sessao_encerrada'] == true && mounted) {
+        _redirecionarSessaoEncerrada(res['mensagem']?.toString());
+        return;
+      }
       if (mounted && res['sucesso'] == true) {
         setState(() {
+          if (res['nome'] != null && res['nome'].toString().trim().isNotEmpty) {
+            nomeUsuario = res['nome'].toString().trim();
+          } else {
+            nomeUsuario = ApiService().nomeUsuarioAtual;
+          }
           pontosTotais = (res['pontuacao_total'] as num?)?.toInt() ?? 0;
           pontosSemana = (res['pontuacao_semanal'] as num?)?.toInt() ?? 0;
           pontosHoje = (res['pontuacao_diaria'] as num?)?.toInt() ?? 0;
@@ -57,49 +78,33 @@ class _HomeScreenState extends State<HomeScreen> {
           if (sequenciaAtual > maiorSequencia) {
             maiorSequencia = sequenciaAtual;
           }
-          _carregandoPontos = false;
         });
-      } else if (mounted) {
-        setState(() => _carregandoPontos = false);
-      }
-    } else {
-      final userRes = await ApiService().obterUsuarioAtual();
-      if (userRes['sucesso'] == true && ApiService().idUsuarioAtual != null) {
-        final res =
-            await ApiService().verPontuacao(ApiService().idUsuarioAtual!);
-        if (mounted && res['sucesso'] == true) {
-          setState(() {
-            pontosTotais = (res['pontuacao_total'] as num?)?.toInt() ?? 0;
-            pontosSemana = (res['pontuacao_semanal'] as num?)?.toInt() ?? 0;
-            pontosHoje = (res['pontuacao_diaria'] as num?)?.toInt() ?? 0;
-            sequenciaAtual = (res['sequencia'] as num?)?.toInt() ??
-                (res['pontuacoes'] is Map
-                    ? (res['pontuacoes']['sequencia'] as num?)?.toInt()
-                    : null) ??
-                ApiService().sequenciaAtual;
-            maiorSequencia = (res['maior_sequencia'] as num?)?.toInt() ??
-                (res['pontuacoes'] is Map
-                    ? (res['pontuacoes']['maior_sequencia'] as num?)?.toInt()
-                    : null) ??
-                ApiService().maiorSequenciaAtual;
-            if (sequenciaAtual > maiorSequencia) {
-              maiorSequencia = sequenciaAtual;
-            }
-          });
-        }
       }
     }
   }
 
-  void _iniciarTreino() async {
+  void _redirecionarSessaoEncerrada(String? mensagem) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          mensagem ?? 'Sua conta foi conectada em outro dispositivo.',
+        ),
+        backgroundColor: Colors.orangeAccent,
+      ),
+    );
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (context) => const LoginScreen()),
+      (route) => false,
+    );
+  }
+
+  void _iniciarTreino() {
     if (widget.onSecondRoute != null) {
       widget.onSecondRoute!();
     } else {
-      await Navigator.push(
-        context,
-        MaterialPageRoute(builder: (context) => const TrainingMenuScreen()),
-      );
-      _carregarPontuacoes();
+      _mudarAba(2); // Alterna diretamente para a aba Treinar
     }
   }
 
@@ -116,13 +121,19 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     final List<Widget> telas = [
       _buildAbaInicio(),
-      LeaderboardScreen(
-        onBack: () => _mudarAba(0),
-        onOpenAmigos: () => _mudarAba(2),
-      ),
       AmigosScreen(
         onBack: () => _mudarAba(0),
-        onOpenLeaderboard: () => _mudarAba(1),
+        onOpenLeaderboard: () => _mudarAba(3),
+      ),
+      TrainingMenuScreen(
+        onBack: () => _mudarAba(0),
+      ),
+      LeaderboardScreen(
+        onBack: () => _mudarAba(0),
+        onOpenAmigos: () => _mudarAba(1),
+      ),
+      ProfileScreen(
+        onBack: () => _mudarAba(0),
       ),
     ];
 
@@ -141,7 +152,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
               actions: [
-                // Ícone de perfil que navega para a tela de Perfil
+                // Ícone de perfil que navega para a aba de Perfil
                 IconButton(
                   icon: const Icon(
                     Icons.account_circle,
@@ -149,15 +160,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     color: Colors.white,
                   ),
                   tooltip: 'Meu Perfil',
-                  onPressed: () async {
-                    await Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const ProfileScreen(),
-                      ),
-                    );
-                    _carregarPontuacoes();
-                  },
+                  onPressed: () => _mudarAba(4),
                 ),
                 const SizedBox(width: 8),
               ],
@@ -178,17 +181,27 @@ class _HomeScreenState extends State<HomeScreen> {
           unselectedItemColor: Colors.grey,
           selectedLabelStyle: const TextStyle(
             fontWeight: FontWeight.bold,
-            fontSize: 12,
+            fontSize: 11,
           ),
           unselectedLabelStyle: const TextStyle(
-            fontSize: 12,
+            fontSize: 11,
           ),
           type: BottomNavigationBarType.fixed,
           items: const [
             BottomNavigationBarItem(
               icon: Icon(Icons.home_outlined),
               activeIcon: Icon(Icons.home_rounded),
-              label: 'Início',
+              label: 'Home',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.people_alt_outlined),
+              activeIcon: Icon(Icons.people_alt_rounded),
+              label: 'Amigos',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.fitness_center_outlined),
+              activeIcon: Icon(Icons.fitness_center_rounded),
+              label: 'Treinar',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.leaderboard_outlined),
@@ -196,9 +209,9 @@ class _HomeScreenState extends State<HomeScreen> {
               label: 'Ranking',
             ),
             BottomNavigationBarItem(
-              icon: Icon(Icons.people_alt_outlined),
-              activeIcon: Icon(Icons.people_alt_rounded),
-              label: 'Amigos',
+              icon: Icon(Icons.person_outline),
+              activeIcon: Icon(Icons.person_rounded),
+              label: 'Perfil',
             ),
           ],
         ),
@@ -217,89 +230,76 @@ class _HomeScreenState extends State<HomeScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (_carregandoPontos)
-              const Padding(
-                padding: EdgeInsets.only(bottom: 12.0),
-                child: LinearProgressIndicator(
-                  minHeight: 2,
-                  color: Color(0xFF00E676),
-                  backgroundColor: Colors.transparent,
-                ),
-              ),
-            // 1. Card Pontos Totais
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Column(
-                children: [
-                  const Text(
-                    'Pontos Totais',
-                    style: TextStyle(
-                      color: Color(0xFF8A5CF5),
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
+            // 1. Saudação do Usuário (isolada por sessão local, sem consultar estado global)
+            Builder(
+              builder: (context) {
+                final nome = (nomeUsuario.isNotEmpty && nomeUsuario != 'Usuário')
+                    ? nomeUsuario
+                    : ApiService().nomeUsuarioAtual;
+                final primeiroNome =
+                    nome.isNotEmpty ? nome.split(' ')[0] : 'Atleta';
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Olá, $primeiroNome 👋',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    '$pontosTotais pts',
-                    style: const TextStyle(
-                      color: Color(0xFF2196F3),
-                      fontSize: 36,
-                      fontWeight: FontWeight.bold,
+                    const SizedBox(height: 4),
+                    const Text(
+                      'Pronto para o treino de hoje?',
+                      style: TextStyle(
+                        color: Colors.white54,
+                        fontSize: 14,
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    '+$pontosSemana pts essa semana',
-                    style: const TextStyle(
-                      color: Color(0xFF64B5F6),
-                      fontSize: 16,
-                    ),
-                  ),
-                ],
-              ),
+                  ],
+                );
+              },
             ),
 
             // Espaçamento
             const SizedBox(height: 24),
 
-            // 2. Os 3 Cards de Métricas (com Altura Igual)
+            // 2. Cards de Métricas em Row (com Altura Igual)
             IntrinsicHeight(
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  // Card Pontos da Semana
                   Expanded(
                     child: _buildMetricCard(
                       icon: Icons.star,
-                      iconColor: Colors.amber,
-                      value: '$maiorSequencia',
-                      label: 'Maior\nSequência',
-                      labelColor: Colors.amber,
+                      iconColor: const Color(0xFF00E676),
+                      value: '$pontosSemana',
+                      label: 'Pontos Semana',
+                      labelColor: const Color(0xFF00E676),
                     ),
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 12),
+                  // Card Sequência Atual
                   Expanded(
                     child: _buildMetricCard(
                       icon: Icons.bolt,
-                      iconColor: Colors.amberAccent,
+                      iconColor: const Color(0xFFFFD700),
                       value: '$sequenciaAtual',
-                      label: 'Sequência',
-                      labelColor: Colors.pinkAccent,
+                      label: 'Dias Seguidos',
+                      labelColor: const Color(0xFFFFD700),
                     ),
                   ),
-                  const SizedBox(width: 10),
+                  const SizedBox(width: 12),
+                  // Card Recorde de Sequência
                   Expanded(
                     child: _buildMetricCard(
-                      icon: Icons.emoji_events,
-                      iconColor: Colors.amber,
-                      value: '$pontosHoje',
-                      label: 'Pts Hoje',
-                      labelColor: Colors.orangeAccent,
+                      icon: Icons.local_fire_department,
+                      iconColor: const Color(0xFFFF5252),
+                      value: '$maiorSequencia',
+                      label: 'Recorde Dias',
+                      labelColor: const Color(0xFFFF5252),
                     ),
                   ),
                 ],

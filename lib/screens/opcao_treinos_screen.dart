@@ -439,154 +439,8 @@ class _OpcaoTreinosScreenState extends State<OpcaoTreinosScreen> {
     _carregarTreinos();
   }
 
-  /// Retorna um mapa { titulo_em_minusculo : id_do_treino_salvo }
-  Future<Map<String, String>> _obterTreinosSalvosUsuario() async {
-    final Map<String, String> salvosPorTitulo = {};
-    try {
-      final idUsuario = ApiService().idUsuarioAtual;
-      final res = await ApiService().listarTreinosUsuario(idUsuario);
-      if (res['sucesso'] == true && res['treinos'] is List) {
-        for (final t in (res['treinos'] as List)) {
-          if (t is Map) {
-            final titulo = (t['nome'] ?? t['titulo'] ?? '')
-                .toString()
-                .trim()
-                .toLowerCase();
-            final id = t['id']?.toString() ?? '';
-            if (titulo.isNotEmpty && id.isNotEmpty) {
-              salvosPorTitulo[titulo] = id;
-            }
-          }
-        }
-      }
-    } catch (_) {}
-    return salvosPorTitulo;
-  }
-
-  Future<void> _alternarSalvarTreinoCard(Map<String, dynamic> treino) async {
-    if (treino['salvando'] == true) return;
-
-    final bool novoStatus = !(treino['salvo'] == true);
-    setState(() {
-      treino['salvo'] = novoStatus;
-      treino['salvando'] = true;
-    });
-
-    if (novoStatus) {
-      final idUsuario = ApiService().idUsuarioAtual;
-      final exercicios = (treino['exercicios'] as List? ?? [])
-          .map((e) => {
-                'exercicio_id': e['exercicio_id'] ?? e['id'] ?? 1,
-                'nome': e['nome'] ?? 'Exercício',
-                'series': e['series'] ?? 3,
-                'repeticoes': e['repeticoes'] ?? 10,
-                'pontos': e['pontos'] ?? e['pontos_totais'] ?? 20,
-                'pontos_totais': e['pontos_totais'] ?? e['pontos'] ?? 20,
-              })
-          .toList();
-
-      try {
-        final res = await ApiService().criarTreino(
-          usuarioId: idUsuario,
-          nome: treino['titulo'] ?? 'Treino',
-          descricao:
-              'Treino salvo dos treinos ${treino['dificuldade'] ?? 'padrões'}',
-          dificuldade: treino['dificuldade']?.toString() ?? 'Personalizado',
-          duracaoMinutos: (treino['duracaoMinutos'] as num?)?.toInt() ?? 30,
-          pontosTotais: (treino['pontosTotais'] as num?)?.toInt() ?? 100,
-          exercicios: exercicios,
-        );
-
-        final novoId =
-            res['treino']?['id']?.toString() ?? res['id']?.toString();
-        if (novoId != null && novoId.isNotEmpty) {
-          treino['idSalvo'] = novoId;
-        }
-
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(
-                res['sucesso'] == true
-                    ? 'Treino salvo nos Meus Treinos com sucesso!'
-                    : (res['mensagem'] ?? 'Treino salvo localmente.'),
-              ),
-              backgroundColor: res['sucesso'] == true
-                  ? const Color(0xFF00E676)
-                  : Colors.blueGrey,
-              duration: const Duration(seconds: 2),
-            ),
-          );
-        }
-      } catch (_) {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Treino salvo localmente nos Meus Treinos.'),
-              backgroundColor: Colors.blueGrey,
-              duration: Duration(seconds: 2),
-            ),
-          );
-        }
-      } finally {
-        if (mounted) {
-          setState(() => treino['salvando'] = false);
-        }
-      }
-    } else {
-      try {
-        String? idParaExcluir = treino['idSalvo']?.toString();
-
-        if (idParaExcluir == null || idParaExcluir.isEmpty) {
-          final idUsuario = ApiService().idUsuarioAtual;
-          final resLista = await ApiService().listarTreinosUsuario(idUsuario);
-          final tituloAlvo =
-              (treino['titulo'] ?? '').toString().trim().toLowerCase();
-
-          if (resLista['sucesso'] == true && resLista['treinos'] is List) {
-            for (final t in (resLista['treinos'] as List)) {
-              if (t is Map) {
-                final nome = (t['nome'] ?? t['titulo'] ?? '')
-                    .toString()
-                    .trim()
-                    .toLowerCase();
-                if (nome == tituloAlvo && t['id'] != null) {
-                  idParaExcluir = t['id'].toString();
-                  break;
-                }
-              }
-            }
-          }
-        }
-
-        if (idParaExcluir != null && idParaExcluir.isNotEmpty) {
-          await ApiService().excluirTreino(idParaExcluir);
-          treino['idSalvo'] = null;
-        }
-      } catch (_) {
-      } finally {
-        if (mounted) {
-          setState(() {
-            treino['salvando'] = false;
-            if (widget.dificuldadeFlag == 'meus_treinos') {
-              _listaTreinos.remove(treino);
-            }
-          });
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Treino removido dos salvos.'),
-              duration: Duration(seconds: 2),
-            ),
-          );
-        }
-      }
-    }
-  }
-
   Future<void> _carregarTreinos() async {
     setState(() => _carregando = true);
-
-    Map<String, String> salvosPorTitulo = {};
 
     try {
       if (widget.dificuldadeFlag == 'meus_treinos') {
@@ -679,10 +533,11 @@ class _OpcaoTreinosScreenState extends State<OpcaoTreinosScreen> {
                 (t['pontos_totais'] as num?)?.toInt() ??
                 (totalPontos > 0 ? totalPontos : 150);
 
-            final String idBanco = t['id'].toString();
             convertidos.add({
-              'id': idBanco,
-              'idSalvo': idBanco,
+              'id': t['id'].toString(),
+              'idSalvo': t['id'].toString(),
+              'salvo': true,
+              'ehMeusTreinos': true,
               'titulo': t['nome'] ?? t['titulo'] ?? 'Treino Personalizado',
               'dificuldade': t['dificuldade'] ?? 'Personalizado',
               'exerciciosCount': exerciciosMapeados.length,
@@ -690,7 +545,6 @@ class _OpcaoTreinosScreenState extends State<OpcaoTreinosScreen> {
               'pontosTotais': pontosTreino,
               'corTema': const Color(0xFF29B6F6),
               'exercicios': exerciciosMapeados,
-              'salvo': true,
             });
           }
 
@@ -700,23 +554,45 @@ class _OpcaoTreinosScreenState extends State<OpcaoTreinosScreen> {
           });
           return;
         } else {
-          // Se a lista da API for vazia, usa os treinos locais padrão de meus_treinos
+          // Se a lista da API for vazia, usa os treinos locais padrão de meus_treinos marcados como salvos
+          final List locais = bancoDeTreinos['meus_treinos'] ?? [];
+          final convertidosLocais = locais.map((m) => {
+            ...Map<String, dynamic>.from(m as Map),
+            'salvo': true,
+            'ehMeusTreinos': true,
+          }).toList();
           setState(() {
-            _listaTreinos = (bancoDeTreinos['meus_treinos'] ?? [])
-                .map((t) => {...t, 'salvo': true, 'idSalvo': t['id']?.toString()})
-                .toList();
+            _listaTreinos = convertidosLocais;
             _carregando = false;
           });
           return;
         }
       } else {
-        // Busca os treinos salvos do usuário (nome -> id) e os treinos da dificuldade
-        salvosPorTitulo = await _obterTreinosSalvosUsuario();
+        // Busca da API os treinos daquela dificuldade e cruza com os Meus Treinos salvos
+        final idUsuario = ApiService().idUsuarioAtual;
+        final Future<Map<String, dynamic>> reqMeusTreinos =
+            ApiService().listarTreinosUsuario(idUsuario);
+        final Future<Map<String, dynamic>> reqDificuldade =
+            ApiService().obterTreinosPorDificuldade(widget.dificuldadeFlag);
 
-        final res = await ApiService()
-            .obterTreinosPorDificuldade(widget.dificuldadeFlag);
+        final resultados = await Future.wait([reqDificuldade, reqMeusTreinos]);
+        final res = resultados[0];
+        final resMeusTreinos = resultados[1];
 
         if (!mounted) return;
+
+        // Mapeia títulos dos treinos já salvos pelo usuário para saber quem já está favoritado
+        final Map<String, String> salvosPorTitulo = {};
+        if (resMeusTreinos['sucesso'] == true && resMeusTreinos['treinos'] is List) {
+          for (final t in resMeusTreinos['treinos']) {
+            if (t is Map) {
+              final nome = (t['nome'] ?? t['titulo'] ?? '').toString().trim().toLowerCase();
+              if (nome.isNotEmpty && t['id'] != null) {
+                salvosPorTitulo[nome] = t['id'].toString();
+              }
+            }
+          }
+        }
 
         if (res['sucesso'] == true &&
             res['treinos'] is List &&
@@ -733,14 +609,15 @@ class _OpcaoTreinosScreenState extends State<OpcaoTreinosScreen> {
               }
             }
 
-            final String tituloTreino = item['titulo'] ?? 'Treino';
-            final String chaveTitulo = tituloTreino.trim().toLowerCase();
-            final String? idSalvo = salvosPorTitulo[chaveTitulo];
+            final titulo = (item['titulo'] ?? 'Treino').toString();
+            final idSalvo = salvosPorTitulo[titulo.trim().toLowerCase()];
+            final bool estaSalvo = idSalvo != null;
 
             list.add({
               'id': item['id']?.toString() ?? '',
               'idSalvo': idSalvo,
-              'titulo': tituloTreino,
+              'salvo': estaSalvo,
+              'titulo': titulo,
               'dificuldade': item['dificuldade'] ?? _tituloDificuldade,
               'exerciciosCount': item['exerciciosCount'] ??
                   (item['exercicios'] as List?)?.length ??
@@ -749,7 +626,6 @@ class _OpcaoTreinosScreenState extends State<OpcaoTreinosScreen> {
               'pontosTotais': item['pontosTotais'] ?? 200,
               'corTema': cor,
               'exercicios': item['exercicios'] ?? [],
-              'salvo': idSalvo != null,
             });
           }
 
@@ -766,23 +642,173 @@ class _OpcaoTreinosScreenState extends State<OpcaoTreinosScreen> {
 
     if (!mounted) return;
 
+    final List locais = bancoDeTreinos[widget.dificuldadeFlag] ?? [];
     setState(() {
-      _listaTreinos = (bancoDeTreinos[widget.dificuldadeFlag] ?? []).map((t) {
-        final String chaveTitulo =
-            (t['titulo'] ?? '').toString().trim().toLowerCase();
-        final String? idSalvo = widget.dificuldadeFlag == 'meus_treinos'
-            ? t['id']?.toString()
-            : salvosPorTitulo[chaveTitulo];
-        final bool jaSalvo =
-            widget.dificuldadeFlag == 'meus_treinos' || idSalvo != null;
-        return {
-          ...t,
-          'idSalvo': idSalvo,
-          'salvo': jaSalvo,
-        };
+      _listaTreinos = locais.map((m) => {
+        ...Map<String, dynamic>.from(m as Map),
+        'salvo': widget.dificuldadeFlag == 'meus_treinos',
+        'ehMeusTreinos': widget.dificuldadeFlag == 'meus_treinos',
       }).toList();
       _carregando = false;
     });
+  }
+
+  Future<void> _aoClicarEstrela(Map<String, dynamic> treino) async {
+    if (treino['salvando'] == true) return;
+
+    final bool jaSalvo = treino['salvo'] == true;
+
+    if (jaSalvo) {
+      // Pop-up de confirmação antes de remover
+      final bool? confirmar = await showDialog<bool>(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          backgroundColor: const Color(0xFF1E232A),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+            side: const BorderSide(color: Colors.white12),
+          ),
+          title: const Row(
+            children: [
+              Icon(Icons.warning_amber_rounded, color: Colors.amber, size: 28),
+              SizedBox(width: 10),
+              Text(
+                'Remover Treino?',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
+              ),
+            ],
+          ),
+          content: Text(
+            'Deseja realmente remover o treino "${treino['titulo'] ?? 'Treino'}" dos Meus Treinos?\n\nEle deixará de constar na sua lista de treinos.',
+            style: const TextStyle(color: Colors.white70, fontSize: 14),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancelar', style: TextStyle(color: Colors.grey)),
+            ),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.redAccent.shade700,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text(
+                'Remover',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+            ),
+          ],
+        ),
+      );
+
+      if (confirmar != true) return;
+
+      setState(() => treino['salvando'] = true);
+
+      try {
+        final idParaExcluir = treino['idSalvo']?.toString() ?? treino['id']?.toString();
+        if (idParaExcluir != null && idParaExcluir.isNotEmpty) {
+          await ApiService().excluirTreino(idParaExcluir);
+        }
+
+        if (mounted) {
+          setState(() {
+            treino['salvando'] = false;
+            treino['salvo'] = false;
+            treino['idSalvo'] = null;
+            if (widget.dificuldadeFlag == 'meus_treinos') {
+              _listaTreinos.remove(treino);
+            }
+          });
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Treino removido dos Meus Treinos com sucesso!'),
+              backgroundColor: Color(0xFF00E676),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          setState(() => treino['salvando'] = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Erro ao remover treino: $e'),
+              backgroundColor: Colors.redAccent,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
+      }
+    } else {
+      // Salvar nos Meus Treinos
+      setState(() => treino['salvando'] = true);
+      final idUsuario = ApiService().idUsuarioAtual;
+      final exercicios = (treino['exercicios'] as List? ?? [])
+          .map((e) => {
+                'exercicio_id': e['exercicio_id'] ?? e['id'] ?? 1,
+                'nome': e['nome'] ?? 'Exercício',
+                'series': e['series'] ?? 3,
+                'repeticoes': e['repeticoes'] ?? 10,
+                'pontos': e['pontos'] ?? e['pontos_totais'] ?? 20,
+                'pontos_totais': e['pontos_totais'] ?? e['pontos'] ?? 20,
+              })
+          .toList();
+
+      try {
+        final res = await ApiService().criarTreino(
+          usuarioId: idUsuario,
+          nome: treino['titulo'] ?? 'Treino',
+          descricao:
+              'Treino salvo dos treinos ${treino['dificuldade'] ?? widget.dificuldadeFlag}',
+          dificuldade: treino['dificuldade']?.toString() ?? _tituloDificuldade,
+          duracaoMinutos: (treino['duracaoMinutos'] as num?)?.toInt() ?? 30,
+          pontosTotais: (treino['pontosTotais'] as num?)?.toInt() ?? 100,
+          exercicios: exercicios,
+        );
+
+        final novoId =
+            res['treino']?['id']?.toString() ?? res['id']?.toString();
+
+        if (mounted) {
+          setState(() {
+            treino['salvando'] = false;
+            treino['salvo'] = true;
+            if (novoId != null) {
+              treino['idSalvo'] = novoId;
+            }
+          });
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Treino salvo nos Meus Treinos com sucesso!'),
+              backgroundColor: Color(0xFF00E676),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          setState(() => treino['salvando'] = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Erro ao salvar treino: $e'),
+              backgroundColor: Colors.redAccent,
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
+      }
+    }
   }
 
   @override
@@ -902,7 +928,7 @@ class _OpcaoTreinosScreenState extends State<OpcaoTreinosScreen> {
                               padding: const EdgeInsets.only(bottom: 20.0),
                               child: InkWell(
                                 onTap: () async {
-                                  final concluido = await Navigator.push(
+                                  await Navigator.push(
                                     context,
                                     MaterialPageRoute(
                                       builder: (context) =>
@@ -910,14 +936,7 @@ class _OpcaoTreinosScreenState extends State<OpcaoTreinosScreen> {
                                               treinoData: treino),
                                     ),
                                   );
-                                  if (!mounted) return;
-                                  if (widget.dificuldadeFlag == 'meus_treinos' &&
-                                      (concluido == true ||
-                                          treino['salvo'] == false)) {
-                                    _carregarTreinos();
-                                  } else {
-                                    setState(() {});
-                                  }
+                                  _carregarTreinos();
                                 },
                                 borderRadius: BorderRadius.circular(12),
                                 child: Container(
@@ -949,23 +968,18 @@ class _OpcaoTreinosScreenState extends State<OpcaoTreinosScreen> {
                                           IconButton(
                                             padding: EdgeInsets.zero,
                                             constraints: const BoxConstraints(),
-                                            visualDensity:
-                                                VisualDensity.compact,
+                                            visualDensity: VisualDensity.compact,
                                             tooltip: treino['salvo'] == true
                                                 ? 'Remover dos Meus Treinos'
                                                 : 'Salvar nos Meus Treinos',
-                                            onPressed:
-                                                treino['salvando'] == true
-                                                    ? null
-                                                    : () =>
-                                                        _alternarSalvarTreinoCard(
-                                                            treino),
+                                            onPressed: treino['salvando'] == true
+                                                ? null
+                                                : () => _aoClicarEstrela(treino),
                                             icon: treino['salvando'] == true
                                                 ? const SizedBox(
                                                     width: 20,
                                                     height: 20,
-                                                    child:
-                                                        CircularProgressIndicator(
+                                                    child: CircularProgressIndicator(
                                                       strokeWidth: 2,
                                                       color: Colors.amber,
                                                     ),
@@ -974,10 +988,9 @@ class _OpcaoTreinosScreenState extends State<OpcaoTreinosScreen> {
                                                     treino['salvo'] == true
                                                         ? Icons.star
                                                         : Icons.star_border,
-                                                    color:
-                                                        treino['salvo'] == true
-                                                            ? Colors.amber
-                                                            : Colors.grey,
+                                                    color: treino['salvo'] == true
+                                                        ? Colors.amber
+                                                        : Colors.grey,
                                                     size: 26,
                                                   ),
                                           ),

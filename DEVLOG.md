@@ -26,6 +26,123 @@
 
 ## Histórico de Entradas
 
+### [Entrada #025] 2026-11-05 — Correção Crítica de Isolamento de Sessão Multi-Usuário (Stateless Auth)
+- **Objetivo / Problema Relatado:**
+  - Quando múltiplos usuários faziam login simultaneamente no aplicativo (ex.: 4 atletas logando na mesma janela de tempo), todos os aparelhos passavam a exibir a conta, o nome e os dados do último usuário autenticado (ex.: "Ramon").
+  - **Diagnóstico Técnico:** O servidor FastAPI compartilhava uma única instância global `supabase` em memória (`BD/supabase_client.py`). Ao executar `supabase.auth.sign_in_with_password(...)` em `fazer_login`, o cliente `supabase-py` armazenava a sessão do último usuário logado na memória do servidor e sobrescrevia o header global `Authorization` do cliente PostgREST. Em seguida, a `HomeScreen` do Flutter invocava `ApiService().obterUsuarioAtual()` (`GET /auth/usuario-atual`) a cada build; como o backend chamava `supabase.auth.get_user()` sem ler o token JWT do header `Authorization`, o servidor devolvia o usuário "Ramon" para todos os aparelhos, e o `ApiService` sobrescrevia `idUsuarioLogado` e `usuarioLogado` localmente nos celulares dos outros atletas.
+- **Tasks Executadas e Artefatos Gerados:**
+  - `[TASK-AUTH-ISOLATION-01]` Isolamento Stateless de Clientes Auth no Backend: Configuração de `ClientOptions(auto_refresh_token=False, persist_session=False)` e criação da fábrica `criar_cliente_auth()` em `./BD/supabase_client.py`; refatoração de `fazer_login`, `criar_conta`, `deslogar_perfil`, `obter_usuario_atual`, `redefinir_senha_com_codigo`, `alterar_senha`, `ver_perfil`, `editar_perfil` e `criar_treino` em `./BD/main.py` e extração explícita do header `Authorization: Bearer <token>` em `./BD/api.py` $\rightarrow$ **Artefatos:** `./BD/supabase_client.py`, `./BD/main.py`, `./BD/api.py`.
+  - `[TASK-AUTH-ISOLATION-02]` Blindagem de Sessão Local no App Flutter: Proteção contra colisão de IDs em `obterUsuarioAtual`, `verPerfil` e `verPontuacao` em `./lib/services/api_service.dart`, e remoção do `FutureBuilder` redundante na árvore de build de `./lib/screens/home_screen.dart` $\rightarrow$ **Artefatos:** `./lib/services/api_service.dart`, `./lib/screens/home_screen.dart`.
+  - `[TASK-AUTH-ISOLATION-03]` Suíte de Testes de Isolamento Multi-Usuário: Criação de testes automatizados simulando 4 usuários logando simultaneamente (com "Ramon" por último), tentativa de acesso sem token e logout isolado $\rightarrow$ **Artefato:** `tests/test_isolamento_sessao_multiusuario.py`.
+  - `[TASK-AUTH-SINGLE-DEVICE]` Controle de Dispositivo Único Ativo por Conta: Detecção de conta já conectada em outro aparelho (`ja_conectado: True`) no login com modal de confirmação em `./lib/screens/login_screen.dart` ("Desconectar outro e entrar" via `forcar_login: True`), invalidação automática da sessão do dispositivo antigo (`sessao_encerrada: True`) e liberação imediata no logout $\rightarrow$ **Artefatos:** `./BD/main.py`, `./BD/api.py`, `./lib/services/api_service.dart`, `./lib/screens/login_screen.dart`, `./lib/screens/home_screen.dart`, `tests/test_isolamento_sessao_multiusuario.py`.
+- **Estado Resultante:** Sessões 100% isoladas por token JWT/ID de usuário tanto no servidor quanto no cliente móvel, com bloqueio de login simultâneo na mesma conta e opção de desconectar o aparelho anterior; todos os testes de isolamento e `flutter analyze` aprovados.
+
+### [Entrada #024] 2026-11-04 — Criação e Aplicação do Ícone Oficial: Chevron Atlético (Padrão Nike / Gymshark)
+- **Objetivo / Demanda:**
+  - Criar um ícone de identidade visual esportiva, minimalista e sóbria para o **PersonAI**, inspirado no padrão estético da Nike Training Club e Gymshark (fundo preto absoluto `#000000` com emblema plano 2D em branco puro sólido `#FFFFFF`).
+  - Adoção do **Chevron Atlético Duplo** apontando para cima (`∧`), simbolizando a flexão de força biomecânica, contração muscular e superação física contínua sem artifícios ou exageros de IA.
+  - Aplicar e embutir o ícone no aplicativo móvel em todas as densidades de tela do Android (`mipmap-mdpi`, `hdpi`, `xhdpi`, `xxhdpi`, `xxxhdpi`) e compilar novo binário `.apk`.
+- **Tasks Executadas e Artefatos Gerados:**
+  - `[TASK-ICON-GEN]` Geração da arte vetorial plana 2D do Chevron Atlético $\rightarrow$ **Artefato:** `assets/icon/app_icon.png`.
+  - `[TASK-ICON-MIPMAPS]` Redimensionamento em 5 densidades para o Android via OpenCV $\rightarrow$ **Artefatos:** `android/app/src/main/res/mipmap-*/ic_launcher.png`.
+  - `[TASK-ICON-BUILD-APK]` Recompilação do aplicativo móvel para gerar o executável com o novo ícone instalado $\rightarrow$ **Artefato:** `./app-debug.apk`.
+- **Commits Incrementais:**
+  - `8bd058e` / `feat(app): adiciona novo icone personalizado do aplicativo PersonAI`
+  - `a6f2dad` / `style(app): atualiza icone do app para versao minimalista e sobria`
+  - `67905c4` / `style(app): adota monograma 'P' escultural em titanio fosco como icone oficial`
+  - `02cf4db` / `style(app): implementa icone oficial chevron atletico no padrao Nike`
+- **Estado Resultante:** O aplicativo agora conta com identidade esportiva autêntica, limpa e com alto impacto visual de alto nível.
+
+### [Entrada #023] 2026-11-04 — Integração dos Novos Exercícios da Branch IA, Organização de Arquivos e Suporte no App Flutter
+- **Objetivo / História de Usuário:**
+  - Trazer as atualizações desenvolvidas pela equipe de IA na branch `IA` do GitHub para a branch de produção `Banco-de-Dados`, expandindo o catálogo motor de 3 para **7 exercícios biomecânicos completos**:
+    1. `desenvolvimento_ombro` (ID 1 / 16) — Desenvolvimento com Halteres;
+    2. `agachamento` (ID 2 / 11) — Agachamento Livre;
+    3. `rosca_biceps` (ID 3 / 20) — Rosca Direta de Bíceps;
+    4. `elevacao_lateral` (ID 4 / 17) — Elevação Lateral com Halteres;
+    5. `triceps_corda` (ID 5 / 24 / 23) — Tríceps Corda na Polia;
+    6. `flexao_diamante` (ID 6 / 5) — Flexão de Braço / Diamante;
+    7. `remada_baixa` (ID 7 / 7) — Remada Baixa na Polia com inclinação de tronco.
+  - Integrar a nova organização estrutural de arquivos introduzida pela equipe de IA (pastas `Códigos/` e `Gabaritos/`), mantendo interoperabilidade total e compatibilidade retroativa com os módulos de Backend, Treinos em Dupla, WebSockets e Frontend Flutter.
+  - Implementar o suporte analítico a todos os novos exercícios no aplicativo Flutter (cálculo de ângulos articulares em `PoseService`, mapeamento de IDs de catálogo em `TreinoSelecionadoScreen` e `LobbyDuplaScreen`, e barra visual de progresso dinâmico em `CameraTreinoScreen`).
+- **Tasks Executadas e Artefatos Gerados:**
+  - `[TASK-MERGE-GABARITOS]` Importação dos 7 gabaritos padrão-ouro de especialistas em JSON para o diretório canônico `Gabaritos/` e cópia de salvaguarda na raiz $\rightarrow$ **Artefatos:** `Gabaritos/*.json`.
+  - `[TASK-MERGE-CODIGOS-IA]` Importação e unificação do motor biomecânico atualizado (`exercicios_fsm.py`, `avaliador_pontuacao.py`, `gabarito.py`, `buffer_repeticao.py`, `calculo_angulos.py`, `servico_ia_api.py`, `app_tempo_real.py`, `comparar_exercicio.py`, `PLANO_SPRINT_NOVOS_EXERCICIOS.md`) nas pastas `Códigos/` e raiz $\rightarrow$ **Artefatos:** `Códigos/*.py`, `./*.py`.
+  - `[TASK-IA-ALIASES-UNIFICADOS]` Ampliação de `obter_config_exercicio` em `exercicios_fsm.py` para mapear transparentemente IDs numéricos ('1'..'7'), nomes textuais e IDs do catálogo do app Flutter ('16', '11', '20', '17', '24', '5', '7') $\rightarrow$ **Artefatos:** `exercicios_fsm.py`, `Códigos/exercicios_fsm.py`.
+  - `[TASK-FLUTTER-POSE-SERVICE]` Atualização do `PoseService` para calcular e validar com precisão os ângulos articulares de membros inferiores (`joelho`, `quadril`), remada baixa (`cotovelo`, `ombro`, `quadril`) e membros superiores (`cotovelo`, `ombro`) com suporte contralateral $\rightarrow$ **Artefato:** `lib/services/pose_service.dart`.
+  - `[TASK-FLUTTER-MAPPING-UI]` Atualização de `_mapearIdExercicio` em `treino_selecionado_screen.dart` e `lobby_dupla_screen.dart`, e extensão da barra de progresso em `camera_treino_screen.dart` para os 7 exercícios $\rightarrow$ **Artefatos:** `lib/screens/treino_selecionado_screen.dart`, `lib/screens/lobby_dupla_screen.dart`, `lib/screens/camera_treino_screen.dart`.
+  - `[TASK-BUILD-APK-DEBUG]` Compilação e atualização do executável Android com suporte a todos os exercícios $\rightarrow$ **Artefato:** `./app-debug.apk`.
+  - `[TASK-VALIDACAO-TESTS]` Execução da suíte completa de testes automatizados com `pytest` (**87 testes aprovados — 100% pass**) e validação de lint com `flutter analyze` $\rightarrow$ **Artefatos:** Relatórios de testes e análise.
+- **Decisões Técnicas e Observações:**
+  - A branch remota `IA` havia excluído a árvore de arquivos Flutter (`lib/`, `ios/`, etc.) para rodar testes Python isolados. A integração foi realizada por incorporação seletiva das pastas `Gabaritos/`, `Códigos/` e suítes de teste, preservando 100% da integridade do aplicativo Flutter e das rotas de treino em dupla e WebSockets presentes na branch `Banco-de-Dados`.
+  - Nenhuma alteração estrutural nas tabelas do banco de dados (Supabase) foi necessária, uma vez que o Supabase armazena os IDs e nomes de exercícios que já eram compatíveis com o catálogo do sistema.
+- **Estado Resultante:** Todos os 87 testes automatizados de backend, IA e WebSocket aprovados; aplicativo móvel compilado e compatível com os 7 exercícios em tempo real.
+
+### [Entrada #022] 2026-11-03 — Mecanismo de Arrastar e Soltar (Reorderable) e Persistência de Ordem dos Exercícios
+- **Objetivo / História de Usuário:**
+  - Permitir que o usuário reordene facilmente a sequência de exercícios por meio de um mecanismo intuitivo de **arrastar e soltar (drag and drop)** tanto na tela de **Criação de Treino** quanto na tela de **Treino Selecionado**.
+  - Garantir que a nova ordenação definida pelo usuário seja **automaticamente persistida no banco de dados** (atualizando tanto as relações na tabela `treino_exercicios` quanto os metadados JSON na coluna `descricao` do Supabase).
+- **Tasks Executadas e Artefatos Gerados:**
+  - `[TASK-REORDER-CRIAR]` Substituição do `ListView.builder` por `ReorderableListView.builder` com `onReorderItem`, identificadores de instância via `ObjectKey(item)` e alça visual de arrasto (`Icons.drag_handle` com `ReorderableDragStartListener`) na tela de criação de treino. Na serialização para a API (`_salvarTreino`), cada exercício recebe explicitamente seu atributo `'ordem': index + 1` $\rightarrow$ **Artefato:** `lib/screens/criar_exercicio_screen.dart`.
+  - `[TASK-REORDER-SELECIONADO]` Conversão da lista de exercícios em `treino_selecionado_screen.dart` para `ReorderableListView.builder` com `onReorderItem`, gerenciamento de estado dedicado (`_listaExercicios`), alça de arrasto em cada card e sincronização imediata com o backend FastAPI/Supabase via `ApiService().editarTreino(...)` com o payload ordenado $\rightarrow$ **Artefato:** `lib/screens/treino_selecionado_screen.dart`.
+  - `[TASK-REORDER-BACKEND]` Aprimoramento da ordenação em `_desempacotar_treino` com `sort(key=lambda te: te.get("ordem") or 0)` e extensão da função `editar_treino` em `BD/main.py` para persistir os índices de ordenação na tabela relacional `treino_exercicios` e sincronizar o JSON da coluna `descricao` $\rightarrow$ **Artefato:** `BD/main.py`.
+  - `[TASK-REORDER-TESTS]` Validação de integridade do código Flutter com `flutter analyze` (**0 erros / 0 avisos** nos módulos modificados) e suíte de testes de regressão automatizados com `pytest` (**63 aprovados**) $\rightarrow$ **Artefatos:** Relatórios de análise e testes.
+- **Decisões Técnicas e Observações:**
+  - Foi adotada a nova API moderna do Flutter 3.47+ (`onReorderItem`), que calcula e normaliza os índices de inserção sem necessidade de decrementos manuais de compensação, garantindo total compatibilidade futura.
+  - O uso de `buildDefaultDragHandles: false` em conjunto com `ReorderableDragStartListener` no ícone `Icons.drag_handle` foi escolhido para assegurar que a rolagem vertical tradicional da tela não sofra interferências ou conflitos acidentais com o gesto de arrasto.
+- **Estado Resultante:** Ambas as telas (`Criar Treino` e `Treino Selecionado`) agora contam com o mecanismo de arrastar e soltar responsivo e fluido, com persistência automática da ordenação no banco de dados e testes 100% aprovados.
+
+### [Entrada #021] 2026-11-03 - Integracao do Sistema de HUD de 5 Botoes, Responsividade e Persistencia de Login
+- **Objetivo / Historia de Usuario:**
+  - Puxar e aprimorar os mecanismos desenvolvidos pelo colaborador Arthur na branch `Frontend-arthur` (HUD persistente e correcoes de dimensionamento de botoes).
+  - Expandir o HUD de 3 para **5 botoes persistentes** na ordem estabelecida: **Home**, **Amigos**, **Treinar**, **Leaderboard (Ranking)** e **Perfil**, mantendo a barra visivel nas 5 abas principais e sumindo automaticamente em rotas secundarias (`Navigator.push`).
+  - Corrigir problemas de overflow e estouro de botoes em telas menores ou com zoom de fonte do sistema.
+  - Implementar **persistencia automatica de login** via `shared_preferences`, permitindo que o usuario permaneca autenticado entre reinicializacoes do app e acesse diretamente a tela inicial (`/home`).
+- **Tasks Executadas e Artefatos Gerados:**
+  - `[TASK-HUD-01-MAIN]` Insercao de `builder` com `SafeArea(bottom: true, top: false)` no `MaterialApp` para evitar sobreposicao da barra de navegacao do SO (Android/iOS) com os controles inferiores -> **Artefato:** `lib/main.dart`.
+  - `[TASK-HUD-02-SIZING]` Responsividade com `IntrinsicHeight`, `BoxConstraints(minHeight: 195)` e `Flexible` nos cards de "Criar Treinos" e "Treinos Padroes", e `Expanded` nas linhas de pontuacao de `CriarExercicioScreen` -> **Artefatos:** `lib/screens/training_menu_screen.dart`, `lib/screens/criar_exercicio_screen.dart`.
+  - `[TASK-HUD-03-CALLBACKS]` Implementacao de callbacks `onBack` e navegacao cruzada (`onOpenAmigos`, `onOpenLeaderboard`) nas telas secundarias, permitindo retorno imediato a Home (`_mudarAba(0)`) e remocao de botoes redundantes na AppBar -> **Artefatos:** `lib/screens/amigos_screen.dart`, `lib/screens/leaderboard_screen.dart`, `lib/screens/training_menu_screen.dart`, `lib/screens/profile_screen.dart`.
+  - `[TASK-HUD-04-HUD-5-BTNS]` Implementacao do `BottomNavigationBar` com 5 itens estilizados (`type: BottomNavigationBarType.fixed`), mantendo o HUD ativo em todas as 5 telas principais, com o botao "Hora de Treinar" acionando a aba 2 e o icone de perfil acionando a aba 4 -> **Artefato:** `lib/screens/home_screen.dart`.
+  - `[TASK-AUTH-PERSISTENCIA]` Adicao da dependencia `shared_preferences: ^2.2.2`, metodos `salvarSessaoLocal()`, `restaurarSessaoLocal()` e `limparSessaoLocal()` no `ApiService`, e verificacao de sessao antes de `runApp` com roteamento automatico para `/home` se autenticado -> **Artefatos:** `pubspec.yaml`, `lib/services/api_service.dart`, `lib/main.dart`.
+  - `[TASK-TREINO-FAVORITOS]` Inicializacao de estado `salvo = true` em Meus Treinos, cruzamento paralelo de treinos padroes com treinos do usuario, prevencao de duplicatas e icone interativo de estrela nos cards -> **Artefato:** `lib/screens/opcao_treinos_screen.dart`.
+  - `[TASK-TREINO-EXCLUSAO-MODAL]` Pop-up modal de confirmacao (`AlertDialog`) antes da exclusao, remocao fisica do treino no banco Supabase (`ApiService().excluirTreino`) preservando o catalogo padrao, e sincronizacao entre telas -> **Artefatos:** `lib/screens/opcao_treinos_screen.dart`, `lib/screens/treino_selecionado_screen.dart`.
+  - `[TASK-HUD-05-TESTS]` Validacao estatica com `flutter analyze` (0 erros) e execucao da suite de testes automatizados com `pytest` (63 aprovados) -> **Artefatos:** Relatorios de analise e testes.
+- **Decisoes Tecnicas e Observacoes:**
+  - O uso de `BottomNavigationBarType.fixed` foi mantido para evitar o comportamento padrao do Flutter de ocultar rotulos em barras com 4 ou mais itens.
+  - A sessao autenticada persiste o token JWT e metadados do usuario localmente, sendo revogada e limpa tanto no logout voluntario quanto em respostas de autenticacao invalida.
+  - A preservacao total das implementacoes recentes de `Banco-de-Dados` (treinos em dupla, lobby e sincronizacao RLS) foi verificada e validada.
+- **Estado Resultante:** 100% dos testes aprovados, codigo sem warnings de lint, login persistente e HUD de 5 botoes operando com fluidez nativa.
+
+### [Entrada #020] 2026-11-02 — Correção de Pontuação para Ambos os Membros da Dupla e Trigger RLS Supabase
+- **Objetivo / História de Usuário:**
+  - Garantir que a pontuação do treino em dupla seja devidamente creditada e persistida para **ambos os participantes (Host e Convidado)**, tanto no **Modo Remoto (2 Celulares)** quanto no **Modo Presencial (1 Celular Compartilhado)**, superando as restrições de Row-Level Security (RLS) do Supabase.
+  - Disponibilizar novo arquivo executável compilado (`app-debug.apk`) na raiz do repositório para testes imediatos da equipe.
+- **Tasks Executadas e Artefatos Gerados:**
+  - `[TASK-DUPLA-PONTUACAO-REMOTO]` No modo remoto (2 celulares), o aplicativo do convidado ao detectar via polling que a sessão foi finalizada agora invoca o crédito de pontuação (`adicionarPontuacaoDiaria`) utilizando suas próprias credenciais de autenticação (JWT) e atualiza sua pontuação em tela $\rightarrow$ **Artefato:** `lib/screens/camera_treino_screen.dart`.
+  - `[TASK-DUPLA-PONTUACAO-TRIGGER-RLS]` No modo presencial (1 celular) e como salvaguarda geral, criação de trigger e função SQL com `SECURITY DEFINER` (`trg_creditar_pontos_treino_dupla` em `BD/script_credito_pontos_dupla.sql` e `BD/script_treino_dupla.sql`), permitindo ao PostgreSQL creditar as pontuações de ambos os atletas na tabela `usuarios` no momento da finalização da sessão, contornando a regra RLS de que um usuário não pode editar a linha de outro $\rightarrow$ **Artefatos:** `BD/script_credito_pontos_dupla.sql`, `BD/script_treino_dupla.sql`.
+  - `[TASK-DUPLA-BACKEND-OVERRIDE]` Atualização dos endpoints `/dupla/encerrar-sessao` e `/dupla/atualizar-turno` para aceitar pontuações consolidadas do cliente e aplicar o crédito no banco de dados $\rightarrow$ **Artefatos:** `BD/api.py`, `BD/main.py`.
+  - `[TASK-BUILD-APK-DEBUG]` Compilação e substituição do binário atualizado `app-debug.apk` na raiz do projeto $\rightarrow$ **Artefato:** `./app-debug.apk`.
+  - `[TASK-APP-NAME-PERSONAI]` Atualização do nome de exibição do aplicativo para **PersonAI** na instalação do Android (`android:label="PersonAI"` em `android/app/src/main/AndroidManifest.xml`) e no widget MaterialApp (`lib/main.dart`) $\rightarrow$ **Artefatos:** `android/app/src/main/AndroidManifest.xml`, `lib/main.dart`, `./app-debug.apk`.
+- **Decisões Técnicas e Observações:**
+  - Abordagem em duas camadas: no modo 2 celulares o convidado autenticado credita os próprios pontos via API; no modo 1 celular (onde o convidado não está logado no aparelho), o script SQL com trigger `SECURITY DEFINER` garante a gravação atômica dos pontos do parceiro no banco de dados.
+- **Estado Resultante:** 100% dos testes aprovados (11 testes Flutter + 8 testes de API Python + 63 testes biomecânicos) e APK debug atualizado na raiz.
+
+### [Entrada #019] 2026-11-02 — Treino em Dupla no Mesmo Aparelho (Modo Presencial 1 Celular) e Treinos Reais do Host
+- **Objetivo / História de Usuário:**
+  1. Disponibilizar a opção para a dupla treinar junta no **mesmo smartphone (Modo Presencial / 1 Celular)** ou em **smartphones separados (Modo Remoto / 2 Celulares)**, com o Host selecionando o formato desejado no lobby.
+  2. Substituir treinos estáticos/placeholders pelos treinos reais cadastrados pelo usuário Host no Supabase (`listarTreinosUsuario`).
+  3. No modo de 1 celular compartilhado, implementar alternância local de turnos sem polling de rede, pausando as repetições ao fim da série, orientando passar o aparelho ao parceiro através de modal explicativo, acumulando a pontuação de ambos os atletas e creditando o bônus cooperativo (+20%) ao final.
+- **Tasks Executadas e Artefatos Gerados:**
+  - `[TASK-DUPLA-PRESENCIAL-01]` Seletor visual de formato no lobby (`LobbyDuplaScreen`): botões para alternar entre "1 Celular (Presencial)" e "2 Celulares (Remoto)", adaptando os textos explicativos e os requisitos de início (no modo presencial não exige que o parceiro remoto entre via rede) $\rightarrow$ **Artefato:** `lib/screens/lobby_dupla_screen.dart`.
+  - `[TASK-DUPLA-PRESENCIAL-02]` Suporte a `isMesmoAparelho` em `CameraTreinoScreen`: alternância de turno local (`_turnoDoHostLocal`), supressão do overlay preto de descanso e do polling remoto, diálogo explicativo `_exibirDialogoIntervaloSerieMesmoAparelho()` com instrução de passagem de aparelho, cálculo e acumulação de pontos individuais e encerramento cooperativo bonificado $\rightarrow$ **Artefato:** `lib/screens/camera_treino_screen.dart`.
+  - `[TASK-DUPLA-PRESENCIAL-03]` Testes unitários expandidos em `test/treinos_test.dart` cobrindo o construtor com `isMesmoAparelho: true`, verificação matemática da bonificação cooperativa de 20% e parsing do modelo `SessaoDupla` $\rightarrow$ **Artefato:** `test/treinos_test.dart` (11 testes Flutter aprovados).
+  - `[TASK-UI-CLEANUP]` Limpeza e refinamento da interface de usuário nas telas de treino (`CameraTreinoScreen`, `TreinoSelecionadoScreen` e `LobbyDuplaScreen`), removendo o uso repetitivo do termo "IA" em botões, modais, banners de status e tooltips em prol de uma linguagem natural e fluida para o usuário final $\rightarrow$ **Artefatos:** `lib/screens/camera_treino_screen.dart`, `lib/screens/treino_selecionado_screen.dart`, `lib/screens/lobby_dupla_screen.dart`.
+  - `[TASK-DUPLA-PONTUACAO-FIX]` Correção crítica da persistência de pontos no treino em dupla: computação e crédito imediato no banco de dados (`usuarios`) ao concluir cada série tanto no modo 1 celular quanto no modo 2 celulares, sincronização dos pontos antes do encerramento e consolidação do bônus cooperativo (+20%) creditado no Supabase para ambos os atletas ao encerrar a sessão $\rightarrow$ **Artefatos:** `lib/screens/camera_treino_screen.dart`, `lib/services/api_service.dart`, `BD/main.py`, `BD/api.py`.
+- **Decisões Técnicas e Observações:**
+  - O modo de 1 celular permite que duplas que estão fisicamente no mesmo espaço (academia, praça ou casa) treinem com a IA sem depender de dois celulares conectados na mesma rede ou convites remotos pendentes.
+  - A pontuação de cada atleta é calculada individualmente pela IA a cada série executada e consolidada com o bônus de 20% ao término do treino completo.
+- **Estado Resultante:** 100% dos testes aprovados (11 testes Flutter + 8 testes de API Python + 63 testes biomecânicos).
+
 ### [Entrada #018] 2026-11-02 — Integração do Ciclo de Séries/Repetições e Seleção de Treino Completo em Dupla
 - **Objetivo / História de Usuário:**
   1. Integrar as correções da branch `feature/repeticao`: pausa automática das repetições ao atingir a meta, diálogo com intervalo de descanso entre séries e confirmação explícita para avançar de série/exercício.
@@ -34,9 +151,9 @@
 - **Tasks Executadas e Artefatos Gerados:**
   - `[TASK-REP-01]` Integração do ciclo de séries e repetições na tela `CameraTreinoScreen`: parâmetros `totalSeries`, getters dinâmicos `_totalSeriesAtual` e `_serieAtual`, monitoramento contínuo em `_verificarProgressoSeries()`, exibição no contador HUD (`SÉRIE X DE Y`) e diálogo de intervalo com confirmação explícita $\rightarrow$ **Artefato:** `lib/screens/camera_treino_screen.dart`.
   - `[TASK-REP-02]` Atualização de `TreinoSelecionadoScreen` para repassar a contagem de séries do exercício (`totalSeries: seriesEx`) à tela da câmera $\rightarrow$ **Artefato:** `lib/screens/treino_selecionado_screen.dart`.
-  - `[TASK-DUPLA-TREINO-01]` Expansão do catálogo de treinos no lobby em dupla (`LobbyDuplaScreen`) permitindo ao Host selecionar treinos completos (`Circuito Completo IA`, `Treino Superior IA`, `Treino Pernas & Ombros IA`, `Corpo completo A`, `Membros Inferiores & Core`), sincronizando em tempo real a lista completa de exercícios com o parceiro $\rightarrow$ **Artefato:** `lib/screens/lobby_dupla_screen.dart`.
+  - `[TASK-DUPLA-TREINO-01]` Carregamento dinâmico dos treinos reais do usuário Host no lobby em dupla (`LobbyDuplaScreen`) a partir do banco de dados (`ApiService().listarTreinosUsuario`), com parser resiliente de exercícios (`exercicios`, `treino_exercicios` e `descricao` JSON), botão de recarregamento e sincronização em tempo real da lista completa com o convidado $\rightarrow$ **Artefato:** `lib/screens/lobby_dupla_screen.dart`.
   - `[TASK-DUPLA-TREINO-02]` Adaptação da transição por turnos e exercícios em dupla em `CameraTreinoScreen`: diálogo de confirmação de série `_exibirDialogoIntervaloSerieDupla()`, avanço coordenado de exercício e série ao final dos ciclos de cada atleta, e polling reativo sincronizando o índice de exercício entre ambos $\rightarrow$ **Artefato:** `lib/screens/camera_treino_screen.dart`.
-  - `[TASK-TEST-01]` Testes automatizados expandidos com Flutter test cobrindo metas configuráveis de séries/repetições e treino em dupla com múltiplos exercícios $\rightarrow$ **Artefato:** `test/treinos_test.dart` (7 testes aprovados).
+  - `[TASK-TEST-01]` Testes automatizados expandidos com Flutter test cobrindo metas configuráveis de séries/repetições, inicialização do lobby e treino em dupla com múltiplos exercícios $\rightarrow$ **Artefato:** `test/treinos_test.dart` (8 testes aprovados).
 - **Decisões Técnicas e Observações:**
   - O fluxo em dupla respeita o revezamento por atleta em cada série. Ao concluir todas as séries de um exercício, o sistema sincroniza `novoIndiceExercicio` no backend (`/dupla/concluir-serie`), permitindo a ambos os atletas transitar automaticamente para o próximo exercício até a conclusão completa do treino.
 - **Estado Resultante:** 100% dos testes aprovados (63 testes Python + 7 testes Flutter).
@@ -61,18 +178,28 @@
 ### [Entrada #016] 2026-10-31 — Migração para WebSocket Persistente e MediaPipe On-Device (Sprints WS-01, WS-02 e WS-03)
 - **Objetivo / História de Usuário:** Reduzir radicalmente a latência da análise biomecânica (de ~500–800ms para ~50–150ms) e o tráfego de rede (de ~30KB por frame JPEG para ~200 bytes por payload JSON), migrando a estimação de pose para o dispositivo móvel (Google ML Kit on-device) e estabelecendo canal de comunicação persistente via WebSocket bidirecional com o backend FastAPI.
 - **Tasks Executadas e Artefatos Gerados:**
-  - `[TASK-WS-01.1]` Adicionado endpoint WebSocket `/ia/ws/{usuario_id}` em `BD/api.py`, recebendo fluxos de ângulos contínuos, com suporte assíncrono em thread pool (`asyncio.to_thread`), heartbeat keep-alive (ping/pong) e troca in-place de exercícios sem fechar o socket $ightarrow$ **Artefato:** `BD/api.py`.
-  - `[TASK-WS-01.2]` Implementado getter `wsBaseUrl` em `lib/config/api_config.dart` mapeando `wss://` para nuvem (Render) e `ws://` para emuladores e ambiente local $ightarrow$ **Artefato:** `lib/config/api_config.dart`.
-  - `[TASK-WS-01.3]` Criado serviço cliente WebSocket `lib/services/ia_websocket_service.dart` com reconexão resiliente automática, heartbeat periódico de 20s contra timeout do Render, e métodos para streaming de ângulos, troca de exercício e reinicialização de série $ightarrow$ **Artefato:** `lib/services/ia_websocket_service.dart`.
-  - `[TASK-WS-01.4]` Criada suíte de testes automatizados do WebSocket com `TestClient` cobrindo conexão, streaming angular, ping/pong e troca dinâmica $ightarrow$ **Artefato:** `tests/test_websocket_ia.py` (3 testes aprovados).
-  - `[TASK-WS-02.1]` Integradas dependências `web_socket_channel: ^3.0.3` e `google_mlkit_pose_detection: ^0.16.1` no `pubspec.yaml`, com adição de permissão de câmera no `android/app/src/main/AndroidManifest.xml` $ightarrow$ **Artefatos:** `pubspec.yaml`, `AndroidManifest.xml`.
-  - `[TASK-WS-02.2]` Implementado `lib/services/pose_service.dart` em Dart puro, reproduzindo a geometria vetorial 2D de `calculo_angulos.py`, com suporte bilateral inteligente (membros contralaterais e webcams espelhadas) e **guarda defensiva multiplataforma** que previne chamadas nativas fora de Android/iOS $ightarrow$ **Artefato:** `lib/services/pose_service.dart`.
-  - `[TASK-WS-02.3]` Refatorado `lib/screens/camera_treino_screen.dart` para acoplar `PoseService` e `IAWebSocketService`, com loop a 150ms (~7 FPS) enviando telemetria ultra-leve, com transição in-place e **fallback transparente para modo clássico de imagens/simulação** em desktops Windows $ightarrow$ **Artefato:** `lib/screens/camera_treino_screen.dart`.
-  - `[TASK-WS-02.4]` Adicionado método `processarAngulosIA()` em `lib/services/api_service.dart` para requisições REST sem imagens como contingência $ightarrow$ **Artefato:** `lib/services/api_service.dart`.
-  - `[TASK-WS-03.1 a WS-03.4]` Adotada a **Opção A (Conservadora)** na política de contingência: rotas REST `/ia/processar-frame` preservadas como salvaguarda; HUD atualizado com telemetria ao vivo de latência em milissegundos e contagem de fotogramas; documentações sincronizadas $ightarrow$ **Artefatos:** `PLANO_MIGRACAO_WEBSOCKET_ONDEVICE.md`, `CONTEXTO_IA.md`, `EXPLICACAO_IA.md`, `DEVLOG.md`.
+  - `[TASK-WS-01.1]` Adicionado endpoint WebSocket `/ia/ws/{usuario_id}` em `BD/api.py`, recebendo fluxos de ângulos contínuos, com suporte assíncrono em thread pool (`asyncio.to_thread`), heartbeat keep-alive (ping/pong) e troca in-place de exercícios sem fechar o socket $
+ightarrow$ **Artefato:** `BD/api.py`.
+  - `[TASK-WS-01.2]` Implementado getter `wsBaseUrl` em `lib/config/api_config.dart` mapeando `wss://` para nuvem (Render) e `ws://` para emuladores e ambiente local $
+ightarrow$ **Artefato:** `lib/config/api_config.dart`.
+  - `[TASK-WS-01.3]` Criado serviço cliente WebSocket `lib/services/ia_websocket_service.dart` com reconexão resiliente automática, heartbeat periódico de 20s contra timeout do Render, e métodos para streaming de ângulos, troca de exercício e reinicialização de série $
+ightarrow$ **Artefato:** `lib/services/ia_websocket_service.dart`.
+  - `[TASK-WS-01.4]` Criada suíte de testes automatizados do WebSocket com `TestClient` cobrindo conexão, streaming angular, ping/pong e troca dinâmica $
+ightarrow$ **Artefato:** `tests/test_websocket_ia.py` (3 testes aprovados).
+  - `[TASK-WS-02.1]` Integradas dependências `web_socket_channel: ^3.0.3` e `google_mlkit_pose_detection: ^0.16.1` no `pubspec.yaml`, com adição de permissão de câmera no `android/app/src/main/AndroidManifest.xml` $
+ightarrow$ **Artefatos:** `pubspec.yaml`, `AndroidManifest.xml`.
+  - `[TASK-WS-02.2]` Implementado `lib/services/pose_service.dart` em Dart puro, reproduzindo a geometria vetorial 2D de `calculo_angulos.py`, com suporte bilateral inteligente (membros contralaterais e webcams espelhadas) e **guarda defensiva multiplataforma** que previne chamadas nativas fora de Android/iOS $
+ightarrow$ **Artefato:** `lib/services/pose_service.dart`.
+  - `[TASK-WS-02.3]` Refatorado `lib/screens/camera_treino_screen.dart` para acoplar `PoseService` e `IAWebSocketService`, com loop a 150ms (~7 FPS) enviando telemetria ultra-leve, com transição in-place e **fallback transparente para modo clássico de imagens/simulação** em desktops Windows $
+ightarrow$ **Artefato:** `lib/screens/camera_treino_screen.dart`.
+  - `[TASK-WS-02.4]` Adicionado método `processarAngulosIA()` em `lib/services/api_service.dart` para requisições REST sem imagens como contingência $
+ightarrow$ **Artefato:** `lib/services/api_service.dart`.
+  - `[TASK-WS-03.1 a WS-03.4]` Adotada a **Opção A (Conservadora)** na política de contingência: rotas REST `/ia/processar-frame` preservadas como salvaguarda; HUD atualizado com telemetria ao vivo de latência em milissegundos e contagem de fotogramas; documentações sincronizadas $
+ightarrow$ **Artefatos:** `PLANO_MIGRACAO_WEBSOCKET_ONDEVICE.md`, `CONTEXTO_IA.md`, `EXPLICACAO_IA.md`, `DEVLOG.md`.
 - **Decisões Técnicas e Observações Diferenciadas:**
   1. *Guarda Multiplataforma no Flutter (`PoseService.disponivel`):* O pacote `google_mlkit_pose_detection` não possui implementação desktop nativa para Windows. Para que a equipe possa continuar desenvolvendo e apresentando pelo Windows Desktop (`camera_windows`), foi implementada degradação graciosa: no Android/iOS usa ML Kit on-device + WebSocket (~200B); no Windows faz fallback para REST/Multipart ou simulação, sem crash.
-  2. *Heartbeat Keep-Alive no WebSocket:* Servidores no Render derrubam conexões ociosas após ~30s a 55s. Adicionou-se troca periódica de pacotes leves `{"tipo": "ping"}` $ightarrow$ `{"tipo": "pong"}` a cada 20s.
+  2. *Heartbeat Keep-Alive no WebSocket:* Servidores no Render derrubam conexões ociosas após ~30s a 55s. Adicionou-se troca periódica de pacotes leves `{"tipo": "ping"}` $
+ightarrow$ `{"tipo": "pong"}` a cada 20s.
   3. *Comutação de Exercícios In-Place:* Implementou-se payload `{"tipo": "trocar_exercicio"}` que reconfigura FSM e Gabarito no backend sem que o app precise destruir e restabelecer o handshake WebSocket.
   4. *Intervalo de Amostragem:* Fixado em 150ms (~7 FPS) na captura para balancear fluidez biomecânica e evitar saturação do subsistema de I/O de arquivos temporários do dispositivo móvel.
 - **Estado Resultante / Próximos Passos:** 100% dos testes aprovados (55 testes Python no `pytest` + 5 testes no `flutter test`), análise estática do Flutter com 0 issues (`flutter analyze` limpo). Pipeline pronto para validação em smartphone Android físico.

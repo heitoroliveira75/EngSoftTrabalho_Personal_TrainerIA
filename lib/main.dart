@@ -1,4 +1,5 @@
 import 'screens/camera_treino_screen.dart';
+import 'services/api_service.dart';
 import 'package:flutter/material.dart';
 import 'screens/amigos_screen.dart';
 import 'screens/cadastro_screen.dart';
@@ -16,19 +17,21 @@ import 'screens/redefinir_senha_screen.dart';
 import 'screens/training_menu_screen.dart';
 import 'screens/treinos_screen.dart';
 
-void main() {
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  runApp(const MeuAppTreino());
+  final logado = await ApiService().restaurarSessaoLocal();
+  runApp(MeuAppTreino(usuarioLogado: logado));
 }
 
 class MeuAppTreino extends StatelessWidget {
-  const MeuAppTreino({super.key});
+  final bool usuarioLogado;
+  const MeuAppTreino({super.key, this.usuarioLogado = false});
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Personal Trainer IA',
+      title: 'PersonAI',
       builder: (context, child) {
         return SafeArea(
           top: false,
@@ -46,7 +49,7 @@ class MeuAppTreino extends StatelessWidget {
           surface: Color(0xFF1E232A),
         ),
       ),
-      initialRoute: '/login',
+      initialRoute: usuarioLogado ? '/home' : '/login',
       routes: {
         '/login': (context) => const LoginScreen(),
         '/cadastro': (context) => const CadastroScreen(),

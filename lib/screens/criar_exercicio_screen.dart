@@ -187,8 +187,11 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
 
     setState(() => _salvando = true);
 
-    final listaExerciciosJson =
-        _exerciciosTreino.map((exercicio) => exercicio.toJson()).toList();
+    final listaExerciciosJson = _exerciciosTreino.asMap().entries.map((entry) {
+      final json = entry.value.toJson();
+      json['ordem'] = entry.key + 1;
+      return json;
+    }).toList();
 
     try {
       final resposta = await ApiService().criarTreino(
@@ -217,6 +220,7 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
             content: Text(
               resposta['mensagem'] ?? 'Erro ao salvar treino no servidor.',
             ),
+            backgroundColor: const Color(0xFF8B0000),
           ),
         );
       }
@@ -720,7 +724,7 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
 
               const SizedBox(height: 16),
 
-              // 3. PARTE ESCROLÁVEL: LISTA DE EXERCÍCIOS COM LISTVIEW.BUILDER
+              // 3. PARTE ESCROLÁVEL: LISTA DE EXERCÍCIOS COM REORDERABLELISTVIEW.BUILDER
               Expanded(
                 child: _exerciciosTreino.isEmpty
                     ? Center(
@@ -751,13 +755,21 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
                           ],
                         ),
                       )
-                    : ListView.builder(
+                    : ReorderableListView.builder(
                         itemCount: _exerciciosTreino.length,
+                        buildDefaultDragHandles: false,
+                        onReorderItem: (int oldIndex, int newIndex) {
+                          setState(() {
+                            final item = _exerciciosTreino.removeAt(oldIndex);
+                            _exerciciosTreino.insert(newIndex, item);
+                          });
+                        },
                         itemBuilder: (context, index) {
                           final item = _exerciciosTreino[index];
 
                           // Montagem lista de exercicios
                           return Container(
+                            key: ObjectKey(item),
                             margin: const EdgeInsets.only(bottom: 12),
                             decoration: BoxDecoration(
                               color: const Color(0xFF2D3139),
@@ -769,6 +781,20 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
                               child: Row(
                                 crossAxisAlignment: CrossAxisAlignment.center,
                                 children: [
+                                  // Drag handle para arrastar e reordenar
+                                  ReorderableDragStartListener(
+                                    index: index,
+                                    child: Container(
+                                      padding: const EdgeInsets.only(right: 10),
+                                      color: Colors.transparent,
+                                      child: const Icon(
+                                        Icons.drag_handle,
+                                        color: Colors.white38,
+                                        size: 24,
+                                      ),
+                                    ),
+                                  ),
+
                                   // Ícone
                                   Container(
                                     width: 44,

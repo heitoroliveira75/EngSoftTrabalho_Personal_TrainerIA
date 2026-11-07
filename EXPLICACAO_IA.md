@@ -221,28 +221,42 @@ Com a evolução da branch `IA` e o objetivo de reduzir a latência de ~500–80
 
 Para aumentar o engajamento, a retenção e o incentivo mútuo entre alunos, o sistema conta com a funcionalidade de **Treinos em Dupla Cooperativos** (`US-DUPLA`):
 
-1. **Seleção de Treinos Inteiros pelo Host:**
-   * Em vez de escolher apenas um exercício isolado, o Host agora pode escolher um **treino inteiro** (ex.: `Circuito Completo IA`, `Treino Superior IA`, `Corpo completo A`, etc.).
-   * A lista completa de exercícios, séries e repetições é sincronizada instantaneamente em tempo real com o parceiro convidado antes de iniciar a sessão.
+1. **Flexibilidade de Formato: Modo Presencial (1 Celular) vs. Modo Remoto (2 Celulares):**
+   * O Host escolhe no lobby (`LobbyDuplaScreen`) o formato que melhor atende à situação:
+     * **📱 Modo Presencial (1 Celular):** Ideal para amigos treinando juntos no mesmo local (academia, parque, sala). Ambos utilizam um único smartphone posicionado. Ao término da série, o aplicativo orienta a entrega do aparelho para o parceiro realizar sua série. Sem necessidade de conexão simultânea ou dois aparelhos ativos.
+     * **📡 Modo Remoto (2 Celulares):** Cada atleta treina em seu próprio smartphone à distância, com sincronização em tempo real via backend e economia de bateria/tela de descanso no aparelho inativo.
 
-2. **Ciclo de Séries e Repetições com Pausa e Confirmação:**
+2. **Seleção de Treinos Reais do Usuário pelo Host:**
+   * O Host tem acesso à sua lista real de treinos cadastrados no Supabase/banco de dados (`listarTreinosUsuario`).
+   * Pode selecionar um **treino inteiro** (com múltiplos exercícios, séries e repetições) para ser executado cooperativamente pela dupla.
+   * A lista completa de exercícios é repassada para a tela de treino, garantindo progressão automática ao final de cada exercício.
+
+3. **Ciclo de Séries e Repetições com Pausa e Confirmação:**
    * Tanto em treinos individuais quanto em treinos em dupla, quando o praticante atinge a meta de repetições da série com auxílio da IA:
      1. A contagem de repetições e a transmissão contínua da câmera são pausadas imediatamente.
      2. O aplicativo exibe uma janela de diálogo informando a série concluída e aguarda a **confirmação explícita do atleta**.
      3. Em treinos em dupla, após a confirmação, o turno é transferido para o parceiro (ou a série/exercício é avançado coordenadamente).
      4. Quando todas as séries de um exercício terminam, a dupla avança automaticamente para o próximo exercício do treino até a finalização completa.
 
-3. **Revezamento por Série (Turn-Based Workout):**
+4. **Revezamento por Série (Turn-Based Workout):**
    * Em vez de ambos treinarem ao mesmo tempo (o que dividiria a atenção e exigiria duas câmeras ativas), o treino segue a mecânica natural de revezamento de academias: enquanto o atleta "A" executa a Série $K$, o atleta "B" descansa.
    * Quando "A" conclui a série e confirma, os papéis se invertem: "B" assume a câmera e a IA para a Série $K$, enquanto "A" descansa.
 
-4. **Otimização de Hardware e Economia de Bateria:**
-   * Quando **não é a vez** do atleta (durante o repouso), o aplicativo suspende a captura de imagens e o processamento do ML Kit, ativando um cronômetro de descanso relaxante. Isso economiza bateria, previne superaquecimento e mantém o dispositivo responsivo.
+5. **Otimização de Hardware e Economia de Bateria:**
+   * No modo remoto (2 celulares), quando **não é a vez** do atleta (durante o repouso), o aplicativo suspende a captura de imagens e o processamento do ML Kit, ativando um cronômetro de descanso relaxante. Isso economiza bateria, previne superaquecimento e mantém o dispositivo responsivo.
 
-5. **Gamificação Cooperativa com Bônus de 20% (1.2x):**
-   * Ao término do treino, o servidor consolida os pontos conquistados por ambos, calcula a média da dupla e aplica um bônus de $+20\%$:
+6. **Gamificação Cooperativa com Bônus de 20% (1.2x):**
+   * Ao término do treino, o sistema consolida os pontos conquistados por ambos, calcula a média da dupla e aplica um bônus de $+20\%$:
      $$\text{Pontuação Final (cada um)} = \text{round}\left(\frac{\text{Pontos}_{\text{Host}} + \text{Pontos}_{\text{Convidado}}}{2} \times 1.20\right)$$
    * Ambos recebem a mesma pontuação bonificada no banco de dados, incentivando o companheirismo e o apoio mútuo no Leaderboard semanal.
+
+7. **Persistência de Pontos e Compatibilidade com RLS (Row-Level Security):**
+   * O Supabase restringe que um usuário edite dados de outro via Row-Level Security. Para garantir que ambos os atletas recebam os pontos com total confiabilidade:
+     * **No Modo Remoto (2 Celulares):** O smartphone do convidado detecta o encerramento da sessão via polling e realiza a chamada de crédito de pontuação utilizando a sua própria sessão de login autenticada.
+     * **No Modo Presencial (1 Celular):** Como o convidado não está logado no aparelho compartilhado, o banco de dados executa a trigger `trg_creditar_pontos_treino_dupla` com permissão de sistema (`SECURITY DEFINER`), creditando automaticamente a pontuação e atualizando as métricas de ambos na tabela `usuarios`.
+
+8. **Isolamento Stateless de Sessão Multi-Usuário (`BD/supabase_client.py` + `BD/main.py`):**
+   * Para evitar qualquer cruzamento de contas quando vários atletas fazem login ao mesmo tempo, todas as operações de autenticação utilizam instâncias efêmeras e isoladas (`criar_cliente_auth()` com `persist_session=False`), e a rota `/auth/usuario-atual` valida estritamente o token JWT (`Authorization: Bearer <token>`) de cada aparelho. Assim, o estado global do servidor nunca armazena nem mistura sessões entre usuários concorrentes.
 
 ---
 

@@ -102,58 +102,7 @@ class PoseService {
 
     final exId = exercicioId.trim().toLowerCase();
 
-    // 1. Exercícios de membros superiores: Desenvolvimento com Halteres (16 / 1) e Rosca Direta (20 / 3)
-    if (exId == '16' || exId == '20' || exId == '1' || exId == '3' ||
-        exId.contains('ombro') || exId.contains('rosca') || exId.contains('biceps')) {
-      if (ombro == null || cotovelo == null || punho == null || quadril == null) {
-        return null;
-      }
-
-      final visivelBraco = _landmarkVisivel(ombro) &&
-                           _landmarkVisivel(cotovelo) &&
-                           _landmarkVisivel(punho);
-
-      final angCotovelo = _calcularAngulo(ombro, cotovelo, punho);
-      final angOmbro = _calcularAngulo(quadril, ombro, cotovelo);
-
-      Map<String, double> angulos = {
-        'cotovelo': double.parse(angCotovelo.toStringAsFixed(1)),
-        'ombro': double.parse(angOmbro.toStringAsFixed(1)),
-      };
-      bool visivelFinal = visivelBraco;
-
-      // Suporte inteligente contralateral: verifica se o outro braço está mais ativo/visível
-      final outroOmbro = lm[esq ? PoseLandmarkType.rightShoulder : PoseLandmarkType.leftShoulder];
-      final outroCotovelo = lm[esq ? PoseLandmarkType.rightElbow : PoseLandmarkType.leftElbow];
-      final outroPunho = lm[esq ? PoseLandmarkType.rightWrist : PoseLandmarkType.leftWrist];
-      final outroQuadril = lm[esq ? PoseLandmarkType.rightHip : PoseLandmarkType.leftHip];
-
-      if (outroOmbro != null && outroCotovelo != null && outroPunho != null && outroQuadril != null) {
-        final visivelOutro = _landmarkVisivel(outroOmbro) &&
-                             _landmarkVisivel(outroCotovelo) &&
-                             _landmarkVisivel(outroPunho);
-
-        if (visivelOutro) {
-          final outroCotoveloAng = _calcularAngulo(outroOmbro, outroCotovelo, outroPunho);
-          // Se o lado padrão não estava visível ou se o outro braço tem flexão mais pronunciada
-          if (!visivelBraco || outroCotoveloAng < (angCotovelo - 8.0)) {
-            final outroOmbroAng = _calcularAngulo(outroQuadril, outroOmbro, outroCotovelo);
-            angulos = {
-              'cotovelo': double.parse(outroCotoveloAng.toStringAsFixed(1)),
-              'ombro': double.parse(outroOmbroAng.toStringAsFixed(1)),
-            };
-            visivelFinal = true;
-          }
-        }
-      }
-
-      return PoseResultado(
-        angulos: angulos,
-        visivel: visivelFinal,
-      );
-    }
-
-    // 2. Exercícios de membros inferiores: Agachamento Livre (11 / 2)
+    // 1. Exercícios de membros inferiores: Agachamento Livre (11 / 2)
     if (exId == '11' || exId == '2' || exId.contains('agacha') || exId.contains('squat')) {
       if (quadril == null || joelho == null || tornozelo == null || ombro == null) {
         return null;
@@ -175,7 +124,79 @@ class PoseService {
       );
     }
 
-    return null;
+    // 2. Remada Baixa (7): cotovelo, ombro e inclinação de tronco (quadril)
+    if (exId == '7' || exId.contains('remada')) {
+      if (ombro == null || cotovelo == null || punho == null || quadril == null || joelho == null) {
+        return null;
+      }
+
+      final visivel = _landmarkVisivel(ombro) &&
+                      _landmarkVisivel(cotovelo) &&
+                      _landmarkVisivel(punho) &&
+                      _landmarkVisivel(quadril);
+
+      final angCotovelo = _calcularAngulo(ombro, cotovelo, punho);
+      final angOmbro = _calcularAngulo(quadril, ombro, cotovelo);
+      final angQuadril = _calcularAngulo(ombro, quadril, joelho);
+
+      return PoseResultado(
+        angulos: {
+          'cotovelo': double.parse(angCotovelo.toStringAsFixed(1)),
+          'ombro': double.parse(angOmbro.toStringAsFixed(1)),
+          'quadril': double.parse(angQuadril.toStringAsFixed(1)),
+        },
+        visivel: visivel,
+      );
+    }
+
+    // 3. Exercícios de membros superiores:
+    // Desenvolvimento (16/1), Rosca (20/3), Elevação Lateral (17/4), Tríceps Corda (24/23/5), Flexão (5/6)
+    if (ombro == null || cotovelo == null || punho == null || quadril == null) {
+      return null;
+    }
+
+    final visivelBraco = _landmarkVisivel(ombro) &&
+                         _landmarkVisivel(cotovelo) &&
+                         _landmarkVisivel(punho);
+
+    final angCotovelo = _calcularAngulo(ombro, cotovelo, punho);
+    final angOmbro = _calcularAngulo(quadril, ombro, cotovelo);
+
+    Map<String, double> angulos = {
+      'cotovelo': double.parse(angCotovelo.toStringAsFixed(1)),
+      'ombro': double.parse(angOmbro.toStringAsFixed(1)),
+    };
+    bool visivelFinal = visivelBraco;
+
+    // Suporte inteligente contralateral: verifica se o outro braço está mais ativo/visível
+    final outroOmbro = lm[esq ? PoseLandmarkType.rightShoulder : PoseLandmarkType.leftShoulder];
+    final outroCotovelo = lm[esq ? PoseLandmarkType.rightElbow : PoseLandmarkType.leftElbow];
+    final outroPunho = lm[esq ? PoseLandmarkType.rightWrist : PoseLandmarkType.leftWrist];
+    final outroQuadril = lm[esq ? PoseLandmarkType.rightHip : PoseLandmarkType.leftHip];
+
+    if (outroOmbro != null && outroCotovelo != null && outroPunho != null && outroQuadril != null) {
+      final visivelOutro = _landmarkVisivel(outroOmbro) &&
+                           _landmarkVisivel(outroCotovelo) &&
+                           _landmarkVisivel(outroPunho);
+
+      if (visivelOutro) {
+        final outroCotoveloAng = _calcularAngulo(outroOmbro, outroCotovelo, outroPunho);
+        // Se o lado padrão não estava visível ou se o outro braço tem flexão mais pronunciada
+        if (!visivelBraco || outroCotoveloAng < (angCotovelo - 8.0)) {
+          final outroOmbroAng = _calcularAngulo(outroQuadril, outroOmbro, outroCotovelo);
+          angulos = {
+            'cotovelo': double.parse(outroCotoveloAng.toStringAsFixed(1)),
+            'ombro': double.parse(outroOmbroAng.toStringAsFixed(1)),
+          };
+          visivelFinal = true;
+        }
+      }
+    }
+
+    return PoseResultado(
+      angulos: angulos,
+      visivel: visivelFinal,
+    );
   }
 
   /// Libera recursos do motor de pose quando não for mais utilizado.
