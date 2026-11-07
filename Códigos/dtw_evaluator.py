@@ -57,7 +57,7 @@ class DTWComparator:
 
     def __init__(
         self,
-        tolerancia: float = 45.0,
+        tolerancia: float = 30.0,
         janela: Optional[Union[int, float]] = None,
         deadzone_graus: float = 6.0,
         normalizar_por_articulacao: bool = True,
