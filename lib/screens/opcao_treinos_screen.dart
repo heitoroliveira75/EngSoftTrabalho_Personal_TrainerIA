@@ -672,12 +672,14 @@ class _OpcaoTreinosScreenState extends State<OpcaoTreinosScreen> {
             children: [
               Icon(Icons.warning_amber_rounded, color: Colors.amber, size: 28),
               SizedBox(width: 10),
-              Text(
-                'Remover Treino?',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
+              Flexible(
+                child: Text(
+                  'Remover Treino?',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
                 ),
               ),
             ],
@@ -1012,19 +1014,24 @@ class _OpcaoTreinosScreenState extends State<OpcaoTreinosScreen> {
                                         mainAxisAlignment:
                                             MainAxisAlignment.spaceBetween,
                                         children: [
-                                          Text(
-                                            '+${treino['pontosTotais'] ?? 100} pts',
-                                            style: TextStyle(
-                                              color: corCard,
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 14,
+                                          Flexible(
+                                            child: Text(
+                                              '+${treino['pontosTotais'] ?? 100} pts',
+                                              style: TextStyle(
+                                                color: corCard,
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 14,
+                                              ),
                                             ),
                                           ),
-                                          Text(
-                                            treino['dificuldade'] ?? 'Geral',
-                                            style: TextStyle(
-                                              color: Colors.grey[400],
-                                              fontSize: 12,
+                                          const SizedBox(width: 8),
+                                          Flexible(
+                                            child: Text(
+                                              treino['dificuldade'] ?? 'Geral',
+                                              style: TextStyle(
+                                                color: Colors.grey[400],
+                                                fontSize: 12,
+                                              ),
                                             ),
                                           ),
                                         ],

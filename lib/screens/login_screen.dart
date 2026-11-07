@@ -255,28 +255,32 @@ class _LoginScreenState extends State<LoginScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Text(
-                          'Não possui uma conta? ',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 13,
+                        const Flexible(
+                          child: Text(
+                            'Não possui uma conta? ',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 13,
+                            ),
                           ),
                         ),
-                        GestureDetector(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const CadastroScreen(),
+                        Flexible(
+                          child: GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const CadastroScreen(),
+                                ),
+                              );
+                            },
+                            child: const Text(
+                              'Crie uma conta',
+                              style: TextStyle(
+                                color: Color(0xFFE91E63), // Rosa vibrante
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
                               ),
-                            );
-                          },
-                          child: const Text(
-                            'Crie uma conta',
-                            style: TextStyle(
-                              color: Color(0xFFE91E63), // Rosa vibrante
-                              fontWeight: FontWeight.bold,
-                              fontSize: 13,
                             ),
                           ),
                         ),

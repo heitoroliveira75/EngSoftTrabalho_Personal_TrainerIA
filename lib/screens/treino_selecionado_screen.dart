@@ -264,12 +264,14 @@ class _TreinoSelecionadoScreenState extends State<TreinoSelecionadoScreen> {
             children: [
               Icon(Icons.warning_amber_rounded, color: Colors.amber, size: 28),
               SizedBox(width: 10),
-              Text(
-                'Remover Treino?',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
+              Flexible(
+                child: Text(
+                  'Remover Treino?',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
                 ),
               ),
             ],
@@ -436,16 +438,18 @@ class _TreinoSelecionadoScreenState extends State<TreinoSelecionadoScreen> {
       builder: (ctx) => AlertDialog(
         backgroundColor: const Color(0xFF1E232A),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        title: Row(
-          children: const [
+        title: const Row(
+          children: [
             Icon(Icons.emoji_events, color: Colors.amber, size: 30),
             SizedBox(width: 10),
-            Text(
-              'Treino Concluído!',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 20,
+            Flexible(
+              child: Text(
+                'Treino Concluído!',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 20,
+                ),
               ),
             ),
           ],
@@ -469,13 +473,16 @@ class _TreinoSelecionadoScreenState extends State<TreinoSelecionadoScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    'Pontos Conquistados:',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.w600,
+                  const Flexible(
+                    child: Text(
+                      'Pontos Conquistados:',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
+                  const SizedBox(width: 8),
                   Text(
                     '+$pontos pts',
                     style: const TextStyle(
@@ -591,22 +598,28 @@ class _TreinoSelecionadoScreenState extends State<TreinoSelecionadoScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    'Exercícios',
-                    style: TextStyle(
-                      color: Color(0xFF9E7AFF),
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  if (exercicios.length > 1)
-                    Text(
-                      'Arraste pelo ícone ≡ para reordenar',
+                  const Flexible(
+                    child: Text(
+                      'Exercícios',
                       style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.45),
-                        fontSize: 11,
+                        color: Color(0xFF9E7AFF),
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
+                  ),
+                  if (exercicios.length > 1) ...[
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Text(
+                        'Arraste pelo ícone ≡ para reordenar',
+                        style: TextStyle(
+                          color: Colors.white.withValues(alpha: 0.45),
+                          fontSize: 11,
+                        ),
+                      ),
+                    ),
+                  ],
                 ],
               ),
               const SizedBox(height: 12),
@@ -787,14 +800,16 @@ class _TreinoSelecionadoScreenState extends State<TreinoSelecionadoScreen> {
                           size: 26,
                         ),
                       const SizedBox(width: 8),
-                      Text(
-                        _salvo
-                            ? 'Salvo nos meus Treinos'
-                            : 'Salvar nos meus Treinos',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
+                      Flexible(
+                        child: Text(
+                          _salvo
+                              ? 'Salvo nos meus Treinos'
+                              : 'Salvar nos meus Treinos',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                     ],
@@ -806,11 +821,11 @@ class _TreinoSelecionadoScreenState extends State<TreinoSelecionadoScreen> {
 
               SizedBox(
                 width: double.infinity,
-                height: 52,
                 child: ElevatedButton.icon(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF00E676),
                     foregroundColor: Colors.black,
+                    padding: const EdgeInsets.symmetric(vertical: 15),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                     ),
@@ -840,11 +855,11 @@ class _TreinoSelecionadoScreenState extends State<TreinoSelecionadoScreen> {
 
               SizedBox(
                 width: double.infinity,
-                height: 48,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.transparent,
                     shadowColor: Colors.transparent,
+                    padding: const EdgeInsets.symmetric(vertical: 13),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(12),
                       side: BorderSide(color: corTema, width: 2),

@@ -195,11 +195,11 @@ class _TreinosScreenState extends State<TreinosScreen> {
                                 padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
                                 child: SizedBox(
                                   width: double.infinity,
-                                  height: 44,
                                   child: ElevatedButton.icon(
                                     style: ElevatedButton.styleFrom(
                                       backgroundColor: const Color(0xFF00E676),
                                       foregroundColor: Colors.black,
+                                      padding: const EdgeInsets.symmetric(vertical: 12),
                                       shape: RoundedRectangleBorder(
                                         borderRadius: BorderRadius.circular(10),
                                       ),
@@ -255,7 +255,9 @@ class _TreinosScreenState extends State<TreinosScreen> {
             children: [
               Icon(Icons.emoji_events, color: Colors.amber, size: 28),
               SizedBox(width: 8),
-              Text('Treino Concluído!', style: TextStyle(color: Colors.white)),
+              Flexible(
+                child: Text('Treino Concluído!', style: TextStyle(color: Colors.white)),
+              ),
             ],
           ),
           content: Text(
