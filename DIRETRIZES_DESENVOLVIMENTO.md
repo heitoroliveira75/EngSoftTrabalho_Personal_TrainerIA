@@ -13,7 +13,7 @@ flowchart LR
     A["1. História de Usuário\n+ Estado Atual"] --> B["2. Diagnóstico Técnico\ne Arquitetural"]
     B --> C["3. Decomposição em\nTasks Atômicas"]
     C --> D["4. Implementação\n+ Geração de Artefato"]
-    D --> E["5. Validação / Teste\n+ Commit Incremental"]
+    D --> E["5. Commit Incremental\n+ CI (GitHub Actions)"]
     E -->|"Próxima Task"| D
     E -->|"Todas Tasks Concluídas"| F["6. Atualização de\nDEVLOG.md e CONTEXTO_IA.md"]
 ```
@@ -101,7 +101,7 @@ Todos os commits incrementais devem seguir o padrão semântico em português:
 - `docs(escopo): ...` — Alterações em `CONTEXTO_IA.md`, `DEVLOG.md`, `DIRETRIZES_DESENVOLVIMENTO.md` ou docstrings.
 - `chore(escopo): ...` — Limpeza de repositório, `.gitignore`, remoção de arquivos legados/duplicados.
 
-> **Regra de Ouro dos Commits:** Cada commit incremental deve deixar a árvore de código em estado **executável e íntegro**. Antes de realizar o `git commit` de uma task, execute o script ou teste correspondente para comprovar que não há erros de sintaxe, importação ou regressão.
+> **Regra de Ouro dos Commits e Integração Contínua (GitHub Actions):** Cada commit incremental deve deixar a árvore de código em estado **executável e íntegro**. A execução da suíte de testes automatizados (`pytest`, `flutter test` e `flutter analyze`) é realizada automaticamente via **GitHub Actions** ([`.github/workflows/ci.yml`](./.github/workflows/ci.yml)) a cada `push` ou `pull_request`. O agente **não** deve rodar as suítes de testes localmente a cada modificação, exceto quando solicitado explicitamente pelo usuário.
 
 ---
 

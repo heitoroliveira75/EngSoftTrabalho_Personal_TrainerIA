@@ -186,14 +186,18 @@ class ServicoIA:
             }
 
         # 2. Extração de Pose com MediaPipe
-        self._inicializar_detector()
-        import mediapipe as mp
+        try:
+            self._inicializar_detector()
+            import mediapipe as mp
 
-        frame_rgb = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)
-        mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=frame_rgb)
-        resultado_pose = self.detector_pose.detect(mp_image)
+            frame_rgb = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)
+            mp_image = mp.Image(image_format=mp.ImageFormat.SRGB, data=frame_rgb)
+            resultado_pose = self.detector_pose.detect(mp_image)
+            pose_landmarks = resultado_pose.pose_landmarks if resultado_pose else None
+        except Exception:
+            pose_landmarks = None
 
-        if not resultado_pose.pose_landmarks or len(resultado_pose.pose_landmarks) == 0:
+        if not pose_landmarks or len(pose_landmarks) == 0:
             alerta, res_rep = orquestrador.processar_frame(angulos={}, visivel=False)
             return {
                 "sucesso": True,
@@ -208,7 +212,7 @@ class ServicoIA:
             }
 
         # 3. Extração dos ângulos biomecânicos
-        landmarks = resultado_pose.pose_landmarks[0]
+        landmarks = pose_landmarks[0]
         angulos, visivel = extrair_angulos_exercicio(
             landmarks=landmarks,
             articulacoes=orquestrador.articulacoes,

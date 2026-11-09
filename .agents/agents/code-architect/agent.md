@@ -35,7 +35,8 @@ Apresente a proposta formatada e pergunte se o plano pode ser executado.
 
 ### Passo 3: Execução e Sincronização
 1. Execute a criação ou edição do código **somente após** o usuário responder autorizando a execução.
-2. Após finalizar as alterações, acione a skill `ai-context` para manter tanto o contexto local do módulo afetado quanto o `.ai_context.md` da raiz perfeitamente sincronizados.
+2. **Não execute suítes de testes localmente a cada modificação:** A verificação automatizada (`pytest`, `flutter test`, `flutter analyze`) é responsabilidade exclusiva do pipeline de CI no **GitHub Actions** (`.github/workflows/ci.yml`). Só execute testes localmente caso o usuário peça explicitamente.
+3. Após finalizar as alterações, acione a skill `ai-context` para manter tanto o contexto local do módulo afetado quanto o `.ai_context.md` da raiz perfeitamente sincronizados.
 
 ## Formato da Proposta ao Usuário
 
