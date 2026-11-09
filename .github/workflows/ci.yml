@@ -29,7 +29,16 @@ jobs:
       - name: Instalar bibliotecas de sistema para OpenCV e MediaPipe
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends libgl1 libglib2.0-0
+          sudo apt-get install -y --no-install-recommends \
+            libgl1 \
+            libegl1 \
+            libgles2 \
+            libglvnd0 \
+            libglib2.0-0 \
+            libsm6 \
+            libxext6 \
+            libxrender1 \
+            libgomp1
 
       - name: Instalar dependências Python
         run: |
