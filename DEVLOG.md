@@ -26,6 +26,14 @@
 
 ## Histórico de Entradas
 
+### [Entrada #026] 2026-11-09 — Migração da Execução de Testes para GitHub Actions e Atualização das Regras de Agentes
+- **Objetivo / História de Usuário:**
+  - Alterar a configuração dos agentes de IA (`AGENTS.md`, `DIRETRIZES_DESENVOLVIMENTO.md` e `.agents/agents/code-architect/agent.md`) para que os testes do projeto não sejam mais executados localmente a cada modificação de código, delegando essa verificação automatizada para o **GitHub Actions**.
+- **Tasks Executadas e Artefatos Gerados:**
+  - `[TASK-CI-AGENTS-01]` Atualização das regras de agentes para desativar a execução local obrigatória de testes a cada modificação, definindo que a validação ocorre via GitHub Actions (salvo solicitação explícita do usuário) $\rightarrow$ **Artefatos:** `./AGENTS.md`, `./DIRETRIZES_DESENVOLVIMENTO.md`, `./.agents/agents/code-architect/agent.md`, `./.ai_context.md`.
+  - `[TASK-CI-WORKFLOW-02]` Criação do workflow oficial do GitHub Actions com dois jobs paralelos (`testes-python` rodando `pytest -v` em Python 3.12 e `testes-flutter` rodando `flutter analyze` e `flutter test` em Flutter stable) acionados em `push`, `pull_request` e `workflow_dispatch`, além de inclusão explícita de `httpx` nas dependências $\rightarrow$ **Artefatos:** `./.github/workflows/ci.yml`, `./requirements.txt`.
+- **Estado Resultante:** Agentes configurados para não rodar testes localmente a cada alteração e pipeline de CI no GitHub Actions pronto e ativo.
+
 ### [Entrada #025] 2026-11-05 — Correção Crítica de Isolamento de Sessão Multi-Usuário (Stateless Auth)
 - **Objetivo / Problema Relatado:**
   - Quando múltiplos usuários faziam login simultaneamente no aplicativo (ex.: 4 atletas logando na mesma janela de tempo), todos os aparelhos passavam a exibir a conta, o nome e os dados do último usuário autenticado (ex.: "Ramon").
