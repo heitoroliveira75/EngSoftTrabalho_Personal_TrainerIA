@@ -2,7 +2,7 @@
 
 > **Propósito:** Este documento registra de forma cronológica (do mais recente para o mais antigo) todas as alterações, Histórias de Usuário implementadas, tasks atômicas executadas, artefatos gerados, commits incrementais e decisões arquiteturais tomadas na frente de **IA e Estimação de Pose**.
 >
-> **Regra para Agentes e Desenvolvedores:** Toda nova entrega ou sessão de desenvolvimento **deve** adicionar uma entrada no topo da seção **"Histórico de Entradas"**, seguindo o template abaixo, e mantendo [`CONTEXTO_IA.md`](./CONTEXTO_IA.md), [`PLANO_SPRINT_US01.md`](./PLANO_SPRINT_US01.md) e [`EXPLICACAO_IA.md`](./EXPLICACAO_IA.md) rigorosamente atualizados.
+> **Regra para Agentes e Desenvolvedores:** Toda nova entrega ou sessão de desenvolvimento **deve** adicionar uma entrada no topo da seção **"Histórico de Entradas"** (lendo apenas as primeiras 35 linhas deste arquivo para economizar tokens), seguindo o template abaixo, e mantendo os arquivos [`.ai_context.md`](./.ai_context.md) (raiz e subpastas afetadas) rigorosamente atualizados.
 >
 > **Portabilidade:** Todas as referências a arquivos neste repositório devem utilizar caminhos relativos à raiz (`./arquivo.py`), sendo vedado o uso de caminhos absolutos locais de máquina.
 
@@ -25,6 +25,15 @@
 ---
 
 ## Histórico de Entradas
+
+### [Entrada #027] 2026-11-09 — Unificação de Agentes/Skills em `.agents/`, Remoção de Redundâncias e Otimização de Tokens
+- **Objetivo / História de Usuário:**
+  - Eliminar conflitos e redundâncias entre o `AGENTS.md` da raiz e a pasta `.agents/`, centralizar todos os agentes, skills e rules em `.agents/` e unificar 100% do contexto técnico nos arquivos `.ai_context.md` para leitura ultrarrápida com baixo consumo de tokens.
+- **Tasks Executadas e Artefatos Gerados:**
+  - `[TASK-AGENTS-01]` Remoção do `AGENTS.md` da pasta raiz e criação da regra global enxuta em `.agents/rules/project-rules.md` registrada no `.agents/config.json` $\rightarrow$ **Artefatos:** `.agents/rules/project-rules.md`, `.agents/config.json`.
+  - `[TASK-AGENTS-02]` Desduplicação e enxugamento dos agentes (`context-navigator`, `code-architect`) e skills (`ai-context`, `human-context`), configurando atualização automática obrigatória de `<pasta>/.ai_context.md`, `/.ai_context.md` e topo do `DEVLOG.md` (leitura parcial das linhas 1–35) $\rightarrow$ **Artefatos:** `.agents/agents/context-navigator/agent.md`, `.agents/agents/code-architect/agent.md`, `.agents/skills/ai-context/SKILL.md`, `.agents/skills/human-context/SKILL.md`.
+  - `[TASK-CONTEXT-03]` Consolidação dos contratos do motor biomecânico (`IA_BIOMECHANICS_CONTRACTS`), rotas `/ia/*`, WebSocket e Treino em Dupla na malha `.ai_context.md` $\rightarrow$ **Artefatos:** `.ai_context.md`, `BD/.ai_context.md`, `lib/screens/.ai_context.md`, `DEVLOG.md`.
+- **Estado Resultante:** Nenhum agente na pasta raiz; agentes e skills sem redundância em `.agents/`; atualização automática garantida para todos os `.ai_context.md` e para o topo do `DEVLOG.md`.
 
 ### [Entrada #026] 2026-11-09 — Migração da Execução de Testes para GitHub Actions e Atualização das Regras de Agentes
 - **Objetivo / História de Usuário:**
