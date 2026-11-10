@@ -31,8 +31,10 @@
   - Evitar que nomes longos quebrem linha nos cards da lista de amigos adicionados, exibindo apenas 1 nome + 1 sobrenome após o amigo ser adicionado (mantendo o nome completo nas abas de busca e solicitações), e remover o texto `"Dupla"` ao lado do ícone de treino para deixar apenas um botão compacto de ícone de treino em dupla.
 - **Tasks Executadas e Artefatos Gerados:**
   - `[TASK-UI-AMIGOS-01]` Criação do helper `_formatarNomeCurto()` em `_AmigosScreenState` para exibir os dois primeiros nomes com `maxLines: 1` e `TextOverflow.ellipsis` em `_buildAbaMeusAmigos()`, preservando o nome completo em `_buildAbaBuscar()` e `_buildAbaSolicitacoes()`, e substituição do `ElevatedButton.icon` com texto `'Dupla'` por `IconButton` estilizado em verde neon (`#00E676`) apenas com o ícone `Icons.fitness_center` $\rightarrow$ **Artefatos:** `lib/screens/amigos_screen.dart`, `lib/screens/.ai_context.md`, `.ai_context.md`.
+  - `[TASK-FIX-MERGE-02]` Correção de blocos duplicados deixados por resolução de conflito de merge anterior (`83f804d`) que causavam erro de sintaxe no `flutter analyze` $\rightarrow$ **Artefatos:** `lib/screens/criar_exercicio_screen.dart`, `lib/screens/home_screen.dart`, `lib/screens/login_screen.dart`.
 - **Commits Incrementais Realizados:**
-  - ` feat(ui): exibe nome + 1 sobrenome nos amigos adicionados e botao icone de treino em dupla `
+  - ` c6cea69 / feat(ui): exibe nome + 1 sobrenome nos amigos adicionados e botao icone de treino em dupla `
+  - ` fix(ui): corrige erros de sintaxe de merge em criar_exercicio_screen, home_screen e login_screen `
 - **Decisões Técnicas e Observações:**
   - Na `lib/screens/home_screen.dart`, a saudação inicial já extrai apenas o primeiro nome via `nome.split(' ')[0]`. Na `lib/screens/amigos_screen.dart`, o nome completo continua sendo passado para diálogos e ações de convite/remoção, restringindo a abreviação (`partes.take(2).join(' ')`) exclusivamente à exibição visual do card de amigos já adicionados.
 - **Estado Resultante / Próximos Passos:**

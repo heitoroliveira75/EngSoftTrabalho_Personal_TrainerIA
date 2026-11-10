@@ -254,16 +254,11 @@ class _LoginScreenState extends State<LoginScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Text(
-                          'Não possui uma conta? ',
-                          style: TextStyle(
-                            color: Colors.white70,
-                            fontSize: 13,
                         const Flexible(
                           child: Text(
                             'Não possui uma conta? ',
                             style: TextStyle(
-                              color: Colors.white,
+                              color: Colors.white70,
                               fontSize: 13,
                             ),
                           ),
@@ -281,18 +276,10 @@ class _LoginScreenState extends State<LoginScreen> {
                             child: const Text(
                               'Crie uma conta',
                               style: TextStyle(
-                                color: Color(0xFFE91E63), // Rosa vibrante
+                                color: Color(0xFF00E676),
                                 fontWeight: FontWeight.bold,
                                 fontSize: 13,
                               ),
-                            );
-                          },
-                          child: const Text(
-                            'Crie uma conta',
-                            style: TextStyle(
-                              color: Color(0xFF00E676),
-                              fontWeight: FontWeight.bold,
-                              fontSize: 13,
                             ),
                           ),
                         ),

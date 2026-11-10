@@ -401,14 +401,6 @@ class _HomeScreenState extends State<HomeScreen> {
                       color: Colors.white12,
                     ),
                     const SizedBox(width: 16),
-                    const Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Hora de',
-                          style: TextStyle(
-                            color: Colors.white70,
-                            fontSize: 18,
                     const Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -416,7 +408,7 @@ class _HomeScreenState extends State<HomeScreen> {
                           Text(
                             'Hora de',
                             style: TextStyle(
-                              color: Color(0xFF00E676),
+                              color: Colors.white70,
                               fontSize: 18,
                             ),
                           ),

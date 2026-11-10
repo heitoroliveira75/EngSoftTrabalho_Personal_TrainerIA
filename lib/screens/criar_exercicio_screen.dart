@@ -1117,13 +1117,14 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
 
                                           const SizedBox(height: 4),
 
-                                        // Pontuação calculada
-                                        Text(
-                                          '+${item.totalPontos} pts (${item.pontosSeries} pts séries + ${item.pontosRepeticoes} pts reps)',
-                                          style: const TextStyle(
-                                            color: Color(0xFF00E676),
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.w500,
+                                          // Pontuação calculada
+                                          Text(
+                                            '+${item.totalPontos} pts (${item.pontosSeries} pts séries + ${item.pontosRepeticoes} pts reps)',
+                                            style: const TextStyle(
+                                              color: Color(0xFF00E676),
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w500,
+                                            ),
                                           ),
                                         ],
                                       ),
@@ -1223,40 +1224,26 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
                               color: Color(0xFF0D1117),
                             ),
                           )
-                        : const Row(
+                        : Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(Icons.check, color: Color(0xFF0D1117), size: 20),
-                              SizedBox(width: 8),
-                              Text(
-                                'Salvar Treino',
-                                style: TextStyle(
-                                  color: Color(0xFF0D1117),
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                ),
-                              ),
-                            )
-                          : Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const Icon(Icons.check, color: Color(0xFF2196F3), size: 20),
-                                const SizedBox(width: 8),
-                                Flexible(
-                                  child: Text(
-                                    _isModoEdicao ? 'Salvar Alterações' : 'Salvar Treino',
-                                    style: const TextStyle(
-                                      color: Color(0xFF2196F3),
-                                      fontWeight: FontWeight.bold,
-                                      fontSize: 14,
-                                    ),
+                              const Icon(Icons.check, color: Color(0xFF0D1117), size: 20),
+                              const SizedBox(width: 8),
+                              Flexible(
+                                child: Text(
+                                  _isModoEdicao ? 'Salvar Alterações' : 'Salvar Treino',
+                                  style: const TextStyle(
+                                    color: Color(0xFF0D1117),
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 14,
                                   ),
                                 ),
-                              ],
-                            ),
-                    ),
+                              ),
+                            ],
+                          ),
                   ),
                 ),
+              ),
               ],
             ),
           ),
