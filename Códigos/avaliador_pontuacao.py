@@ -78,7 +78,7 @@ def calcular_pontuacao(
     erros_fsm: List[str],
     fsm_ou_config: Any,
     numero_repeticao: int = 1,
-    tolerancia: float = 30.0,
+    tolerancia: float = 20.0,
     janela_sakoe_chiba: Optional[float] = 0.20,
     limiar_aprovacao: float = 70.0,
     alinhar_baseline: bool = True,
