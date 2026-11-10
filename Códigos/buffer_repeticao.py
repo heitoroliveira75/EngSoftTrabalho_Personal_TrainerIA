@@ -23,7 +23,7 @@ class BufferRepeticao:
         self,
         fsm: Any,
         articulacoes: List[str],
-        min_frames: int = 10,
+        min_frames: int = 6,
         min_rom: float = 15.0,
     ):
         self.fsm = fsm
@@ -79,6 +79,9 @@ class BufferRepeticao:
             # --- GUARDAS BIOMECÂNICAS (TASK-CORR.03) ---
             # 3.1. DurationGuard: descarta repetições muito curtas em tempo/frames
             if len(repeticao_completa) < self.min_frames:
+                self.fsm.repeticoes = reps_anteriores
+                if hasattr(self.fsm, "consumir_erros_repeticao"):
+                    self.fsm.consumir_erros_repeticao()
                 return None, erro_imediato
 
             # 3.2. ROMGuard: descarta repetições sem excursão angular real (ruído de câmera)
@@ -88,6 +91,9 @@ class BufferRepeticao:
                     for col in range(repeticao_completa.shape[1])
                 )
                 if rom_maxima < self.min_rom:
+                    self.fsm.repeticoes = reps_anteriores
+                    if hasattr(self.fsm, "consumir_erros_repeticao"):
+                        self.fsm.consumir_erros_repeticao()
                     return None, erro_imediato
 
             return repeticao_completa, erro_imediato
@@ -100,7 +106,7 @@ def extrair_primeira_repeticao(
     articulacoes: Optional[List[str]] = None,
     serie_angulos: Optional[List[Dict[str, float]]] = None,
     lancar_excecao: bool = False,
-    min_frames: int = 10,
+    min_frames: int = 6,
     min_rom: float = 15.0,
 ) -> Optional[np.ndarray]:
     """

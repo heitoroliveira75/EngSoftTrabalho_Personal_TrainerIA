@@ -167,11 +167,59 @@ from exercicios_fsm import (
     DesenvolvimentoOmbro,
     Agachamento,
     RoscaBiceps,
+    ElevacaoLateral,
+    TricepsCorda,
+    FlexaoDiamante,
+    RemadaBaixa,
     obter_config_exercicio,
 )
 
 
 class TestExerciciosFSM:
+    def test_histerese_rejeita_ruido_estatico_no_repouso(self):
+        """[TASK-CORR.04] Garante que ruído estático no repouso não faz a FSM sair da fase 0."""
+        fsm = DesenvolvimentoOmbro()
+        pos = {}
+        for val in [89.0, 91.0, 92.5, 91.0, 89.5, 90.5]:
+            fsm.classificar({"cotovelo": val, "ombro": 80.0}, pos, {"cotovelo": 0.8})
+            assert fsm.fases[1] == 0
+            assert fsm.repeticoes == 0
+            assert fsm.erros == []
+
+    def test_histerese_recupera_para_repouso_sem_erro_se_movimento_mal_iniciou(self):
+        """[TASK-CORR.04] Se o usuário subiu apenas 3 graus além do limiar e voltou, não acusa incompleto."""
+        fsm = DesenvolvimentoOmbro()
+        pos = {}
+        fsm.classificar({"cotovelo": 105.0, "ombro": 80.0}, pos, {"cotovelo": 2.5})
+        assert fsm.fases[1] == 1
+        erro = fsm.classificar({"cotovelo": 100.0, "ombro": 80.0}, pos, {"cotovelo": -3.0})
+        assert fsm.fases[1] == 0
+        assert erro is None
+        assert fsm.repeticoes == 0
+        assert fsm.erros == []
+
+    def test_histerese_todas_as_7_fsms_imunes_a_ruido_estatico(self):
+        """[TASK-CORR.04] Valida que nenhuma das 7 FSMs acumula repetições falsas sob ruído estático."""
+        casos = [
+            (DesenvolvimentoOmbro, {"cotovelo": 90.0, "ombro": 80.0}, "cotovelo"),
+            (Agachamento, {"joelho": 175.0, "quadril": 170.0}, "joelho"),
+            (RoscaBiceps, {"cotovelo": 165.0, "ombro": 15.0}, "cotovelo"),
+            (ElevacaoLateral, {"ombro": 25.0, "cotovelo": 160.0}, "ombro"),
+            (TricepsCorda, {"cotovelo": 80.0, "ombro": 15.0}, "cotovelo"),
+            (FlexaoDiamante, {"cotovelo": 160.0, "ombro": 50.0}, "cotovelo"),
+            (RemadaBaixa, {"cotovelo": 160.0, "ombro": 30.0, "quadril": 90.0}, "cotovelo"),
+        ]
+
+        for classe_fsm, pose_base, art_principal in casos:
+            fsm = classe_fsm()
+            val_base = pose_base[art_principal]
+            for i in range(25):
+                ruido = float(np.sin(i * 1.5) * 2.0)
+                pose_frame = dict(pose_base)
+                pose_frame[art_principal] = val_base + ruido
+                fsm.classificar(pose_frame, {}, {art_principal: float(ruido * 0.4)})
+                assert fsm.repeticoes == 0, f"FSM {classe_fsm.__name__} contou repetição indevida com ruído!"
+
     def test_desenvolvimento_ombro_ciclo_ideal(self):
         fsm = DesenvolvimentoOmbro()
         pos = {}
@@ -546,42 +594,44 @@ class TestGuardasBiomecanicasBuffer:
             def identificar_fase(self, a, p, d):
                 return 0
             def classificar(self, a, p, d):
-                self.fases = [1, 3]
+                self.fases = [3, 0]
                 self.repeticoes += 1
                 return None
 
         fsm = FSMFalsaCurta()
-        buffer = BufferRepeticao(fsm=fsm, articulacoes=["cotovelo"], min_frames=10, min_rom=15.0)
+        buffer = BufferRepeticao(fsm=fsm, articulacoes=["cotovelo"], min_frames=6, min_rom=15.0)
         buffer.frames_atuais = [[90.0], [95.0], [90.0]]
         rep, erro = buffer.processar_frame({"cotovelo": 90.0})
         assert rep is None
+        pass
 
     def test_rom_guard_rejeita_oscilacao_sem_amplitude_real(self):
         class FSMFalsaOscilacao(ExercicioBaseFSM):
             def identificar_fase(self, a, p, d):
                 return 0
             def classificar(self, a, p, d):
-                self.fases = [1, 3]
+                self.fases = [3, 0]
                 self.repeticoes += 1
                 return None
 
         fsm = FSMFalsaOscilacao()
-        buffer = BufferRepeticao(fsm=fsm, articulacoes=["cotovelo"], min_frames=10, min_rom=15.0)
+        buffer = BufferRepeticao(fsm=fsm, articulacoes=["cotovelo"], min_frames=6, min_rom=15.0)
         buffer.frames_atuais = [[90.0 + (i % 2) * 2.0] for i in range(14)]
         rep, erro = buffer.processar_frame({"cotovelo": 90.0})
         assert rep is None
+        pass
 
     def test_guardas_aceitam_repeticao_com_duracao_e_amplitude_validas(self):
         class FSMValida(ExercicioBaseFSM):
             def identificar_fase(self, a, p, d):
                 return 0
             def classificar(self, a, p, d):
-                self.fases = [1, 3]
+                self.fases = [3, 0]
                 self.repeticoes += 1
                 return None
 
         fsm = FSMValida()
-        buffer = BufferRepeticao(fsm=fsm, articulacoes=["cotovelo"], min_frames=10, min_rom=15.0)
+        buffer = BufferRepeticao(fsm=fsm, articulacoes=["cotovelo"], min_frames=6, min_rom=15.0)
         t = np.linspace(0, np.pi, 20)
         buffer.frames_atuais = [[float(90.0 + 70.0 * np.sin(val))] for val in t]
         rep, erro = buffer.processar_frame({"cotovelo": 90.0})
@@ -751,6 +801,7 @@ class TestOrquestradorEAvaliadorPontuacao:
         for _ in range(50):
             alerta, rep = orq.processar_frame(angulos={}, visivel=False)
             assert rep is None
+        pass
 
         assert orq.total_repeticoes == 0
         assert orq.fsm.repeticoes == 0
@@ -760,6 +811,7 @@ class TestOrquestradorEAvaliadorPontuacao:
         # 2. Usuário entra no quadro em uma pose qualquer
         alerta, rep = orq.processar_frame({"cotovelo": 120.0, "ombro": 100.0}, visivel=True)
         assert rep is None
+        pass
         # Na primeira leitura visível, a referência é ancorada com deltas zerados
         assert orq.referencia_deltas["cotovelo"] == 120.0
         assert orq.fsm.fases[1] == 0

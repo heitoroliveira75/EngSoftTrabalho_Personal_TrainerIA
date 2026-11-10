@@ -215,11 +215,11 @@ class OrquestradorSessao:
         self,
         identificador_exercicio: str,
         gabarito_customizado: Optional[GabaritoExercicio] = None,
-        tolerancia_dtw: float = 30.0,
+        tolerancia_dtw: float = 15.0,
         limiar_aprovacao: float = 70.0,
         janela_sakoe_chiba: Optional[float] = 0.20,
         limite_frames_invisivel: int = 30,
-        min_frames_repeticao: int = 10,
+        min_frames_repeticao: int = 6,
         min_rom_repeticao: float = 15.0,
         alinhar_baseline: bool = True,
     ):

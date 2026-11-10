@@ -1,7 +1,9 @@
 """
-Módulo de Máquinas de Estados Finitos (FSM) por Exercício.
+Módulo de Máquinas de Estados Finitos (FSM) por Exercício com Histerese e Calibração.
 Todas as classes seguem o mesmo contrato para integração transparente
 com o BufferRepeticao, com o avaliador de pontuação e com a interface em tempo real.
+Aplica histerese direcional nas transições 0 -> 1 e 1 -> 3 para eliminar falsos positivos
+e contagens espúrias causadas por ruído estático na postura de repouso.
 """
 
 from typing import Dict, Any, Optional, List
@@ -90,8 +92,11 @@ class DesenvolvimentoOmbro(ExercicioBaseFSM):
         elif fase == 1:
             if cotovelo >= 150.0:
                 fase = 2
-            elif delta_cotovelo < 0 and cotovelo < 130.0:
-                fase = 3
+            elif delta_cotovelo < 0:
+                if cotovelo >= 115.0:
+                    fase = 3
+                elif cotovelo <= 102.0:
+                    fase = 0
         elif fase == 2:
             if cotovelo < 140.0 or delta_cotovelo < 0:
                 fase = 3
@@ -158,8 +163,11 @@ class Agachamento(ExercicioBaseFSM):
         elif fase == 1:
             if joelho <= 105.0:
                 fase = 2
-            elif delta_joelho > 0 and joelho > 120.0:
-                fase = 3
+            elif delta_joelho > 0:
+                if joelho <= 135.0:
+                    fase = 3
+                elif joelho >= 150.0:
+                    fase = 0
         elif fase == 2:
             if joelho > 112.0 or delta_joelho > 0:
                 fase = 3
@@ -224,8 +232,11 @@ class RoscaBiceps(ExercicioBaseFSM):
         elif fase == 1:
             if cotovelo <= 65.0:
                 fase = 2
-            elif delta_cotovelo > 0 and cotovelo > 95.0:
-                fase = 3
+            elif delta_cotovelo > 0:
+                if cotovelo <= 120.0:
+                    fase = 3
+                elif cotovelo >= 140.0:
+                    fase = 0
         elif fase == 2:
             if cotovelo > 75.0 or delta_cotovelo > 0:
                 fase = 3
@@ -292,8 +303,11 @@ class ElevacaoLateral(ExercicioBaseFSM):
         elif fase == 1:
             if ombro >= 80.0:
                 fase = 2
-            elif delta_ombro < 0 and ombro < 70.0:
-                fase = 3
+            elif delta_ombro < 0:
+                if ombro >= 58.0:
+                    fase = 3
+                elif ombro <= 48.0:
+                    fase = 0
         elif fase == 2:
             if ombro < 100.0 and delta_ombro < 0:
                 fase = 3
@@ -362,8 +376,11 @@ class TricepsCorda(ExercicioBaseFSM):
         elif fase == 1:
             if cotovelo >= 145.0:
                 fase = 2
-            elif delta_cotovelo < 0 and cotovelo < 130.0:
-                fase = 3
+            elif delta_cotovelo < 0:
+                if cotovelo >= 120.0:
+                    fase = 3
+                elif cotovelo <= 98.0:
+                    fase = 0
         elif fase == 2:
             if cotovelo < 140.0 or delta_cotovelo < 0:
                 fase = 3
@@ -430,8 +447,11 @@ class FlexaoDiamante(ExercicioBaseFSM):
         elif fase == 1:
             if cotovelo <= 90.0:
                 fase = 2
-            elif delta_cotovelo > 0 and cotovelo > 105.0:
-                fase = 3
+            elif delta_cotovelo > 0:
+                if cotovelo <= 115.0:
+                    fase = 3
+                elif cotovelo >= 135.0:
+                    fase = 0
         elif fase == 2:
             if cotovelo > 100.0 or delta_cotovelo > 0:
                 fase = 3
