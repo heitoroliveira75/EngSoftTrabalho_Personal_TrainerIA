@@ -137,7 +137,7 @@ class DificuldadeScreen extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          const Icon(Icons.flash_on, color: Color(0xFF00E676), size: 32),
+          const Icon(Icons.flash_on, color: Colors.amber, size: 32),
           const SizedBox(width: 12),
           Expanded(
             child: Column(

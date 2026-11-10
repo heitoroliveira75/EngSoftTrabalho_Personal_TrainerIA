@@ -279,7 +279,7 @@ class _TrainingMenuScreenState extends State<TrainingMenuScreen> {
                                 Icon(
                                   Icons.star,
                                   size: 52,
-                                  color: Color(0xFF00E676),
+                                  color: Color(0xFFFFB300),
                                 ),
                                 Icon(
                                   Icons.arrow_forward,
@@ -332,7 +332,7 @@ class _TrainingMenuScreenState extends State<TrainingMenuScreen> {
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.bolt, size: 52, color: Color(0xFF00E676)),
+                  const Icon(Icons.bolt, size: 52, color: Color(0xFFFFB300)),
                   const SizedBox(width: 14),
                   Expanded(
                     child: Column(

@@ -273,42 +273,45 @@ class _HomeScreenState extends State<HomeScreen> {
             // Espaçamento
             const SizedBox(height: 24),
 
-            // 2. Cards de Métricas em Row
-            Row(
-              children: [
-                // Card Pontos da Semana
-                Expanded(
-                  child: _buildMetricCard(
-                    icon: Icons.star,
-                    iconColor: const Color(0xFF00E676),
-                    value: '$pontosSemana',
-                    label: 'Pontos Semana',
-                    labelColor: const Color(0xFF00E676),
+            // 2. Cards de Métricas em Row (altura uniforme)
+            IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Card Pontos da Semana
+                  Expanded(
+                    child: _buildMetricCard(
+                      icon: Icons.star,
+                      iconColor: const Color(0xFF00E676),
+                      value: '$pontosSemana',
+                      label: 'Pontos Semana',
+                      labelColor: const Color(0xFF00E676),
+                    ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                // Card Sequência Atual
-                Expanded(
-                  child: _buildMetricCard(
-                    icon: Icons.bolt,
-                    iconColor: const Color(0xFF00E676),
-                    value: '$sequenciaAtual',
-                    label: 'Dias Seguidos',
-                    labelColor: const Color(0xFF00E676),
+                  const SizedBox(width: 12),
+                  // Card Sequência Atual
+                  Expanded(
+                    child: _buildMetricCard(
+                      icon: Icons.bolt,
+                      iconColor: const Color(0xFFFFD700),
+                      value: '$sequenciaAtual',
+                      label: 'Dias Seguidos',
+                      labelColor: const Color(0xFFFFD700),
+                    ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                // Card Recorde de Sequência
-                Expanded(
-                  child: _buildMetricCard(
-                    icon: Icons.local_fire_department,
-                    iconColor: const Color(0xFF00E676),
-                    value: '$maiorSequencia',
-                    label: 'Recorde Dias',
-                    labelColor: const Color(0xFF00E676),
+                  const SizedBox(width: 12),
+                  // Card Recorde de Sequência
+                  Expanded(
+                    child: _buildMetricCard(
+                      icon: Icons.local_fire_department,
+                      iconColor: const Color(0xFFFF5252),
+                      value: '$maiorSequencia',
+                      label: 'Recorde Dias',
+                      labelColor: const Color(0xFFFF5252),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
 
             // Espaçamento
@@ -451,7 +454,12 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Icon(icon, size: 44, color: iconColor),
+          SizedBox(
+            height: 44,
+            child: Center(
+              child: Icon(icon, size: 44, color: iconColor),
+            ),
+          ),
           const SizedBox(height: 8),
           Column(
             children: [
@@ -464,10 +472,14 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
               const SizedBox(height: 4),
-              Text(
-                label,
-                textAlign: TextAlign.center,
-                style: const TextStyle(fontSize: 12, color: Colors.white70),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  label,
+                  maxLines: 1,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 12, color: labelColor),
+                ),
               ),
             ],
           ),
