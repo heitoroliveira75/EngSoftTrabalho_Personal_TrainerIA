@@ -380,14 +380,16 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
                                 : Colors.white70,
                           ),
                           const SizedBox(width: 6),
-                          Text(
-                            'Pontuação Semanal',
-                            style: TextStyle(
-                              color: _criterioOrdenacao == 'pontos'
-                                  ? const Color(0xFF0D1117)
-                                  : Colors.white70,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 12,
+                          Flexible(
+                            child: Text(
+                              'Pontuação Semanal',
+                              style: TextStyle(
+                                color: _criterioOrdenacao == 'pontos'
+                                    ? const Color(0xFF0D1117)
+                                    : Colors.white70,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
                             ),
                           ),
                         ],
@@ -422,14 +424,16 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
                                 : Colors.amberAccent,
                           ),
                           const SizedBox(width: 4),
-                          Text(
-                            'Streak de Treinos',
-                            style: TextStyle(
-                              color: _criterioOrdenacao == 'streak'
-                                  ? const Color(0xFF0D1117)
-                                  : Colors.white70,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 12,
+                          Flexible(
+                            child: Text(
+                              'Streak de Treinos',
+                              style: TextStyle(
+                                color: _criterioOrdenacao == 'streak'
+                                    ? const Color(0xFF0D1117)
+                                    : Colors.white70,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
                             ),
                           ),
                         ],
@@ -538,21 +542,26 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
-                'Tabela Completa',
-                style: TextStyle(
-                  color: Colors.white70,
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
+              const Flexible(
+                child: Text(
+                  'Tabela Completa',
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
-              Text(
-                _criterioOrdenacao == 'streak'
-                    ? 'Ordenado por Streak'
-                    : 'Ordenado por Pontos Semanais',
-                style: const TextStyle(
-                  color: Colors.white38,
-                  fontSize: 11,
+              const SizedBox(width: 8),
+              Flexible(
+                child: Text(
+                  _criterioOrdenacao == 'streak'
+                      ? 'Ordenado por Streak'
+                      : 'Ordenado por Pontos Semanais',
+                  style: const TextStyle(
+                    color: Colors.white38,
+                    fontSize: 11,
+                  ),
                 ),
               ),
             ],
@@ -706,7 +715,6 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
             Flexible(
               child: Text(
                 '$pontos pts',
-                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   color: cor,
                   fontSize: 11,
@@ -724,7 +732,6 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
             Flexible(
               child: Text(
                 '$sequencia d streak',
-                overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   color: Colors.white70,
                   fontSize: 10,
@@ -858,7 +865,6 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
                     Flexible(
                       child: Text(
                         '$sequencia dias streak',
-                        overflow: TextOverflow.ellipsis,
                         style: const TextStyle(color: Colors.white70, fontSize: 11),
                       ),
                     ),
@@ -868,7 +874,6 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
                     Flexible(
                       child: Text(
                         '$pontos pts sem.',
-                        overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           color: Color(0xFF00E676),
                           fontSize: 11,

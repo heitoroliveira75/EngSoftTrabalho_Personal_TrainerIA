@@ -307,6 +307,21 @@ class _CadastroScreenState extends State<CadastroScreen> {
                         ),
                       ),
                     ),
+                    Flexible(
+                      child: GestureDetector(
+                        onTap: () {
+                          Navigator.pop(context);
+                        },
+                        child: const Text(
+                          'Faça login.',
+                          style: TextStyle(
+                            color: Color(0xFFE91E63), // Rosa vibrante
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ],
@@ -374,11 +389,13 @@ class _CadastroScreenState extends State<CadastroScreen> {
         children: [
           icon,
           const SizedBox(width: 8),
-          Text(
-            text,
-            style: const TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
+          Flexible(
+            child: Text(
+              text,
+              style: const TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ],

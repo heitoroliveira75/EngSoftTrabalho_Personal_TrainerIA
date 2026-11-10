@@ -274,6 +274,7 @@ class _HomeScreenState extends State<HomeScreen> {
             const SizedBox(height: 24),
 
             // 2. Cards de Métricas em Row (altura uniforme)
+            // 2. Cards de Métricas em Row (com Altura Igual)
             IntrinsicHeight(
               child: Row(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -408,19 +409,28 @@ class _HomeScreenState extends State<HomeScreen> {
                           style: TextStyle(
                             color: Colors.white70,
                             fontSize: 18,
+                    const Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Hora de',
+                            style: TextStyle(
+                              color: Color(0xFF00E676),
+                              fontSize: 18,
+                            ),
                           ),
-                        ),
-                        Text(
-                          'Treinar',
-                          style: TextStyle(
-                            color: Color(0xFF00E676),
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
+                          Text(
+                            'Treinar',
+                            style: TextStyle(
+                              color: Color(0xFF00E676),
+                              fontSize: 32,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                    const Spacer(),
                     const Icon(
                       Icons.arrow_forward_ios,
                       color: Color(0xFF00E676),

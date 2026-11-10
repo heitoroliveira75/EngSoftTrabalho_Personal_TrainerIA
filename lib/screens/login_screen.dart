@@ -259,14 +259,31 @@ class _LoginScreenState extends State<LoginScreen> {
                           style: TextStyle(
                             color: Colors.white70,
                             fontSize: 13,
+                        const Flexible(
+                          child: Text(
+                            'Não possui uma conta? ',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 13,
+                            ),
                           ),
                         ),
-                        GestureDetector(
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (context) => const CadastroScreen(),
+                        Flexible(
+                          child: GestureDetector(
+                            onTap: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => const CadastroScreen(),
+                                ),
+                              );
+                            },
+                            child: const Text(
+                              'Crie uma conta',
+                              style: TextStyle(
+                                color: Color(0xFFE91E63), // Rosa vibrante
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
                               ),
                             );
                           },

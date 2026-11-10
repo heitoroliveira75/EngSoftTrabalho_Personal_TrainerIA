@@ -619,21 +619,25 @@ class _AmigosScreenState extends State<AmigosScreen>
                         children: [
                           const Icon(Icons.bolt, size: 14, color: Colors.amberAccent),
                           const SizedBox(width: 2),
-                          Text(
-                            '$sequencia dias',
-                            style: const TextStyle(
-                              color: Colors.white60,
-                              fontSize: 12,
+                          Flexible(
+                            child: Text(
+                              '$sequencia dias',
+                              style: const TextStyle(
+                                color: Colors.white60,
+                                fontSize: 12,
+                              ),
                             ),
                           ),
                           const SizedBox(width: 10),
                           const Icon(Icons.star, size: 14, color: Color(0xFF00E676)),
                           const SizedBox(width: 2),
-                          Text(
-                            '$pontos pts',
-                            style: const TextStyle(
-                              color: Colors.white60,
-                              fontSize: 12,
+                          Flexible(
+                            child: Text(
+                              '$pontos pts',
+                              style: const TextStyle(
+                                color: Colors.white60,
+                                fontSize: 12,
+                              ),
                             ),
                           ),
                         ],
@@ -750,13 +754,17 @@ class _AmigosScreenState extends State<AmigosScreen>
                           Row(
                             children: [
                               const Icon(Icons.bolt, size: 13, color: Colors.amberAccent),
-                              Text(
-                                '$sequencia dias • ',
-                                style: const TextStyle(color: Colors.white54, fontSize: 11),
+                              Flexible(
+                                child: Text(
+                                  '$sequencia dias • ',
+                                  style: const TextStyle(color: Colors.white54, fontSize: 11),
+                                ),
                               ),
-                              Text(
-                                '$pontos pts',
-                                style: const TextStyle(color: Color(0xFF00E676), fontSize: 11),
+                              Flexible(
+                                child: Text(
+                                  '$pontos pts',
+                                  style: const TextStyle(color: Color(0xFF00E676), fontSize: 11),
+                                ),
                               ),
                             ],
                           ),
@@ -919,7 +927,6 @@ class _AmigosScreenState extends State<AmigosScreen>
                                             Flexible(
                                               child: Text(
                                                 '${user['sequencia'] ?? 0} dias streak',
-                                                overflow: TextOverflow.ellipsis,
                                                 style: const TextStyle(color: Colors.white70, fontSize: 11),
                                               ),
                                             ),
@@ -929,7 +936,6 @@ class _AmigosScreenState extends State<AmigosScreen>
                                             Flexible(
                                               child: Text(
                                                 '${user['pontuacao_semanal'] ?? user['pontos'] ?? 0} pts',
-                                                overflow: TextOverflow.ellipsis,
                                                 style: const TextStyle(
                                                   color: Color(0xFF00E676),
                                                   fontSize: 11,

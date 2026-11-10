@@ -319,10 +319,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
               // Botão Deslogar
               SizedBox(
                 width: double.infinity,
-                height: 50,
                 child: ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF2D3139),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                     ),
@@ -378,16 +378,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            label,
-            style: const TextStyle(color: Colors.white70, fontSize: 14),
+          Flexible(
+            child: Text(
+              label,
+              style: const TextStyle(color: Color(0xFF64B5F6), fontSize: 14),
+            ),
           ),
-          Text(
-            value,
-            style: const TextStyle(
-              color: Color(0xFF00E676),
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
+          const SizedBox(width: 8),
+          Flexible(
+            child: Text(
+              value,
+              style: const TextStyle(
+                color: Color(0xFF2196F3),
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ],

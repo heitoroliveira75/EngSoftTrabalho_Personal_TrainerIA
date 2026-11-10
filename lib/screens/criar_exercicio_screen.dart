@@ -3,7 +3,9 @@ import '../models/exercicio_treino.dart';
 import '../services/api_service.dart';
 
 class CriarExercicioScreen extends StatefulWidget {
-  const CriarExercicioScreen({super.key});
+  final Map<String, dynamic>? treinoParaEditar;
+
+  const CriarExercicioScreen({super.key, this.treinoParaEditar});
 
   @override
   State<CriarExercicioScreen> createState() => _CriarExercicioScreenState();
@@ -14,6 +16,13 @@ typedef criar_exercicio_screen = CriarExercicioScreen;
 
 class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
   final TextEditingController _nomeTreinoController = TextEditingController();
+  bool _foiModificado = false;
+  String _nomeInicial = '';
+
+  bool get _isModoEdicao => widget.treinoParaEditar != null;
+
+  bool get _temAlteracoesNaoSalvas =>
+      _foiModificado || _nomeTreinoController.text.trim() != _nomeInicial.trim();
 
   // Catálogo de exercícios pré-definidos organizados por grupo muscular
   static const Map<String, List<Map<String, dynamic>>> _catalogoExercicios = {
@@ -88,6 +97,133 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
   bool _salvando = false;
 
   @override
+  void initState() {
+    super.initState();
+    if (_isModoEdicao) {
+      final dados = widget.treinoParaEditar!;
+      _nomeInicial = (dados['titulo'] ?? dados['nome'] ?? '').toString();
+      _nomeTreinoController.text = _nomeInicial;
+
+      final rawExercicios = dados['exercicios'];
+      if (rawExercicios is List) {
+        _exerciciosTreino.clear();
+        for (final item in rawExercicios) {
+          if (item is Map) {
+            final mapaExercicio = Map<String, dynamic>.from(item);
+            final exercicioConvertido = _converterMapaParaExercicioTreino(mapaExercicio);
+            _exerciciosTreino.add(exercicioConvertido);
+          }
+        }
+      }
+    }
+  }
+
+  ExercicioTreino _converterMapaParaExercicioTreino(Map<String, dynamic> map) {
+    final nomeRaw = (map['nome'] ?? 'Exercício').toString().trim();
+    final idRaw = (map['exercicio_id'] ?? map['id'] ?? '').toString().trim();
+    final series = (map['series'] as num?)?.toInt() ??
+        int.tryParse(map['series']?.toString() ?? '3') ??
+        3;
+    final repeticoes = (map['repeticoes'] as num?)?.toInt() ??
+        int.tryParse(map['repeticoes']?.toString() ?? '10') ??
+        10;
+
+    // Procura correspondência no catálogo por nome ou ID para recuperar grupo muscular e pontos
+    for (final entry in _catalogoExercicios.entries) {
+      for (final item in entry.value) {
+        final itemNome = (item['nome'] as String).toLowerCase();
+        final itemId = item['id'].toString();
+        if (itemNome == nomeRaw.toLowerCase() || (idRaw.isNotEmpty && itemId == idRaw)) {
+          return ExercicioTreino(
+            id: itemId,
+            nome: item['nome'] as String,
+            grupoMuscular: entry.key,
+            series: series,
+            repeticoes: repeticoes,
+            pontosPorSerie: (item['pontosSerie'] as int?) ?? 50,
+            pontosPorRepeticao: (item['pontosRep'] as int?) ?? 5,
+          );
+        }
+      }
+    }
+
+    return ExercicioTreino(
+      id: idRaw.isNotEmpty ? idRaw : '1',
+      nome: nomeRaw,
+      grupoMuscular: (map['grupo_muscular'] ?? 'Geral').toString(),
+      series: series,
+      repeticoes: repeticoes,
+      pontosPorSerie: (map['pontos_por_serie'] as num?)?.toInt() ?? 50,
+      pontosPorRepeticao: (map['pontos_por_repeticao'] as num?)?.toInt() ?? 5,
+    );
+  }
+
+  Future<void> _tentarSair() async {
+    if (!_temAlteracoesNaoSalvas) {
+      Navigator.pop(context);
+      return;
+    }
+
+    final descartar = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1E232A),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+          side: const BorderSide(color: Colors.white12),
+        ),
+        title: const Row(
+          children: [
+            Icon(Icons.warning_amber_rounded, color: Colors.amber, size: 28),
+            SizedBox(width: 10),
+            Flexible(
+              child: Text(
+                'Descartar alterações?',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: const Text(
+          'Você fez mudanças no treino que ainda não foram salvas. Deseja sair sem salvar?',
+          style: TextStyle(color: Colors.white70, fontSize: 14),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text(
+              'Continuar Editando',
+              style: TextStyle(color: Colors.white70),
+            ),
+          ),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFFF5252),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text(
+              'Descartar',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
+
+    if (descartar == true && mounted) {
+      Navigator.pop(context);
+    }
+  }
+
+  @override
   void dispose() {
     _nomeTreinoController.dispose();
     super.dispose();
@@ -102,11 +238,27 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
   void _adicionarExercicio(ExercicioTreino exercicio) {
     setState(() {
       _exerciciosTreino.add(exercicio);
+      _foiModificado = true;
     });
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('${exercicio.nome} adicionado ao treino!'),
         backgroundColor: const Color(0xFF00E676),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
+  /// Atualiza um exercício já existente pelo índice na lista
+  void _atualizarExercicio(int index, ExercicioTreino exercicioAtualizado) {
+    setState(() {
+      _exerciciosTreino[index] = exercicioAtualizado;
+      _foiModificado = true;
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('${exercicioAtualizado.nome} atualizado!'),
+        backgroundColor: const Color(0xFF2196F3),
         duration: const Duration(seconds: 2),
       ),
     );
@@ -118,6 +270,7 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
 
     setState(() {
       _exerciciosTreino.removeAt(index);
+      _foiModificado = true;
     });
 
     ScaffoldMessenger.of(context).showSnackBar(
@@ -153,6 +306,7 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
               Navigator.pop(ctx);
               setState(() {
                 _exerciciosTreino.clear();
+                _foiModificado = true;
               });
             },
             child: const Text('Limpar Tudo', style: TextStyle(color: Colors.white)),
@@ -190,10 +344,56 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
     final listaExerciciosJson = _exerciciosTreino.asMap().entries.map((entry) {
       final json = entry.value.toJson();
       json['ordem'] = entry.key + 1;
+      json['pontos'] = entry.value.totalPontos;
       return json;
     }).toList();
 
     try {
+      if (_isModoEdicao) {
+        final dadosOriginais = widget.treinoParaEditar!;
+        final idTreino = (dadosOriginais['idSalvo'] ?? dadosOriginais['id'] ?? '').toString();
+
+        Map<String, dynamic> resposta = {'sucesso': true};
+        if (idTreino.isNotEmpty && idTreino != 'm1') {
+          resposta = await ApiService().editarTreino(
+            idTreino,
+            nome: nome,
+            exercicios: listaExerciciosJson,
+          );
+        }
+
+        if (!mounted) return;
+
+        if (resposta['sucesso'] == true) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Treino "$nome" atualizado com sucesso! (+$_pontosTotaisTreino pts)'),
+              backgroundColor: const Color(0xFF00E676),
+            ),
+          );
+          Navigator.pop(context, {
+            'id': idTreino,
+            'idSalvo': idTreino,
+            'titulo': nome,
+            'nome': nome,
+            'exercicios': listaExerciciosJson,
+            'exerciciosCount': listaExerciciosJson.length,
+            'duracaoMinutos': listaExerciciosJson.length * 5,
+            'pontosTotais': _pontosTotaisTreino,
+          });
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                resposta['mensagem'] ?? 'Erro ao atualizar treino no servidor.',
+              ),
+              backgroundColor: const Color(0xFF8B0000),
+            ),
+          );
+        }
+        return;
+      }
+
       final resposta = await ApiService().criarTreino(
         usuarioId: ApiService().idUsuarioAtual,
         nome: nome,
@@ -240,14 +440,43 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
     }
   }
 
-  /// Abre o modal para configurar e adicionar um exercício com séries, reps e pontos
-  void _abrirModalAdicionarExercicio() {
+  /// Abre o modal para configurar e adicionar (ou editar) um exercício com séries, reps e pontos
+  void _abrirModalAdicionarExercicio({int? indexParaEditar}) {
+    final bool editandoExercicio =
+        indexParaEditar != null &&
+        indexParaEditar >= 0 &&
+        indexParaEditar < _exerciciosTreino.length;
     final grupos = _catalogoExercicios.keys.toList();
     String grupoSelecionado = grupos.first;
     Map<String, dynamic> exercicioSelecionado = _catalogoExercicios[grupoSelecionado]!.first;
 
     int series = 3;
     int repeticoes = 10;
+
+    if (editandoExercicio) {
+      final exAtual = _exerciciosTreino[indexParaEditar];
+      series = exAtual.series;
+      repeticoes = exAtual.repeticoes;
+
+      bool achouNoCatalogo = false;
+      for (final entry in _catalogoExercicios.entries) {
+        for (final item in entry.value) {
+          if (item['id'].toString() == exAtual.id ||
+              (item['nome'] as String).toLowerCase() == exAtual.nome.toLowerCase()) {
+            grupoSelecionado = entry.key;
+            exercicioSelecionado = item;
+            achouNoCatalogo = true;
+            break;
+          }
+        }
+        if (achouNoCatalogo) break;
+      }
+
+      if (!achouNoCatalogo && _catalogoExercicios.containsKey(exAtual.grupoMuscular)) {
+        grupoSelecionado = exAtual.grupoMuscular;
+        exercicioSelecionado = _catalogoExercicios[grupoSelecionado]!.first;
+      }
+    }
 
     showModalBottomSheet(
       context: context,
@@ -285,12 +514,14 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text(
-                            'Adicionar Exercício',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 20,
-                              fontWeight: FontWeight.bold,
+                          Flexible(
+                            child: Text(
+                              editandoExercicio ? 'Editar Exercício' : 'Adicionar Exercício',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
                           IconButton(
@@ -389,13 +620,16 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
                                 child: Row(
                                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                   children: [
-                                    Text(
-                                      item['nome'] as String,
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.w500,
+                                    Expanded(
+                                      child: Text(
+                                        item['nome'] as String,
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.w500,
+                                        ),
                                       ),
                                     ),
+                                    const SizedBox(width: 8),
                                     Text(
                                       '+${item['pontosSerie']} pts/série',
                                       style: const TextStyle(
@@ -523,14 +757,14 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
 
                       const SizedBox(height: 18),
 
-                      // Botão de adicionar
+                      // Botão de adicionar / salvar edição
                       SizedBox(
                         width: double.infinity,
-                        height: 44,
                         child: ElevatedButton(
                           style: ElevatedButton.styleFrom(
                             backgroundColor: const Color(0xFF00E676),
                             foregroundColor: Colors.black,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
                             shape: RoundedRectangleBorder(
                               borderRadius: BorderRadius.circular(10),
                             ),
@@ -547,11 +781,15 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
                             );
 
                             Navigator.pop(ctx);
-                            _adicionarExercicio(novoExercicio);
+                            if (editandoExercicio) {
+                              _atualizarExercicio(indexParaEditar, novoExercicio);
+                            } else {
+                              _adicionarExercicio(novoExercicio);
+                            }
                           },
-                          child: const Text(
-                            'Adicionar ao Treino',
-                            style: TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                          child: Text(
+                            editandoExercicio ? 'Salvar Exercício' : 'Adicionar ao Treino',
+                            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
                           ),
                         ),
                       ),
@@ -618,12 +856,14 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
                 icon: const Icon(Icons.remove_circle_outline, color: Colors.white70, size: 24),
                 onPressed: onDecrementar,
               ),
-              Text(
-                '$valor',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
+              Flexible(
+                child: Text(
+                  '$valor',
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
               ),
               IconButton(
@@ -641,234 +881,241 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFF0D1117),
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (!didPop) {
+          _tentarSair();
+        }
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFF0D1117),
 
-      // Botão de voltar canto superior
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: GestureDetector(
-          onTap: () => Navigator.pop(context),
-          child: const Text(
-            'TREINOS',
-            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+        // Botão de voltar canto superior
+        appBar: AppBar(
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.white),
+            onPressed: _tentarSair,
           ),
-        ),
-        actions: [
-          if (_exerciciosTreino.isNotEmpty)
-            IconButton(
-              icon: const Icon(Icons.delete_sweep, color: Color(0xFFFF5252)),
-              tooltip: 'Limpar todos os exercícios',
-              onPressed: _limparTreino,
+          title: GestureDetector(
+            onTap: _tentarSair,
+            child: Text(
+              _isModoEdicao ? 'EDITAR TREINO' : 'TREINOS',
+              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
             ),
-        ],
-      ),
-
-      // Corpo da tela
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            children: [
-              // 1. Campo Nome do Treino
-              _buildInputField(
-                controller: _nomeTreinoController,
-                hintText: 'Dê um nome ao seu treino',
-                keyboardType: TextInputType.text,
+          ),
+          actions: [
+            if (_exerciciosTreino.isNotEmpty)
+              IconButton(
+                icon: const Icon(Icons.delete_sweep, color: Color(0xFFFF5252)),
+                tooltip: 'Limpar todos os exercícios',
+                onPressed: _limparTreino,
               ),
+          ],
+        ),
 
-              const SizedBox(height: 10),
+        // Corpo da tela
+        body: SafeArea(
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              children: [
+                // 1. Campo Nome do Treino
+                _buildInputField(
+                  controller: _nomeTreinoController,
+                  hintText: 'Dê um nome ao seu treino',
+                  keyboardType: TextInputType.text,
+                ),
 
-              // 2. Pontos Totais recalculados dinamicamente
-              Align(
-                alignment: Alignment.centerLeft,
-                child: Text.rich(
-                  TextSpan(
-                    text: 'Total de pontos: ',
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
-                      letterSpacing: 1.2,
+                const SizedBox(height: 10),
+
+                // 2. Pontos Totais recalculados dinamicamente
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text.rich(
+                    TextSpan(
+                      text: 'Total de pontos: ',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 1.2,
+                      ),
+                      children: [
+                        TextSpan(
+                          text: '$_pontosTotaisTreino',
+                          style: const TextStyle(
+                            color: Color(0xFF2196F3),
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        TextSpan(
+                          text: ' (${_exerciciosTreino.length} exercícios)',
+                          style: const TextStyle(
+                            color: Colors.white54,
+                            fontSize: 13,
+                            fontWeight: FontWeight.normal,
+                          ),
+                        ),
+                      ],
                     ),
-                    children: [
-                      TextSpan(
-                        text: '$_pontosTotaisTreino',
-                        style: const TextStyle(
-                          color: Color(0xFF00E676),
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      TextSpan(
-                        text: ' (${_exerciciosTreino.length} exercícios)',
-                        style: const TextStyle(
-                          color: Colors.white54,
-                          fontSize: 13,
-                          fontWeight: FontWeight.normal,
-                        ),
-                      ),
-                    ],
                   ),
                 ),
-              ),
 
-              const SizedBox(height: 16),
+                const SizedBox(height: 16),
 
-              // 3. PARTE ESCROLÁVEL: LISTA DE EXERCÍCIOS COM LISTVIEW.BUILDER
-              Expanded(
-                child: _exerciciosTreino.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.fitness_center,
-                              size: 48,
-                              color: Colors.white.withValues(alpha: 0.2),
-                            ),
-                            const SizedBox(height: 12),
-                            Text(
-                              'Nenhum exercício na lista.',
-                              style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.6),
-                                fontSize: 16,
+                // 3. PARTE ESCROLÁVEL: LISTA DE EXERCÍCIOS COM REORDERABLELISTVIEW.BUILDER
+                Expanded(
+                  child: _exerciciosTreino.isEmpty
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.fitness_center,
+                                size: 48,
+                                color: Colors.white.withValues(alpha: 0.2),
                               ),
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              'Toque no botão abaixo para adicionar.',
-                              style: TextStyle(
-                                color: Colors.white.withValues(alpha: 0.4),
-                                fontSize: 13,
+                              const SizedBox(height: 12),
+                              Text(
+                                'Nenhum exercício na lista.',
+                                style: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.6),
+                                  fontSize: 16,
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
-                      )
-                    : ReorderableListView.builder(
-                        itemCount: _exerciciosTreino.length,
-                        buildDefaultDragHandles: false,
-                        onReorderItem: (int oldIndex, int newIndex) {
-                          setState(() {
-                            final item = _exerciciosTreino.removeAt(oldIndex);
-                            _exerciciosTreino.insert(newIndex, item);
-                          });
-                        },
-                        itemBuilder: (context, index) {
-                          final item = _exerciciosTreino[index];
+                              const SizedBox(height: 6),
+                              Text(
+                                'Toque no botão abaixo para adicionar.',
+                                style: TextStyle(
+                                  color: Colors.white.withValues(alpha: 0.4),
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : ReorderableListView.builder(
+                          itemCount: _exerciciosTreino.length,
+                          buildDefaultDragHandles: false,
+                          onReorderItem: (int oldIndex, int newIndex) {
+                            setState(() {
+                              final item = _exerciciosTreino.removeAt(oldIndex);
+                              _exerciciosTreino.insert(newIndex, item);
+                              _foiModificado = true;
+                            });
+                          },
+                          itemBuilder: (context, index) {
+                            final item = _exerciciosTreino[index];
 
-                          // Montagem lista de exercicios
-                          return Container(
-                            key: ObjectKey(item),
-                            margin: const EdgeInsets.only(bottom: 12),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF2D3139),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.white10),
-                            ),
-                            child: Padding(
-                              padding: const EdgeInsets.all(14),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.center,
-                                children: [
-                                  // Drag handle para arrastar e reordenar
-                                  ReorderableDragStartListener(
-                                    index: index,
-                                    child: Container(
-                                      padding: const EdgeInsets.only(right: 10),
-                                      color: Colors.transparent,
+                            // Montagem lista de exercicios
+                            return Container(
+                              key: ObjectKey(item),
+                              margin: const EdgeInsets.only(bottom: 12),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF2D3139),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: Colors.white10),
+                              ),
+                              child: Padding(
+                                padding: const EdgeInsets.all(14),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    // Drag handle para arrastar e reordenar
+                                    ReorderableDragStartListener(
+                                      index: index,
+                                      child: Container(
+                                        padding: const EdgeInsets.only(right: 10),
+                                        color: Colors.transparent,
+                                        child: const Icon(
+                                          Icons.drag_handle,
+                                          color: Colors.white38,
+                                          size: 24,
+                                        ),
+                                      ),
+                                    ),
+
+                                    // Ícone
+                                    Container(
+                                      width: 44,
+                                      height: 44,
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF00E676).withValues(alpha: 0.15),
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
                                       child: const Icon(
-                                        Icons.drag_handle,
-                                        color: Colors.white38,
+                                        Icons.fitness_center,
+                                        color: Color(0xFF00E676),
                                         size: 24,
                                       ),
                                     ),
-                                  ),
 
-                                  // Ícone
-                                  Container(
-                                    width: 44,
-                                    height: 44,
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFF00E676).withValues(alpha: 0.15),
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    child: const Icon(
-                                      Icons.fitness_center,
-                                      color: Color(0xFF00E676),
-                                      size: 24,
-                                    ),
-                                  ),
+                                    const SizedBox(width: 14),
 
-                                  const SizedBox(width: 14),
-
-                                  // Detalhes do Exercício
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          item.nome,
-                                          style: const TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.bold,
+                                    // Detalhes do Exercício
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            item.nome,
+                                            style: const TextStyle(
+                                              color: Colors.white,
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.bold,
+                                            ),
                                           ),
-                                        ),
-                                        const SizedBox(height: 2),
-                                        Text(
-                                          item.grupoMuscular,
-                                          style: const TextStyle(
-                                            color: Colors.white54,
-                                            fontSize: 12,
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            item.grupoMuscular,
+                                            style: const TextStyle(
+                                              color: Colors.white54,
+                                              fontSize: 12,
+                                            ),
                                           ),
-                                        ),
 
-                                        const SizedBox(height: 6),
+                                          const SizedBox(height: 6),
 
-                                        // Informações de Séries, Reps e Total de Reps
-                                        Row(
-                                          children: [
-                                            Container(
-                                              padding: const EdgeInsets.symmetric(
-                                                horizontal: 6,
-                                                vertical: 2,
-                                              ),
-                                              decoration: BoxDecoration(
-                                                color: Colors.white12,
-                                                borderRadius: BorderRadius.circular(6),
-                                              ),
-                                              child: Text(
-                                                '${item.series} séries × ${item.repeticoes} reps',
-                                                style: const TextStyle(
-                                                  color: Colors.white,
-                                                  fontSize: 11,
-                                                  fontWeight: FontWeight.w600,
+                                          // Informações de Séries, Reps e Total de Reps
+                                          Row(
+                                            children: [
+                                              Container(
+                                                padding: const EdgeInsets.symmetric(
+                                                  horizontal: 6,
+                                                  vertical: 2,
+                                                ),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.white12,
+                                                  borderRadius: BorderRadius.circular(6),
+                                                ),
+                                                child: Text(
+                                                  '${item.series} séries × ${item.repeticoes} reps',
+                                                  style: const TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 11,
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
                                                 ),
                                               ),
-                                            ),
 
-                                            const SizedBox(width: 6),
+                                              const SizedBox(width: 6),
 
-                                            Flexible(
-                                              child: Text(
-                                                '(${item.totalRepeticoes} totais)',
-                                                overflow: TextOverflow.ellipsis,
-                                                style: const TextStyle(
-                                                  color: Colors.white60,
-                                                  fontSize: 11,
+                                              Flexible(
+                                                child: Text(
+                                                  '(${item.totalRepeticoes} totais)',
+                                                  style: const TextStyle(
+                                                    color: Colors.white60,
+                                                    fontSize: 11,
+                                                  ),
                                                 ),
                                               ),
-                                            ),
-                                          ],
-                                        ),
+                                            ],
+                                          ),
 
-                                        const SizedBox(height: 4),
+                                          const SizedBox(height: 4),
 
                                         // Pontuação calculada
                                         Text(
@@ -878,63 +1125,83 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
                                             fontSize: 11,
                                             fontWeight: FontWeight.w500,
                                           ),
-                                        ),
-                                      ],
+                                        ],
+                                      ),
                                     ),
-                                  ),
 
-                                  // Botão para excluir este exercício
-                                  IconButton(
-                                    icon: const Icon(
-                                      Icons.delete_outline,
-                                      color: Color(0xFFFF5252),
+                                    // Botão para editar este exercício
+                                    IconButton(
+                                      constraints: const BoxConstraints(),
+                                      padding: const EdgeInsets.all(6),
+                                      icon: const Icon(
+                                        Icons.edit_outlined,
+                                        color: Color(0xFF2196F3),
+                                        size: 22,
+                                      ),
+                                      tooltip: 'Editar exercício',
+                                      onPressed: () => _abrirModalAdicionarExercicio(
+                                        indexParaEditar: index,
+                                      ),
                                     ),
-                                    tooltip: 'Excluir exercício',
-                                    onPressed: () => _removerExercicio(index),
-                                  ),
-                                ],
+
+                                    // Botão para excluir este exercício
+                                    IconButton(
+                                      constraints: const BoxConstraints(),
+                                      padding: const EdgeInsets.all(6),
+                                      icon: const Icon(
+                                        Icons.delete_outline,
+                                        color: Color(0xFFFF5252),
+                                        size: 22,
+                                      ),
+                                      tooltip: 'Excluir exercício',
+                                      onPressed: () => _removerExercicio(index),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                ),
+
+                const SizedBox(height: 12),
+
+                // Botões no rodapé
+
+                // 1º Botão: Adicionar Exercício
+                Material(
+                  color: const Color(0xFF2D3139),
+                  borderRadius: BorderRadius.circular(10),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(10),
+                    onTap: () => _abrirModalAdicionarExercicio(),
+                    child: Container(
+                      width: double.infinity,
+                      constraints: const BoxConstraints(minHeight: 42),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      alignment: Alignment.center,
+                      child: const Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.add, color: Color(0xFF00E676), size: 20),
+                          SizedBox(width: 8),
+                          Flexible(
+                            child: Text(
+                              'Adicionar Exercício',
+                              style: TextStyle(
+                                color: Color(0xFF00E676),
+                                fontWeight: FontWeight.bold,
+                                fontSize: 14,
                               ),
                             ),
-                          );
-                        },
-                      ),
-              ),
-
-              const SizedBox(height: 12),
-
-              // Botões no rodapé
-
-              // 1º Botão: Adicionar Exercício
-              Material(
-                color: const Color(0xFF2D3139),
-                borderRadius: BorderRadius.circular(10),
-                child: InkWell(
-                  borderRadius: BorderRadius.circular(10),
-                  onTap: _abrirModalAdicionarExercicio,
-                  child: Container(
-                    width: double.infinity,
-                    height: 42,
-                    alignment: Alignment.center,
-                    child: const Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(Icons.add, color: Color(0xFF00E676), size: 20),
-                        SizedBox(width: 8),
-                        Text(
-                          'Adicionar Exercício',
-                          style: TextStyle(
-                            color: Color(0xFF00E676),
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ),
 
-              const SizedBox(height: 8),
+                const SizedBox(height: 8),
 
               // 2º Botão: Salvar Treino
               Material(
@@ -969,12 +1236,29 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
                                   fontSize: 14,
                                 ),
                               ),
-                            ],
-                          ),
+                            )
+                          : Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.check, color: Color(0xFF2196F3), size: 20),
+                                const SizedBox(width: 8),
+                                Flexible(
+                                  child: Text(
+                                    _isModoEdicao ? 'Salvar Alterações' : 'Salvar Treino',
+                                    style: const TextStyle(
+                                      color: Color(0xFF2196F3),
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

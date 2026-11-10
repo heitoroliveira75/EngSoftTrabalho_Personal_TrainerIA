@@ -635,110 +635,115 @@ class _LobbyDuplaScreenState extends State<LobbyDuplaScreen> {
                             ),
                           ),
                           const SizedBox(height: 12),
-                          Row(
-                            children: [
-                              // Opção 1: Mesmo Celular (Presencial)
-                              Expanded(
-                                child: InkWell(
-                                  onTap: () => setState(() => _isMesmoAparelho = true),
-                                  borderRadius: BorderRadius.circular(10),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
-                                    decoration: BoxDecoration(
-                                      color: _isMesmoAparelho
-                                          ? const Color(0xFF00E676).withValues(alpha: 0.15)
-                                          : const Color(0xFF0D1117),
-                                      borderRadius: BorderRadius.circular(10),
-                                      border: Border.all(
+                          IntrinsicHeight(
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                // Opção 1: Mesmo Celular (Presencial)
+                                Expanded(
+                                  child: InkWell(
+                                    onTap: () => setState(() => _isMesmoAparelho = true),
+                                    borderRadius: BorderRadius.circular(10),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
+                                      decoration: BoxDecoration(
                                         color: _isMesmoAparelho
-                                            ? const Color(0xFF00E676)
-                                            : Colors.white12,
-                                        width: _isMesmoAparelho ? 1.5 : 1.0,
+                                            ? const Color(0xFF00E676).withValues(alpha: 0.15)
+                                            : const Color(0xFF0D1117),
+                                        borderRadius: BorderRadius.circular(10),
+                                        border: Border.all(
+                                          color: _isMesmoAparelho
+                                              ? const Color(0xFF00E676)
+                                              : Colors.white12,
+                                          width: _isMesmoAparelho ? 1.5 : 1.0,
+                                        ),
                                       ),
-                                    ),
-                                    child: Column(
-                                      children: [
-                                        Icon(
-                                          Icons.phone_android,
-                                          color: _isMesmoAparelho ? const Color(0xFF00E676) : Colors.white60,
-                                          size: 26,
-                                        ),
-                                        const SizedBox(height: 6),
-                                        Text(
-                                          '1 Celular (Juntos)',
-                                          style: TextStyle(
-                                            color: _isMesmoAparelho ? Colors.white : Colors.white70,
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 12,
+                                      child: Column(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Icon(
+                                            Icons.phone_android,
+                                            color: _isMesmoAparelho ? const Color(0xFF00E676) : Colors.white60,
+                                            size: 26,
                                           ),
-                                          textAlign: TextAlign.center,
-                                        ),
-                                        const SizedBox(height: 2),
-                                        Text(
-                                          'Revezem a mesma câmera',
-                                          style: TextStyle(
-                                            color: _isMesmoAparelho ? const Color(0xFF00E676) : Colors.white38,
-                                            fontSize: 10,
+                                          const SizedBox(height: 6),
+                                          Text(
+                                            '1 Celular (Juntos)',
+                                            style: TextStyle(
+                                              color: _isMesmoAparelho ? Colors.white : Colors.white70,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 12,
+                                            ),
+                                            textAlign: TextAlign.center,
                                           ),
-                                          textAlign: TextAlign.center,
-                                        ),
-                                      ],
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            'Revezem a mesma câmera',
+                                            style: TextStyle(
+                                              color: _isMesmoAparelho ? const Color(0xFF00E676) : Colors.white38,
+                                              fontSize: 10,
+                                            ),
+                                            textAlign: TextAlign.center,
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                   ),
                                 ),
-                              ),
-                              const SizedBox(width: 10),
-                              // Opção 2: Celulares Separados (Remoto)
-                              Expanded(
-                                child: InkWell(
-                                  onTap: () => setState(() => _isMesmoAparelho = false),
-                                  borderRadius: BorderRadius.circular(10),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
-                                    decoration: BoxDecoration(
-                                      color: !_isMesmoAparelho
-                                          ? const Color(0xFF00E676).withValues(alpha: 0.15)
-                                          : const Color(0xFF0D1117),
-                                      borderRadius: BorderRadius.circular(10),
-                                      border: Border.all(
+                                const SizedBox(width: 10),
+                                // Opção 2: Celulares Separados (Remoto)
+                                Expanded(
+                                  child: InkWell(
+                                    onTap: () => setState(() => _isMesmoAparelho = false),
+                                    borderRadius: BorderRadius.circular(10),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
+                                      decoration: BoxDecoration(
                                         color: !_isMesmoAparelho
-                                            ? const Color(0xFF00E676)
-                                            : Colors.white12,
-                                        width: !_isMesmoAparelho ? 1.5 : 1.0,
+                                            ? const Color(0xFF00E676).withValues(alpha: 0.15)
+                                            : const Color(0xFF0D1117),
+                                        borderRadius: BorderRadius.circular(10),
+                                        border: Border.all(
+                                          color: !_isMesmoAparelho
+                                              ? const Color(0xFF00E676)
+                                              : Colors.white12,
+                                          width: !_isMesmoAparelho ? 1.5 : 1.0,
+                                        ),
                                       ),
-                                    ),
-                                    child: Column(
-                                      children: [
-                                        Icon(
-                                          Icons.devices,
-                                          color: !_isMesmoAparelho ? const Color(0xFF00E676) : Colors.white60,
-                                          size: 26,
-                                        ),
-                                        const SizedBox(height: 6),
-                                        Text(
-                                          '2 Celulares (Online)',
-                                          style: TextStyle(
-                                            color: !_isMesmoAparelho ? Colors.white : Colors.white70,
-                                            fontWeight: FontWeight.bold,
-                                            fontSize: 12,
+                                      child: Column(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Icon(
+                                            Icons.devices,
+                                            color: !_isMesmoAparelho ? const Color(0xFF00E676) : Colors.white60,
+                                            size: 26,
                                           ),
-                                          textAlign: TextAlign.center,
-                                        ),
-                                        const SizedBox(height: 2),
-                                        Text(
-                                          'Cada um no seu aparelho',
-                                          style: TextStyle(
-                                            color: !_isMesmoAparelho ? const Color(0xFF00E676) : Colors.white38,
-                                            fontSize: 10,
+                                          const SizedBox(height: 6),
+                                          Text(
+                                            '2 Celulares (Online)',
+                                            style: TextStyle(
+                                              color: !_isMesmoAparelho ? Colors.white : Colors.white70,
+                                              fontWeight: FontWeight.bold,
+                                              fontSize: 12,
+                                            ),
+                                            textAlign: TextAlign.center,
                                           ),
-                                          textAlign: TextAlign.center,
-                                        ),
-                                      ],
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            'Cada um no seu aparelho',
+                                            style: TextStyle(
+                                              color: !_isMesmoAparelho ? const Color(0xFF00E676) : Colors.white38,
+                                              fontSize: 10,
+                                            ),
+                                            textAlign: TextAlign.center,
+                                          ),
+                                        ],
+                                      ),
                                     ),
                                   ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ],
                       ),
@@ -761,16 +766,19 @@ class _LobbyDuplaScreenState extends State<LobbyDuplaScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
-                            const Text(
-                              'TREINO COMPLETO DA DUPLA',
-                              style: TextStyle(
-                                color: Colors.white60,
-                                fontWeight: FontWeight.bold,
-                                fontSize: 12,
-                                letterSpacing: 1.1,
+                            const Flexible(
+                              child: Text(
+                                'TREINO COMPLETO DA DUPLA',
+                                style: TextStyle(
+                                  color: Colors.white60,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                  letterSpacing: 1.1,
+                                ),
                               ),
                             ),
-                            if (!widget.isHost)
+                            if (!widget.isHost) ...[
+                              const SizedBox(width: 8),
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                                 decoration: BoxDecoration(
@@ -782,6 +790,7 @@ class _LobbyDuplaScreenState extends State<LobbyDuplaScreen> {
                                   style: TextStyle(color: Colors.white54, fontSize: 11),
                                 ),
                               ),
+                            ],
                           ],
                         ),
                         const SizedBox(height: 14),
@@ -836,6 +845,7 @@ class _LobbyDuplaScreenState extends State<LobbyDuplaScreen> {
                               children: [
                                 Expanded(
                                   child: DropdownButtonFormField<String>(
+                                    isExpanded: true,
                                     value: _treinoSelecionadoId,
                                     dropdownColor: const Color(0xFF1E232A),
                                     decoration: InputDecoration(
@@ -855,7 +865,6 @@ class _LobbyDuplaScreenState extends State<LobbyDuplaScreen> {
                                         child: Text(
                                           '${t['titulo']} ($totalEx ex)',
                                           style: const TextStyle(color: Colors.white, fontSize: 13),
-                                          overflow: TextOverflow.ellipsis,
                                         ),
                                       );
                                     }).toList(),
@@ -1116,9 +1125,11 @@ class _LobbyDuplaScreenState extends State<LobbyDuplaScreen> {
                             child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF00E676)),
                           ),
                           SizedBox(width: 12),
-                          Text(
-                            'Aguardando o Host iniciar a sessão...',
-                            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                          Flexible(
+                            child: Text(
+                              'Aguardando o Host iniciar a sessão...',
+                              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                            ),
                           ),
                         ],
                       ),

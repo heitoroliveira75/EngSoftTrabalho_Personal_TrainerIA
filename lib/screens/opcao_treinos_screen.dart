@@ -514,13 +514,17 @@ class _OpcaoTreinosScreenState extends State<OpcaoTreinosScreen> {
               (soma, item) => soma + ((item['pontos'] as num?)?.toInt() ?? 0),
             );
 
-            final duracao = (t['duracaoMinutos'] as num?)?.toInt() ??
-                (t['duracao_minutos'] as num?)?.toInt() ??
-                (exerciciosMapeados.isEmpty ? 20 : exerciciosMapeados.length * 5);
+            final duracao = exerciciosMapeados.isNotEmpty
+                ? exerciciosMapeados.length * 5
+                : ((t['duracaoMinutos'] as num?)?.toInt() ??
+                    (t['duracao_minutos'] as num?)?.toInt() ??
+                    20);
 
-            final pontosTreino = (t['pontosTotais'] as num?)?.toInt() ??
-                (t['pontos_totais'] as num?)?.toInt() ??
-                (totalPontos > 0 ? totalPontos : 150);
+            final pontosTreino = totalPontos > 0
+                ? totalPontos
+                : ((t['pontosTotais'] as num?)?.toInt() ??
+                    (t['pontos_totais'] as num?)?.toInt() ??
+                    150);
 
             convertidos.add({
               'id': t['id'].toString(),
@@ -655,12 +659,14 @@ class _OpcaoTreinosScreenState extends State<OpcaoTreinosScreen> {
             children: [
               Icon(Icons.warning_amber_rounded, color: Colors.amber, size: 28),
               SizedBox(width: 10),
-              Text(
-                'Remover Treino?',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
+              Flexible(
+                child: Text(
+                  'Remover Treino?',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
                 ),
               ),
             ],
@@ -997,19 +1003,24 @@ class _OpcaoTreinosScreenState extends State<OpcaoTreinosScreen> {
                                         mainAxisAlignment:
                                             MainAxisAlignment.spaceBetween,
                                         children: [
-                                          Text(
-                                            '+${treino['pontosTotais'] ?? 100} pts',
-                                            style: TextStyle(
-                                              color: corCard,
-                                              fontWeight: FontWeight.bold,
-                                              fontSize: 14,
+                                          Flexible(
+                                            child: Text(
+                                              '+${treino['pontosTotais'] ?? 100} pts',
+                                              style: TextStyle(
+                                                color: corCard,
+                                                fontWeight: FontWeight.bold,
+                                                fontSize: 14,
+                                              ),
                                             ),
                                           ),
-                                          Text(
-                                            treino['dificuldade'] ?? 'Geral',
-                                            style: TextStyle(
-                                              color: Colors.grey[400],
-                                              fontSize: 12,
+                                          const SizedBox(width: 8),
+                                          Flexible(
+                                            child: Text(
+                                              treino['dificuldade'] ?? 'Geral',
+                                              style: TextStyle(
+                                                color: Colors.grey[400],
+                                                fontSize: 12,
+                                              ),
                                             ),
                                           ),
                                         ],
