@@ -12,7 +12,9 @@ if str(_DIR_CODIGOS) not in sys.path:
     sys.path.insert(0, str(_DIR_CODIGOS))
 from typing import Optional, List, Dict, Any
 from types import ModuleType, SimpleNamespace
-from calculo_angulos import calcular_angulo, calcular_deltas_angulares
+from calculo_angulos import calcular_angulo, calcular_angulo_orientado, calcular_deltas_angulares
+from exercicios_fsm import ExercicioBaseFSM
+from buffer_repeticao import BufferRepeticao
 
 
 class TestCalculoAngulos:
@@ -25,6 +27,19 @@ class TestCalculoAngulos:
         # Linha reta: A=(-1, 0), B=(0, 0), C=(1, 0) -> 180 graus
         ang = calcular_angulo((-1, 0), (0, 0), (1, 0))
         assert pytest.approx(ang, rel=1e-2) == 180.0
+
+    def test_calcular_angulo_orientado_sinais(self):
+        # Sentido anti-horário: BA=(1, 0) -> BC=(0, 1) produz ângulo positivo (+90 graus)
+        ang_pos = calcular_angulo_orientado((1, 0), (0, 0), (0, 1))
+        assert pytest.approx(ang_pos, rel=1e-2) == 90.0
+
+        # Sentido horário: BA=(0, 1) -> BC=(1, 0) produz ângulo negativo (-90 graus)
+        ang_neg = calcular_angulo_orientado((0, 1), (0, 0), (1, 0))
+        assert pytest.approx(ang_neg, rel=1e-2) == -90.0
+
+        # Retrocompatibilidade: calcular_angulo sem sinal retorna magnitude positiva
+        assert pytest.approx(calcular_angulo((1, 0), (0, 0), (0, 1)), rel=1e-2) == 90.0
+        assert pytest.approx(calcular_angulo((0, 1), (0, 0), (1, 0)), rel=1e-2) == 90.0
 
     def test_calcular_deltas_inicializacao(self):
         referencia = {}
@@ -523,6 +538,58 @@ class TestSegmentadorCanonicoEGabarito:
         assert pytest.approx(res.distancia_normalizada, abs=1e-3) == 0.0
 
 
+class TestGuardasBiomecanicasBuffer:
+    """[TASK-CORR.03] Valida a rejeição de falsos positivos pelo BufferRepeticao."""
+
+    def test_duration_guard_rejeita_ciclo_ultracurto(self):
+        class FSMFalsaCurta(ExercicioBaseFSM):
+            def identificar_fase(self, a, p, d):
+                return 0
+            def classificar(self, a, p, d):
+                self.fases = [1, 3]
+                self.repeticoes += 1
+                return None
+
+        fsm = FSMFalsaCurta()
+        buffer = BufferRepeticao(fsm=fsm, articulacoes=["cotovelo"], min_frames=10, min_rom=15.0)
+        buffer.frames_atuais = [[90.0], [95.0], [90.0]]
+        rep, erro = buffer.processar_frame({"cotovelo": 90.0})
+        assert rep is None
+
+    def test_rom_guard_rejeita_oscilacao_sem_amplitude_real(self):
+        class FSMFalsaOscilacao(ExercicioBaseFSM):
+            def identificar_fase(self, a, p, d):
+                return 0
+            def classificar(self, a, p, d):
+                self.fases = [1, 3]
+                self.repeticoes += 1
+                return None
+
+        fsm = FSMFalsaOscilacao()
+        buffer = BufferRepeticao(fsm=fsm, articulacoes=["cotovelo"], min_frames=10, min_rom=15.0)
+        buffer.frames_atuais = [[90.0 + (i % 2) * 2.0] for i in range(14)]
+        rep, erro = buffer.processar_frame({"cotovelo": 90.0})
+        assert rep is None
+
+    def test_guardas_aceitam_repeticao_com_duracao_e_amplitude_validas(self):
+        class FSMValida(ExercicioBaseFSM):
+            def identificar_fase(self, a, p, d):
+                return 0
+            def classificar(self, a, p, d):
+                self.fases = [1, 3]
+                self.repeticoes += 1
+                return None
+
+        fsm = FSMValida()
+        buffer = BufferRepeticao(fsm=fsm, articulacoes=["cotovelo"], min_frames=10, min_rom=15.0)
+        t = np.linspace(0, np.pi, 20)
+        buffer.frames_atuais = [[float(90.0 + 70.0 * np.sin(val))] for val in t]
+        rep, erro = buffer.processar_frame({"cotovelo": 90.0})
+        assert rep is not None
+        assert isinstance(rep, np.ndarray)
+        assert rep.shape[0] == 21
+
+
 class TestOrquestradorEAvaliadorPontuacao:
     def _criar_frames_desenvolvimento(self, n_mov=45, margem=5, desvio_ombro=0.0):
         t = np.linspace(0, np.pi, n_mov)
@@ -672,6 +739,31 @@ class TestOrquestradorEAvaliadorPontuacao:
         assert "Visão perdida por muito tempo" in alerta
         assert res is None
         assert orq.buffer.frames_atuais == []
+
+    def test_presence_gate_sem_repeticao_fantasma_quando_invisivel_ou_vazio(self):
+        """
+        [TASK-CORR.02] Garante que frames sem visibilidade ou com marcos vazios
+        não progridem a FSM, não criam deltas espúrios e não contam repetições fantasma.
+        """
+        orq = OrquestradorSessao("desenvolvimento_ombro", limite_frames_invisivel=15)
+
+        # 1. Simula 50 frames sem detecção (câmera vazia)
+        for _ in range(50):
+            alerta, rep = orq.processar_frame(angulos={}, visivel=False)
+            assert rep is None
+
+        assert orq.total_repeticoes == 0
+        assert orq.fsm.repeticoes == 0
+        assert orq.buffer.frames_atuais == []
+        assert len(orq.referencia_deltas) == 0
+
+        # 2. Usuário entra no quadro em uma pose qualquer
+        alerta, rep = orq.processar_frame({"cotovelo": 120.0, "ombro": 100.0}, visivel=True)
+        assert rep is None
+        # Na primeira leitura visível, a referência é ancorada com deltas zerados
+        assert orq.referencia_deltas["cotovelo"] == 120.0
+        assert orq.fsm.fases[1] == 0
+        assert orq.total_repeticoes == 0
 
     def test_orquestrador_trocar_exercicio_e_reiniciar_serie(self):
         orq = OrquestradorSessao("desenvolvimento_ombro")

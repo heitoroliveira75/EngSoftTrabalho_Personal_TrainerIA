@@ -187,11 +187,15 @@ class OrquestradorSessao:
         limiar_aprovacao: float = 70.0,
         janela_sakoe_chiba: Optional[float] = 0.20,
         limite_frames_invisivel: int = 30,
+        min_frames_repeticao: int = 10,
+        min_rom_repeticao: float = 15.0,
     ):
         self.tolerancia_dtw = tolerancia_dtw
         self.limiar_aprovacao = limiar_aprovacao
         self.janela_sakoe_chiba = janela_sakoe_chiba
         self.limite_frames_invisivel = limite_frames_invisivel
+        self.min_frames_repeticao = min_frames_repeticao
+        self.min_rom_repeticao = min_rom_repeticao
 
         self.historico_repeticoes: List[ResultadoPontuacaoRepeticao] = []
         self.frames_consecutivos_invisivel = 0
@@ -210,7 +214,12 @@ class OrquestradorSessao:
         self.nome_exercicio = self.config["nome"]
         self.articulacoes = list(self.config["articulacoes"])
         self.fsm: ExercicioBaseFSM = self.config["classe_fsm"]()
-        self.buffer = BufferRepeticao(fsm=self.fsm, articulacoes=self.articulacoes)
+        self.buffer = BufferRepeticao(
+            fsm=self.fsm,
+            articulacoes=self.articulacoes,
+            min_frames=self.min_frames_repeticao,
+            min_rom=self.min_rom_repeticao,
+        )
 
         if gabarito_customizado is not None:
             self.gabarito = gabarito_customizado
@@ -223,10 +232,25 @@ class OrquestradorSessao:
     def reiniciar_serie(self) -> None:
         """Reinicia o contador e o histórico de notas para uma nova série do mesmo exercício."""
         self.fsm = self.config["classe_fsm"]()
-        self.buffer = BufferRepeticao(fsm=self.fsm, articulacoes=self.articulacoes)
+        self.buffer = BufferRepeticao(
+            fsm=self.fsm,
+            articulacoes=self.articulacoes,
+            min_frames=self.min_frames_repeticao,
+            min_rom=self.min_rom_repeticao,
+        )
         self.referencia_deltas = {}
         self.frames_consecutivos_invisivel = 0
         self.historico_repeticoes = []
+
+    @property
+    def total_repeticoes(self) -> int:
+        """Total de repetições completadas e homologadas na sessão."""
+        return len(self.historico_repeticoes)
+
+    @property
+    def repeticoes_aprovadas(self) -> int:
+        """Total de repetições com aprovação técnica homologada."""
+        return sum(1 for r in self.historico_repeticoes if r.aprovado)
 
     def trocar_exercicio(
         self,
@@ -251,7 +275,8 @@ class OrquestradorSessao:
             - resultado_repeticao: Objeto ResultadoPontuacaoRepeticao gerado no instante em que o ciclo é concluído.
         """
         # 1. Tratamento de visibilidade
-        if not visivel:
+        if not visivel or not angulos:
+            self.referencia_deltas.clear()
             self.frames_consecutivos_invisivel += 1
             if self.frames_consecutivos_invisivel > self.limite_frames_invisivel:
                 # Perda prolongada de visão: reseta a repetição atual por segurança
