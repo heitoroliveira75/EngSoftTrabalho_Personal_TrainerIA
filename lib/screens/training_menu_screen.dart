@@ -113,9 +113,12 @@ class _TrainingMenuScreenState extends State<TrainingMenuScreen> {
               child: Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF383B42),
+                  color: const Color(0xFF1E232A),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.white24, width: 1),
+                  border: Border.all(
+                    color: const Color(0xFF00E676).withValues(alpha: 0.4),
+                    width: 1,
+                  ),
                 ),
                 child: Row(
                   crossAxisAlignment: CrossAxisAlignment.center,
@@ -123,7 +126,7 @@ class _TrainingMenuScreenState extends State<TrainingMenuScreen> {
                     const Icon(
                       Icons.fitness_center,
                       size: 60,
-                      color: Color(0xFF2196F3),
+                      color: Color(0xFF00E676),
                     ),
                     const SizedBox(width: 18),
                     Expanded(
@@ -137,7 +140,7 @@ class _TrainingMenuScreenState extends State<TrainingMenuScreen> {
                                 child: Text(
                                   'Meus Treinos',
                                   style: TextStyle(
-                                    color: Color(0xFF2196F3),
+                                    color: Colors.white,
                                     fontSize: 22,
                                     fontWeight: FontWeight.bold,
                                   ),
@@ -145,7 +148,7 @@ class _TrainingMenuScreenState extends State<TrainingMenuScreen> {
                               ),
                               Icon(
                                 Icons.arrow_forward,
-                                color: Color(0xFF2196F3),
+                                color: Color(0xFF00E676),
                                 size: 24,
                               ),
                             ],
@@ -154,7 +157,7 @@ class _TrainingMenuScreenState extends State<TrainingMenuScreen> {
                           const Text(
                             'Acesse seus treinos salvos e as suas rotinas personalizadas',
                             style: TextStyle(
-                              color: Colors.grey,
+                              color: Colors.white60,
                               fontSize: 14,
                               height: 1.3,
                             ),
@@ -191,9 +194,9 @@ class _TrainingMenuScreenState extends State<TrainingMenuScreen> {
                         constraints: const BoxConstraints(minHeight: 195),
                         padding: const EdgeInsets.all(18),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF383B42),
+                          color: const Color(0xFF1E232A),
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: Colors.white24, width: 1),
+                          border: Border.all(color: Colors.white12, width: 1),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -221,7 +224,7 @@ class _TrainingMenuScreenState extends State<TrainingMenuScreen> {
                                 Text(
                                   'Criar Treinos',
                                   style: TextStyle(
-                                    color: Color(0xFF00E676),
+                                    color: Colors.white,
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold,
                                   ),
@@ -230,7 +233,7 @@ class _TrainingMenuScreenState extends State<TrainingMenuScreen> {
                                 Text(
                                   'Monte o seu treino do zero',
                                   style: TextStyle(
-                                    color: Colors.grey,
+                                    color: Colors.white60,
                                     fontSize: 13,
                                     height: 1.2,
                                   ),
@@ -262,9 +265,9 @@ class _TrainingMenuScreenState extends State<TrainingMenuScreen> {
                         constraints: const BoxConstraints(minHeight: 195),
                         padding: const EdgeInsets.all(18),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF383B42),
+                          color: const Color(0xFF1E232A),
                           borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: Colors.white24, width: 1),
+                          border: Border.all(color: Colors.white12, width: 1),
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -276,11 +279,11 @@ class _TrainingMenuScreenState extends State<TrainingMenuScreen> {
                                 Icon(
                                   Icons.star,
                                   size: 52,
-                                  color: Color(0xFFFFB300),
+                                  color: Color(0xFF00E676),
                                 ),
                                 Icon(
                                   Icons.arrow_forward,
-                                  color: Color(0xFFFFB300),
+                                  color: Color(0xFF00E676),
                                   size: 22,
                                 ),
                               ],
@@ -292,7 +295,7 @@ class _TrainingMenuScreenState extends State<TrainingMenuScreen> {
                                 Text(
                                   'Treinos Padrões',
                                   style: TextStyle(
-                                    color: Color(0xFFFFB300),
+                                    color: Colors.white,
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold,
                                   ),
@@ -301,7 +304,7 @@ class _TrainingMenuScreenState extends State<TrainingMenuScreen> {
                                 Text(
                                   'Escolha um treino baseado na dificuldade',
                                   style: TextStyle(
-                                    color: Colors.grey,
+                                    color: Colors.white60,
                                     fontSize: 13,
                                     height: 1.2,
                                   ),
@@ -323,13 +326,13 @@ class _TrainingMenuScreenState extends State<TrainingMenuScreen> {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: const Color(0xFF383B42),
+                color: const Color(0xFF1E232A),
                 borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: Colors.white24, width: 1),
+                border: Border.all(color: Colors.white12, width: 1),
               ),
               child: Row(
                 children: [
-                  const Icon(Icons.bolt, size: 52, color: Color(0xFFFFB300)),
+                  const Icon(Icons.bolt, size: 52, color: Color(0xFF00E676)),
                   const SizedBox(width: 14),
                   Expanded(
                     child: Column(
@@ -341,7 +344,7 @@ class _TrainingMenuScreenState extends State<TrainingMenuScreen> {
                               child: Text(
                                 'Mantenha a sequência',
                                 style: TextStyle(
-                                  color: Color(0xFF8A5CF5),
+                                  color: Color(0xFF00E676),
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -355,14 +358,14 @@ class _TrainingMenuScreenState extends State<TrainingMenuScreen> {
                                   vertical: 2,
                                 ),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFF8A5CF5)
+                                  color: const Color(0xFF00E676)
                                       .withValues(alpha: 0.2),
                                   borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Text(
                                   '$_sequencia dias 🔥',
                                   style: const TextStyle(
-                                    color: Colors.white,
+                                    color: Color(0xFF00E676),
                                     fontSize: 12,
                                     fontWeight: FontWeight.bold,
                                   ),
@@ -375,7 +378,7 @@ class _TrainingMenuScreenState extends State<TrainingMenuScreen> {
                         const Text(
                           'Conclua um treino hoje para manter a sua sequência e ganhar mais pontos.',
                           style: TextStyle(
-                            color: Colors.grey,
+                            color: Colors.white60,
                             fontSize: 13,
                             height: 1.3,
                           ),

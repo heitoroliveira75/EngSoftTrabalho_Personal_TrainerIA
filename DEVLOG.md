@@ -26,6 +26,18 @@
 
 ## Histórico de Entradas
 
+### [Entrada #029] 2026-11-09 — Padronização Visual de Cores nas Telas Principais (Preto, Cinza Carbono e Verde Neon)
+- **Objetivo / História de Usuário:**
+  - Eliminar painéis brancos e cores aleatórias/destoantes (roxo `#8A5CF5` / `#9E7AFF`, azul `#2196F3` / `#29B6F6` / `#64B5F6`, amarelo/âmbar `#FFB300` e rosa `#E91E63`) nas telas principais do aplicativo, padronizando a identidade visual em tons de preto/grafite (`#0D1117`), cinza carbono (`#1E232A` / `#2D3139`) e verde neon (`#00E676`).
+- **Tasks Executadas e Artefatos Gerados:**
+  - `[TASK-UI-PERFIL-01]` Substituição do painel branco, avatar roxo e textos azuis por card em cinza carbono (`#1E232A`), borda sutil (`Colors.white12`), avatar e métricas com destaque em verde neon (`#00E676`) e tipografia em branco/cinza claro nas telas de Perfil, Alterar Nome e Alterar Senha $\rightarrow$ **Artefatos:** `lib/screens/profile_screen.dart`, `lib/screens/change_name_screen.dart`, `lib/screens/change_password_screen.dart`.
+  - `[TASK-UI-TREINOS-HOME-02]` Padronização dos cards de métricas, hub de treinos, seleção de dificuldade, listagem de treinos, detalhes do treino e criação de exercícios para superfícies em cinza carbono (`#1E232A` / `#2D3139`) e acentos em verde neon (`#00E676`) $\rightarrow$ **Artefatos:** `lib/screens/home_screen.dart`, `lib/screens/training_menu_screen.dart`, `lib/screens/dificuldade_treino_screen.dart`, `lib/screens/opcao_treinos_screen.dart`, `lib/screens/treino_selecionado_screen.dart`, `lib/screens/criar_exercicio_screen.dart`.
+  - `[TASK-UI-AUTH-03]` Padronização dos campos de entrada (de fundo branco para cinza carbono `#1E232A` com foco em `#00E676`), botões primários e links de navegação (de rosa `#E91E63` para verde neon `#00E676`) no fluxo de autenticação $\rightarrow$ **Artefatos:** `lib/screens/login_screen.dart`, `lib/screens/cadastro_screen.dart`, `lib/screens/esqueceu_senha_screen.dart`, `lib/screens/redefinir_senha_screen.dart`.
+- **Decisões Técnicas e Observações:**
+  - Refatoração estritamente visual (`BoxDecoration`, `TextStyle`, `InputDecoration`, `ElevatedButton.styleFrom`), preservando integralmente o estado, rotas e integração com `ApiService`.
+- **Estado Resultante / Próximos Passos:**
+  - Todas as telas principais seguem de forma coesa a paleta escura (`#0D1117`), cinza carbono (`#1E232A` / `#2D3139`) e verde neon (`#00E676`).
+
 ### [Entrada #028] 2026-11-09 — Correção de Leitura e Atualização de Pontuações e Streak sob RLS Stateless
 - **Objetivo / Problema Relatado:**
   - Após a refatoração de isolamento stateless da `[Entrada #025]`, o cliente global `supabase` passou a operar sem o JWT do usuário logado (papel `anon`), fazendo com que o Row-Level Security (RLS) da tabela `public.usuarios` retornasse `data=[]` em `ver_pontuacao` e `ver_perfil`, zerando a pontuação e o streak de dias na `HomeScreen` e na `ProfileScreen`.

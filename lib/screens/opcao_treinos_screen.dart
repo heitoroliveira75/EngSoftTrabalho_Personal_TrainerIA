@@ -143,7 +143,7 @@ final Map<String, List<Map<String, dynamic>>> bancoDeTreinos = {
       'exerciciosCount': 7,
       'duracaoMinutos': 45,
       'pontosTotais': 280,
-      'corTema': const Color(0xFF29B6F6),
+      'corTema': const Color(0xFF00E676),
       'exercicios': [
         {
           'nome': 'Flexão Tradicional',
@@ -191,7 +191,7 @@ final Map<String, List<Map<String, dynamic>>> bancoDeTreinos = {
       'exerciciosCount': 6,
       'duracaoMinutos': 35,
       'pontosTotais': 250,
-      'corTema': const Color(0xFF29B6F6),
+      'corTema': const Color(0xFF00E676),
       'exercicios': [
         {
           'nome': 'Agachamento Búlgaro',
@@ -238,7 +238,7 @@ final Map<String, List<Map<String, dynamic>>> bancoDeTreinos = {
       'exerciciosCount': 5,
       'duracaoMinutos': 30,
       'pontosTotais': 220,
-      'corTema': const Color(0xFF29B6F6),
+      'corTema': const Color(0xFF00E676),
       'exercicios': [
         {'nome': 'Russian Twist', 'series': 4, 'repeticoes': 20, 'pontos': 40},
         {
@@ -276,7 +276,7 @@ final Map<String, List<Map<String, dynamic>>> bancoDeTreinos = {
       'exerciciosCount': 8,
       'duracaoMinutos': 55,
       'pontosTotais': 480,
-      'corTema': const Color(0xFF9E7AFF),
+      'corTema': const Color(0xFF00E676),
       'exercicios': [
         {
           'nome': 'Burpee Completo com Flexão',
@@ -330,7 +330,7 @@ final Map<String, List<Map<String, dynamic>>> bancoDeTreinos = {
       'exerciciosCount': 6,
       'duracaoMinutos': 50,
       'pontosTotais': 400,
-      'corTema': const Color(0xFF9E7AFF),
+      'corTema': const Color(0xFF00E676),
       'exercicios': [
         {
           'nome': 'Flexão Diamante',
@@ -379,7 +379,7 @@ final Map<String, List<Map<String, dynamic>>> bancoDeTreinos = {
       'exerciciosCount': 4,
       'duracaoMinutos': 20,
       'pontosTotais': 160,
-      'corTema': const Color(0xFF29B6F6),
+      'corTema': const Color(0xFF00E676),
       'exercicios': [
         {'nome': 'Polichinelo', 'series': 3, 'repeticoes': 12, 'pontos': 20},
         {'nome': 'Agachamento Livre', 'series': 3, 'repeticoes': 12, 'pontos': 20},
@@ -404,18 +404,7 @@ class _OpcaoTreinosScreenState extends State<OpcaoTreinosScreen> {
   List<Map<String, dynamic>> _listaTreinos = [];
 
   Color get _corTema {
-    switch (widget.dificuldadeFlag) {
-      case 'iniciante':
-        return const Color(0xFF00E676);
-      case 'intermediario':
-        return const Color(0xFF29B6F6);
-      case 'avancado':
-        return const Color(0xFF9E7AFF);
-      case 'meus_treinos':
-        return const Color(0xFF29B6F6);
-      default:
-        return const Color(0xFF00E676);
-    }
+    return const Color(0xFF00E676);
   }
 
   String get _tituloDificuldade {
@@ -543,7 +532,7 @@ class _OpcaoTreinosScreenState extends State<OpcaoTreinosScreen> {
               'exerciciosCount': exerciciosMapeados.length,
               'duracaoMinutos': duracao,
               'pontosTotais': pontosTreino,
-              'corTema': const Color(0xFF29B6F6),
+              'corTema': const Color(0xFF00E676),
               'exercicios': exerciciosMapeados,
             });
           }
@@ -601,13 +590,7 @@ class _OpcaoTreinosScreenState extends State<OpcaoTreinosScreen> {
           final List<Map<String, dynamic>> list = [];
 
           for (final item in raw) {
-            Color cor = _corTema;
-            if (item['corTema'] is String) {
-              final hex = (item['corTema'] as String).replaceAll('#', '');
-              if (hex.length == 6) {
-                cor = Color(int.parse('0xFF$hex'));
-              }
-            }
+            const Color cor = Color(0xFF00E676);
 
             final titulo = (item['titulo'] ?? 'Treino').toString();
             final idSalvo = salvosPorTitulo[titulo.trim().toLowerCase()];
@@ -942,10 +925,12 @@ class _OpcaoTreinosScreenState extends State<OpcaoTreinosScreen> {
                                 child: Container(
                                   padding: const EdgeInsets.all(16),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFF161B22),
+                                    color: const Color(0xFF1E232A),
                                     borderRadius: BorderRadius.circular(12),
-                                    border:
-                                        Border.all(color: corCard, width: 1.8),
+                                    border: Border.all(
+                                      color: corCard.withValues(alpha: 0.6),
+                                      width: 1.5,
+                                    ),
                                   ),
                                   child: Column(
                                     crossAxisAlignment:

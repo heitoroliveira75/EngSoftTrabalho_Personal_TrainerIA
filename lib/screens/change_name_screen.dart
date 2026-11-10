@@ -145,20 +145,30 @@ class _ChangeNameScreenState extends State<ChangeNameScreen> {
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: const Color(0xFF1E232A),
                 borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.white12),
               ),
               child: Column(
                 children: [
-                  CircleAvatar(
-                    radius: 36,
-                    backgroundColor: const Color(0xFF8A5CF5),
-                    child: Text(
-                      letraAvatar,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
+                  Container(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: const Color(0xFF00E676),
+                        width: 2,
+                      ),
+                    ),
+                    child: CircleAvatar(
+                      radius: 36,
+                      backgroundColor: const Color(0xFF00E676).withValues(alpha: 0.15),
+                      child: Text(
+                        letraAvatar,
+                        style: const TextStyle(
+                          color: Color(0xFF00E676),
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ),
@@ -183,7 +193,8 @@ class _ChangeNameScreenState extends State<ChangeNameScreen> {
               height: 50,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF2D3139),
+                  backgroundColor: const Color(0xFF00E676),
+                  foregroundColor: const Color(0xFF0D1117),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
@@ -195,12 +206,16 @@ class _ChangeNameScreenState extends State<ChangeNameScreen> {
                         width: 24,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: Colors.white,
+                          color: Color(0xFF0D1117),
                         ),
                       )
                     : const Text(
                         'Salvar',
-                        style: TextStyle(color: Colors.white, fontSize: 18),
+                        style: TextStyle(
+                          color: Color(0xFF0D1117),
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
               ),
             ),
@@ -223,8 +238,8 @@ class _ChangeNameScreenState extends State<ChangeNameScreen> {
         Text(
           label,
           style: const TextStyle(
-            color: Color(0xFF2196F3),
-            fontSize: 18,
+            color: Color(0xFF00E676),
+            fontSize: 16,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -235,29 +250,33 @@ class _ChangeNameScreenState extends State<ChangeNameScreen> {
           obscureText: isPassword,
           obscuringCharacter: '*',
           style: TextStyle(
-            color: enabled ? Colors.black87 : Colors.black54,
+            color: enabled ? Colors.white : Colors.white54,
             fontSize: 15,
           ),
           decoration: InputDecoration(
             hintText: hintText,
-            hintStyle: const TextStyle(color: Colors.grey, fontSize: 13),
+            hintStyle: const TextStyle(color: Colors.white38, fontSize: 13),
             filled: true,
-            fillColor: enabled ? Colors.white : Colors.grey.shade200,
+            fillColor: enabled ? const Color(0xFF2D3139) : const Color(0xFF161B22),
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 12,
               vertical: 12,
             ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: Colors.black26),
+              borderSide: const BorderSide(color: Colors.white12),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: Colors.black26),
+              borderSide: const BorderSide(color: Colors.white12),
+            ),
+            disabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+              borderSide: const BorderSide(color: Colors.white10),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: Color(0xFF2196F3), width: 1.5),
+              borderSide: const BorderSide(color: Color(0xFF00E676), width: 1.5),
             ),
           ),
         ),
