@@ -46,16 +46,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
       if (mounted && res['sucesso'] == true && res['perfil'] != null) {
         final perfil = res['perfil'] as Map<String, dynamic>;
         setState(() {
-          if (perfil['nome'] != null && perfil['nome'].toString().trim().isNotEmpty) {
+          if (perfil['nome'] != null &&
+              perfil['nome'].toString().trim().isNotEmpty) {
             nomeUsuario = perfil['nome'].toString().trim();
           }
-          if (perfil['email'] != null && perfil['email'].toString().trim().isNotEmpty) {
+          if (perfil['email'] != null &&
+              perfil['email'].toString().trim().isNotEmpty) {
             emailUsuario = perfil['email'].toString().trim();
           }
           pontosTotais = (perfil['pontuacao_total'] as num?)?.toInt() ?? 0;
           pontosHoje = (perfil['pontuacao_diaria'] as num?)?.toInt() ?? 0;
           pontosSemana = (perfil['pontuacao_semanal'] as num?)?.toInt() ?? 0;
-          diasSequencia = (perfil['sequencia'] as num?)?.toInt() ?? ApiService().sequenciaAtual;
+          diasSequencia =
+              (perfil['sequencia'] as num?)?.toInt() ??
+              ApiService().sequenciaAtual;
         });
       }
     } else {
@@ -86,7 +90,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: const Text('Cancelar', style: TextStyle(color: Colors.white60)),
+            child: const Text(
+              'Cancelar',
+              style: TextStyle(color: Colors.white60),
+            ),
           ),
           ElevatedButton(
             style: ElevatedButton.styleFrom(
@@ -180,7 +187,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                       child: CircleAvatar(
                         radius: 36,
-                        backgroundColor: const Color(0xFF00E676).withValues(alpha: 0.15),
+                        backgroundColor: const Color(0xFF00E676)
+                            .withValues(alpha: 0.15),
                         child: Text(
                           letraAvatar,
                           style: const TextStyle(
@@ -236,7 +244,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     const SizedBox(height: 16),
                     _buildStatRow('Hoje', '$pontosHoje pts'),
                     _buildStatRow('Semana', '$pontosSemana pts'),
-                    _buildStatRow('Sequência', '$diasSequencia ${diasSequencia == 1 ? "dia" : "dias"}'),
+                    _buildStatRow(
+                      'Sequência',
+                      '$diasSequencia ${diasSequencia == 1 ? "dia" : "dias"}',
+                    ),
                   ],
                 ),
               ),
@@ -245,7 +256,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
               // Seção Social & Comunidade
               const Text(
                 'Social & Comunidade',
-                style: TextStyle(fontSize: 20, color: Colors.white, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontSize: 20,
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 12),
 
@@ -279,7 +294,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
               const Text(
                 'Conta',
-                style: TextStyle(fontSize: 20, color: Colors.white, fontWeight: FontWeight.bold),
+                style: TextStyle(
+                  fontSize: 20,
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 12),
 
@@ -339,7 +358,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         )
                       : const Text(
                           'Deslogar',
-                          style: TextStyle(color: Colors.redAccent, fontSize: 18),
+                          style: TextStyle(
+                            color: Colors.redAccent,
+                            fontSize: 18,
+                          ),
                         ),
                 ),
               ),
@@ -361,12 +383,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
         borderRadius: BorderRadius.circular(8),
       ),
       child: ListTile(
-        leading: icon != null ? Icon(icon, color: const Color(0xFF00E676)) : null,
+        leading: icon != null
+            ? Icon(icon, color: const Color(0xFF00E676))
+            : null,
         title: Text(
           title,
           style: const TextStyle(color: Colors.white, fontSize: 16),
         ),
-        trailing: const Icon(Icons.arrow_forward_ios, color: Colors.white70, size: 16),
+        trailing: const Icon(
+          Icons.arrow_forward_ios,
+          color: Colors.white70,
+          size: 16,
+        ),
         onTap: onTap,
       ),
     );
@@ -381,7 +409,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           Flexible(
             child: Text(
               label,
-              style: const TextStyle(color: Color(0xFF64B5F6), fontSize: 14),
+              style: const TextStyle(color: Colors.white70, fontSize: 14),
             ),
           ),
           const SizedBox(width: 8),
@@ -389,7 +417,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             child: Text(
               value,
               style: const TextStyle(
-                color: Color(0xFF2196F3),
+                color: Color(0xFF00E676),
                 fontSize: 14,
                 fontWeight: FontWeight.w600,
               ),

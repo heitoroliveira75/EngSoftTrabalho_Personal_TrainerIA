@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../models/exercicio_treino.dart';
 import '../services/api_service.dart';
 
@@ -22,15 +23,26 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
   bool get _isModoEdicao => widget.treinoParaEditar != null;
 
   bool get _temAlteracoesNaoSalvas =>
-      _foiModificado || _nomeTreinoController.text.trim() != _nomeInicial.trim();
+      _foiModificado ||
+      _nomeTreinoController.text.trim() != _nomeInicial.trim();
 
   // Catálogo de exercícios pré-definidos organizados por grupo muscular
   static const Map<String, List<Map<String, dynamic>>> _catalogoExercicios = {
     'Peitoral': [
       {'id': '1', 'nome': 'Supino Reto', 'pontosSerie': 50, 'pontosRep': 5},
-      {'id': '2', 'nome': 'Supino Inclinado', 'pontosSerie': 50, 'pontosRep': 5},
+      {
+        'id': '2',
+        'nome': 'Supino Inclinado',
+        'pontosSerie': 50,
+        'pontosRep': 5,
+      },
       {'id': '3', 'nome': 'Crucifixo Reto', 'pontosSerie': 45, 'pontosRep': 4},
-      {'id': '4', 'nome': 'Crossover na Polia', 'pontosSerie': 45, 'pontosRep': 4},
+      {
+        'id': '4',
+        'nome': 'Crossover na Polia',
+        'pontosSerie': 45,
+        'pontosRep': 4,
+      },
       {'id': '5', 'nome': 'Flexão de Braço', 'pontosSerie': 40, 'pontosRep': 4},
     ],
     'Costas': [
@@ -41,21 +53,61 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
       {'id': '10', 'nome': 'Pulldown', 'pontosSerie': 45, 'pontosRep': 4},
     ],
     'Pernas': [
-      {'id': '11', 'nome': 'Agachamento Livre', 'pontosSerie': 60, 'pontosRep': 6},
+      {
+        'id': '11',
+        'nome': 'Agachamento Livre',
+        'pontosSerie': 60,
+        'pontosRep': 6,
+      },
       {'id': '12', 'nome': 'Leg Press 45°', 'pontosSerie': 55, 'pontosRep': 5},
-      {'id': '13', 'nome': 'Cadeira Extensora', 'pontosSerie': 45, 'pontosRep': 4},
+      {
+        'id': '13',
+        'nome': 'Cadeira Extensora',
+        'pontosSerie': 45,
+        'pontosRep': 4,
+      },
       {'id': '14', 'nome': 'Mesa Flexora', 'pontosSerie': 45, 'pontosRep': 4},
-      {'id': '15', 'nome': 'Panturrilha em Pé', 'pontosSerie': 40, 'pontosRep': 4},
+      {
+        'id': '15',
+        'nome': 'Panturrilha em Pé',
+        'pontosSerie': 40,
+        'pontosRep': 4,
+      },
     ],
     'Ombros': [
-      {'id': '16', 'nome': 'Desenvolvimento com Halteres', 'pontosSerie': 50, 'pontosRep': 5},
-      {'id': '17', 'nome': 'Elevação Lateral', 'pontosSerie': 45, 'pontosRep': 4},
-      {'id': '18', 'nome': 'Elevação Frontal', 'pontosSerie': 40, 'pontosRep': 4},
-      {'id': '19', 'nome': 'Crucifixo Invertido', 'pontosSerie': 45, 'pontosRep': 4},
+      {
+        'id': '16',
+        'nome': 'Desenvolvimento com Halteres',
+        'pontosSerie': 50,
+        'pontosRep': 5,
+      },
+      {
+        'id': '17',
+        'nome': 'Elevação Lateral',
+        'pontosSerie': 45,
+        'pontosRep': 4,
+      },
+      {
+        'id': '18',
+        'nome': 'Elevação Frontal',
+        'pontosSerie': 40,
+        'pontosRep': 4,
+      },
+      {
+        'id': '19',
+        'nome': 'Crucifixo Invertido',
+        'pontosSerie': 45,
+        'pontosRep': 4,
+      },
     ],
     'Bíceps': [
       {'id': '20', 'nome': 'Rosca Direta', 'pontosSerie': 45, 'pontosRep': 4},
-      {'id': '21', 'nome': 'Rosca Alternada', 'pontosSerie': 45, 'pontosRep': 4},
+      {
+        'id': '21',
+        'nome': 'Rosca Alternada',
+        'pontosSerie': 45,
+        'pontosRep': 4,
+      },
       {'id': '22', 'nome': 'Rosca Martelo', 'pontosSerie': 45, 'pontosRep': 4},
       {'id': '23', 'nome': 'Rosca Scott', 'pontosSerie': 50, 'pontosRep': 5},
     ],
@@ -63,12 +115,32 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
       {'id': '24', 'nome': 'Tríceps Corda', 'pontosSerie': 45, 'pontosRep': 4},
       {'id': '25', 'nome': 'Tríceps Pulley', 'pontosSerie': 45, 'pontosRep': 4},
       {'id': '26', 'nome': 'Tríceps Testa', 'pontosSerie': 50, 'pontosRep': 5},
-      {'id': '27', 'nome': 'Mergulho no Banco', 'pontosSerie': 40, 'pontosRep': 4},
+      {
+        'id': '27',
+        'nome': 'Mergulho no Banco',
+        'pontosSerie': 40,
+        'pontosRep': 4,
+      },
     ],
     'Abdômen': [
-      {'id': '28', 'nome': 'Abdominal Supra', 'pontosSerie': 40, 'pontosRep': 3},
-      {'id': '29', 'nome': 'Prancha Abdominal', 'pontosSerie': 50, 'pontosRep': 5},
-      {'id': '30', 'nome': 'Elevação de Pernas', 'pontosSerie': 45, 'pontosRep': 4},
+      {
+        'id': '28',
+        'nome': 'Abdominal Supra',
+        'pontosSerie': 40,
+        'pontosRep': 3,
+      },
+      {
+        'id': '29',
+        'nome': 'Prancha Abdominal',
+        'pontosSerie': 50,
+        'pontosRep': 5,
+      },
+      {
+        'id': '30',
+        'nome': 'Elevação de Pernas',
+        'pontosSerie': 45,
+        'pontosRep': 4,
+      },
     ],
   };
 
@@ -110,7 +182,9 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
         for (final item in rawExercicios) {
           if (item is Map) {
             final mapaExercicio = Map<String, dynamic>.from(item);
-            final exercicioConvertido = _converterMapaParaExercicioTreino(mapaExercicio);
+            final exercicioConvertido = _converterMapaParaExercicioTreino(
+              mapaExercicio,
+            );
             _exerciciosTreino.add(exercicioConvertido);
           }
         }
@@ -121,10 +195,12 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
   ExercicioTreino _converterMapaParaExercicioTreino(Map<String, dynamic> map) {
     final nomeRaw = (map['nome'] ?? 'Exercício').toString().trim();
     final idRaw = (map['exercicio_id'] ?? map['id'] ?? '').toString().trim();
-    final series = (map['series'] as num?)?.toInt() ??
+    final series =
+        (map['series'] as num?)?.toInt() ??
         int.tryParse(map['series']?.toString() ?? '3') ??
         3;
-    final repeticoes = (map['repeticoes'] as num?)?.toInt() ??
+    final repeticoes =
+        (map['repeticoes'] as num?)?.toInt() ??
         int.tryParse(map['repeticoes']?.toString() ?? '10') ??
         10;
 
@@ -133,7 +209,8 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
       for (final item in entry.value) {
         final itemNome = (item['nome'] as String).toLowerCase();
         final itemId = item['id'].toString();
-        if (itemNome == nomeRaw.toLowerCase() || (idRaw.isNotEmpty && itemId == idRaw)) {
+        if (itemNome == nomeRaw.toLowerCase() ||
+            (idRaw.isNotEmpty && itemId == idRaw)) {
           return ExercicioTreino(
             id: itemId,
             nome: item['nome'] as String,
@@ -231,7 +308,10 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
 
   /// Calcula dinamicamente o total de pontos somando os pontos de cada exercício da lista
   int get _pontosTotaisTreino {
-    return _exerciciosTreino.fold<int>(0, (soma, item) => soma + item.totalPontos);
+    return _exerciciosTreino.fold<int>(
+      0,
+      (soma, item) => soma + item.totalPontos,
+    );
   }
 
   /// Adiciona um novo exercício à lista
@@ -290,7 +370,10 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: const Color(0xFF1E232A),
-        title: const Text('Limpar Treino', style: TextStyle(color: Colors.white)),
+        title: const Text(
+          'Limpar Treino',
+          style: TextStyle(color: Colors.white),
+        ),
         content: const Text(
           'Deseja remover todos os exercícios deste treino?',
           style: TextStyle(color: Colors.white70),
@@ -298,10 +381,15 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancelar', style: TextStyle(color: Colors.white60)),
+            child: const Text(
+              'Cancelar',
+              style: TextStyle(color: Colors.white60),
+            ),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFFF5252)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFFF5252),
+            ),
             onPressed: () {
               Navigator.pop(ctx);
               setState(() {
@@ -309,7 +397,10 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
                 _foiModificado = true;
               });
             },
-            child: const Text('Limpar Tudo', style: TextStyle(color: Colors.white)),
+            child: const Text(
+              'Limpar Tudo',
+              style: TextStyle(color: Colors.white),
+            ),
           ),
         ],
       ),
@@ -351,7 +442,9 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
     try {
       if (_isModoEdicao) {
         final dadosOriginais = widget.treinoParaEditar!;
-        final idTreino = (dadosOriginais['idSalvo'] ?? dadosOriginais['id'] ?? '').toString();
+        final idTreino =
+            (dadosOriginais['idSalvo'] ?? dadosOriginais['id'] ?? '')
+                .toString();
 
         Map<String, dynamic> resposta = {'sucesso': true};
         if (idTreino.isNotEmpty && idTreino != 'm1') {
@@ -367,7 +460,9 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
         if (resposta['sucesso'] == true) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Treino "$nome" atualizado com sucesso! (+$_pontosTotaisTreino pts)'),
+              content: Text(
+                'Treino "$nome" atualizado com sucesso! (+$_pontosTotaisTreino pts)',
+              ),
               backgroundColor: const Color(0xFF00E676),
             ),
           );
@@ -397,7 +492,8 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
       final resposta = await ApiService().criarTreino(
         usuarioId: ApiService().idUsuarioAtual,
         nome: nome,
-        descricao: 'Treino personalizado com ${_exerciciosTreino.length} exercícios',
+        descricao:
+            'Treino personalizado com ${_exerciciosTreino.length} exercícios',
         dificuldade: 'Personalizado',
         duracaoMinutos: _exerciciosTreino.length * 5,
         pontosTotais: _pontosTotaisTreino,
@@ -409,7 +505,9 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
       if (resposta['sucesso'] == true) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Treino "$nome" salvo com sucesso! (+$_pontosTotaisTreino pts)'),
+            content: Text(
+              'Treino "$nome" salvo com sucesso! (+$_pontosTotaisTreino pts)',
+            ),
             backgroundColor: const Color(0xFF00E676),
           ),
         );
@@ -428,7 +526,9 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Falha de conexão: não foi possível salvar o treino no servidor.'),
+            content: Text(
+              'Falha de conexão: não foi possível salvar o treino no servidor.',
+            ),
             backgroundColor: Color(0xFF8B0000),
           ),
         );
@@ -448,7 +548,8 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
         indexParaEditar < _exerciciosTreino.length;
     final grupos = _catalogoExercicios.keys.toList();
     String grupoSelecionado = grupos.first;
-    Map<String, dynamic> exercicioSelecionado = _catalogoExercicios[grupoSelecionado]!.first;
+    Map<String, dynamic> exercicioSelecionado =
+        _catalogoExercicios[grupoSelecionado]!.first;
 
     int series = 3;
     int repeticoes = 10;
@@ -462,7 +563,8 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
       for (final entry in _catalogoExercicios.entries) {
         for (final item in entry.value) {
           if (item['id'].toString() == exAtual.id ||
-              (item['nome'] as String).toLowerCase() == exAtual.nome.toLowerCase()) {
+              (item['nome'] as String).toLowerCase() ==
+                  exAtual.nome.toLowerCase()) {
             grupoSelecionado = entry.key;
             exercicioSelecionado = item;
             achouNoCatalogo = true;
@@ -472,7 +574,8 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
         if (achouNoCatalogo) break;
       }
 
-      if (!achouNoCatalogo && _catalogoExercicios.containsKey(exAtual.grupoMuscular)) {
+      if (!achouNoCatalogo &&
+          _catalogoExercicios.containsKey(exAtual.grupoMuscular)) {
         grupoSelecionado = exAtual.grupoMuscular;
         exercicioSelecionado = _catalogoExercicios[grupoSelecionado]!.first;
       }
@@ -488,12 +591,15 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
       builder: (ctx) {
         return StatefulBuilder(
           builder: (context, setModalState) {
-            final pontosPorSerie = (exercicioSelecionado['pontosSerie'] as int?) ?? 50;
-            final pontosPorRepeticao = (exercicioSelecionado['pontosRep'] as int?) ?? 5;
+            final pontosPorSerie =
+                (exercicioSelecionado['pontosSerie'] as int?) ?? 50;
+            final pontosPorRepeticao =
+                (exercicioSelecionado['pontosRep'] as int?) ?? 5;
             final totalRepsCalculado = series * repeticoes;
             final pontosSeriesCalculado = series * pontosPorSerie;
             final pontosRepsCalculado = totalRepsCalculado * pontosPorRepeticao;
-            final pontosTotalCalculado = pontosSeriesCalculado + pontosRepsCalculado;
+            final pontosTotalCalculado =
+                pontosSeriesCalculado + pontosRepsCalculado;
 
             final exerciciosDoGrupo = _catalogoExercicios[grupoSelecionado]!;
 
@@ -516,7 +622,9 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
                         children: [
                           Flexible(
                             child: Text(
-                              editandoExercicio ? 'Editar Exercício' : 'Adicionar Exercício',
+                              editandoExercicio
+                                  ? 'Editar Exercício'
+                                  : 'Adicionar Exercício',
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 20,
@@ -525,7 +633,10 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
                             ),
                           ),
                           IconButton(
-                            icon: const Icon(Icons.close, color: Colors.white54),
+                            icon: const Icon(
+                              Icons.close,
+                              color: Colors.white54,
+                            ),
                             onPressed: () => Navigator.pop(ctx),
                           ),
                         ],
@@ -557,8 +668,12 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
                                 label: Text(
                                   grupo,
                                   style: TextStyle(
-                                    color: selecionado ? Colors.black : Colors.white70,
-                                    fontWeight: selecionado ? FontWeight.bold : FontWeight.normal,
+                                    color: selecionado
+                                        ? Colors.black
+                                        : Colors.white70,
+                                    fontWeight: selecionado
+                                        ? FontWeight.bold
+                                        : FontWeight.normal,
                                     fontSize: 13,
                                   ),
                                 ),
@@ -569,14 +684,17 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
                                 shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(8),
                                   side: BorderSide(
-                                    color: selecionado ? const Color(0xFF00E676) : Colors.transparent,
+                                    color: selecionado
+                                        ? const Color(0xFF00E676)
+                                        : Colors.transparent,
                                   ),
                                 ),
                                 onSelected: (val) {
                                   if (val) {
                                     setModalState(() {
                                       grupoSelecionado = grupo;
-                                      exercicioSelecionado = _catalogoExercicios[grupo]!.first;
+                                      exercicioSelecionado =
+                                          _catalogoExercicios[grupo]!.first;
                                     });
                                   }
                                 },
@@ -611,14 +729,21 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
                           child: DropdownButton<String>(
                             value: exercicioSelecionado['id'].toString(),
                             dropdownColor: const Color(0xFF252830),
-                            icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF00E676)),
+                            icon: const Icon(
+                              Icons.keyboard_arrow_down,
+                              color: Color(0xFF00E676),
+                            ),
                             isExpanded: true,
-                            style: const TextStyle(color: Colors.white, fontSize: 15),
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 15,
+                            ),
                             items: exerciciosDoGrupo.map((item) {
                               return DropdownMenuItem<String>(
                                 value: item['id'].toString(),
                                 child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
                                   children: [
                                     Expanded(
                                       child: Text(
@@ -644,9 +769,11 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
                             onChanged: (novoId) {
                               if (novoId != null) {
                                 setModalState(() {
-                                    exercicioSelecionado = exerciciosDoGrupo.firstWhere(
-                                    (item) => item['id'].toString() == novoId,
-                                  );
+                                  exercicioSelecionado = exerciciosDoGrupo
+                                      .firstWhere(
+                                        (item) =>
+                                            item['id'].toString() == novoId,
+                                      );
                                 });
                               }
                             },
@@ -663,7 +790,8 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
                             child: _buildContadorCard(
                               titulo: 'Séries',
                               valor: series,
-                              onIncrementar: () => setModalState(() => series++),
+                              onIncrementar: () =>
+                                  setModalState(() => series++),
                               onDecrementar: () {
                                 if (series > 1) setModalState(() => series--);
                               },
@@ -674,9 +802,11 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
                             child: _buildContadorCard(
                               titulo: 'Reps/Série',
                               valor: repeticoes,
-                              onIncrementar: () => setModalState(() => repeticoes++),
+                              onIncrementar: () =>
+                                  setModalState(() => repeticoes++),
                               onDecrementar: () {
-                                if (repeticoes > 1) setModalState(() => repeticoes--);
+                                if (repeticoes > 1)
+                                  setModalState(() => repeticoes--);
                               },
                             ),
                           ),
@@ -692,7 +822,10 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
                         decoration: BoxDecoration(
                           color: const Color(0xFF2D3139),
                           borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: const Color(0xFF00E676).withValues(alpha: 0.3)),
+                          border: Border.all(
+                            color: const Color(0xFF00E676)
+                                .withValues(alpha: 0.3),
+                          ),
                         ),
                         child: Column(
                           children: [
@@ -700,12 +833,21 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 const Expanded(
-                                  child: Text('Total de Repetições:',
-                                      style: TextStyle(color: Colors.white70, fontSize: 13)),
+                                  child: Text(
+                                    'Total de Repetições:',
+                                    style: TextStyle(
+                                      color: Colors.white70,
+                                      fontSize: 13,
+                                    ),
+                                  ),
                                 ),
-                                Text('$totalRepsCalculado reps',
-                                    style: const TextStyle(
-                                        color: Colors.white, fontWeight: FontWeight.bold)),
+                                Text(
+                                  '$totalRepsCalculado reps',
+                                  style: const TextStyle(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                               ],
                             ),
 
@@ -715,24 +857,42 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Expanded(
-                                  child: Text('Pontos Séries ($pontosPorSerie pts/série):',
-                                      style: const TextStyle(color: Colors.white60, fontSize: 12)),
-                                ),
-                                Text('+$pontosSeriesCalculado pts',
+                                  child: Text(
+                                    'Pontos Séries ($pontosPorSerie pts/série):',
                                     style: const TextStyle(
-                                        color: Color(0xFF00E676), fontWeight: FontWeight.w600)),
+                                      color: Colors.white60,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ),
+                                Text(
+                                  '+$pontosSeriesCalculado pts',
+                                  style: const TextStyle(
+                                    color: Color(0xFF00E676),
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
                               ],
                             ),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Expanded(
-                                  child: Text('Pontos Repetições ($pontosPorRepeticao pts/rep):',
-                                      style: const TextStyle(color: Colors.white60, fontSize: 12)),
-                                ),
-                                Text('+$pontosRepsCalculado pts',
+                                  child: Text(
+                                    'Pontos Repetições ($pontosPorRepeticao pts/rep):',
                                     style: const TextStyle(
-                                        color: Color(0xFF00E676), fontWeight: FontWeight.w600)),
+                                      color: Colors.white60,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                                ),
+                                Text(
+                                  '+$pontosRepsCalculado pts',
+                                  style: const TextStyle(
+                                    color: Color(0xFF00E676),
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
                               ],
                             ),
                             const Divider(color: Colors.white12, height: 16),
@@ -740,15 +900,22 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 const Expanded(
-                                  child: Text('Total deste Exercício:',
-                                      style: TextStyle(
-                                          color: Colors.white, fontWeight: FontWeight.bold)),
+                                  child: Text(
+                                    'Total deste Exercício:',
+                                    style: TextStyle(
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
                                 ),
-                                Text('+$pontosTotalCalculado pts',
-                                    style: const TextStyle(
-                                        color: Color(0xFF00E676),
-                                        fontWeight: FontWeight.bold,
-                                        fontSize: 16)),
+                                Text(
+                                  '+$pontosTotalCalculado pts',
+                                  style: const TextStyle(
+                                    color: Color(0xFF00E676),
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 16,
+                                  ),
+                                ),
                               ],
                             ),
                           ],
@@ -782,14 +949,22 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
 
                             Navigator.pop(ctx);
                             if (editandoExercicio) {
-                              _atualizarExercicio(indexParaEditar, novoExercicio);
+                              _atualizarExercicio(
+                                indexParaEditar,
+                                novoExercicio,
+                              );
                             } else {
                               _adicionarExercicio(novoExercicio);
                             }
                           },
                           child: Text(
-                            editandoExercicio ? 'Salvar Exercício' : 'Adicionar ao Treino',
-                            style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                            editandoExercicio
+                                ? 'Salvar Exercício'
+                                : 'Adicionar ao Treino',
+                            style: const TextStyle(
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
                         ),
                       ),
@@ -821,7 +996,10 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
         hintStyle: const TextStyle(color: Colors.white54, fontSize: 14),
         filled: true,
         fillColor: const Color(0xFF2D3139),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10.0),
           borderSide: BorderSide.none,
@@ -845,7 +1023,10 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
       ),
       child: Column(
         children: [
-          Text(titulo, style: const TextStyle(color: Colors.white70, fontSize: 13)),
+          Text(
+            titulo,
+            style: const TextStyle(color: Colors.white70, fontSize: 13),
+          ),
           const SizedBox(height: 4),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -853,7 +1034,11 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
               IconButton(
                 constraints: const BoxConstraints(),
                 padding: EdgeInsets.zero,
-                icon: const Icon(Icons.remove_circle_outline, color: Colors.white70, size: 24),
+                icon: const Icon(
+                  Icons.remove_circle_outline,
+                  color: Colors.white70,
+                  size: 24,
+                ),
                 onPressed: onDecrementar,
               ),
               Flexible(
@@ -869,7 +1054,11 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
               IconButton(
                 constraints: const BoxConstraints(),
                 padding: EdgeInsets.zero,
-                icon: const Icon(Icons.add_circle_outline, color: Color(0xFF00E676), size: 24),
+                icon: const Icon(
+                  Icons.add_circle_outline,
+                  color: Color(0xFF00E676),
+                  size: 24,
+                ),
                 onPressed: onIncrementar,
               ),
             ],
@@ -903,7 +1092,10 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
             onTap: _tentarSair,
             child: Text(
               _isModoEdicao ? 'EDITAR TREINO' : 'TREINOS',
-              style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ),
           actions: [
@@ -1028,7 +1220,9 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
                                     ReorderableDragStartListener(
                                       index: index,
                                       child: Container(
-                                        padding: const EdgeInsets.only(right: 10),
+                                        padding: const EdgeInsets.only(
+                                          right: 10,
+                                        ),
                                         color: Colors.transparent,
                                         child: const Icon(
                                           Icons.drag_handle,
@@ -1043,7 +1237,8 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
                                       width: 44,
                                       height: 44,
                                       decoration: BoxDecoration(
-                                        color: const Color(0xFF00E676).withValues(alpha: 0.15),
+                                        color: const Color(0xFF00E676)
+                                            .withValues(alpha: 0.15),
                                         borderRadius: BorderRadius.circular(10),
                                       ),
                                       child: const Icon(
@@ -1058,7 +1253,8 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
                                     // Detalhes do Exercício
                                     Expanded(
                                       child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
                                         children: [
                                           Text(
                                             item.nome,
@@ -1083,13 +1279,15 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
                                           Row(
                                             children: [
                                               Container(
-                                                padding: const EdgeInsets.symmetric(
-                                                  horizontal: 6,
-                                                  vertical: 2,
-                                                ),
+                                                padding:
+                                                    const EdgeInsets.symmetric(
+                                                      horizontal: 6,
+                                                      vertical: 2,
+                                                    ),
                                                 decoration: BoxDecoration(
-                                                  color: Colors.white12,
-                                                  borderRadius: BorderRadius.circular(6),
+                                                  color: Colors.white60,
+                                                  borderRadius:
+                                                      BorderRadius.circular(6),
                                                 ),
                                                 child: Text(
                                                   '${item.series} séries × ${item.repeticoes} reps',
@@ -1117,13 +1315,14 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
 
                                           const SizedBox(height: 4),
 
-                                        // Pontuação calculada
-                                        Text(
-                                          '+${item.totalPontos} pts (${item.pontosSeries} pts séries + ${item.pontosRepeticoes} pts reps)',
-                                          style: const TextStyle(
-                                            color: Color(0xFF00E676),
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.w500,
+                                          // Pontuação calculada
+                                          Text(
+                                            '+${item.totalPontos} pts (${item.pontosSeries} pts séries + ${item.pontosRepeticoes} pts reps)',
+                                            style: const TextStyle(
+                                              color: Color(0xFF00E676),
+                                              fontSize: 11,
+                                              fontWeight: FontWeight.w500,
+                                            ),
                                           ),
                                         ],
                                       ),
@@ -1139,9 +1338,10 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
                                         size: 22,
                                       ),
                                       tooltip: 'Editar exercício',
-                                      onPressed: () => _abrirModalAdicionarExercicio(
-                                        indexParaEditar: index,
-                                      ),
+                                      onPressed: () =>
+                                          _abrirModalAdicionarExercicio(
+                                            indexParaEditar: index,
+                                          ),
                                     ),
 
                                     // Botão para excluir este exercício
@@ -1178,7 +1378,10 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
                     child: Container(
                       width: double.infinity,
                       constraints: const BoxConstraints(minHeight: 42),
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 8,
+                      ),
                       alignment: Alignment.center,
                       child: const Row(
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -1203,50 +1406,42 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
 
                 const SizedBox(height: 8),
 
-              // 2º Botão: Salvar Treino
-              Material(
-                color: const Color(0xFF00E676),
-                borderRadius: BorderRadius.circular(10),
-                child: InkWell(
+                // 2º Botão: Salvar Treino
+                Material(
+                  color: const Color(0xFF00E676),
                   borderRadius: BorderRadius.circular(10),
-                  onTap: _salvando ? null : _salvarTreino,
-                  child: Container(
-                    width: double.infinity,
-                    height: 42,
-                    alignment: Alignment.center,
-                    child: _salvando
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Color(0xFF0D1117),
-                            ),
-                          )
-                        : const Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(Icons.check, color: Color(0xFF0D1117), size: 20),
-                              SizedBox(width: 8),
-                              Text(
-                                'Salvar Treino',
-                                style: TextStyle(
-                                  color: Color(0xFF0D1117),
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                ),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(10),
+                    onTap: _salvando ? null : _salvarTreino,
+                    child: Container(
+                      width: double.infinity,
+                      height: 42,
+                      alignment: Alignment.center,
+                      child: _salvando
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Color(0xFF0D1117),
                               ),
                             )
                           : Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                const Icon(Icons.check, color: Color(0xFF2196F3), size: 20),
+                                const Icon(
+                                  Icons.check,
+                                  color: Color(0xFF0D1117),
+                                  size: 20,
+                                ),
                                 const SizedBox(width: 8),
                                 Flexible(
                                   child: Text(
-                                    _isModoEdicao ? 'Salvar Alterações' : 'Salvar Treino',
+                                    _isModoEdicao
+                                        ? 'Salvar Alterações'
+                                        : 'Salvar Treino',
                                     style: const TextStyle(
-                                      color: Color(0xFF2196F3),
+                                      color: Color(0xFF0D1117),
                                       fontWeight: FontWeight.bold,
                                       fontSize: 14,
                                     ),

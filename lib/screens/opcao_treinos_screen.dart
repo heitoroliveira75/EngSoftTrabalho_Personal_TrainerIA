@@ -1,5 +1,7 @@
 import 'dart:convert';
+
 import 'package:flutter/material.dart';
+
 import '../services/api_service.dart';
 import 'treino_selecionado_screen.dart';
 import 'criar_exercicio_screen.dart';
@@ -382,9 +384,24 @@ final Map<String, List<Map<String, dynamic>>> bancoDeTreinos = {
       'corTema': const Color(0xFF00E676),
       'exercicios': [
         {'nome': 'Polichinelo', 'series': 3, 'repeticoes': 12, 'pontos': 20},
-        {'nome': 'Agachamento Livre', 'series': 3, 'repeticoes': 12, 'pontos': 20},
-        {'nome': 'Flexão de Braço', 'series': 3, 'repeticoes': 10, 'pontos': 20},
-        {'nome': 'Prancha Abdominal', 'series': 3, 'repeticoes': 30, 'pontos': 20},
+        {
+          'nome': 'Agachamento Livre',
+          'series': 3,
+          'repeticoes': 12,
+          'pontos': 20,
+        },
+        {
+          'nome': 'Flexão de Braço',
+          'series': 3,
+          'repeticoes': 10,
+          'pontos': 20,
+        },
+        {
+          'nome': 'Prancha Abdominal',
+          'series': 3,
+          'repeticoes': 30,
+          'pontos': 20,
+        },
       ],
     },
   ],
@@ -448,14 +465,21 @@ class _OpcaoTreinosScreenState extends State<OpcaoTreinosScreen> {
             final List<Map<String, dynamic>> exerciciosMapeados = [];
 
             // 1. Tenta extrair diretamente de t['exercicios']
-            if (t['exercicios'] is List && (t['exercicios'] as List).isNotEmpty) {
+            if (t['exercicios'] is List &&
+                (t['exercicios'] as List).isNotEmpty) {
               for (final ex in t['exercicios']) {
                 if (ex is Map) {
                   final series = ex['series'] ?? 3;
                   final reps = ex['repeticoes'] ?? 10;
-                  final pontos = ex['pontos'] ?? ex['pontos_totais'] ?? ((series is int) ? series * 15 : 45);
+                  final pontos =
+                      ex['pontos'] ??
+                      ex['pontos_totais'] ??
+                      ((series is int) ? series * 15 : 45);
                   exerciciosMapeados.add({
-                    'id': ex['id']?.toString() ?? ex['exercicio_id']?.toString() ?? '1',
+                    'id':
+                        ex['id']?.toString() ??
+                        ex['exercicio_id']?.toString() ??
+                        '1',
                     'nome': ex['nome']?.toString() ?? 'Exercício',
                     'series': series,
                     'repeticoes': reps,
@@ -466,16 +490,21 @@ class _OpcaoTreinosScreenState extends State<OpcaoTreinosScreen> {
               }
             }
             // 2. Tenta extrair da relação relacional t['treino_exercicios']
-            else if (t['treino_exercicios'] is List && (t['treino_exercicios'] as List).isNotEmpty) {
+            else if (t['treino_exercicios'] is List &&
+                (t['treino_exercicios'] as List).isNotEmpty) {
               for (final te in (t['treino_exercicios'] as List)) {
                 if (te is Map) {
-                  final exInfo = te['exercicios'] as Map<String, dynamic>? ?? {};
+                  final exInfo =
+                      te['exercicios'] as Map<String, dynamic>? ?? {};
                   final nomeEx = exInfo['nome'] ?? te['nome'] ?? 'Exercício';
                   final series = te['series'] ?? 3;
                   final reps = te['repeticoes'] ?? 10;
                   final pontos = (series is int) ? series * 15 : 45;
                   exerciciosMapeados.add({
-                    'id': te['exercicio_id']?.toString() ?? te['id']?.toString() ?? '1',
+                    'id':
+                        te['exercicio_id']?.toString() ??
+                        te['id']?.toString() ??
+                        '1',
                     'nome': nomeEx.toString(),
                     'series': series,
                     'repeticoes': reps,
@@ -486,17 +515,26 @@ class _OpcaoTreinosScreenState extends State<OpcaoTreinosScreen> {
               }
             }
             // 3. Fallback: tenta desempacotar JSON em t['descricao']
-            else if (t['descricao'] != null && t['descricao'].toString().trim().startsWith('{')) {
+            else if (t['descricao'] != null &&
+                t['descricao'].toString().trim().startsWith('{')) {
               try {
-                final Map<String, dynamic> parsed = jsonDecode(t['descricao'].toString());
+                final Map<String, dynamic> parsed = jsonDecode(
+                  t['descricao'].toString(),
+                );
                 if (parsed['exercicios'] is List) {
                   for (final ex in (parsed['exercicios'] as List)) {
                     if (ex is Map) {
                       final series = ex['series'] ?? 3;
                       final reps = ex['repeticoes'] ?? 10;
-                      final pontos = ex['pontos'] ?? ex['pontos_totais'] ?? ((series is int) ? series * 15 : 45);
+                      final pontos =
+                          ex['pontos'] ??
+                          ex['pontos_totais'] ??
+                          ((series is int) ? series * 15 : 45);
                       exerciciosMapeados.add({
-                        'id': ex['id']?.toString() ?? ex['exercicio_id']?.toString() ?? '1',
+                        'id':
+                            ex['id']?.toString() ??
+                            ex['exercicio_id']?.toString() ??
+                            '1',
                         'nome': ex['nome']?.toString() ?? 'Exercício',
                         'series': series,
                         'repeticoes': reps,
@@ -517,14 +555,14 @@ class _OpcaoTreinosScreenState extends State<OpcaoTreinosScreen> {
             final duracao = exerciciosMapeados.isNotEmpty
                 ? exerciciosMapeados.length * 5
                 : ((t['duracaoMinutos'] as num?)?.toInt() ??
-                    (t['duracao_minutos'] as num?)?.toInt() ??
-                    20);
+                      (t['duracao_minutos'] as num?)?.toInt() ??
+                      20);
 
             final pontosTreino = totalPontos > 0
                 ? totalPontos
                 : ((t['pontosTotais'] as num?)?.toInt() ??
-                    (t['pontos_totais'] as num?)?.toInt() ??
-                    150);
+                      (t['pontos_totais'] as num?)?.toInt() ??
+                      150);
 
             convertidos.add({
               'id': t['id'].toString(),
@@ -549,11 +587,15 @@ class _OpcaoTreinosScreenState extends State<OpcaoTreinosScreen> {
         } else {
           // Se a lista da API for vazia, usa os treinos locais padrão de meus_treinos marcados como salvos
           final List locais = bancoDeTreinos['meus_treinos'] ?? [];
-          final convertidosLocais = locais.map((m) => {
-            ...Map<String, dynamic>.from(m as Map),
-            'salvo': true,
-            'ehMeusTreinos': true,
-          }).toList();
+          final convertidosLocais = locais
+              .map(
+                (m) => {
+                  ...Map<String, dynamic>.from(m as Map),
+                  'salvo': true,
+                  'ehMeusTreinos': true,
+                },
+              )
+              .toList();
           setState(() {
             _listaTreinos = convertidosLocais;
             _carregando = false;
@@ -563,10 +605,10 @@ class _OpcaoTreinosScreenState extends State<OpcaoTreinosScreen> {
       } else {
         // Busca da API os treinos daquela dificuldade e cruza com os Meus Treinos salvos
         final idUsuario = ApiService().idUsuarioAtual;
-        final Future<Map<String, dynamic>> reqMeusTreinos =
-            ApiService().listarTreinosUsuario(idUsuario);
-        final Future<Map<String, dynamic>> reqDificuldade =
-            ApiService().obterTreinosPorDificuldade(widget.dificuldadeFlag);
+        final Future<Map<String, dynamic>> reqMeusTreinos = ApiService()
+            .listarTreinosUsuario(idUsuario);
+        final Future<Map<String, dynamic>> reqDificuldade = ApiService()
+            .obterTreinosPorDificuldade(widget.dificuldadeFlag);
 
         final resultados = await Future.wait([reqDificuldade, reqMeusTreinos]);
         final res = resultados[0];
@@ -576,10 +618,14 @@ class _OpcaoTreinosScreenState extends State<OpcaoTreinosScreen> {
 
         // Mapeia títulos dos treinos já salvos pelo usuário para saber quem já está favoritado
         final Map<String, String> salvosPorTitulo = {};
-        if (resMeusTreinos['sucesso'] == true && resMeusTreinos['treinos'] is List) {
+        if (resMeusTreinos['sucesso'] == true &&
+            resMeusTreinos['treinos'] is List) {
           for (final t in resMeusTreinos['treinos']) {
             if (t is Map) {
-              final nome = (t['nome'] ?? t['titulo'] ?? '').toString().trim().toLowerCase();
+              final nome = (t['nome'] ?? t['titulo'] ?? '')
+                  .toString()
+                  .trim()
+                  .toLowerCase();
               if (nome.isNotEmpty && t['id'] != null) {
                 salvosPorTitulo[nome] = t['id'].toString();
               }
@@ -606,7 +652,8 @@ class _OpcaoTreinosScreenState extends State<OpcaoTreinosScreen> {
               'salvo': estaSalvo,
               'titulo': titulo,
               'dificuldade': item['dificuldade'] ?? _tituloDificuldade,
-              'exerciciosCount': item['exerciciosCount'] ??
+              'exerciciosCount':
+                  item['exerciciosCount'] ??
                   (item['exercicios'] as List?)?.length ??
                   0,
               'duracaoMinutos': item['duracaoMinutos'] ?? 30,
@@ -631,11 +678,15 @@ class _OpcaoTreinosScreenState extends State<OpcaoTreinosScreen> {
 
     final List locais = bancoDeTreinos[widget.dificuldadeFlag] ?? [];
     setState(() {
-      _listaTreinos = locais.map((m) => {
-        ...Map<String, dynamic>.from(m as Map),
-        'salvo': widget.dificuldadeFlag == 'meus_treinos',
-        'ehMeusTreinos': widget.dificuldadeFlag == 'meus_treinos',
-      }).toList();
+      _listaTreinos = locais
+          .map(
+            (m) => {
+              ...Map<String, dynamic>.from(m as Map),
+              'salvo': widget.dificuldadeFlag == 'meus_treinos',
+              'ehMeusTreinos': widget.dificuldadeFlag == 'meus_treinos',
+            },
+          )
+          .toList();
       _carregando = false;
     });
   }
@@ -678,7 +729,10 @@ class _OpcaoTreinosScreenState extends State<OpcaoTreinosScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancelar', style: TextStyle(color: Colors.grey)),
+              child: const Text(
+                'Cancelar',
+                style: TextStyle(color: Colors.grey),
+              ),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
@@ -703,7 +757,8 @@ class _OpcaoTreinosScreenState extends State<OpcaoTreinosScreen> {
       setState(() => treino['salvando'] = true);
 
       try {
-        final idParaExcluir = treino['idSalvo']?.toString() ?? treino['id']?.toString();
+        final idParaExcluir =
+            treino['idSalvo']?.toString() ?? treino['id']?.toString();
         if (idParaExcluir != null && idParaExcluir.isNotEmpty) {
           await ApiService().excluirTreino(idParaExcluir);
         }
@@ -743,14 +798,16 @@ class _OpcaoTreinosScreenState extends State<OpcaoTreinosScreen> {
       setState(() => treino['salvando'] = true);
       final idUsuario = ApiService().idUsuarioAtual;
       final exercicios = (treino['exercicios'] as List? ?? [])
-          .map((e) => {
-                'exercicio_id': e['exercicio_id'] ?? e['id'] ?? 1,
-                'nome': e['nome'] ?? 'Exercício',
-                'series': e['series'] ?? 3,
-                'repeticoes': e['repeticoes'] ?? 10,
-                'pontos': e['pontos'] ?? e['pontos_totais'] ?? 20,
-                'pontos_totais': e['pontos_totais'] ?? e['pontos'] ?? 20,
-              })
+          .map(
+            (e) => {
+              'exercicio_id': e['exercicio_id'] ?? e['id'] ?? 1,
+              'nome': e['nome'] ?? 'Exercício',
+              'series': e['series'] ?? 3,
+              'repeticoes': e['repeticoes'] ?? 10,
+              'pontos': e['pontos'] ?? e['pontos_totais'] ?? 20,
+              'pontos_totais': e['pontos_totais'] ?? e['pontos'] ?? 20,
+            },
+          )
           .toList();
 
       try {
@@ -856,183 +913,179 @@ class _OpcaoTreinosScreenState extends State<OpcaoTreinosScreen> {
 
           Expanded(
             child: _carregando
-                ? Center(
-                    child: CircularProgressIndicator(color: _corTema),
-                  )
+                ? Center(child: CircularProgressIndicator(color: _corTema))
                 : _listaTreinos.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(
-                              Icons.fitness_center_outlined,
-                              size: 48,
-                              color: Colors.white38,
-                            ),
-                            const SizedBox(height: 12),
-                            const Text(
-                              'Você ainda não possui treinos salvos.',
-                              style: TextStyle(color: Colors.grey, fontSize: 16),
-                            ),
-                            const SizedBox(height: 16),
-                            ElevatedButton.icon(
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF00E676),
-                                foregroundColor: Colors.black,
-                              ),
-                              onPressed: () async {
-                                final criado = await Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) =>
-                                        const CriarExercicioScreen(),
-                                  ),
-                                );
-                                if (criado == true) {
-                                  _carregarTreinos();
-                                }
-                              },
-                              icon: const Icon(Icons.add),
-                              label: const Text('Criar Meu Primeiro Treino'),
-                            ),
-                          ],
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.fitness_center_outlined,
+                          size: 48,
+                          color: Colors.white38,
                         ),
-                      )
-                    : RefreshIndicator(
-                        onRefresh: _carregarTreinos,
-                        color: _corTema,
-                        backgroundColor: const Color(0xFF1E232A),
-                        child: ListView.builder(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 20,
-                            vertical: 10,
+                        const SizedBox(height: 12),
+                        const Text(
+                          'Você ainda não possui treinos salvos.',
+                          style: TextStyle(color: Colors.grey, fontSize: 16),
+                        ),
+                        const SizedBox(height: 16),
+                        ElevatedButton.icon(
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF00E676),
+                            foregroundColor: Colors.black,
                           ),
-                          itemCount: _listaTreinos.length,
-                          itemBuilder: (context, index) {
-                            final treino = _listaTreinos[index];
-                            final Color corCard =
-                                treino['corTema'] ?? _corTema;
+                          onPressed: () async {
+                            final criado = await Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) =>
+                                    const CriarExercicioScreen(),
+                              ),
+                            );
+                            if (criado == true) {
+                              _carregarTreinos();
+                            }
+                          },
+                          icon: const Icon(Icons.add),
+                          label: const Text('Criar Meu Primeiro Treino'),
+                        ),
+                      ],
+                    ),
+                  )
+                : RefreshIndicator(
+                    onRefresh: _carregarTreinos,
+                    color: _corTema,
+                    backgroundColor: const Color(0xFF1E232A),
+                    child: ListView.builder(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 10,
+                      ),
+                      itemCount: _listaTreinos.length,
+                      itemBuilder: (context, index) {
+                        final treino = _listaTreinos[index];
+                        final Color corCard = treino['corTema'] ?? _corTema;
 
-                            return Padding(
-                              padding: const EdgeInsets.only(bottom: 20.0),
-                              child: InkWell(
-                                onTap: () async {
-                                  await Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (context) =>
-                                          TreinoSelecionadoScreen(
-                                              treinoData: treino),
-                                    ),
-                                  );
-                                  _carregarTreinos();
-                                },
-                                borderRadius: BorderRadius.circular(12),
-                                child: Container(
-                                  padding: const EdgeInsets.all(16),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFF1E232A),
-                                    borderRadius: BorderRadius.circular(12),
-                                    border: Border.all(
-                                      color: corCard.withValues(alpha: 0.6),
-                                      width: 1.5,
-                                    ),
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 20.0),
+                          child: InkWell(
+                            onTap: () async {
+                              await Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => TreinoSelecionadoScreen(
+                                    treinoData: treino,
                                   ),
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
+                                ),
+                              );
+                              _carregarTreinos();
+                            },
+                            borderRadius: BorderRadius.circular(12),
+                            child: Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF1E232A),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: corCard.withValues(alpha: 0.6),
+                                  width: 1.5,
+                                ),
+                              ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
                                     children: [
-                                      Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Expanded(
-                                            child: Text(
-                                              treino['titulo'] ?? 'Treino',
-                                              style: const TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 18,
-                                                fontWeight: FontWeight.bold,
-                                              ),
-                                            ),
+                                      Expanded(
+                                        child: Text(
+                                          treino['titulo'] ?? 'Treino',
+                                          style: const TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.bold,
                                           ),
-                                          IconButton(
-                                            padding: EdgeInsets.zero,
-                                            constraints: const BoxConstraints(),
-                                            visualDensity: VisualDensity.compact,
-                                            tooltip: treino['salvo'] == true
-                                                ? 'Remover dos Meus Treinos'
-                                                : 'Salvar nos Meus Treinos',
-                                            onPressed: treino['salvando'] == true
-                                                ? null
-                                                : () => _aoClicarEstrela(treino),
-                                            icon: treino['salvando'] == true
-                                                ? const SizedBox(
-                                                    width: 20,
-                                                    height: 20,
-                                                    child: CircularProgressIndicator(
+                                        ),
+                                      ),
+                                      IconButton(
+                                        padding: EdgeInsets.zero,
+                                        constraints: const BoxConstraints(),
+                                        visualDensity: VisualDensity.compact,
+                                        tooltip: treino['salvo'] == true
+                                            ? 'Remover dos Meus Treinos'
+                                            : 'Salvar nos Meus Treinos',
+                                        onPressed: treino['salvando'] == true
+                                            ? null
+                                            : () => _aoClicarEstrela(treino),
+                                        icon: treino['salvando'] == true
+                                            ? const SizedBox(
+                                                width: 20,
+                                                height: 20,
+                                                child:
+                                                    CircularProgressIndicator(
                                                       strokeWidth: 2,
                                                       color: Colors.amber,
                                                     ),
-                                                  )
-                                                : Icon(
-                                                    treino['salvo'] == true
-                                                        ? Icons.star
-                                                        : Icons.star_border,
-                                                    color: treino['salvo'] == true
-                                                        ? Colors.amber
-                                                        : Colors.grey,
-                                                    size: 26,
-                                                  ),
-                                          ),
-                                        ],
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        '${treino['exerciciosCount'] ?? 0} exercícios, ${treino['duracaoMinutos'] ?? 30} minutos',
-                                        style: TextStyle(
-                                          color: Colors.grey[400],
-                                          fontSize: 13,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 16),
-                                      const Divider(
-                                          color: Colors.grey, height: 1),
-                                      const SizedBox(height: 12),
-                                      Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Flexible(
-                                            child: Text(
-                                              '+${treino['pontosTotais'] ?? 100} pts',
-                                              style: TextStyle(
-                                                color: corCard,
-                                                fontWeight: FontWeight.bold,
-                                                fontSize: 14,
+                                              )
+                                            : Icon(
+                                                treino['salvo'] == true
+                                                    ? Icons.star
+                                                    : Icons.star_border,
+                                                color: treino['salvo'] == true
+                                                    ? Colors.amber
+                                                    : Colors.grey,
+                                                size: 26,
                                               ),
-                                            ),
-                                          ),
-                                          const SizedBox(width: 8),
-                                          Flexible(
-                                            child: Text(
-                                              treino['dificuldade'] ?? 'Geral',
-                                              style: TextStyle(
-                                                color: Colors.grey[400],
-                                                fontSize: 12,
-                                              ),
-                                            ),
-                                          ),
-                                        ],
                                       ),
                                     ],
                                   ),
-                                ),
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    '${treino['exerciciosCount'] ?? 0} exercícios, ${treino['duracaoMinutos'] ?? 30} minutos',
+                                    style: TextStyle(
+                                      color: Colors.grey[400],
+                                      fontSize: 13,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 16),
+                                  const Divider(color: Colors.grey, height: 1),
+                                  const SizedBox(height: 12),
+                                  Row(
+                                    mainAxisAlignment:
+                                        MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Flexible(
+                                        child: Text(
+                                          '+${treino['pontosTotais'] ?? 100} pts',
+                                          style: TextStyle(
+                                            color: corCard,
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Flexible(
+                                        child: Text(
+                                          treino['dificuldade'] ?? 'Geral',
+                                          style: TextStyle(
+                                            color: Colors.grey[400],
+                                            fontSize: 12,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ],
                               ),
-                            );
-                          },
-                        ),
-                      ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
           ),
         ],
       ),

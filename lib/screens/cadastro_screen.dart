@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import '../services/api_service.dart';
 import 'home_screen.dart';
 
@@ -13,7 +14,8 @@ class _CadastroScreenState extends State<CadastroScreen> {
   final TextEditingController _nomeController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _senhaController = TextEditingController();
-  final TextEditingController _confirmarSenhaController = TextEditingController();
+  final TextEditingController _confirmarSenhaController =
+      TextEditingController();
   bool _carregando = false;
 
   @override
@@ -31,7 +33,10 @@ class _CadastroScreenState extends State<CadastroScreen> {
     final senha = _senhaController.text.trim();
     final confirmarSenha = _confirmarSenhaController.text.trim();
 
-    if (nome.isEmpty || email.isEmpty || senha.isEmpty || confirmarSenha.isEmpty) {
+    if (nome.isEmpty ||
+        email.isEmpty ||
+        senha.isEmpty ||
+        confirmarSenha.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Por favor, preencha todos os campos.'),
@@ -75,7 +80,10 @@ class _CadastroScreenState extends State<CadastroScreen> {
 
     if (resposta['sucesso'] == true) {
       // Tenta logar automaticamente para iniciar a sessão
-      final loginRes = await ApiService().fazerLogin(email: email, senha: senha);
+      final loginRes = await ApiService().fazerLogin(
+        email: email,
+        senha: senha,
+      );
 
       if (!mounted) return;
 
@@ -98,7 +106,9 @@ class _CadastroScreenState extends State<CadastroScreen> {
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(resposta['mensagem'] ?? 'Conta criada com sucesso! Faça login.'),
+            content: Text(
+              resposta['mensagem'] ?? 'Conta criada com sucesso! Faça login.',
+            ),
             backgroundColor: Colors.green,
           ),
         );
@@ -132,7 +142,10 @@ class _CadastroScreenState extends State<CadastroScreen> {
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 28.0, vertical: 12.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 28.0,
+              vertical: 12.0,
+            ),
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -223,62 +236,19 @@ class _CadastroScreenState extends State<CadastroScreen> {
                 Row(
                   children: const [
                     Expanded(
-                      child: Divider(
-                        color: Colors.white24,
-                        thickness: 1,
-                      ),
+                      child: Divider(color: Colors.white24, thickness: 1),
                     ),
                     Padding(
                       padding: EdgeInsets.symmetric(horizontal: 12.0),
                       child: Text(
                         'ou',
-                        style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: 13,
-                        ),
+                        style: TextStyle(color: Colors.white70, fontSize: 13),
                       ),
                     ),
                     Expanded(
-                      child: Divider(
-                        color: Colors.white24,
-                        thickness: 1,
-                      ),
+                      child: Divider(color: Colors.white24, thickness: 1),
                     ),
                   ],
-                ),
-
-                const SizedBox(height: 20),
-
-                // Botão Continuar com Google
-                _buildSocialButton(
-                  text: 'Continuar com o Google',
-                  icon: const Icon(
-                    Icons.g_mobiledata_rounded,
-                    color: Color(0xFF00E676),
-                    size: 28,
-                  ),
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Cadastro social em desenvolvimento.')),
-                    );
-                  },
-                ),
-
-                const SizedBox(height: 12),
-
-                // Botão Continuar com Apple
-                _buildSocialButton(
-                  text: 'Continuar com a Apple',
-                  icon: const Icon(
-                    Icons.apple,
-                    color: Colors.white,
-                    size: 22,
-                  ),
-                  onTap: () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Cadastro social em desenvolvimento.')),
-                    );
-                  },
                 ),
 
                 const SizedBox(height: 28),
@@ -289,23 +259,7 @@ class _CadastroScreenState extends State<CadastroScreen> {
                   children: [
                     const Text(
                       'Já possui uma conta? ',
-                      style: TextStyle(
-                        color: Colors.white70,
-                        fontSize: 13,
-                      ),
-                    ),
-                    GestureDetector(
-                      onTap: () {
-                        Navigator.pop(context);
-                      },
-                      child: const Text(
-                        'Faça login.',
-                        style: TextStyle(
-                          color: Color(0xFF00E676),
-                          fontWeight: FontWeight.bold,
-                          fontSize: 13,
-                        ),
-                      ),
+                      style: TextStyle(color: Colors.white70, fontSize: 13),
                     ),
                     Flexible(
                       child: GestureDetector(
@@ -315,7 +269,7 @@ class _CadastroScreenState extends State<CadastroScreen> {
                         child: const Text(
                           'Faça login.',
                           style: TextStyle(
-                            color: Color(0xFFE91E63), // Rosa vibrante
+                            color: Color(0xFF00E676), // Rosa vibrante
                             fontWeight: FontWeight.bold,
                             fontSize: 13,
                           ),
@@ -349,7 +303,10 @@ class _CadastroScreenState extends State<CadastroScreen> {
         hintStyle: const TextStyle(color: Colors.white38, fontSize: 14),
         filled: true,
         fillColor: const Color(0xFF1E232A),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10.0),
           borderSide: const BorderSide(color: Colors.white12),
@@ -362,43 +319,6 @@ class _CadastroScreenState extends State<CadastroScreen> {
           borderRadius: BorderRadius.circular(10.0),
           borderSide: const BorderSide(color: Color(0xFF00E676), width: 1.5),
         ),
-      ),
-    );
-  }
-
-  // Widget auxiliar para os botões sociais em cinza carbono
-  Widget _buildSocialButton({
-    required String text,
-    required Widget icon,
-    required VoidCallback onTap,
-  }) {
-    return ElevatedButton(
-      onPressed: onTap,
-      style: ElevatedButton.styleFrom(
-        backgroundColor: const Color(0xFF1E232A),
-        foregroundColor: Colors.white,
-        padding: const EdgeInsets.symmetric(vertical: 14),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10.0),
-          side: const BorderSide(color: Colors.white12),
-        ),
-        elevation: 0,
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          icon,
-          const SizedBox(width: 8),
-          Flexible(
-            child: Text(
-              text,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
-          ),
-        ],
       ),
     );
   }

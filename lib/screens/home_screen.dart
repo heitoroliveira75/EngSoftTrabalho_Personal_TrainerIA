@@ -20,7 +20,8 @@ class _HomeScreenState extends State<HomeScreen> {
   // ===========================================================================
   // VARIÁVEIS DE DADOS E NAVEGAÇÃO
   // ===========================================================================
-  int _abaSelecionada = 0; // 0 = Home, 1 = Amigos, 2 = Treinar, 3 = Leaderboard, 4 = Perfil
+  int _abaSelecionada =
+      0; // 0 = Home, 1 = Amigos, 2 = Treinar, 3 = Leaderboard, 4 = Perfil
   String nomeUsuario = 'Atleta';
   int pontosTotais = 0;
   int pontosSemana = 0;
@@ -73,12 +74,14 @@ class _HomeScreenState extends State<HomeScreen> {
           pontosTotais = (res['pontuacao_total'] as num?)?.toInt() ?? 0;
           pontosSemana = (res['pontuacao_semanal'] as num?)?.toInt() ?? 0;
           pontosHoje = (res['pontuacao_diaria'] as num?)?.toInt() ?? 0;
-          sequenciaAtual = (res['sequencia'] as num?)?.toInt() ??
+          sequenciaAtual =
+              (res['sequencia'] as num?)?.toInt() ??
               (res['pontuacoes'] is Map
                   ? (res['pontuacoes']['sequencia'] as num?)?.toInt()
                   : null) ??
               ApiService().sequenciaAtual;
-          maiorSequencia = (res['maior_sequencia'] as num?)?.toInt() ??
+          maiorSequencia =
+              (res['maior_sequencia'] as num?)?.toInt() ??
               (res['pontuacoes'] is Map
                   ? (res['pontuacoes']['maior_sequencia'] as num?)?.toInt()
                   : null) ??
@@ -133,16 +136,12 @@ class _HomeScreenState extends State<HomeScreen> {
         onBack: () => _mudarAba(0),
         onOpenLeaderboard: () => _mudarAba(3),
       ),
-      TrainingMenuScreen(
-        onBack: () => _mudarAba(0),
-      ),
+      TrainingMenuScreen(onBack: () => _mudarAba(0)),
       LeaderboardScreen(
         onBack: () => _mudarAba(0),
         onOpenAmigos: () => _mudarAba(1),
       ),
-      ProfileScreen(
-        onBack: () => _mudarAba(0),
-      ),
+      ProfileScreen(onBack: () => _mudarAba(0)),
     ];
 
     return Scaffold(
@@ -177,9 +176,7 @@ class _HomeScreenState extends State<HomeScreen> {
       body: telas[_abaSelecionada],
       bottomNavigationBar: Container(
         decoration: const BoxDecoration(
-          border: Border(
-            top: BorderSide(color: Colors.white12, width: 1),
-          ),
+          border: Border(top: BorderSide(color: Colors.white12, width: 1)),
         ),
         child: BottomNavigationBar(
           currentIndex: _abaSelecionada,
@@ -191,9 +188,7 @@ class _HomeScreenState extends State<HomeScreen> {
             fontWeight: FontWeight.bold,
             fontSize: 11,
           ),
-          unselectedLabelStyle: const TextStyle(
-            fontSize: 11,
-          ),
+          unselectedLabelStyle: const TextStyle(fontSize: 11),
           type: BottomNavigationBarType.fixed,
           items: const [
             BottomNavigationBarItem(
@@ -241,11 +236,13 @@ class _HomeScreenState extends State<HomeScreen> {
             // 1. Saudação do Usuário (isolada por sessão local, sem consultar estado global)
             Builder(
               builder: (context) {
-                final nome = (nomeUsuario.isNotEmpty && nomeUsuario != 'Usuário')
+                final nome =
+                    (nomeUsuario.isNotEmpty && nomeUsuario != 'Usuário')
                     ? nomeUsuario
                     : ApiService().nomeUsuarioAtual;
-                final primeiroNome =
-                    nome.isNotEmpty ? nome.split(' ')[0] : 'Atleta';
+                final primeiroNome = nome.isNotEmpty
+                    ? nome.split(' ')[0]
+                    : 'Atleta';
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -260,10 +257,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     const SizedBox(height: 4),
                     const Text(
                       'Pronto para o treino de hoje?',
-                      style: TextStyle(
-                        color: Colors.white54,
-                        fontSize: 14,
-                      ),
+                      style: TextStyle(color: Colors.white54, fontSize: 14),
                     ),
                   ],
                 );
@@ -395,20 +389,8 @@ class _HomeScreenState extends State<HomeScreen> {
                       color: Color(0xFF00E676),
                     ),
                     const SizedBox(width: 16),
-                    Container(
-                      height: 50,
-                      width: 2,
-                      color: Colors.white12,
-                    ),
+                    Container(height: 50, width: 2, color: Colors.white12),
                     const SizedBox(width: 16),
-                    const Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Hora de',
-                          style: TextStyle(
-                            color: Colors.white70,
-                            fontSize: 18,
                     const Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -466,9 +448,7 @@ class _HomeScreenState extends State<HomeScreen> {
         children: [
           SizedBox(
             height: 44,
-            child: Center(
-              child: Icon(icon, size: 44, color: iconColor),
-            ),
+            child: Center(child: Icon(icon, size: 44, color: iconColor)),
           ),
           const SizedBox(height: 8),
           Column(

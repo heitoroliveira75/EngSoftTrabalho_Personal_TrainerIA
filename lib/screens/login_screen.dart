@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+
 import '../services/api_service.dart';
 import 'cadastro_screen.dart';
 import 'esqueceu_senha_screen.dart';
@@ -65,9 +66,7 @@ class _LoginScreenState extends State<LoginScreen> {
       // Redireciona para a tela Home limpando a pilha de telas
       Navigator.pushAndRemoveUntil(
         context,
-        MaterialPageRoute(
-          builder: (context) => const HomeScreen(),
-        ),
+        MaterialPageRoute(builder: (context) => const HomeScreen()),
         (route) => false,
       );
     } else if (resposta['ja_conectado'] == true) {
@@ -147,7 +146,10 @@ class _LoginScreenState extends State<LoginScreen> {
           body: SafeArea(
             child: Center(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 28.0, vertical: 24.0),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 28.0,
+                  vertical: 24.0,
+                ),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -254,20 +256,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        const Text(
-                          'Não possui uma conta? ',
-                          style: TextStyle(
-                            color: Colors.white70,
-                            fontSize: 13,
-                        const Flexible(
-                          child: Text(
-                            'Não possui uma conta? ',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 13,
-                            ),
-                          ),
-                        ),
                         Flexible(
                           child: GestureDetector(
                             onTap: () {
@@ -281,18 +269,10 @@ class _LoginScreenState extends State<LoginScreen> {
                             child: const Text(
                               'Crie uma conta',
                               style: TextStyle(
-                                color: Color(0xFFE91E63), // Rosa vibrante
+                                color: Color(0xFF00E676), // Rosa vibrante
                                 fontWeight: FontWeight.bold,
                                 fontSize: 13,
                               ),
-                            );
-                          },
-                          child: const Text(
-                            'Crie uma conta',
-                            style: TextStyle(
-                              color: Color(0xFF00E676),
-                              fontWeight: FontWeight.bold,
-                              fontSize: 13,
                             ),
                           ),
                         ),
@@ -329,7 +309,10 @@ class _LoginScreenState extends State<LoginScreen> {
         hintStyle: const TextStyle(color: Colors.white38, fontSize: 14),
         filled: true,
         fillColor: const Color(0xFF1E232A),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10.0),
           borderSide: const BorderSide(color: Colors.white12),

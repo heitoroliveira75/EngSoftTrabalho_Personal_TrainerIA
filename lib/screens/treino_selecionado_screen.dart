@@ -1,7 +1,10 @@
 import 'camera_treino_screen.dart';
 import 'criar_exercicio_screen.dart';
+
 import 'dart:convert';
+
 import 'package:flutter/material.dart';
+
 import '../services/api_service.dart';
 
 class TreinoSelecionadoScreen extends StatefulWidget {
@@ -26,9 +29,11 @@ class _TreinoSelecionadoScreenState extends State<TreinoSelecionadoScreen> {
   @override
   void initState() {
     super.initState();
-    _salvo = widget.treinoData['salvo'] == true ||
+    _salvo =
+        widget.treinoData['salvo'] == true ||
         widget.treinoData['ehMeusTreinos'] == true;
-    _idSalvo = widget.treinoData['idSalvo']?.toString() ??
+    _idSalvo =
+        widget.treinoData['idSalvo']?.toString() ??
         widget.treinoData['id']?.toString();
     final rawExercicios = _obterListaExercicios();
     _listaExercicios = rawExercicios
@@ -51,7 +56,8 @@ class _TreinoSelecionadoScreenState extends State<TreinoSelecionadoScreen> {
       widget.treinoData['exercicios'] = _listaExercicios;
     });
 
-    final idTreino = _idSalvo ??
+    final idTreino =
+        _idSalvo ??
         widget.treinoData['idSalvo']?.toString() ??
         widget.treinoData['id']?.toString();
 
@@ -87,10 +93,12 @@ class _TreinoSelecionadoScreenState extends State<TreinoSelecionadoScreen> {
   Future<void> _abrirEdicaoTreino() async {
     final dadosParaEdicao = {
       ...widget.treinoData,
-      'id': _idSalvo ??
+      'id':
+          _idSalvo ??
           widget.treinoData['idSalvo']?.toString() ??
           widget.treinoData['id']?.toString(),
-      'idSalvo': _idSalvo ??
+      'idSalvo':
+          _idSalvo ??
           widget.treinoData['idSalvo']?.toString() ??
           widget.treinoData['id']?.toString(),
       'exercicios': _listaExercicios
@@ -101,9 +109,8 @@ class _TreinoSelecionadoScreenState extends State<TreinoSelecionadoScreen> {
     final resultado = await Navigator.push<Map<String, dynamic>>(
       context,
       MaterialPageRoute(
-        builder: (context) => CriarExercicioScreen(
-          treinoParaEditar: dadosParaEdicao,
-        ),
+        builder: (context) =>
+            CriarExercicioScreen(treinoParaEditar: dadosParaEdicao),
       ),
     );
 
@@ -115,7 +122,9 @@ class _TreinoSelecionadoScreenState extends State<TreinoSelecionadoScreen> {
       }
       if (resultado['exercicios'] is List) {
         _listaExercicios = (resultado['exercicios'] as List)
-            .map<Map<String, dynamic>>((e) => Map<String, dynamic>.from(e as Map))
+            .map<Map<String, dynamic>>(
+              (e) => Map<String, dynamic>.from(e as Map),
+            )
             .toList();
         widget.treinoData['exercicios'] = _listaExercicios;
         widget.treinoData['exerciciosCount'] = _listaExercicios.length;
@@ -180,7 +189,9 @@ class _TreinoSelecionadoScreenState extends State<TreinoSelecionadoScreen> {
       return '24';
     } else if (raw == '6' ||
         nomeLower.contains('diamante') ||
-        (nomeLower.contains('flex') && !nomeLower.contains('mesa') && !nomeLower.contains('cadeira'))) {
+        (nomeLower.contains('flex') &&
+            !nomeLower.contains('mesa') &&
+            !nomeLower.contains('cadeira'))) {
       return '5';
     } else if (raw == '7' || nomeLower.contains('remada')) {
       return '7';
@@ -199,8 +210,8 @@ class _TreinoSelecionadoScreenState extends State<TreinoSelecionadoScreen> {
 
     final targetIndex =
         (indice != null && indice >= 0 && indice < exercicios.length)
-            ? indice
-            : _indiceExercicioAtual;
+        ? indice
+        : _indiceExercicioAtual;
 
     if (targetIndex >= exercicios.length) {
       _executarTreino();
@@ -216,8 +227,9 @@ class _TreinoSelecionadoScreenState extends State<TreinoSelecionadoScreen> {
     final String exId = _mapearIdExercicio(rawId, exNome);
 
     final bool temProximo = (targetIndex + 1) < exercicios.length;
-    final String? proximoNome =
-        temProximo ? exercicios[targetIndex + 1]['nome']?.toString() : null;
+    final String? proximoNome = temProximo
+        ? exercicios[targetIndex + 1]['nome']?.toString()
+        : null;
 
     final exerciciosMapeados = exercicios.map((e) {
       final mapE = Map<String, dynamic>.from(e as Map);
@@ -335,7 +347,10 @@ class _TreinoSelecionadoScreenState extends State<TreinoSelecionadoScreen> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(ctx, false),
-              child: const Text('Cancelar', style: TextStyle(color: Colors.grey)),
+              child: const Text(
+                'Cancelar',
+                style: TextStyle(color: Colors.grey),
+              ),
             ),
             ElevatedButton(
               style: ElevatedButton.styleFrom(
@@ -360,7 +375,8 @@ class _TreinoSelecionadoScreenState extends State<TreinoSelecionadoScreen> {
       setState(() => _salvando = true);
 
       try {
-        final idParaExcluir = _idSalvo ??
+        final idParaExcluir =
+            _idSalvo ??
             widget.treinoData['idSalvo']?.toString() ??
             widget.treinoData['id']?.toString();
 
@@ -402,14 +418,16 @@ class _TreinoSelecionadoScreenState extends State<TreinoSelecionadoScreen> {
       setState(() => _salvando = true);
       final idUsuario = ApiService().idUsuarioAtual;
       final exercicios = (widget.treinoData['exercicios'] as List? ?? [])
-          .map((e) => {
-                'exercicio_id': e['exercicio_id'] ?? e['id'] ?? 1,
-                'nome': e['nome'] ?? 'Exercício',
-                'series': e['series'] ?? 3,
-                'repeticoes': e['repeticoes'] ?? 10,
-                'pontos': e['pontos'] ?? e['pontos_totais'] ?? 20,
-                'pontos_totais': e['pontos_totais'] ?? e['pontos'] ?? 20,
-              })
+          .map(
+            (e) => {
+              'exercicio_id': e['exercicio_id'] ?? e['id'] ?? 1,
+              'nome': e['nome'] ?? 'Exercício',
+              'series': e['series'] ?? 3,
+              'repeticoes': e['repeticoes'] ?? 10,
+              'pontos': e['pontos'] ?? e['pontos_totais'] ?? 20,
+              'pontos_totais': e['pontos_totais'] ?? e['pontos'] ?? 20,
+            },
+          )
           .toList();
 
       try {
@@ -466,8 +484,7 @@ class _TreinoSelecionadoScreenState extends State<TreinoSelecionadoScreen> {
 
   Future<void> _executarTreino() async {
     setState(() => _treinando = true);
-    final pontos =
-        (widget.treinoData['pontosTotais'] as num?)?.toInt() ?? 100;
+    final pontos = (widget.treinoData['pontosTotais'] as num?)?.toInt() ?? 100;
     final usuarioId = ApiService().idUsuarioAtual;
 
     if (usuarioId != null && usuarioId.isNotEmpty) {
@@ -581,9 +598,10 @@ class _TreinoSelecionadoScreenState extends State<TreinoSelecionadoScreen> {
     const Color corTema = Color(0xFF00E676);
     final exercicios = _listaExercicios;
     final bool todosConcluidos =
-        _exerciciosConcluidos.isNotEmpty && !_exerciciosConcluidos.contains(false);
+        _exerciciosConcluidos.isNotEmpty &&
+        !_exerciciosConcluidos.contains(false);
 
-    String labelBotaoCamera = 'TREINAR COM CÂMERA';
+    String labelBotaoCamera = 'TREINAR';
     if (todosConcluidos) {
       labelBotaoCamera = 'TREINO CONCLUÍDO (FINALIZAR)';
     } else if (_indiceExercicioAtual > 0 &&
@@ -673,7 +691,7 @@ class _TreinoSelecionadoScreenState extends State<TreinoSelecionadoScreen> {
                     child: Text(
                       'Exercícios',
                       style: TextStyle(
-                        color: Color(0xFF9E7AFF),
+                        color: Color(0xFF00E676),
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
                       ),
@@ -706,10 +724,10 @@ class _TreinoSelecionadoScreenState extends State<TreinoSelecionadoScreen> {
                   final nomeEx = ex['nome'] ?? 'Exercício';
                   final series = ex['series'] ?? 3;
                   final reps = ex['repeticoes'] ?? 10;
-                  final pts = ex['pontos'] ??
-                      ex['pontos_totais'] ??
-                      (series * 10);
-                  final estaConcluido = index < _exerciciosConcluidos.length &&
+                  final pts =
+                      ex['pontos'] ?? ex['pontos_totais'] ?? (series * 10);
+                  final estaConcluido =
+                      index < _exerciciosConcluidos.length &&
                       _exerciciosConcluidos[index];
                   final ehOAtual =
                       index == _indiceExercicioAtual && !estaConcluido;
@@ -722,21 +740,23 @@ class _TreinoSelecionadoScreenState extends State<TreinoSelecionadoScreen> {
                       onTap: () => _iniciarTreinoComCamera(index),
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 8),
+                          horizontal: 10,
+                          vertical: 8,
+                        ),
                         decoration: BoxDecoration(
                           color: ehOAtual
                               ? const Color(0xFF2D3139)
                               : (estaConcluido
-                                  ? const Color(0xFF161B22)
-                                  : Colors.transparent),
+                                    ? const Color(0xFF161B22)
+                                    : Colors.transparent),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
                             color: ehOAtual
                                 ? corTema.withValues(alpha: 0.6)
                                 : (estaConcluido
-                                    ? const Color(0xFF00E676)
-                                        .withValues(alpha: 0.3)
-                                    : Colors.white10),
+                                      ? const Color(0xFF00E676)
+                                            .withValues(alpha: 0.3)
+                                      : Colors.white10),
                           ),
                         ),
                         child: Row(
@@ -746,7 +766,11 @@ class _TreinoSelecionadoScreenState extends State<TreinoSelecionadoScreen> {
                             ReorderableDragStartListener(
                               index: index,
                               child: Container(
-                                padding: const EdgeInsets.only(right: 8, top: 4, bottom: 4),
+                                padding: const EdgeInsets.only(
+                                  right: 8,
+                                  top: 4,
+                                  bottom: 4,
+                                ),
                                 color: Colors.transparent,
                                 child: const Icon(
                                   Icons.drag_handle,
@@ -764,24 +788,30 @@ class _TreinoSelecionadoScreenState extends State<TreinoSelecionadoScreen> {
                                 color: estaConcluido
                                     ? const Color(0xFF00E676)
                                     : (ehOAtual
-                                        ? corTema.withValues(alpha: 0.2)
-                                        : Colors.white12),
+                                          ? corTema.withValues(alpha: 0.2)
+                                          : Colors.white12),
                               ),
                               child: Center(
                                 child: estaConcluido
-                                    ? const Icon(Icons.check,
-                                        color: Colors.black, size: 18)
+                                    ? const Icon(
+                                        Icons.check,
+                                        color: Colors.black,
+                                        size: 18,
+                                      )
                                     : (ehOAtual
-                                        ? const Icon(Icons.play_arrow,
-                                            color: corTema, size: 18)
-                                        : Text(
-                                            '${index + 1}',
-                                            style: const TextStyle(
-                                              color: Colors.white70,
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          )),
+                                          ? const Icon(
+                                              Icons.play_arrow,
+                                              color: corTema,
+                                              size: 18,
+                                            )
+                                          : Text(
+                                              '${index + 1}',
+                                              style: const TextStyle(
+                                                color: Colors.white70,
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.bold,
+                                              ),
+                                            )),
                               ),
                             ),
                             Expanded(
@@ -794,8 +824,8 @@ class _TreinoSelecionadoScreenState extends State<TreinoSelecionadoScreen> {
                                       color: estaConcluido
                                           ? Colors.white54
                                           : (ehOAtual
-                                              ? const Color(0xFF00E676)
-                                              : Colors.white),
+                                                ? const Color(0xFF00E676)
+                                                : Colors.white),
                                       fontSize: 14,
                                       fontWeight: FontWeight.w500,
                                       decoration: estaConcluido
@@ -917,42 +947,6 @@ class _TreinoSelecionadoScreenState extends State<TreinoSelecionadoScreen> {
                       letterSpacing: 0.8,
                     ),
                   ),
-                ),
-              ),
-
-              const SizedBox(height: 12),
-
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.transparent,
-                    shadowColor: Colors.transparent,
-                    padding: const EdgeInsets.symmetric(vertical: 13),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                      side: BorderSide(color: corTema, width: 2),
-                    ),
-                  ),
-                  onPressed: _treinando ? null : _executarTreino,
-                  child: _treinando
-                      ? SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: corTema,
-                          ),
-                        )
-                      : Text(
-                          'TREINAR',
-                          style: TextStyle(
-                            color: corTema,
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 2.0,
-                          ),
-                        ),
                 ),
               ),
             ],
