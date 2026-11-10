@@ -26,6 +26,49 @@
 
 ## Histórico de Entradas
 
+### [Entrada #014] 2026-11-04 — [Expansão Biomecânica] Implementação da Remada Baixa e Extração de Gabarito Especialista
+- **Objetivo / História de Usuário:** Implementar o reconhecimento, contagem automática e avaliação biomecânica da Remada Baixa / Remada na Polia (visão lateral/perfil esquerdo), com detecção de puxada incompleta e inclinação excessiva das costas (roubo no tronco), além de extrair o gabarito oficial a partir de vídeo gravado em `Videos dataset/remadabaixa.mp4`.
+- **Tasks Executadas e Artefatos Gerados:**
+  - `[TASK-RB.01]` Modelada a FSM `RemadaBaixa` em `Códigos/exercicios_fsm.py` com o ciclo de 4 fases (`0: Braços Estendidos`, `1: Puxando`, `2: Pico de Contração`, `3: Retornando`), regras de transição guiadas por flexão/extensão de cotovelos, detecção de `REMADA_CURTA` (-25 pts, desqualificador) e `INCLINACAO_EXCESSIVA_TRONCO` (-15 pts, `quadril > 125°`). Cadastrada no `CATALOGO_EXERCICIOS` sob a chave `"7"` (com alias `"remada"`) e registrada em `ERROS_INCOMPLETUDE` em `Códigos/avaliador_pontuacao.py`.
+  - `[TASK-RB.02]` Extraído e validado o gabarito oficial em `Gabaritos/gabarito_especialista_remada_baixa.json` (51 fotogramas) a partir do vídeo `Videos dataset/remadabaixa.mp4` via `Códigos/extrator_video.py` pelo perfil esquerdo (100% de visibilidade dos pontos), homologado com nota máxima de 100.0% no orquestrador.
+  - `[TASK-RB.03]` Habilitado o atalho `[7]Remada` no HUD da webcam em `Códigos/app_tempo_real.py` e expandida a suíte em `tests/test_pipeline_pontuacao.py` com a classe `TestRemadaBaixa` (atingindo 70 testes automatizados aprovados no projeto com 100% de sucesso).
+- **Decisões Técnicas e Observações:**
+  - O enquadramento lateral em 3/4 no vídeo `remadabaixa.mp4` garantiu 100% de visibilidade ininterrupta no perfil esquerdo (contra apenas 22% no lado oposto), permitindo rastrear o cotovelo de $46.9^\circ$ a $171.9^\circ$ e a inclinação lombar/quadril sem ruídos.
+  - A FSM foi calibrada para exigir cotovelo $\ge 130^\circ$ para detecção de abandono/puxada curta, evitando falsos positivos por micro-oscilações transitórias na puxada concêntrica.
+- **Estado Resultante / Próximos Passos:** Remada Baixa 100% implementada, com gabarito oficial extraído e validada com 70/70 testes aprovados no `pytest`.
+
+### [Entrada #013] 2026-11-04 — [Expansão Biomecânica] Implementação da Flexão Diamante e Extração de Gabarito Especialista
+- **Objetivo / História de Usuário:** Implementar o reconhecimento, contagem automática e avaliação biomecânica da Flexão Diamante (visão frontal), com detecção de erros posturais imediatos e extração do gabarito oficial a partir de vídeo `Videos dataset/diamond_pushup.mp4`.
+- **Tasks Executadas e Artefatos Gerados:**
+  - `[TASK-FD.01]` Modelada a FSM `FlexaoDiamante` em `Códigos/exercicios_fsm.py` com o ciclo de 4 fases (`0: Prancha Alta`, `1: Descendo`, `2: Fundo`, `3: Subindo`), regras de transição guiadas por flexão/extensão de cotovelos, detecção de `FLEXAO_CURTA` (-25 pts, desqualificador) e `ABERTURA_EXCESSIVA` (-15 pts). Cadastrada no `CATALOGO_EXERCICIOS` sob a chave `"6"` (com alias `"flexao"`) e registrada em `ERROS_INCOMPLETUDE` em `Códigos/avaliador_pontuacao.py`.
+  - `[TASK-FD.02]` Extraído e validado o gabarito oficial em `Gabaritos/gabarito_especialista_flexao_diamante.json` a partir do vídeo `Videos dataset/diamond_pushup.mp4` via `Códigos/extrator_video.py`, selecionando a repetição 21 de execução biomecânica padrão ouro (zero erros posturais e 98.9% de score DTW).
+  - `[TASK-FD.03]` Habilitado o atalho `[6]Flexao` no HUD da webcam em `Códigos/app_tempo_real.py` e expandida a suíte em `tests/test_pipeline_pontuacao.py` com a classe `TestFlexaoDiamante` (atingindo 65 testes automatizados aprovados no projeto com 100% de sucesso).
+- **Decisões Técnicas e Observações:**
+  - Na visão frontal, o tronco oclui parcialmente quadris e pernas ao aproximar do solo; dessa forma, monitorar `["cotovelo", "ombro"]` garante 100% de visibilidade no MediaPipe e alta acurácia na profundidade da descida e alinhamento dos cotovelos ao formato de diamante.
+  - O pipeline central de pontuação, o segmentador canônico e o motor DTW operaram sem modificações, mantendo estrita conformidade com o Princípio Aberto/Fechado (OCP).
+- **Estado Resultante / Próximos Passos:** Flexão Diamante 100% implementada, com gabarito padrão ouro gerado e validada com 65/65 testes aprovados no `pytest`.
+
+### [Entrada #012] 2026-11-04 — [Expansão Biomecânica] Implementação do Tríceps Corda e Extração de Gabarito Especialista
+- **Objetivo / História de Usuário:** Implementar o reconhecimento, contagem e avaliação biomecânica de Tríceps Corda na Polia (visão lateral/perfil), com detecção de erros posturais em tempo real e extração do gabarito oficial a partir de vídeo `Videos dataset/triceps.mp4`.
+- **Tasks Executadas e Artefatos Gerados:**
+  - `[TASK-TC.01]` Modelada a FSM `TricepsCorda` em `Códigos/exercicios_fsm.py` com o ciclo de 4 fases (`0 -> 1 -> 2 -> 3 -> 0`), regras de transição guiadas por extensão de cotovelos, detecção de `EXTENSAO_INCOMPLETA` (-25 pts, desqualificador), `COTOVELO_AVANCADO` (-15 pts) e `SUBIDA_EXCESSIVA` (-15 pts). Cadastrada no `CATALOGO_EXERCICIOS` sob a chave `"5"` e registrada em `ERROS_INCOMPLETUDE` em `Códigos/avaliador_pontuacao.py`.
+  - `[TASK-TC.02]` Extraído o gabarito oficial em `Gabaritos/gabarito_especialista_triceps_corda.json` (49 fotogramas) a partir do vídeo `Videos dataset/triceps.mp4` via `Códigos/extrator_video.py` pelo perfil esquerdo.
+  - `[TASK-TC.03]` Habilitado o atalho `[5] Triceps` no HUD da webcam em `Códigos/app_tempo_real.py` e expandida a suíte em `tests/test_pipeline_pontuacao.py` com testes unitários e de integração DTW (atingindo 53 testes automatizados no pipeline).
+- **Decisões Técnicas e Observações:**
+  - Segmentador canônico em `Códigos/buffer_repeticao.py` aprimorado para descartar tentativas parciais na fase de aquecimento/ajuste do vídeo, garantindo que o padrão ouro contenha estritamente uma repetição válida completa.
+- **Estado Resultante / Próximos Passos:** Tríceps Corda 100% implementado, com gabarito extraído e 53/53 testes automatizados de pipeline aprovados com sucesso.
+
+### [Entrada #011] 2026-11-04 — [Expansão Biomecânica] Implementação da Elevação Lateral e Extração de Gabarito Especialista
+- **Objetivo / História de Usuário:** Implementar o reconhecimento, contagem e avaliação biomecânica de Elevação Lateral de Ombros (visão frontal), com detecção de erros posturais em tempo real e extração do gabarito padrão ouro oficial a partir de vídeo `.mp4` de especialista.
+- **Tasks Executadas e Artefatos Gerados:**
+  - `[TASK-EL.01]` Modelada a FSM `ElevacaoLateral` em `Códigos/exercicios_fsm.py` com o ciclo de 4 fases (`0 -> 1 -> 2 -> 3 -> 0`), regras de transição guiadas por abdução de ombros, detecção de `ELEVACAO_CURTA` (-25 pts), `ELEVACAO_EXCESSIVA` (-15 pts) e `COTOVELO_MUITO_FLEXIONADO` (-15 pts). Cadastrada no `CATALOGO_EXERCICIOS` sob a chave `"4"` e registrada em `ERROS_INCOMPLETUDE` em `Códigos/avaliador_pontuacao.py`.
+  - `[TASK-EL.02]` Extraído o gabarito oficial em `Gabaritos/gabarito_especialista_elevacao_lateral.json` (42 fotogramas) a partir do vídeo `Videos dataset/elevacaolateral.mp4` via `Códigos/extrator_video.py`.
+  - `[TASK-EL.03]` Habilitado o atalho `[4]` no HUD da webcam em `Códigos/app_tempo_real.py` e expandida a suíte em `tests/test_pipeline_pontuacao.py` com 6 novos testes unitários e de integração DTW (atingindo score 98.8% na execução canônica).
+- **Decisões Técnicas e Observações:**
+  - Ajuste fino dos limiares da FSM aos padrões reais de musculação: fechamento em $\le 50^\circ$ (mantendo tensão contínua nos deltoides) e tolerância de cotovelo até $110^\circ$ (permitindo a semiflexão protetora do braço de alavanca).
+  - O pipeline central de pontuação e o motor DTW operaram sem modificações, comprovando a eficácia do Princípio Aberto/Fechado (OCP).
+- **Estado Resultante / Próximos Passos:** Elevação Lateral 100% implementada, com gabarito extraído do vídeo e validada com sucesso em 45 testes automatizados de pipeline + 7 testes de API.
+
 ### [Entrada #010] 2026-10-27 — [Sprint US-02] Unificação do Back-end FastAPI com o Motor de IA e Guia para Frontend
 - **Objetivo / História de Usuário:** Unificar a camada de Back-end (FastAPI) com o motor biomecânico de IA da branch `IA` para viabilizar a demonstração funcional, expondo rotas REST em memória para streaming de fotogramas, simulação canônica de repetições e integração direta com a pontuação diária e gamificação do Supabase, deixando o consumo simplificado para a equipe de Frontend Flutter.
 - **Tasks Executadas e Artefatos Gerados:**

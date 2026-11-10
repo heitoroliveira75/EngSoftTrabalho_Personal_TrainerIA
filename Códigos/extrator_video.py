@@ -27,6 +27,10 @@ MODELO_ARQUIVO_PADRAO = "pose_landmarker_lite.task"
 def garantir_modelo_pose(caminho_modelo: str = MODELO_ARQUIVO_PADRAO) -> str:
     """Garante que o ficheiro .task do MediaPipe existe localmente."""
     if not os.path.exists(caminho_modelo):
+        raiz_repo = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        candidato = os.path.join(raiz_repo, os.path.basename(caminho_modelo))
+        if os.path.exists(candidato):
+            return candidato
         print(f"A transferir modelo oficial do MediaPipe Tasks ({caminho_modelo})...")
         urllib.request.urlretrieve(MODELO_URL_PADRAO, caminho_modelo)
         print("Transferência concluída com sucesso!")
@@ -115,7 +119,12 @@ def gerar_gabarito_de_video_especialista(
         dados=dados_rep,
         descricao=f"Extraído do vídeo '{caminho_video}'",
     )
-    gabarito.salvar_json(config["arquivo_gabarito"])
+    caminho_saida = config["arquivo_gabarito"]
+    if os.path.exists("Gabaritos"):
+        caminho_saida = os.path.join("Gabaritos", os.path.basename(caminho_saida))
+    elif os.path.exists(os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "Gabaritos")):
+        caminho_saida = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "Gabaritos", os.path.basename(caminho_saida))
+    gabarito.salvar_json(caminho_saida)
     print(f"Gabarito salvo em '{config['arquivo_gabarito']}' ({gabarito.total_frames} frames).")
     return config["arquivo_gabarito"]
 
