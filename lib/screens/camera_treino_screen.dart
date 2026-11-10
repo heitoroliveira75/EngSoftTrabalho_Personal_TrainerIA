@@ -107,19 +107,25 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
   int _tempoDescansoSegundos = 0;
   Timer? _descansoTimer;
 
-  String get _nomeHost => (ApiService().nomeUsuarioAtual?.trim().isNotEmpty == true)
+  String get _nomeHost =>
+      (ApiService().nomeUsuarioAtual?.trim().isNotEmpty == true)
       ? ApiService().nomeUsuarioAtual!
       : 'Host';
   String get _nomeConvidado => (widget.parceiroNome?.trim().isNotEmpty == true)
       ? widget.parceiroNome!
       : 'Parceiro';
-  String get _nomeAtletaTurnoAtual => _turnoDoHostLocal ? _nomeHost : _nomeConvidado;
-  String get _nomeProximoAtleta => _turnoDoHostLocal ? _nomeConvidado : _nomeHost;
+  String get _nomeAtletaTurnoAtual =>
+      _turnoDoHostLocal ? _nomeHost : _nomeConvidado;
+  String get _nomeProximoAtleta =>
+      _turnoDoHostLocal ? _nomeConvidado : _nomeHost;
 
   Map<String, dynamic> get _exercicioAtual =>
       _exercicios.isNotEmpty ? _exercicios[_indiceAtual] : {};
   String get _exercicioIdAtual =>
-      (_exercicioAtual['exercicio_id'] ?? _exercicioAtual['id'] ?? widget.exercicioId).toString();
+      (_exercicioAtual['exercicio_id'] ??
+              _exercicioAtual['id'] ??
+              widget.exercicioId)
+          .toString();
   String get _exercicioNomeAtual =>
       _exercicioAtual['nome']?.toString() ?? widget.exercicioNome;
   int get _metaRepsAtual =>
@@ -132,20 +138,25 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
     }
     return widget.totalSeries > 0 ? widget.totalSeries : 3;
   }
+
   int get _serieAtual {
     if (widget.isModoDupla) return _serieAtualDupla;
     return (_seriesConcluidas + 1).clamp(1, _totalSeriesAtual);
   }
+
   bool get _temProximoExercicio => (_indiceAtual + 1) < _exercicios.length;
-  String? get _proximoExercicioNome =>
-      _temProximoExercicio ? _exercicios[_indiceAtual + 1]['nome']?.toString() : null;
+  String? get _proximoExercicioNome => _temProximoExercicio
+      ? _exercicios[_indiceAtual + 1]['nome']?.toString()
+      : null;
 
   @override
   void initState() {
     super.initState();
     if (widget.listaExercicios != null && widget.listaExercicios!.isNotEmpty) {
       _exercicios = List<Map<String, dynamic>>.from(widget.listaExercicios!);
-      _indiceAtual = (widget.indiceInicial >= 0 && widget.indiceInicial < _exercicios.length)
+      _indiceAtual =
+          (widget.indiceInicial >= 0 &&
+              widget.indiceInicial < _exercicios.length)
           ? widget.indiceInicial
           : 0;
     } else {
@@ -154,7 +165,7 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
           'exercicio_id': widget.exercicioId,
           'nome': widget.exercicioNome,
           'repeticoes': widget.metaRepeticoes,
-        }
+        },
       ];
       _indiceAtual = 0;
     }
@@ -182,7 +193,9 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
         exercicioId: _exercicioIdAtual,
       );
       if (mounted && res['sucesso'] == true) {
-        debugPrint('Sessão IA inicializada com sucesso: ${res['exercicio_nome']}');
+        debugPrint(
+          'Sessão IA inicializada com sucesso: ${res['exercicio_nome']}',
+        );
       }
     } catch (e) {
       debugPrint('Aviso ao inicializar sessão IA: $e');
@@ -211,7 +224,10 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
 
       // Notifica o backend via WebSocket (se conectado) ou REST para alternar exercício
       if (_wsService != null && _wsService!.conectado) {
-        _wsService!.trocarExercicio(exercicioId: _exercicioIdAtual, lado: _lado);
+        _wsService!.trocarExercicio(
+          exercicioId: _exercicioIdAtual,
+          lado: _lado,
+        );
       }
       await _iniciarSessaoIA();
 
@@ -240,8 +256,7 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
       if (_availableCameras.isEmpty) {
         if (!mounted) return;
         setState(() {
-          _errorMessage =
-              'Nenhuma câmera detectada no dispositivo.\nVocê pode utilizar o botão de Simulação para demonstrar a execução.';
+          _errorMessage = 'Nenhuma câmera detectada no dispositivo.\nVocê pode utilizar o botão de Simulação para demonstrar a execução.';
           _isLoading = false;
         });
         return;
@@ -349,7 +364,9 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
       }
 
       if (res['ultima_repeticao'] != null && res['ultima_repeticao'] is Map) {
-        _ultimaRepeticao = Map<String, dynamic>.from(res['ultima_repeticao'] as Map);
+        _ultimaRepeticao = Map<String, dynamic>.from(
+          res['ultima_repeticao'] as Map,
+        );
       }
     });
 
@@ -393,7 +410,10 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
           _latenciaSw.start();
 
           if (poseRes != null) {
-            _wsService!.enviarAngulos(poseRes.angulos, visivel: poseRes.visivel);
+            _wsService!.enviarAngulos(
+              poseRes.angulos,
+              visivel: poseRes.visivel,
+            );
           } else {
             _wsService!.enviarAngulos({}, visivel: false);
           }
@@ -403,7 +423,7 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
           await _processarFrameNoBackend(bytes);
         }
       } catch (e) {
-        debugPrint('Erro no loop de captura/envio da câmera: $e');
+        debugPrint('Erro no loop de captura e/ou envio da câmera: $e');
       } finally {
         try {
           if (tempFile != null && await tempFile.exists()) {
@@ -458,8 +478,11 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
             });
           }
 
-          if (res['ultima_repeticao'] != null && res['ultima_repeticao'] is Map) {
-            _ultimaRepeticao = Map<String, dynamic>.from(res['ultima_repeticao'] as Map);
+          if (res['ultima_repeticao'] != null &&
+              res['ultima_repeticao'] is Map) {
+            _ultimaRepeticao = Map<String, dynamic>.from(
+              res['ultima_repeticao'] as Map,
+            );
           }
         });
 
@@ -497,12 +520,16 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
 
       if (res['sucesso'] == true) {
         setState(() {
-          _repeticoes = (res['repeticoes'] as num?)?.toInt() ?? (_repeticoes + 1);
+          _repeticoes =
+              (res['repeticoes'] as num?)?.toInt() ?? (_repeticoes + 1);
           _faseNome = 'Pico de Contração';
           _alertaImediato = res['alerta_imediato']?.toString();
           _mostrandoFeedbackSucesso = true;
-          if (res['ultima_repeticao'] != null && res['ultima_repeticao'] is Map) {
-            _ultimaRepeticao = Map<String, dynamic>.from(res['ultima_repeticao'] as Map);
+          if (res['ultima_repeticao'] != null &&
+              res['ultima_repeticao'] is Map) {
+            _ultimaRepeticao = Map<String, dynamic>.from(
+              res['ultima_repeticao'] as Map,
+            );
           }
         });
 
@@ -615,12 +642,20 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Row(
           children: [
-            Icon(Icons.check_circle_outline, color: Color(0xFF00E676), size: 28),
+            Icon(
+              Icons.check_circle_outline,
+              color: Color(0xFF00E676),
+              size: 28,
+            ),
             SizedBox(width: 10),
             Flexible(
               child: Text(
                 'Série Completa!',
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
               ),
             ),
           ],
@@ -647,7 +682,10 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
                   const Flexible(
                     child: Text(
                       'Séries Concluídas:',
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -675,7 +713,9 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF00E676),
               foregroundColor: Colors.black,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
             onPressed: () => Navigator.pop(ctx),
             label: Text(
@@ -717,12 +757,15 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
     String descricao;
 
     if (isHost) {
-      mensagemBotao = 'Passar a Vez para ${widget.parceiroNome ?? "Parceiro"} ➔';
-      descricao = 'Você completou as $_metaRepsAtual repetições da Série $_serieAtualDupla. Confirme para passar o turno para seu parceiro.';
+      mensagemBotao =
+          'Passar a Vez para ${widget.parceiroNome ?? "Parceiro"} ➔';
+      descricao =
+          'Você completou as $_metaRepsAtual repetições da Série $_serieAtualDupla. Confirme para passar o turno para seu parceiro.';
     } else {
       if (!isUltimaSerie) {
         mensagemBotao = 'Confirmar Série e Passar Vez ➔';
-        descricao = 'Série $_serieAtualDupla finalizada! Confirme para iniciar a Série ${_serieAtualDupla + 1} com ${widget.parceiroNome ?? "o Host"}.';
+        descricao =
+            'Série $_serieAtualDupla finalizada! Confirme para iniciar a Série ${_serieAtualDupla + 1} com ${widget.parceiroNome ?? "o Host"}.';
       } else if (temProx) {
         mensagemBotao = 'Próximo Exercício: $_proximoExercicioNome ➔';
         descricao = 'Exercício finalizado com sucesso pela dupla! Confirme para avançar para o próximo exercício do treino.';
@@ -740,12 +783,20 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         title: const Row(
           children: [
-            Icon(Icons.check_circle_outline, color: Color(0xFF00E676), size: 28),
+            Icon(
+              Icons.check_circle_outline,
+              color: Color(0xFF00E676),
+              size: 28,
+            ),
             SizedBox(width: 10),
             Flexible(
               child: Text(
                 'Série Concluída!',
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
               ),
             ),
           ],
@@ -772,7 +823,10 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
                   const Flexible(
                     child: Text(
                       'Série Atual:',
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -800,7 +854,9 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF00E676),
               foregroundColor: Colors.black,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
             onPressed: () {
               Navigator.pop(ctx);
@@ -835,7 +891,9 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
         barrierDismissible: false,
         builder: (ctx) => AlertDialog(
           backgroundColor: const Color(0xFF161B22),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
           title: const Row(
             children: [
               Icon(Icons.workspace_premium, color: Color(0xFF00E676), size: 28),
@@ -843,7 +901,11 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
               Flexible(
                 child: Text(
                   'Série Concluída',
-                  style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
+                  ),
                 ),
               ),
             ],
@@ -870,7 +932,10 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
                     const Flexible(
                       child: Text(
                         'Pontos Conquistados:',
-                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                     const SizedBox(width: 8),
@@ -915,7 +980,9 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
                 style: OutlinedButton.styleFrom(
                   foregroundColor: Colors.white70,
                   side: const BorderSide(color: Colors.white24),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
                 onPressed: () {
                   _indicesConcluidos.add(_indiceAtual);
@@ -933,7 +1000,9 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF00E676),
                   foregroundColor: Colors.black,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
                 onPressed: () {
                   Navigator.pop(ctx);
@@ -950,7 +1019,9 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF00E676),
                   foregroundColor: Colors.black,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10),
+                  ),
                 ),
                 onPressed: () {
                   _indicesConcluidos.add(_indiceAtual);
@@ -962,7 +1033,10 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
                     'indicesConcluidos': _indicesConcluidos.toList(),
                   });
                 },
-                label: const Text('Concluir Treino Completo', style: TextStyle(fontWeight: FontWeight.bold)),
+                label: const Text(
+                  'Concluir Treino Completo',
+                  style: TextStyle(fontWeight: FontWeight.bold),
+                ),
               ),
             ],
           ],
@@ -996,11 +1070,11 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(
-          _isStreaming ? 'Câmera retomada' : 'Câmera pausada',
-        ),
+        content: Text(_isStreaming ? 'Câmera retomada' : 'Câmera pausada'),
         duration: const Duration(seconds: 1),
-        backgroundColor: _isStreaming ? const Color(0xFF00E676) : Colors.orangeAccent,
+        backgroundColor: _isStreaming
+            ? const Color(0xFF00E676)
+            : Colors.orangeAccent,
       ),
     );
   }
@@ -1068,7 +1142,11 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.videocam_off, size: 64, color: Colors.orangeAccent),
+              const Icon(
+                Icons.videocam_off,
+                size: 64,
+                color: Colors.orangeAccent,
+              ),
               const SizedBox(height: 16),
               Text(
                 _errorMessage!,
@@ -1093,7 +1171,10 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
 
     if (_controller == null || !_controller!.value.isInitialized) {
       return const Center(
-        child: Text('Câmera não inicializada.', style: TextStyle(color: Colors.white)),
+        child: Text(
+          'Câmera não inicializada.',
+          style: TextStyle(color: Colors.white),
+        ),
       );
     }
 
@@ -1130,11 +1211,15 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
                 color: widget.isMesmoAparelho
                     ? const Color(0xFF00E676).withValues(alpha: 0.95)
                     : (_isMeuTurno
-                        ? const Color(0xFF00E676).withValues(alpha: 0.95)
-                        : Colors.amber[800]!.withValues(alpha: 0.95)),
+                          ? const Color(0xFF00E676).withValues(alpha: 0.95)
+                          : Colors.amber[800]!.withValues(alpha: 0.95)),
                 borderRadius: BorderRadius.circular(16),
                 boxShadow: const [
-                  BoxShadow(color: Colors.black45, blurRadius: 6, offset: Offset(0, 2)),
+                  BoxShadow(
+                    color: Colors.black45,
+                    blurRadius: 6,
+                    offset: Offset(0, 2),
+                  ),
                 ],
               ),
               child: Row(
@@ -1142,7 +1227,9 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
                   Icon(
                     widget.isMesmoAparelho
                         ? Icons.phone_android
-                        : (_isMeuTurno ? Icons.play_circle_fill : Icons.pause_circle_filled),
+                        : (_isMeuTurno
+                              ? Icons.play_circle_fill
+                              : Icons.pause_circle_filled),
                     color: Colors.black,
                     size: 20,
                   ),
@@ -1152,8 +1239,8 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
                       widget.isMesmoAparelho
                           ? '📱 VEZ DE ${_nomeAtletaTurnoAtual.toUpperCase()}! Série $_serieAtualDupla/$_totalSeriesDupla • Sua Vez'
                           : (_isMeuTurno
-                              ? '🟢 SUA VEZ! Série $_serieAtualDupla/$_totalSeriesDupla'
-                              : '🟠 VEZ DE ${widget.parceiroNome ?? "PARCEIRO"}! Série $_serieAtualDupla/$_totalSeriesDupla • Descanse'),
+                                ? '🟢 SUA VEZ! Série $_serieAtualDupla/$_totalSeriesDupla'
+                                : '🟠 VEZ DE ${widget.parceiroNome ?? "PARCEIRO"}! Série $_serieAtualDupla/$_totalSeriesDupla • Descanse'),
                       style: const TextStyle(
                         color: Colors.black,
                         fontWeight: FontWeight.bold,
@@ -1162,16 +1249,25 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
                     ),
                   ),
                   GestureDetector(
-                    onTap: widget.isMesmoAparelho ? _finalizarTreinoDuplaMesmoAparelho : _encerrarTreinoDupla,
+                    onTap: widget.isMesmoAparelho
+                        ? _finalizarTreinoDuplaMesmoAparelho
+                        : _encerrarTreinoDupla,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.black26,
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: const Text(
                         'Encerrar',
-                        style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold, fontSize: 11),
+                        style: TextStyle(
+                          color: Colors.black,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 11,
+                        ),
                       ),
                     ),
                   ),
@@ -1196,66 +1292,80 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
                 ),
               ),
 
-          // Título do Exercício, Contador de Exercícios e Lado
-          Expanded(
-            child: Container(
-              margin: const EdgeInsets.symmetric(horizontal: 10),
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-              decoration: BoxDecoration(
-                color: const Color(0xFF161B22).withValues(alpha: 0.85),
-                borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.white12),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  if (totalEx > 1) ...[
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF00E676).withValues(alpha: 0.2),
-                        borderRadius: BorderRadius.circular(6),
+              // Título do Exercício, Contador de Exercícios e Lado
+              Expanded(
+                child: Container(
+                  margin: const EdgeInsets.symmetric(horizontal: 10),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF161B22).withValues(alpha: 0.85),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: Colors.white12),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      if (totalEx > 1) ...[
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6,
+                            vertical: 2,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF00E676)
+                                .withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            '$numAtual/$totalEx',
+                            style: const TextStyle(
+                              color: Color(0xFF00E676),
+                              fontSize: 11,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                      ],
+                      const Icon(
+                        Icons.fitness_center,
+                        color: Color(0xFF00E676),
+                        size: 16,
                       ),
-                      child: Text(
-                        '$numAtual/$totalEx',
-                        style: const TextStyle(
-                          color: Color(0xFF00E676),
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
+                      const SizedBox(width: 6),
+                      Flexible(
+                        child: Text(
+                          _exercicioNomeAtual,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 13,
+                          ),
                         ),
                       ),
-                    ),
-                    const SizedBox(width: 6),
-                  ],
-                  const Icon(Icons.fitness_center, color: Color(0xFF00E676), size: 16),
-                  const SizedBox(width: 6),
-                  Flexible(
-                    child: Text(
-                      _exercicioNomeAtual,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
-                      ),
-                    ),
+                    ],
                   ),
-                ],
+                ),
               ),
-            ),
-          ),
 
-          // Alternar Câmera
-          if (_availableCameras.length > 1)
-            CircleAvatar(
-              backgroundColor: Colors.black54,
-              child: IconButton(
-                icon: const Icon(Icons.flip_camera_ios, color: Colors.white),
-                onPressed: _switchCamera,
-              ),
-            ),
-        ],
-      ),
+              // Alternar Câmera
+              if (_availableCameras.length > 1)
+                CircleAvatar(
+                  backgroundColor: Colors.black54,
+                  child: IconButton(
+                    icon: const Icon(
+                      Icons.flip_camera_ios,
+                      color: Colors.white,
+                    ),
+                    onPressed: _switchCamera,
+                  ),
+                ),
+            ],
+          ),
         ],
       ),
     );
@@ -1276,7 +1386,8 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
       feedbackIcon = Icons.cloud_sync;
     } else if (!_corpoVisivel && _framesEnviados > 0) {
       bannerColor = Colors.orangeAccent;
-      feedbackText = 'Afaste-se da câmera (~1.5m a 2m) para enquadrar corpo e braços';
+      feedbackText =
+          'Afaste-se da câmera (~1.5m a 2m) para enquadrar corpo e braços';
       feedbackIcon = Icons.accessibility_new;
     } else if (_alertaImediato != null && _alertaImediato!.isNotEmpty) {
       bannerColor = Colors.redAccent;
@@ -1295,7 +1406,9 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
     if (faseLower.contains('subind') || faseLower.contains('ascend')) {
       corFase = Colors.amber;
       iconeFase = Icons.arrow_upward;
-    } else if (faseLower.contains('pico') || faseLower.contains('cont') || faseLower.contains('topo')) {
+    } else if (faseLower.contains('pico') ||
+        faseLower.contains('cont') ||
+        faseLower.contains('topo')) {
       corFase = const Color(0xFF00E676);
       iconeFase = Icons.local_fire_department;
     } else if (faseLower.contains('desc') || faseLower.contains('excen')) {
@@ -1346,7 +1459,10 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
                   const SizedBox(
                     width: 14,
                     height: 14,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: Colors.black,
+                    ),
                   ),
               ],
             ),
@@ -1391,7 +1507,10 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
             children: [
               // Chip da Fase Atual
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 4,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFF161B22).withValues(alpha: 0.9),
                   borderRadius: BorderRadius.circular(12),
@@ -1424,11 +1543,16 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
                   final ang = (entry.value as num).toStringAsFixed(0);
                   return Container(
                     margin: const EdgeInsets.only(left: 4),
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xFF161B22).withValues(alpha: 0.9),
                       borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.cyanAccent.withValues(alpha: 0.6)),
+                      border: Border.all(
+                        color: Colors.cyanAccent.withValues(alpha: 0.6),
+                      ),
                     ),
                     child: Text(
                       '$nomeArt: $ang°',
@@ -1472,7 +1596,9 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
                       style: TextStyle(
                         color: progressoPct >= 80
                             ? const Color(0xFF00E676)
-                            : (progressoPct >= 40 ? Colors.amber : Colors.cyanAccent),
+                            : (progressoPct >= 40
+                                  ? Colors.amber
+                                  : Colors.cyanAccent),
                         fontSize: 12,
                         fontWeight: FontWeight.bold,
                       ),
@@ -1489,7 +1615,9 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
                     valueColor: AlwaysStoppedAnimation<Color>(
                       progressoPct >= 80
                           ? const Color(0xFF00E676)
-                          : (progressoPct >= 40 ? Colors.amber : Colors.cyanAccent),
+                          : (progressoPct >= 40
+                                ? Colors.amber
+                                : Colors.cyanAccent),
                     ),
                   ),
                 ),
@@ -1533,11 +1661,16 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
                 ),
                 const SizedBox(height: 3),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 2,
+                  ),
                   decoration: BoxDecoration(
                     color: const Color(0xFF00E676).withValues(alpha: 0.18),
                     borderRadius: BorderRadius.circular(10),
-                    border: Border.all(color: const Color(0xFF00E676).withValues(alpha: 0.5)),
+                    border: Border.all(
+                      color: const Color(0xFF00E676).withValues(alpha: 0.5),
+                    ),
                   ),
                   child: Text(
                     'SÉRIE $_serieAtual DE $_totalSeriesAtual',
@@ -1597,8 +1730,12 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
             IconButton(
               iconSize: 28,
               icon: Icon(
-                _isStreaming ? Icons.pause_circle_filled : Icons.play_circle_filled,
-                color: _isStreaming ? Colors.orangeAccent : const Color(0xFF00E676),
+                _isStreaming
+                    ? Icons.pause_circle_filled
+                    : Icons.play_circle_filled,
+                color: _isStreaming
+                    ? Colors.orangeAccent
+                    : const Color(0xFF00E676),
               ),
               tooltip: _isStreaming ? 'Pausar Câmera' : 'Retomar Câmera',
               onPressed: _toggleStreaming,
@@ -1611,17 +1748,28 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.white12,
                   foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 10,
+                  ),
                 ),
                 icon: _isSimulando
                     ? const SizedBox(
                         width: 16,
                         height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
                       )
                     : const Icon(Icons.bolt, color: Colors.amber, size: 18),
-                label: const Text('Simular Rep', style: TextStyle(fontSize: 12)),
+                label: const Text(
+                  'Simular Rep',
+                  style: TextStyle(fontSize: 12),
+                ),
               ),
             ),
 
@@ -1633,27 +1781,42 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
                 onPressed: _isFinalizando
                     ? null
                     : (widget.isModoDupla
-                        ? (widget.isMesmoAparelho ? _concluirSerieDuplaMesmoAparelho : _concluirSerieDupla)
-                        : _finalizarSerie),
+                          ? (widget.isMesmoAparelho
+                                ? _concluirSerieDuplaMesmoAparelho
+                                : _concluirSerieDupla)
+                          : _finalizarSerie),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF00E676),
                   foregroundColor: Colors.black,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
                 ),
                 icon: _isFinalizando
                     ? const SizedBox(
                         width: 16,
                         height: 16,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.black,
+                        ),
                       )
                     : Icon(
-                        widget.isModoDupla ? Icons.arrow_forward_rounded : Icons.check_circle,
+                        widget.isModoDupla
+                            ? Icons.arrow_forward_rounded
+                            : Icons.check_circle,
                         size: 18,
                       ),
                 label: Text(
                   widget.isModoDupla ? 'Passar Vez ➡️' : 'Finalizar',
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                  ),
                 ),
               ),
             ),
@@ -1678,12 +1841,19 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
   }
 
   void _iniciarPollingDupla() {
-    if (!widget.isModoDupla || widget.sessaoDuplaId == null || widget.isMesmoAparelho) return;
+    if (!widget.isModoDupla ||
+        widget.sessaoDuplaId == null ||
+        widget.isMesmoAparelho)
+      return;
     _duplaPollingTimer?.cancel();
-    _duplaPollingTimer = Timer.periodic(const Duration(milliseconds: 1500), (_) async {
+    _duplaPollingTimer = Timer.periodic(const Duration(milliseconds: 1500), (
+      _,
+    ) async {
       if (!mounted) return;
       try {
-        final res = await ApiService().obterEstadoSessaoDupla(widget.sessaoDuplaId!);
+        final res = await ApiService().obterEstadoSessaoDupla(
+          widget.sessaoDuplaId!,
+        );
         if (!mounted || res['sucesso'] != true || res['sessao'] == null) return;
 
         final sessao = Map<String, dynamic>.from(res['sessao'] as Map);
@@ -1695,11 +1865,20 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
         if (status == 'finalizado' && !_isFinalizando) {
           _duplaPollingTimer?.cancel();
 
-          final pHost = (sessao['pontos_host'] as num?)?.toInt() ?? _pontosAcumuladosHost;
-          final pConvidado = (sessao['pontos_convidado'] as num?)?.toInt() ?? _pontosAcumuladosConvidado;
-          final media = (sessao['media_dupla'] as num?)?.toDouble() ?? ((pHost + pConvidado) / 2.0);
-          final pontosFinais = (sessao['pontos_finais_cada'] as num?)?.toInt() ?? (media * 1.20).round();
-          final bonusExtra = (pontosFinais - media).round() > 0 ? (pontosFinais - media).round() : 10;
+          final pHost =
+              (sessao['pontos_host'] as num?)?.toInt() ?? _pontosAcumuladosHost;
+          final pConvidado =
+              (sessao['pontos_convidado'] as num?)?.toInt() ??
+              _pontosAcumuladosConvidado;
+          final media =
+              (sessao['media_dupla'] as num?)?.toDouble() ??
+              ((pHost + pConvidado) / 2.0);
+          final pontosFinais =
+              (sessao['pontos_finais_cada'] as num?)?.toInt() ??
+              (media * 1.20).round();
+          final bonusExtra = (pontosFinais - media).round() > 0
+              ? (pontosFinais - media).round()
+              : 10;
 
           // O próprio atleta logado credita os pontos do treino na sua conta com seu token autenticado
           if (meuId != null && bonusExtra > 0) {
@@ -1711,7 +1890,9 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
               );
               await ApiService().verPontuacao(meuId);
             } catch (e) {
-              debugPrint('Erro ao sincronizar pontos do parceiro ao finalizar: $e');
+              debugPrint(
+                'Erro ao sincronizar pontos do parceiro ao finalizar: $e',
+              );
             }
           }
 
@@ -1721,11 +1902,17 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
           return;
         }
 
-        final pHost = (sessao['pontos_host'] as num?)?.toInt() ?? _pontosAcumuladosHost;
-        final pConvidado = (sessao['pontos_convidado'] as num?)?.toInt() ?? _pontosAcumuladosConvidado;
-        final sAtual = (sessao['serie_atual'] as num?)?.toInt() ?? _serieAtualDupla;
-        final sTotal = (sessao['total_series'] as num?)?.toInt() ?? _totalSeriesDupla;
-        final indEx = (sessao['indice_exercicio_atual'] as num?)?.toInt() ?? _indiceAtual;
+        final pHost =
+            (sessao['pontos_host'] as num?)?.toInt() ?? _pontosAcumuladosHost;
+        final pConvidado =
+            (sessao['pontos_convidado'] as num?)?.toInt() ??
+            _pontosAcumuladosConvidado;
+        final sAtual =
+            (sessao['serie_atual'] as num?)?.toInt() ?? _serieAtualDupla;
+        final sTotal =
+            (sessao['total_series'] as num?)?.toInt() ?? _totalSeriesDupla;
+        final indEx =
+            (sessao['indice_exercicio_atual'] as num?)?.toInt() ?? _indiceAtual;
 
         // Se a dupla avançou para o próximo exercício
         if (indEx > _indiceAtual && indEx < _exercicios.length) {
@@ -1740,12 +1927,16 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
           });
           await _iniciarSessaoIA();
           if (_wsService != null && _wsService!.conectado) {
-            _wsService!.trocarExercicio(exercicioId: _exercicioIdAtual, lado: _lado);
+            _wsService!.trocarExercicio(
+              exercicioId: _exercicioIdAtual,
+              lado: _lado,
+            );
           }
         }
 
         // Verifica transição de turno para este usuário
-        final bool novoTurnoMeu = (meuId != null && turnoId != null && meuId == turnoId);
+        final bool novoTurnoMeu =
+            (meuId != null && turnoId != null && meuId == turnoId);
 
         if (!_isMeuTurno && novoTurnoMeu) {
           _descansoTimer?.cancel();
@@ -1764,13 +1955,18 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
 
           await _iniciarSessaoIA();
           if (_wsService != null && _wsService!.conectado) {
-            _wsService!.trocarExercicio(exercicioId: _exercicioIdAtual, lado: _lado);
+            _wsService!.trocarExercicio(
+              exercicioId: _exercicioIdAtual,
+              lado: _lado,
+            );
           }
 
           if (mounted) {
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
-                content: Text('🟢 SUA VEZ! $_exercicioNomeAtual • Série $_serieAtualDupla de $_totalSeriesAtual!'),
+                content: Text(
+                  '🟢 SUA VEZ! $_exercicioNomeAtual • Série $_serieAtualDupla de $_totalSeriesAtual!',
+                ),
                 backgroundColor: const Color(0xFF00E676),
                 duration: const Duration(seconds: 3),
               ),
@@ -1795,7 +1991,9 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
 
     int pontosSerie = (_repeticoes > 0 ? (_repeticoes * 5 + 30) : 30);
     try {
-      final res = await ApiService().finalizarSerieEPontuarIA(incrementarSequencia: false);
+      final res = await ApiService().finalizarSerieEPontuarIA(
+        incrementarSequencia: false,
+      );
       if (res['sucesso'] == true) {
         final pts = (res['pontos_atribuidos'] as num?)?.toInt();
         if (pts != null && pts > 0) pontosSerie = pts;
@@ -1874,7 +2072,8 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
 
       if (!mounted) return;
 
-      final bool trocouEx = (proximoIndiceExCalc != null && proximoIndiceExCalc > _indiceAtual);
+      final bool trocouEx =
+          (proximoIndiceExCalc != null && proximoIndiceExCalc > _indiceAtual);
 
       setState(() {
         _isFinalizando = false;
@@ -1890,15 +2089,22 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
           _serieAtualDupla = proximaSerieCalc ?? 1;
         }
         if (resDupla['sucesso'] == true) {
-          _pontosAcumuladosHost = (resDupla['pontos_host'] as num?)?.toInt() ?? _pontosAcumuladosHost;
-          _pontosAcumuladosConvidado = (resDupla['pontos_convidado'] as num?)?.toInt() ?? _pontosAcumuladosConvidado;
+          _pontosAcumuladosHost =
+              (resDupla['pontos_host'] as num?)?.toInt() ??
+              _pontosAcumuladosHost;
+          _pontosAcumuladosConvidado =
+              (resDupla['pontos_convidado'] as num?)?.toInt() ??
+              _pontosAcumuladosConvidado;
         }
       });
 
       if (trocouEx) {
         await _iniciarSessaoIA();
         if (_wsService != null && _wsService!.conectado) {
-          _wsService!.trocarExercicio(exercicioId: _exercicioIdAtual, lado: _lado);
+          _wsService!.trocarExercicio(
+            exercicioId: _exercicioIdAtual,
+            lado: _lado,
+          );
         }
       }
 
@@ -1906,7 +2112,9 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Série concluída! +$pontosSerie pts. Vez de ${widget.parceiroNome ?? "Parceiro"}!'),
+          content: Text(
+            'Série concluída! +$pontosSerie pts. Vez de ${widget.parceiroNome ?? "Parceiro"}!',
+          ),
           backgroundColor: Colors.amber[800],
           duration: const Duration(seconds: 3),
         ),
@@ -1918,7 +2126,10 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
           _isProcessandoFimDeSerie = false;
         });
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro ao sincronizar turno: $e'), backgroundColor: Colors.redAccent),
+          SnackBar(
+            content: Text('Erro ao sincronizar turno: $e'),
+            backgroundColor: Colors.redAccent,
+          ),
         );
       }
     }
@@ -1943,14 +2154,18 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
 
     if (isHost) {
       mensagemBotao = 'Passar Aparelho para $_nomeConvidado ➔';
-      descricao = '$_nomeHost concluiu a Série $_serieAtualDupla com $_repeticoes repetições! Agora passe o aparelho para $_nomeConvidado realizar a Série $_serieAtualDupla.';
+      descricao =
+          '$_nomeHost concluiu a Série $_serieAtualDupla com $_repeticoes repetições! Agora passe o aparelho para $_nomeConvidado realizar a Série $_serieAtualDupla.';
     } else {
       if (!isUltimaSerie) {
-        mensagemBotao = 'Devolver para $_nomeHost (Série ${_serieAtualDupla + 1}) ➔';
-        descricao = '$_nomeConvidado concluiu a Série $_serieAtualDupla! Ambos finalizaram. Devolva o aparelho para $_nomeHost para iniciar a Série ${_serieAtualDupla + 1}.';
+        mensagemBotao =
+            'Devolver para $_nomeHost (Série ${_serieAtualDupla + 1}) ➔';
+        descricao =
+            '$_nomeConvidado concluiu a Série $_serieAtualDupla! Ambos finalizaram. Devolva o aparelho para $_nomeHost para iniciar a Série ${_serieAtualDupla + 1}.';
       } else if (temProx) {
         mensagemBotao = 'Próximo Exercício: $_proximoExercicioNome ➔';
-        descricao = 'Exercício finalizado com sucesso pela dupla! Devolva o aparelho para $_nomeHost para iniciar o próximo exercício.';
+        descricao =
+            'Exercício finalizado com sucesso pela dupla! Devolva o aparelho para $_nomeHost para iniciar o próximo exercício.';
       } else {
         mensagemBotao = 'Ver Resultado da Dupla 🎉';
         descricao = 'Parabéns aos dois atletas! Todas as séries e exercícios foram concluídos pela dupla!';
@@ -1970,7 +2185,11 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
             Expanded(
               child: Text(
                 'Série Feita por $_nomeAtletaTurnoAtual!',
-                style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 18),
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                ),
               ),
             ),
           ],
@@ -1997,7 +2216,10 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
                   const Flexible(
                     child: Text(
                       'Série Atual:',
-                      style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 8),
@@ -2025,7 +2247,9 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF00E676),
               foregroundColor: Colors.black,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
             onPressed: () {
               Navigator.pop(ctx);
@@ -2047,7 +2271,9 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
 
     int pontosSerie = (_repeticoes > 0 ? (_repeticoes * 5 + 30) : 30);
     try {
-      final res = await ApiService().finalizarSerieEPontuarIA(incrementarSequencia: false);
+      final res = await ApiService().finalizarSerieEPontuarIA(
+        incrementarSequencia: false,
+      );
       if (res['sucesso'] == true) {
         final pts = (res['pontos_atribuidos'] as num?)?.toInt();
         if (pts != null && pts > 0) pontosSerie = pts;
@@ -2072,7 +2298,9 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
       }
     } else {
       _pontosAcumuladosConvidado += pontosSerie;
-      if (widget.parceiroId != null && widget.parceiroId!.isNotEmpty && pontosSerie > 0) {
+      if (widget.parceiroId != null &&
+          widget.parceiroId!.isNotEmpty &&
+          pontosSerie > 0) {
         try {
           await ApiService().adicionarPontuacaoDiaria(
             usuarioId: widget.parceiroId!,
@@ -2091,7 +2319,9 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
         await ApiService().concluirSerieDupla(
           sessaoId: widget.sessaoDuplaId!,
           pontosSerie: pontosSerie,
-          proximoTurnoId: foiHost ? widget.parceiroId : ApiService().idUsuarioAtual,
+          proximoTurnoId: foiHost
+              ? widget.parceiroId
+              : ApiService().idUsuarioAtual,
           novaSerie: _serieAtualDupla,
           novoIndiceExercicio: _indiceAtual,
         );
@@ -2142,7 +2372,10 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
     if (trocouEx) {
       await _iniciarSessaoIA();
       if (_wsService != null && _wsService!.conectado) {
-        _wsService!.trocarExercicio(exercicioId: _exercicioIdAtual, lado: _lado);
+        _wsService!.trocarExercicio(
+          exercicioId: _exercicioIdAtual,
+          lado: _lado,
+        );
       }
     } else {
       await _iniciarSessaoIA();
@@ -2170,7 +2403,9 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
 
     final media = (_pontosAcumuladosHost + _pontosAcumuladosConvidado) / 2.0;
     final pontosFinais = (media * 1.20).round();
-    final bonusExtra = (pontosFinais - media).round() > 0 ? (pontosFinais - media).round() : 10;
+    final bonusExtra = (pontosFinais - media).round() > 0
+        ? (pontosFinais - media).round()
+        : 10;
 
     // Credita o bônus cooperativo (+20%) no banco para ambos os atletas
     final hostId = ApiService().idUsuarioAtual;
@@ -2186,7 +2421,9 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
       }
     }
 
-    if (widget.parceiroId != null && widget.parceiroId!.isNotEmpty && bonusExtra > 0) {
+    if (widget.parceiroId != null &&
+        widget.parceiroId!.isNotEmpty &&
+        bonusExtra > 0) {
       try {
         await ApiService().adicionarPontuacaoDiaria(
           usuarioId: widget.parceiroId!,
@@ -2236,9 +2473,15 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
       );
 
       // Credita o bônus cooperativo (+20%) para o usuário local autenticado
-      final media = (res['media_dupla'] as num?)?.toDouble() ?? ((_pontosAcumuladosHost + _pontosAcumuladosConvidado) / 2.0);
-      final pontosFinais = (res['pontos_finais_cada'] as num?)?.toInt() ?? (media * 1.20).round();
-      final bonusExtra = (pontosFinais - media).round() > 0 ? (pontosFinais - media).round() : 10;
+      final media =
+          (res['media_dupla'] as num?)?.toDouble() ??
+          ((_pontosAcumuladosHost + _pontosAcumuladosConvidado) / 2.0);
+      final pontosFinais =
+          (res['pontos_finais_cada'] as num?)?.toInt() ??
+          (media * 1.20).round();
+      final bonusExtra = (pontosFinais - media).round() > 0
+          ? (pontosFinais - media).round()
+          : 10;
       final meuId = ApiService().idUsuarioAtual;
       if (meuId != null && bonusExtra > 0) {
         try {
@@ -2257,24 +2500,38 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
         _exibirResumoDuplaConcluido(res);
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(res['mensagem'] ?? 'Erro ao finalizar treino em dupla.'), backgroundColor: Colors.redAccent),
+          SnackBar(
+            content: Text(
+              res['mensagem'] ?? 'Erro ao finalizar treino em dupla.',
+            ),
+            backgroundColor: Colors.redAccent,
+          ),
         );
       }
     } catch (e) {
       if (mounted) {
         setState(() => _isFinalizando = false);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Erro ao encerrar treino: $e'), backgroundColor: Colors.redAccent),
+          SnackBar(
+            content: Text('Erro ao encerrar treino: $e'),
+            backgroundColor: Colors.redAccent,
+          ),
         );
       }
     }
   }
 
   void _exibirResumoDuplaConcluido(Map<String, dynamic> dados) {
-    final pontosHost = (dados['pontos_host'] as num?)?.toInt() ?? _pontosAcumuladosHost;
-    final pontosConvidado = (dados['pontos_convidado'] as num?)?.toInt() ?? _pontosAcumuladosConvidado;
-    final media = (dados['media_dupla'] as num?)?.toDouble() ?? ((pontosHost + pontosConvidado) / 2.0);
-    final pontosFinais = (dados['pontos_finais_cada'] as num?)?.toInt() ?? (media * 1.2).round();
+    final pontosHost =
+        (dados['pontos_host'] as num?)?.toInt() ?? _pontosAcumuladosHost;
+    final pontosConvidado =
+        (dados['pontos_convidado'] as num?)?.toInt() ??
+        _pontosAcumuladosConvidado;
+    final media =
+        (dados['media_dupla'] as num?)?.toDouble() ??
+        ((pontosHost + pontosConvidado) / 2.0);
+    final pontosFinais =
+        (dados['pontos_finais_cada'] as num?)?.toInt() ?? (media * 1.2).round();
     final bonusExtra = (pontosFinais - media).round();
 
     showDialog(
@@ -2290,7 +2547,11 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
             Expanded(
               child: Text(
                 'TREINO EM DUPLA CONCLUÍDO!',
-                style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
               ),
             ),
           ],
@@ -2317,10 +2578,19 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const Flexible(
-                        child: Text('Pontos do Host:', style: TextStyle(color: Colors.white60, fontSize: 13)),
+                        child: Text(
+                          'Pontos do Host:',
+                          style: TextStyle(color: Colors.white60, fontSize: 13),
+                        ),
                       ),
                       const SizedBox(width: 8),
-                      Text('$pontosHost pts', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      Text(
+                        '$pontosHost pts',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 6),
@@ -2328,10 +2598,19 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const Flexible(
-                        child: Text('Pontos do Convidado:', style: TextStyle(color: Colors.white60, fontSize: 13)),
+                        child: Text(
+                          'Pontos do Convidado:',
+                          style: TextStyle(color: Colors.white60, fontSize: 13),
+                        ),
                       ),
                       const SizedBox(width: 8),
-                      Text('$pontosConvidado pts', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      Text(
+                        '$pontosConvidado pts',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ],
                   ),
                   const Divider(color: Colors.white10, height: 16),
@@ -2339,10 +2618,19 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const Flexible(
-                        child: Text('Média da Dupla:', style: TextStyle(color: Colors.white70, fontSize: 13)),
+                        child: Text(
+                          'Média da Dupla:',
+                          style: TextStyle(color: Colors.white70, fontSize: 13),
+                        ),
                       ),
                       const SizedBox(width: 8),
-                      Text('${media.toStringAsFixed(1)} pts', style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                      Text(
+                        '${media.toStringAsFixed(1)} pts',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 6),
@@ -2350,10 +2638,23 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const Flexible(
-                        child: Text('🔥 Bônus Cooperativo (1.2x):', style: TextStyle(color: Color(0xFF00E676), fontSize: 13, fontWeight: FontWeight.bold)),
+                        child: Text(
+                          '🔥 Bônus Cooperativo (1.2x):',
+                          style: TextStyle(
+                            color: Color(0xFF00E676),
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                       const SizedBox(width: 8),
-                      Text('+$bonusExtra pts (+20%)', style: const TextStyle(color: Color(0xFF00E676), fontWeight: FontWeight.bold)),
+                      Text(
+                        '+$bonusExtra pts (+20%)',
+                        style: const TextStyle(
+                          color: Color(0xFF00E676),
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ],
                   ),
                 ],
@@ -2371,12 +2672,22 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   const Flexible(
-                    child: Text('Total Creditado a Você:', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+                    child: Text(
+                      'Total Creditado a Você:',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                   ),
                   const SizedBox(width: 8),
                   Text(
                     '$pontosFinais ⭐',
-                    style: const TextStyle(color: Color(0xFF00E676), fontSize: 20, fontWeight: FontWeight.bold),
+                    style: const TextStyle(
+                      color: Color(0xFF00E676),
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                 ],
               ),
@@ -2388,7 +2699,9 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF00E676),
               foregroundColor: Colors.black,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
             onPressed: () async {
               final uid = ApiService().idUsuarioAtual;
@@ -2407,7 +2720,10 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
                 });
               }
             },
-            child: const Text('Concluir e Voltar', style: TextStyle(fontWeight: FontWeight.bold)),
+            child: const Text(
+              'Concluir e Voltar',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
           ),
         ],
       ),
@@ -2417,8 +2733,12 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
   Widget _buildDescansoDuplaOverlay() {
     final minutos = (_tempoDescansoSegundos ~/ 60).toString().padLeft(2, '0');
     final segundos = (_tempoDescansoSegundos % 60).toString().padLeft(2, '0');
-    final meusPontos = widget.isHostDupla ? _pontosAcumuladosHost : _pontosAcumuladosConvidado;
-    final pontosParceiro = widget.isHostDupla ? _pontosAcumuladosConvidado : _pontosAcumuladosHost;
+    final meusPontos = widget.isHostDupla
+        ? _pontosAcumuladosHost
+        : _pontosAcumuladosConvidado;
+    final pontosParceiro = widget.isHostDupla
+        ? _pontosAcumuladosConvidado
+        : _pontosAcumuladosHost;
 
     return Container(
       color: Colors.black.withValues(alpha: 0.88),
@@ -2427,7 +2747,11 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Icon(Icons.self_improvement, size: 72, color: Colors.orangeAccent),
+            const Icon(
+              Icons.self_improvement,
+              size: 72,
+              color: Colors.orangeAccent,
+            ),
             const SizedBox(height: 16),
             Text(
               'VEZ DE ${widget.parceiroNome ?? "PARCEIRO"}!',
@@ -2449,13 +2773,19 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
               decoration: BoxDecoration(
                 color: const Color(0xFF1E232A),
                 borderRadius: BorderRadius.circular(20),
-                border: Border.all(color: Colors.orangeAccent.withValues(alpha: 0.4)),
+                border: Border.all(
+                  color: Colors.orangeAccent.withValues(alpha: 0.4),
+                ),
               ),
               child: Column(
                 children: [
                   const Text(
                     'TEMPO DE DESCANSO',
-                    style: TextStyle(color: Colors.orangeAccent, fontWeight: FontWeight.bold, fontSize: 12),
+                    style: TextStyle(
+                      color: Colors.orangeAccent,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
                   ),
                   const SizedBox(height: 8),
                   Text(
@@ -2490,7 +2820,11 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
                   Flexible(
                     child: Text(
                       'Você: $meusPontos pts   •   ${widget.parceiroNome ?? "Parceiro"}: $pontosParceiro pts',
-                      style: const TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ],
