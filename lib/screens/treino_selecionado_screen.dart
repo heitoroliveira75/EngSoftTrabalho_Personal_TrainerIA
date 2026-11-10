@@ -578,8 +578,7 @@ class _TreinoSelecionadoScreenState extends State<TreinoSelecionadoScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final Color corTema =
-        widget.treinoData['corTema'] ?? const Color(0xFF00E676);
+    const Color corTema = Color(0xFF00E676);
     final exercicios = _listaExercicios;
     final bool todosConcluidos =
         _exerciciosConcluidos.isNotEmpty && !_exerciciosConcluidos.contains(false);
@@ -613,9 +612,9 @@ class _TreinoSelecionadoScreenState extends State<TreinoSelecionadoScreen> {
         child: Container(
           padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
-            color: const Color(0xFF161B22),
+            color: const Color(0xFF1E232A),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.grey.shade800),
+            border: Border.all(color: Colors.white12),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -651,7 +650,7 @@ class _TreinoSelecionadoScreenState extends State<TreinoSelecionadoScreen> {
               const SizedBox(height: 4),
               Text(
                 widget.treinoData['dificuldade'] ?? 'Geral',
-                style: TextStyle(
+                style: const TextStyle(
                   color: corTema,
                   fontSize: 13,
                   fontWeight: FontWeight.w600,
@@ -660,11 +659,11 @@ class _TreinoSelecionadoScreenState extends State<TreinoSelecionadoScreen> {
               const SizedBox(height: 2),
               Text(
                 '${widget.treinoData['exerciciosCount'] ?? exercicios.length} exercícios, ${widget.treinoData['duracaoMinutos'] ?? 30} minutos',
-                style: TextStyle(color: Colors.grey[400], fontSize: 12),
+                style: const TextStyle(color: Colors.white60, fontSize: 12),
               ),
 
               const SizedBox(height: 16),
-              const Divider(color: Colors.grey, height: 1),
+              const Divider(color: Colors.white12, height: 1),
               const SizedBox(height: 16),
 
               Row(
@@ -726,9 +725,9 @@ class _TreinoSelecionadoScreenState extends State<TreinoSelecionadoScreen> {
                             horizontal: 10, vertical: 8),
                         decoration: BoxDecoration(
                           color: ehOAtual
-                              ? const Color(0xFF1F242C)
+                              ? const Color(0xFF2D3139)
                               : (estaConcluido
-                                  ? const Color(0xFF12161C)
+                                  ? const Color(0xFF161B22)
                                   : Colors.transparent),
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
@@ -773,7 +772,7 @@ class _TreinoSelecionadoScreenState extends State<TreinoSelecionadoScreen> {
                                     ? const Icon(Icons.check,
                                         color: Colors.black, size: 18)
                                     : (ehOAtual
-                                        ? Icon(Icons.play_arrow,
+                                        ? const Icon(Icons.play_arrow,
                                             color: corTema, size: 18)
                                         : Text(
                                             '${index + 1}',
@@ -795,7 +794,7 @@ class _TreinoSelecionadoScreenState extends State<TreinoSelecionadoScreen> {
                                       color: estaConcluido
                                           ? Colors.white54
                                           : (ehOAtual
-                                              ? const Color(0xFF29B6F6)
+                                              ? const Color(0xFF00E676)
                                               : Colors.white),
                                       fontSize: 14,
                                       fontWeight: FontWeight.w500,
@@ -807,8 +806,8 @@ class _TreinoSelecionadoScreenState extends State<TreinoSelecionadoScreen> {
                                   const SizedBox(height: 2),
                                   Text(
                                     '$series séries × $reps',
-                                    style: TextStyle(
-                                      color: Colors.grey[400],
+                                    style: const TextStyle(
+                                      color: Colors.white60,
                                       fontSize: 12,
                                     ),
                                   ),
@@ -819,10 +818,8 @@ class _TreinoSelecionadoScreenState extends State<TreinoSelecionadoScreen> {
                               children: [
                                 Text(
                                   '+$pts pts',
-                                  style: TextStyle(
-                                    color: estaConcluido
-                                        ? const Color(0xFF00E676)
-                                        : corTema,
+                                  style: const TextStyle(
+                                    color: Color(0xFF00E676),
                                     fontSize: 13,
                                     fontWeight: FontWeight.bold,
                                   ),

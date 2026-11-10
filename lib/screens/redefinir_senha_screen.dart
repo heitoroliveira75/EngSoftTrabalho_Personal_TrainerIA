@@ -185,12 +185,11 @@ class _RedefinirSenhaScreenState extends State<RedefinirSenhaScreen> {
                 ElevatedButton(
                   onPressed: _carregando ? null : _executarRedefinicao,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF030712), // Preto / quase preto
-                    foregroundColor: Colors.white,
+                    backgroundColor: const Color(0xFF00E676),
+                    foregroundColor: const Color(0xFF0D1117),
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(10.0),
-                      side: const BorderSide(color: Colors.white24),
                     ),
                     elevation: 0,
                   ),
@@ -200,14 +199,14 @@ class _RedefinirSenhaScreenState extends State<RedefinirSenhaScreen> {
                           width: 20,
                           child: CircularProgressIndicator(
                             strokeWidth: 2,
-                            color: Colors.white,
+                            color: Color(0xFF0D1117),
                           ),
                         )
                       : const Text(
                           'Salvar Nova Senha',
                           style: TextStyle(
                             fontSize: 15,
-                            fontWeight: FontWeight.w500,
+                            fontWeight: FontWeight.bold,
                             letterSpacing: 0.5,
                           ),
                         ),
@@ -220,7 +219,7 @@ class _RedefinirSenhaScreenState extends State<RedefinirSenhaScreen> {
     );
   }
 
-  // Widget auxiliar para os campos de texto brancos
+  // Widget auxiliar para os campos de texto em cinza carbono
   Widget _buildInputField({
     required TextEditingController controller,
     required String hintText,
@@ -231,19 +230,27 @@ class _RedefinirSenhaScreenState extends State<RedefinirSenhaScreen> {
       controller: controller,
       obscureText: obscureText,
       keyboardType: keyboardType,
-      style: const TextStyle(color: Colors.black87),
+      style: const TextStyle(color: Colors.white),
       decoration: InputDecoration(
         hintText: hintText,
-        hintStyle: const TextStyle(color: Colors.grey, fontSize: 14),
+        hintStyle: const TextStyle(color: Colors.white38, fontSize: 14),
         filled: true,
-        fillColor: Colors.white,
+        fillColor: const Color(0xFF1E232A),
         contentPadding: const EdgeInsets.symmetric(
           horizontal: 16,
           vertical: 14,
         ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(10.0),
-          borderSide: BorderSide.none,
+          borderSide: const BorderSide(color: Colors.white12),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10.0),
+          borderSide: const BorderSide(color: Colors.white12),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10.0),
+          borderSide: const BorderSide(color: Color(0xFF00E676), width: 1.5),
         ),
       ),
     );

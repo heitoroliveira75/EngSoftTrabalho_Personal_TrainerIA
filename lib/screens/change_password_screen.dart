@@ -135,24 +135,34 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            // Card Branco com os campos de input
+            // Card Carbono com os campos de input
             Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: const Color(0xFF1E232A),
                 borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.white12),
               ),
               child: Column(
                 children: [
-                  CircleAvatar(
-                    radius: 36,
-                    backgroundColor: const Color(0xFF8A5CF5),
-                    child: Text(
-                      usuarioInicial,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 32,
-                        fontWeight: FontWeight.bold,
+                  Container(
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: const Color(0xFF00E676),
+                        width: 2,
+                      ),
+                    ),
+                    child: CircleAvatar(
+                      radius: 36,
+                      backgroundColor: const Color(0xFF00E676).withValues(alpha: 0.15),
+                      child: Text(
+                        usuarioInicial,
+                        style: const TextStyle(
+                          color: Color(0xFF00E676),
+                          fontSize: 32,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ),
@@ -194,7 +204,8 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
               height: 50,
               child: ElevatedButton(
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF2D3139),
+                  backgroundColor: const Color(0xFF00E676),
+                  foregroundColor: const Color(0xFF0D1117),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(8),
                   ),
@@ -206,12 +217,16 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                         width: 24,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: Colors.white,
+                          color: Color(0xFF0D1117),
                         ),
                       )
                     : const Text(
                         'Salvar',
-                        style: TextStyle(color: Colors.white, fontSize: 18),
+                        style: TextStyle(
+                          color: Color(0xFF0D1117),
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
               ),
             ),
@@ -234,8 +249,8 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
         Text(
           label,
           style: const TextStyle(
-            color: Color(0xFF2196F3),
-            fontSize: 18,
+            color: Color(0xFF00E676),
+            fontSize: 16,
             fontWeight: FontWeight.bold,
           ),
         ),
@@ -244,27 +259,27 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
           controller: controller,
           obscureText: isPassword,
           obscuringCharacter: '*',
-          style: const TextStyle(color: Colors.black87, fontSize: 15),
+          style: const TextStyle(color: Colors.white, fontSize: 15),
           decoration: InputDecoration(
             hintText: hintText,
-            hintStyle: const TextStyle(color: Colors.grey, fontSize: 13),
+            hintStyle: const TextStyle(color: Colors.white38, fontSize: 13),
             filled: true,
-            fillColor: Colors.white,
+            fillColor: const Color(0xFF2D3139),
             contentPadding: const EdgeInsets.symmetric(
               horizontal: 12,
               vertical: 12,
             ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: Colors.black26),
+              borderSide: const BorderSide(color: Colors.white12),
             ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: Colors.black26),
+              borderSide: const BorderSide(color: Colors.white12),
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(8),
-              borderSide: const BorderSide(color: Color(0xFF2196F3), width: 1.5),
+              borderSide: const BorderSide(color: Color(0xFF00E676), width: 1.5),
             ),
           ),
         ),

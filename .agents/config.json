@@ -1,5 +1,11 @@
 {
   "$schema": "https://antigravity.cli/schema.json",
+  "rules": [
+    {
+      "name": "project-rules",
+      "path": "./.agents/rules/project-rules.md"
+    }
+  ],
   "skills": [
     {
       "name": "ai-context",

@@ -1,0 +1,75 @@
+name: CI — Testes Automatizados (Python IA/API & Flutter)
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  testes-python:
+    name: Testes Backend & Motor Biomecânico IA (pytest)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout do repositório
+        uses: actions/checkout@v4
+
+      - name: Configurar Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: "pip"
+
+      - name: Instalar bibliotecas de sistema para OpenCV e MediaPipe
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            libgl1 \
+            libegl1 \
+            libgles2 \
+            libglvnd0 \
+            libglib2.0-0 \
+            libsm6 \
+            libxext6 \
+            libxrender1 \
+            libgomp1
+
+      - name: Instalar dependências Python
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Executar suíte de testes Python (pytest)
+        env:
+          SUPABASE_URL: "https://placeholder-project.supabase.co"
+          SUPABASE_PUBLISHABLE_KEY: "placeholder-anon-key"
+        run: pytest -v
+
+  testes-flutter:
+    name: Testes e Análise Estática Flutter
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout do repositório
+        uses: actions/checkout@v4
+
+      - name: Configurar Flutter (channel stable)
+        uses: subosito/flutter-action@v2
+        with:
+          channel: "stable"
+          cache: true
+
+      - name: Instalar pacotes Flutter
+        run: flutter pub get
+
+      - name: Verificar análise estática (flutter analyze)
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings
+
+      - name: Executar suíte de testes Flutter (flutter test)
+        run: flutter test

@@ -1,5 +1,6 @@
 import os
 from pathlib import Path
+from typing import Optional
 
 from dotenv import load_dotenv
 from supabase import create_client, Client, ClientOptions
@@ -39,7 +40,27 @@ def criar_cliente_auth() -> Client:
     return create_client(SUPABASE_URL, SUPABASE_KEY, options=_opcoes_stateless())
 
 
-# Cria o cliente Supabase global exclusivamente para consultas de banco (PostgREST / RPC)
+def criar_cliente_db(token: Optional[str] = None) -> Client:
+    """
+    Cria uma instância isolada do cliente Supabase para consultas e mutações PostgREST.
+    Quando o token JWT do usuário é informado, autentica o PostgREST apenas nesta instância
+    efêmera (postgrest.auth(token)), satisfazendo políticas RLS (auth.uid() = id) sem
+    contaminar o estado de outros usuários conectados simultaneamente.
+    """
+    cliente = create_client(SUPABASE_URL, SUPABASE_KEY, options=_opcoes_stateless())
+    if token and isinstance(token, str) and token.strip():
+        token_limpo = token.strip()
+        if token_limpo.lower().startswith("bearer "):
+            token_limpo = token_limpo[7:].strip()
+        if token_limpo:
+            try:
+                cliente.postgrest.auth(token_limpo)
+            except Exception:
+                pass
+    return cliente
+
+
+# Cria o cliente Supabase global exclusivamente para consultas públicas/RPC sem vínculo de sessão
 supabase: Client = create_client(
     SUPABASE_URL,
     SUPABASE_KEY,

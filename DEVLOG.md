@@ -2,7 +2,7 @@
 
 > **Propósito:** Este documento registra de forma cronológica (do mais recente para o mais antigo) todas as alterações, Histórias de Usuário implementadas, tasks atômicas executadas, artefatos gerados, commits incrementais e decisões arquiteturais tomadas na frente de **IA e Estimação de Pose**.
 >
-> **Regra para Agentes e Desenvolvedores:** Toda nova entrega ou sessão de desenvolvimento **deve** adicionar uma entrada no topo da seção **"Histórico de Entradas"**, seguindo o template abaixo, e mantendo [`CONTEXTO_IA.md`](./CONTEXTO_IA.md), [`PLANO_SPRINT_US01.md`](./PLANO_SPRINT_US01.md) e [`EXPLICACAO_IA.md`](./EXPLICACAO_IA.md) rigorosamente atualizados.
+> **Regra para Agentes e Desenvolvedores:** Toda nova entrega ou sessão de desenvolvimento **deve** adicionar uma entrada no topo da seção **"Histórico de Entradas"** (lendo apenas as primeiras 35 linhas deste arquivo para economizar tokens), seguindo o template abaixo, e mantendo os arquivos [`.ai_context.md`](./.ai_context.md) (raiz e subpastas afetadas) rigorosamente atualizados.
 >
 > **Portabilidade:** Todas as referências a arquivos neste repositório devem utilizar caminhos relativos à raiz (`./arquivo.py`), sendo vedado o uso de caminhos absolutos locais de máquina.
 
@@ -25,6 +25,44 @@
 ---
 
 ## Histórico de Entradas
+
+### [Entrada #029] 2026-11-09 — Padronização Visual de Cores nas Telas Principais (Preto, Cinza Carbono e Verde Neon)
+- **Objetivo / História de Usuário:**
+  - Eliminar painéis brancos e cores aleatórias/destoantes (roxo `#8A5CF5` / `#9E7AFF`, azul `#2196F3` / `#29B6F6` / `#64B5F6` e rosa `#E91E63`) nas telas principais do aplicativo, padronizando a identidade visual em tons de preto/grafite (`#0D1117`), cinza carbono (`#1E232A` / `#2D3139`) e verde neon (`#00E676`), preservando as cores semânticas de ícones (raio/estrela em dourado/âmbar `#FFD700` / `#FFB300` e fogo em vermelho `#FF5252`) e nivelando a altura vertical dos cards de métricas na `HomeScreen`.
+- **Tasks Executadas e Artefatos Gerados:**
+  - `[TASK-UI-PERFIL-01]` Substituição do painel branco, avatar roxo e textos azuis por card em cinza carbono (`#1E232A`), borda sutil (`Colors.white12`), avatar e métricas com destaque em verde neon (`#00E676`) e tipografia em branco/cinza claro nas telas de Perfil, Alterar Nome e Alterar Senha $\rightarrow$ **Artefatos:** `lib/screens/profile_screen.dart`, `lib/screens/change_name_screen.dart`, `lib/screens/change_password_screen.dart`.
+  - `[TASK-UI-TREINOS-HOME-02]` Padronização dos cards de métricas (com `IntrinsicHeight`, `CrossAxisAlignment.stretch` e `FittedBox` em uma linha para altura vertical idêntica entre "Pontos Semana", "Dias Seguidos" e "Recorde Dias", mantendo raio em `#FFD700` e fogo em `#FF5252`), hub de treinos (mantendo estrela de "Treinos Padrões" e raio em `#FFB300`), seleção de dificuldade, listagem de treinos, detalhes do treino e criação de exercícios para superfícies em cinza carbono (`#1E232A` / `#2D3139`) e acentos em verde neon (`#00E676`) $\rightarrow$ **Artefatos:** `lib/screens/home_screen.dart`, `lib/screens/training_menu_screen.dart`, `lib/screens/dificuldade_treino_screen.dart`, `lib/screens/opcao_treinos_screen.dart`, `lib/screens/treino_selecionado_screen.dart`, `lib/screens/criar_exercicio_screen.dart`.
+  - `[TASK-UI-AUTH-03]` Padronização dos campos de entrada (de fundo branco para cinza carbono `#1E232A` com foco em `#00E676`), botões primários e links de navegação (de rosa `#E91E63` para verde neon `#00E676`) no fluxo de autenticação $\rightarrow$ **Artefatos:** `lib/screens/login_screen.dart`, `lib/screens/cadastro_screen.dart`, `lib/screens/esqueceu_senha_screen.dart`, `lib/screens/redefinir_senha_screen.dart`.
+- **Decisões Técnicas e Observações:**
+  - Refatoração estritamente visual (`BoxDecoration`, `TextStyle`, `InputDecoration`, `ElevatedButton.styleFrom`), preservando integralmente o estado, rotas e integração com `ApiService`.
+- **Estado Resultante / Próximos Passos:**
+  - Todas as telas principais seguem de forma coesa a paleta escura (`#0D1117`), cinza carbono (`#1E232A` / `#2D3139`) e verde neon (`#00E676`).
+
+### [Entrada #028] 2026-11-09 — Correção de Leitura e Atualização de Pontuações e Streak sob RLS Stateless
+- **Objetivo / Problema Relatado:**
+  - Após a refatoração de isolamento stateless da `[Entrada #025]`, o cliente global `supabase` passou a operar sem o JWT do usuário logado (papel `anon`), fazendo com que o Row-Level Security (RLS) da tabela `public.usuarios` retornasse `data=[]` em `ver_pontuacao` e `ver_perfil`, zerando a pontuação e o streak de dias na `HomeScreen` e na `ProfileScreen`.
+- **Tasks Executadas e Artefatos Gerados:**
+  - `[TASK-RLS-CLIENT-DB-01]` Criação da fábrica `criar_cliente_db(token)` em `BD/supabase_client.py` (injetando `postgrest.auth(token)` em instância efêmera por requisição) e do resolvedor `_obter_cliente_db(usuario_id, token)` em `BD/main.py` $\rightarrow$ **Artefatos:** `BD/supabase_client.py`, `BD/main.py`.
+  - `[TASK-PONTUACAO-STREAK-02]` Uso do cliente PostgREST autenticado por usuário e fallback via RPC `SECURITY DEFINER` em `ver_pontuacao`, `ver_perfil`, `editar_perfil`, `adicionar_pontuacao_diaria`, `atualizar_sequencia`, `atualizar_maior_sequencia`, `atualizar_checagem`, `fazer_login` e `obter_usuario_atual`, além de propagação do header `Authorization` em `BD/api.py` e hidratação inicial em `lib/screens/home_screen.dart` e `lib/services/api_service.dart` $\rightarrow$ **Artefatos:** `BD/main.py`, `BD/api.py`, `lib/services/api_service.dart`, `lib/screens/home_screen.dart`.
+  - `[TASK-TEST-RLS-STATELESS-03]` Inclusão do teste de regressão `test_pontuacao_e_streak_nao_zeram_com_rls_stateless` simulando bloqueio RLS no cliente anônimo e leitura real via JWT isolado $\rightarrow$ **Artefato:** `tests/test_isolamento_sessao_multiusuario.py`.
+- **Estado Resultante:** Pontuações (`diária`, `semanal`, `total`) e sequência de dias (`sequencia`, `maior_sequencia`) carregadas e persistidas com exatidão para cada usuário logado, mantendo 100% do isolamento multi-usuário stateless.
+
+### [Entrada #027] 2026-11-09 — Unificação de Agentes/Skills em `.agents/`, Remoção de Redundâncias e Otimização de Tokens
+- **Objetivo / História de Usuário:**
+  - Eliminar conflitos e redundâncias entre o `AGENTS.md` da raiz e a pasta `.agents/`, centralizar todos os agentes, skills e rules em `.agents/` e unificar 100% do contexto técnico nos arquivos `.ai_context.md` para leitura ultrarrápida com baixo consumo de tokens.
+- **Tasks Executadas e Artefatos Gerados:**
+  - `[TASK-AGENTS-01]` Remoção do `AGENTS.md` da pasta raiz e criação da regra global enxuta em `.agents/rules/project-rules.md` registrada no `.agents/config.json` $\rightarrow$ **Artefatos:** `.agents/rules/project-rules.md`, `.agents/config.json`.
+  - `[TASK-AGENTS-02]` Desduplicação e enxugamento dos agentes (`context-navigator`, `code-architect`) e skills (`ai-context`, `human-context`), configurando atualização automática obrigatória de `<pasta>/.ai_context.md`, `/.ai_context.md` e topo do `DEVLOG.md` (leitura parcial das linhas 1–35) $\rightarrow$ **Artefatos:** `.agents/agents/context-navigator/agent.md`, `.agents/agents/code-architect/agent.md`, `.agents/skills/ai-context/SKILL.md`, `.agents/skills/human-context/SKILL.md`.
+  - `[TASK-CONTEXT-03]` Consolidação dos contratos do motor biomecânico (`IA_BIOMECHANICS_CONTRACTS`), rotas `/ia/*`, WebSocket e Treino em Dupla na malha `.ai_context.md` $\rightarrow$ **Artefatos:** `.ai_context.md`, `BD/.ai_context.md`, `lib/screens/.ai_context.md`, `DEVLOG.md`.
+- **Estado Resultante:** Nenhum agente na pasta raiz; agentes e skills sem redundância em `.agents/`; atualização automática garantida para todos os `.ai_context.md` e para o topo do `DEVLOG.md`.
+
+### [Entrada #026] 2026-11-09 — Migração da Execução de Testes para GitHub Actions e Atualização das Regras de Agentes
+- **Objetivo / História de Usuário:**
+  - Alterar a configuração dos agentes de IA (`AGENTS.md`, `DIRETRIZES_DESENVOLVIMENTO.md` e `.agents/agents/code-architect/agent.md`) para que os testes do projeto não sejam mais executados localmente a cada modificação de código, delegando essa verificação automatizada para o **GitHub Actions**.
+- **Tasks Executadas e Artefatos Gerados:**
+  - `[TASK-CI-AGENTS-01]` Atualização das regras de agentes para desativar a execução local obrigatória de testes a cada modificação, definindo que a validação ocorre via GitHub Actions (salvo solicitação explícita do usuário) $\rightarrow$ **Artefatos:** `./AGENTS.md`, `./DIRETRIZES_DESENVOLVIMENTO.md`, `./.agents/agents/code-architect/agent.md`, `./.ai_context.md`.
+  - `[TASK-CI-WORKFLOW-02]` Criação do workflow oficial do GitHub Actions com dois jobs paralelos (`testes-python` rodando `pytest -v` em Python 3.12 e `testes-flutter` rodando `flutter analyze` e `flutter test` em Flutter stable) acionados em `push`, `pull_request` e `workflow_dispatch`, além de inclusão explícita de `httpx` nas dependências $\rightarrow$ **Artefatos:** `./.github/workflows/ci.yml`, `./requirements.txt`.
+- **Estado Resultante:** Agentes configurados para não rodar testes localmente a cada alteração e pipeline de CI no GitHub Actions pronto e ativo.
 
 ### [Entrada #025] 2026-11-05 — Correção Crítica de Isolamento de Sessão Multi-Usuário (Stateless Auth)
 - **Objetivo / Problema Relatado:**

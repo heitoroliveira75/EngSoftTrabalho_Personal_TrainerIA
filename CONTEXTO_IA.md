@@ -91,7 +91,8 @@ Estes arquivos compõem a frente de trabalho imediata da branch, homologada por 
 | [`tests/test_isolamento_sessao_multiusuario.py`](tests/test_isolamento_sessao_multiusuario.py) | Suíte de testes de isolamento stateless de autenticação multi-usuário, garantindo ausência de vazamento de sessão entre atletas concorrentes. | `test_quatro_usuarios_*`, `test_usuario_atual_*`, `test_logout_*` | **Concluído (3 testes)** |
 | **Total da Suíte Automatizada** | **90 testes aprovados no `pytest` + 11 testes no `flutter test` com 100% de sucesso** | `pytest` + `flutter test` | **100% Aprovado (101 testes)** |
 | [`./pytest.ini`](./pytest.ini) | Configuração de execução do `pytest` com inclusão automática do diretório raiz no `pythonpath`. | Configuração de testes | **Ativo** |
-| [`./requirements.txt`](./requirements.txt) | Especificação das dependências oficiais da branch `IA` (`numpy`, `opencv-python`, `mediapipe`, `pytest`). | Gerenciamento de ambiente | **Ativo** |
+| [`./requirements.txt`](./requirements.txt) | Especificação das dependências oficiais da branch `IA` (`numpy`, `opencv-python-headless`, `mediapipe`, `pytest`, `httpx`). | Gerenciamento de ambiente | **Ativo** |
+| [`./.github/workflows/ci.yml`](./.github/workflows/ci.yml) | Pipeline de Integração Contínua (GitHub Actions) que executa automaticamente `pytest`, `flutter analyze` e `flutter test` em eventos de `push` e `pull_request`. | Automação de CI/CD | **Ativo** |
 
 ---
 

@@ -164,20 +164,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 width: double.infinity,
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: const Color(0xFF1E232A),
                   borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.white12),
                 ),
                 child: Column(
                   children: [
-                    CircleAvatar(
-                      radius: 36,
-                      backgroundColor: const Color(0xFF8A5CF5),
-                      child: Text(
-                        letraAvatar,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold,
+                    Container(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: const Color(0xFF00E676),
+                          width: 2,
+                        ),
+                      ),
+                      child: CircleAvatar(
+                        radius: 36,
+                        backgroundColor: const Color(0xFF00E676).withValues(alpha: 0.15),
+                        child: Text(
+                          letraAvatar,
+                          style: const TextStyle(
+                            color: Color(0xFF00E676),
+                            fontSize: 32,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ),
@@ -186,7 +196,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       nomeUsuario,
                       textAlign: TextAlign.center,
                       style: const TextStyle(
-                        color: Color(0xFF2196F3),
+                        color: Colors.white,
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
                       ),
@@ -197,24 +207,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         emailUsuario,
                         textAlign: TextAlign.center,
                         style: const TextStyle(
-                          color: Color(0xFF64B5F6),
+                          color: Colors.white60,
                           fontSize: 14,
                         ),
                       ),
                     ],
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 20),
+                    const Divider(color: Colors.white12, height: 1),
+                    const SizedBox(height: 16),
                     const Text(
                       'Seu Desempenho',
                       style: TextStyle(
-                        color: Color(0xFF8A5CF5),
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
+                        color: Colors.white70,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.5,
                       ),
                     ),
+                    const SizedBox(height: 4),
                     Text(
                       '$pontosTotais pts',
                       style: const TextStyle(
-                        color: Color(0xFF2196F3),
+                        color: Color(0xFF00E676),
                         fontSize: 32,
                         fontWeight: FontWeight.bold,
                       ),

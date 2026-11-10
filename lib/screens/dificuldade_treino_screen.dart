@@ -50,7 +50,7 @@ class DificuldadeScreen extends StatelessWidget {
               context,
               titulo: 'INTERMEDIÁRIO',
               descricao: 'Quem já possui experiência e quer melhorar',
-              corTema: const Color(0xFF29B6F6),
+              corTema: const Color(0xFF00E676),
               flagDificuldade: 'intermediario',
             ),
             const SizedBox(height: 20),
@@ -60,7 +60,7 @@ class DificuldadeScreen extends StatelessWidget {
               titulo: 'AVANÇADO',
               descricao:
                   'Recomendado apenas para quem busca o máximo de desempenho',
-              corTema: const Color(0xFF9E7AFF),
+              corTema: const Color(0xFF00E676),
               flagDificuldade: 'avancado',
             ),
             const SizedBox(height: 32),
@@ -95,9 +95,12 @@ class DificuldadeScreen extends StatelessWidget {
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
         decoration: BoxDecoration(
-          color: const Color(0xFF161B22),
+          color: const Color(0xFF1E232A),
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: corTema, width: 1.8),
+          border: Border.all(
+            color: corTema.withValues(alpha: 0.6),
+            width: 1.5,
+          ),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.center,
@@ -115,7 +118,7 @@ class DificuldadeScreen extends StatelessWidget {
             Text(
               descricao,
               textAlign: TextAlign.center,
-              style: TextStyle(color: Colors.grey[400], fontSize: 12),
+              style: const TextStyle(color: Colors.white70, fontSize: 12),
             ),
           ],
         ),
@@ -127,9 +130,9 @@ class DificuldadeScreen extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFF161B22),
+        color: const Color(0xFF1E232A),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade800),
+        border: Border.all(color: Colors.white12),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -139,19 +142,19 @@ class DificuldadeScreen extends StatelessWidget {
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                const Text(
+              children: const [
+                Text(
                   'Mantenha a sequência',
                   style: TextStyle(
-                    color: Color(0xFF9E7AFF),
+                    color: Color(0xFF00E676),
                     fontWeight: FontWeight.bold,
                     fontSize: 14,
                   ),
                 ),
-                const SizedBox(height: 2),
+                SizedBox(height: 2),
                 Text(
                   'Conclua um treino hoje para manter a sua sequência e ganhar mais pontos',
-                  style: TextStyle(color: Colors.grey[400], fontSize: 11),
+                  style: TextStyle(color: Colors.white70, fontSize: 11),
                 ),
               ],
             ),

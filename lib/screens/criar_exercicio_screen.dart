@@ -633,7 +633,7 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
                                     Text(
                                       '+${item['pontosSerie']} pts/série',
                                       style: const TextStyle(
-                                        color: Color(0xFF64B5F6),
+                                        color: Color(0xFF00E676),
                                         fontSize: 12,
                                       ),
                                     ),
@@ -692,7 +692,7 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
                         decoration: BoxDecoration(
                           color: const Color(0xFF2D3139),
                           borderRadius: BorderRadius.circular(10),
-                          border: Border.all(color: const Color(0xFF2196F3).withValues(alpha: 0.3)),
+                          border: Border.all(color: const Color(0xFF00E676).withValues(alpha: 0.3)),
                         ),
                         child: Column(
                           children: [
@@ -720,7 +720,7 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
                                 ),
                                 Text('+$pontosSeriesCalculado pts',
                                     style: const TextStyle(
-                                        color: Color(0xFF64B5F6), fontWeight: FontWeight.w600)),
+                                        color: Color(0xFF00E676), fontWeight: FontWeight.w600)),
                               ],
                             ),
                             Row(
@@ -732,7 +732,7 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
                                 ),
                                 Text('+$pontosRepsCalculado pts',
                                     style: const TextStyle(
-                                        color: Color(0xFF64B5F6), fontWeight: FontWeight.w600)),
+                                        color: Color(0xFF00E676), fontWeight: FontWeight.w600)),
                               ],
                             ),
                             const Divider(color: Colors.white12, height: 16),
@@ -1117,14 +1117,13 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
 
                                           const SizedBox(height: 4),
 
-                                          // Pontuação calculada
-                                          Text(
-                                            '+${item.totalPontos} pts (${item.pontosSeries} pts séries + ${item.pontosRepeticoes} pts reps)',
-                                            style: const TextStyle(
-                                              color: Color(0xFF64B5F6),
-                                              fontSize: 11,
-                                              fontWeight: FontWeight.w500,
-                                            ),
+                                        // Pontuação calculada
+                                        Text(
+                                          '+${item.totalPontos} pts (${item.pontosSeries} pts séries + ${item.pontosRepeticoes} pts reps)',
+                                          style: const TextStyle(
+                                            color: Color(0xFF00E676),
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w500,
                                           ),
                                         ],
                                       ),
@@ -1204,25 +1203,38 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
 
                 const SizedBox(height: 8),
 
-                // 2º Botão: Salvar Treino / Salvar Alterações
-                Material(
-                  color: const Color(0xFF2D3139),
+              // 2º Botão: Salvar Treino
+              Material(
+                color: const Color(0xFF00E676),
+                borderRadius: BorderRadius.circular(10),
+                child: InkWell(
                   borderRadius: BorderRadius.circular(10),
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(10),
-                    onTap: _salvando ? null : _salvarTreino,
-                    child: Container(
-                      width: double.infinity,
-                      constraints: const BoxConstraints(minHeight: 42),
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                      alignment: Alignment.center,
-                      child: _salvando
-                          ? const SizedBox(
-                              width: 20,
-                              height: 20,
-                              child: CircularProgressIndicator(
-                                strokeWidth: 2,
-                                color: Color(0xFF2196F3),
+                  onTap: _salvando ? null : _salvarTreino,
+                  child: Container(
+                    width: double.infinity,
+                    height: 42,
+                    alignment: Alignment.center,
+                    child: _salvando
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: Color(0xFF0D1117),
+                            ),
+                          )
+                        : const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(Icons.check, color: Color(0xFF0D1117), size: 20),
+                              SizedBox(width: 8),
+                              Text(
+                                'Salvar Treino',
+                                style: TextStyle(
+                                  color: Color(0xFF0D1117),
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 14,
+                                ),
                               ),
                             )
                           : Row(

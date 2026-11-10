@@ -258,6 +258,9 @@ Para aumentar o engajamento, a retenção e o incentivo mútuo entre alunos, o s
 8. **Isolamento Stateless de Sessão Multi-Usuário (`BD/supabase_client.py` + `BD/main.py`):**
    * Para evitar qualquer cruzamento de contas quando vários atletas fazem login ao mesmo tempo, todas as operações de autenticação utilizam instâncias efêmeras e isoladas (`criar_cliente_auth()` com `persist_session=False`), e a rota `/auth/usuario-atual` valida estritamente o token JWT (`Authorization: Bearer <token>`) de cada aparelho. Assim, o estado global do servidor nunca armazena nem mistura sessões entre usuários concorrentes.
 
+9. **Integração Contínua Automatizada via GitHub Actions (`.github/workflows/ci.yml`):**
+   * Em vez de executar toda a bateria de testes localmente na máquina de desenvolvimento a cada pequena modificação, a verificação de qualidade (`pytest` para o motor biomecânico/API Python e `flutter analyze` + `flutter test` para o app móvel) foi centralizada no pipeline de CI do **GitHub Actions**, disparado automaticamente a cada `push` ou `pull_request`.
+
 ---
 
 ## 7. Glossário Rápido de Termos
