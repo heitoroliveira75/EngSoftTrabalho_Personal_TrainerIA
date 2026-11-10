@@ -26,6 +26,18 @@
 
 ## Histórico de Entradas
 
+### [Entrada #030] 2026-11-10 — Formatação de Nomes (1 Nome + 1 Sobrenome) e Botão de Ícone para Treino em Dupla em Amigos
+- **Objetivo / História de Usuário:**
+  - Evitar que nomes longos quebrem linha nos cards da lista de amigos adicionados, exibindo apenas 1 nome + 1 sobrenome após o amigo ser adicionado (mantendo o nome completo nas abas de busca e solicitações), e remover o texto `"Dupla"` ao lado do ícone de treino para deixar apenas um botão compacto de ícone de treino em dupla.
+- **Tasks Executadas e Artefatos Gerados:**
+  - `[TASK-UI-AMIGOS-01]` Criação do helper `_formatarNomeCurto()` em `_AmigosScreenState` para exibir os dois primeiros nomes com `maxLines: 1` e `TextOverflow.ellipsis` em `_buildAbaMeusAmigos()`, preservando o nome completo em `_buildAbaBuscar()` e `_buildAbaSolicitacoes()`, e substituição do `ElevatedButton.icon` com texto `'Dupla'` por `IconButton` estilizado em verde neon (`#00E676`) apenas com o ícone `Icons.fitness_center` $\rightarrow$ **Artefatos:** `lib/screens/amigos_screen.dart`, `lib/screens/.ai_context.md`, `.ai_context.md`.
+- **Commits Incrementais Realizados:**
+  - ` feat(ui): exibe nome + 1 sobrenome nos amigos adicionados e botao icone de treino em dupla `
+- **Decisões Técnicas e Observações:**
+  - Na `lib/screens/home_screen.dart`, a saudação inicial já extrai apenas o primeiro nome via `nome.split(' ')[0]`. Na `lib/screens/amigos_screen.dart`, o nome completo continua sendo passado para diálogos e ações de convite/remoção, restringindo a abreviação (`partes.take(2).join(' ')`) exclusivamente à exibição visual do card de amigos já adicionados.
+- **Estado Resultante / Próximos Passos:**
+  - Cards da aba "Amigos" mais limpos e resistentes a nomes compridos sem comprimir os botões de ação.
+
 ### [Entrada #029] 2026-11-09 — Padronização Visual de Cores nas Telas Principais (Preto, Cinza Carbono e Verde Neon)
 - **Objetivo / História de Usuário:**
   - Eliminar painéis brancos e cores aleatórias/destoantes (roxo `#8A5CF5` / `#9E7AFF`, azul `#2196F3` / `#29B6F6` / `#64B5F6` e rosa `#E91E63`) nas telas principais do aplicativo, padronizando a identidade visual em tons de preto/grafite (`#0D1117`), cinza carbono (`#1E232A` / `#2D3139`) e verde neon (`#00E676`), preservando as cores semânticas de ícones (raio/estrela em dourado/âmbar `#FFD700` / `#FFB300` e fogo em vermelho `#FF5252`) e nivelando a altura vertical dos cards de métricas na `HomeScreen`.

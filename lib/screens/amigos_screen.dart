@@ -520,6 +520,12 @@ class _AmigosScreenState extends State<AmigosScreen>
     );
   }
 
+  String _formatarNomeCurto(String nomeCompleto) {
+    final partes = nomeCompleto.trim().split(RegExp(r'\s+'));
+    if (partes.isEmpty || partes.first.isEmpty) return 'Amigo';
+    return partes.take(2).join(' ');
+  }
+
   Widget _buildAbaMeusAmigos() {
     if (_meusAmigos.isEmpty) {
       return Center(
@@ -574,6 +580,7 @@ class _AmigosScreenState extends State<AmigosScreen>
         itemBuilder: (context, index) {
           final amigo = _meusAmigos[index];
           final nome = amigo['nome']?.toString() ?? 'Amigo';
+          final nomeExibicao = _formatarNomeCurto(nome);
           final letraAvatar = nome.isNotEmpty ? nome[0].toUpperCase() : 'A';
           final sequencia = (amigo['sequencia'] as num?)?.toInt() ?? 0;
           final pontos = (amigo['pontos'] as num?)?.toInt() ?? 0;
@@ -607,7 +614,9 @@ class _AmigosScreenState extends State<AmigosScreen>
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        nome,
+                        nomeExibicao,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 16,
@@ -645,16 +654,18 @@ class _AmigosScreenState extends State<AmigosScreen>
                     ],
                   ),
                 ),
-                ElevatedButton.icon(
+                IconButton(
                   onPressed: () => _iniciarTreinoComAmigo(amigoId, nome),
-                  icon: const Icon(Icons.fitness_center, size: 15),
-                  label: const Text('Dupla'),
-                  style: ElevatedButton.styleFrom(
+                  icon: const Icon(Icons.fitness_center, size: 18),
+                  tooltip: 'Treino em Dupla',
+                  style: IconButton.styleFrom(
                     backgroundColor: const Color(0xFF00E676),
                     foregroundColor: Colors.black,
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                    textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    padding: const EdgeInsets.all(8),
+                    minimumSize: const Size(36, 36),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
                   ),
                 ),
                 const SizedBox(width: 4),
