@@ -78,23 +78,55 @@ def calcular_pontuacao(
     erros_fsm: List[str],
     fsm_ou_config: Any,
     numero_repeticao: int = 1,
-    tolerancia: float = 15.0,
+    tolerancia: float = 30.0,
     janela_sakoe_chiba: Optional[float] = 0.20,
     limiar_aprovacao: float = 70.0,
+    alinhar_baseline: bool = True,
+    frames_baseline: int = 3,
 ) -> ResultadoPontuacaoRepeticao:
     """
     Função pura desacoplada que calcula a pontuação técnica da repetição.
 
     Regras:
-    1. Score DTW: S_dtw = 100 * exp(-distancia_normalizada / tau), tau = 15.0 graus.
-    2. Penalidades FSM: somatório dos erros únicos cometidos na repetição.
-    3. Score Final: clip(S_dtw - P_fsm, 0.0, 100.0).
-    4. Erros de incompletude reprovam a repetição, independentemente do score numérico.
-    5. Feedback Hierárquico: 1º erro FSM amigável -> 2º desvio articular > 12° -> 3º reforço motivacional.
+    1. Score DTW: S_dtw = 100 * exp(-distancia_normalizada / tau), tau = 30.0 graus (com deadzone).
+    2. Alinhamento de Baseline: Quando alinhar_baseline=True, alinha o ponto de repouso inicial
+       para comparar a morfologia/qualidade da trajetória invariante à angulação da câmera.
+    3. Penalidades FSM: somatório dos erros únicos cometidos na repetição.
+    4. Score Final: clip(S_dtw - P_fsm, 0.0, 100.0).
+    5. Erros de incompletude reprovam a repetição, independentemente do score numérico.
+    6. Feedback Hierárquico: 1º erro FSM amigável -> 2º desvio articular > 12° -> 3º reforço motivacional.
     """
+    # 1. Preparação de dados para DTW (com suporte a alinhamento de baseline de repouso)
+    dados_u = np.asarray(dados_usuario, dtype=float)
+    dados_g = np.asarray(gabarito.dados, dtype=float)
+
+    if alinhar_baseline and dados_u.shape[0] >= 3 and dados_g.shape[0] >= 3:
+        k_u = min(max(1, frames_baseline), dados_u.shape[0])
+        k_g = min(max(1, frames_baseline), dados_g.shape[0])
+        baseline_u = np.mean(dados_u[:k_u, :], axis=0, keepdims=True)
+        baseline_g = np.mean(dados_g[:k_g, :], axis=0, keepdims=True)
+        dados_dtw_u = dados_u - baseline_u
+        dados_dtw_g = dados_g - baseline_g
+    else:
+        dados_dtw_u = dados_u
+        dados_dtw_g = dados_g
+
     dtw = DTWComparator(tolerancia=tolerancia, janela=janela_sakoe_chiba)
-    res_dtw = dtw.compute(gabarito.dados, dados_usuario, nomes_articulacoes=gabarito.articulacoes)
+    res_dtw = dtw.compute(dados_dtw_g, dados_dtw_u, nomes_articulacoes=gabarito.articulacoes)
     score_dtw = float(res_dtw.score_similaridade)
+
+    # 2. Recalcula os desvios médios absolutos no espaço real não-normalizado para diagnóstico fiel
+    desvios_reais_dict = res_dtw.desvios_por_articulacao
+    if alinhar_baseline and res_dtw.caminho and len(res_dtw.caminho) > 0:
+        idx_g = [p[0] for p in res_dtw.caminho]
+        idx_u = [p[1] for p in res_dtw.caminho]
+        alinhado_u_real = dados_u[idx_u]
+        alinhado_g_real = dados_g[idx_g]
+        desvios_reais = np.mean(np.abs(alinhado_u_real - alinhado_g_real), axis=0)
+        desvios_reais_dict = {
+            art: round(float(desvios_reais[k]), 2)
+            for k, art in enumerate(gabarito.articulacoes)
+        }
 
     # Identifica mapeamentos de penalidades e mensagens da FSM
     if isinstance(fsm_ou_config, dict):
@@ -134,7 +166,7 @@ def calcular_pontuacao(
         feedback_principal = mensagens_erros[0]
     else:
         # Verifica se alguma articulação teve desvio significativo (> 12°)
-        desvios = res_dtw.desvios_por_articulacao or {}
+        desvios = desvios_reais_dict or {}
         art_critica = None
         desv_max = 0.0
         if desvios:
@@ -159,7 +191,7 @@ def calcular_pontuacao(
         classificacao=classificacao,
         erros_fsm=erros_unicos,
         mensagens_erros_fsm=mensagens_erros,
-        desvios_por_articulacao=res_dtw.desvios_por_articulacao,
+        desvios_por_articulacao=desvios_reais_dict,
         amplitudes_usuario=amplitudes_usuario,
         amplitudes_gabarito=amplitudes_gabarito,
         razao_cadencia=razao_cadencia,
@@ -179,15 +211,17 @@ class OrquestradorSessao:
         self,
         identificador_exercicio: str,
         gabarito_customizado: Optional[GabaritoExercicio] = None,
-        tolerancia_dtw: float = 15.0,
+        tolerancia_dtw: float = 30.0,
         limiar_aprovacao: float = 70.0,
         janela_sakoe_chiba: Optional[float] = 0.20,
         limite_frames_invisivel: int = 30,
+        alinhar_baseline: bool = True,
     ):
         self.tolerancia_dtw = tolerancia_dtw
         self.limiar_aprovacao = limiar_aprovacao
         self.janela_sakoe_chiba = janela_sakoe_chiba
         self.limite_frames_invisivel = limite_frames_invisivel
+        self.alinhar_baseline = alinhar_baseline
 
         self.historico_repeticoes: List[ResultadoPontuacaoRepeticao] = []
         self.frames_consecutivos_invisivel = 0
@@ -279,6 +313,7 @@ class OrquestradorSessao:
                 tolerancia=self.tolerancia_dtw,
                 janela_sakoe_chiba=self.janela_sakoe_chiba,
                 limiar_aprovacao=self.limiar_aprovacao,
+                alinhar_baseline=self.alinhar_baseline,
             )
             self.historico_repeticoes.append(resultado)
             return erro_imediato, resultado

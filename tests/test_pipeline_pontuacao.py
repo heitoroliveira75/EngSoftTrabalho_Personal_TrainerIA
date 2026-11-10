@@ -684,6 +684,43 @@ class TestOrquestradorEAvaliadorPontuacao:
         assert len(orq.historico_repeticoes) == 0
         assert orq.fsm.repeticoes == 0
 
+    def test_calcular_pontuacao_com_alinhamento_baseline_offset_estatico(self):
+        # Valida que uma repetição com offset constante (ex.: biotipo diferente ou câmera inclinada
+        # que adiciona +10 graus em todas as articulações) obtém score alto quando alinhar_baseline=True
+        gab = GabaritoExercicio.carregar_json("gabarito_especialista_ombro.json")
+        conf = {"classe_fsm": DesenvolvimentoOmbro}
+        
+        # Simula aluno com deslocamento de +10.0 graus em cotovelo e +8.0 graus no ombro
+        dados_aluno_com_offset = np.column_stack((
+            gab.dados[:, 0] + 10.0,
+            gab.dados[:, 1] + 8.0,
+        ))
+
+        # 1. Com alinhamento de baseline (novo padrão) -> avalia a forma/morfologia
+        res_alinhado = calcular_pontuacao(
+            dados_usuario=dados_aluno_com_offset,
+            gabarito=gab,
+            erros_fsm=[],
+            fsm_ou_config=conf,
+            alinhar_baseline=True,
+        )
+        assert res_alinhado.aprovado is True
+        assert res_alinhado.score_final >= 95.0
+        # O diagnóstico real deve continuar registrando os desvios médios brutos reais (10° e 8°)
+        assert pytest.approx(res_alinhado.desvios_por_articulacao["cotovelo"], abs=1e-1) == 10.0
+        assert pytest.approx(res_alinhado.desvios_por_articulacao["ombro"], abs=1e-1) == 8.0
+
+        # 2. Sem alinhamento de baseline -> penaliza o deslocamento constante
+        res_sem_alinhamento = calcular_pontuacao(
+            dados_usuario=dados_aluno_com_offset,
+            gabarito=gab,
+            erros_fsm=[],
+            fsm_ou_config=conf,
+            alinhar_baseline=False,
+        )
+        # O score sem alinhamento é estritamente menor do que com alinhamento de baseline
+        assert res_sem_alinhamento.score_final < res_alinhado.score_final
+
     def test_exemplo_integracao_cenarios_apresentam_vereditos_esperados(self):
         ideal, resumo_ideal = executar_sessao(criar_frames_movimento_completo(55))
         assert ideal.score_final >= 95.0
