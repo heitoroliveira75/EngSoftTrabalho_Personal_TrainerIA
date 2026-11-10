@@ -525,13 +525,17 @@ class _OpcaoTreinosScreenState extends State<OpcaoTreinosScreen> {
               (soma, item) => soma + ((item['pontos'] as num?)?.toInt() ?? 0),
             );
 
-            final duracao = (t['duracaoMinutos'] as num?)?.toInt() ??
-                (t['duracao_minutos'] as num?)?.toInt() ??
-                (exerciciosMapeados.isEmpty ? 20 : exerciciosMapeados.length * 5);
+            final duracao = exerciciosMapeados.isNotEmpty
+                ? exerciciosMapeados.length * 5
+                : ((t['duracaoMinutos'] as num?)?.toInt() ??
+                    (t['duracao_minutos'] as num?)?.toInt() ??
+                    20);
 
-            final pontosTreino = (t['pontosTotais'] as num?)?.toInt() ??
-                (t['pontos_totais'] as num?)?.toInt() ??
-                (totalPontos > 0 ? totalPontos : 150);
+            final pontosTreino = totalPontos > 0
+                ? totalPontos
+                : ((t['pontosTotais'] as num?)?.toInt() ??
+                    (t['pontos_totais'] as num?)?.toInt() ??
+                    150);
 
             convertidos.add({
               'id': t['id'].toString(),

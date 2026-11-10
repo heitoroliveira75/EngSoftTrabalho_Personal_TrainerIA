@@ -1,4 +1,5 @@
 import 'camera_treino_screen.dart';
+import 'criar_exercicio_screen.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
@@ -81,6 +82,57 @@ class _TreinoSelecionadoScreenState extends State<TreinoSelecionadoScreen> {
         debugPrint('Erro ao persistir nova ordem do treino no banco: $e');
       }
     }
+  }
+
+  Future<void> _abrirEdicaoTreino() async {
+    final dadosParaEdicao = {
+      ...widget.treinoData,
+      'id': _idSalvo ??
+          widget.treinoData['idSalvo']?.toString() ??
+          widget.treinoData['id']?.toString(),
+      'idSalvo': _idSalvo ??
+          widget.treinoData['idSalvo']?.toString() ??
+          widget.treinoData['id']?.toString(),
+      'exercicios': _listaExercicios
+          .map((e) => Map<String, dynamic>.from(e))
+          .toList(),
+    };
+
+    final resultado = await Navigator.push<Map<String, dynamic>>(
+      context,
+      MaterialPageRoute(
+        builder: (context) => CriarExercicioScreen(
+          treinoParaEditar: dadosParaEdicao,
+        ),
+      ),
+    );
+
+    if (!mounted || resultado == null) return;
+
+    setState(() {
+      if (resultado['titulo'] != null) {
+        widget.treinoData['titulo'] = resultado['titulo'];
+      }
+      if (resultado['exercicios'] is List) {
+        _listaExercicios = (resultado['exercicios'] as List)
+            .map<Map<String, dynamic>>((e) => Map<String, dynamic>.from(e as Map))
+            .toList();
+        widget.treinoData['exercicios'] = _listaExercicios;
+        widget.treinoData['exerciciosCount'] = _listaExercicios.length;
+      }
+      if (resultado['duracaoMinutos'] != null) {
+        widget.treinoData['duracaoMinutos'] = resultado['duracaoMinutos'];
+      }
+      if (resultado['pontosTotais'] != null) {
+        widget.treinoData['pontosTotais'] = resultado['pontosTotais'];
+      }
+
+      // Reajusta o controle de progresso com segurança para não dar RangeError
+      _exerciciosConcluidos = List.filled(_listaExercicios.length, false);
+      if (_indiceExercicioAtual >= _listaExercicios.length) {
+        _indiceExercicioAtual = 0;
+      }
+    });
   }
 
   List<dynamic> _obterListaExercicios() {
@@ -568,13 +620,33 @@ class _TreinoSelecionadoScreenState extends State<TreinoSelecionadoScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                widget.treinoData['titulo'] ?? 'Treino',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                ),
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Expanded(
+                    child: Text(
+                      widget.treinoData['titulo'] ?? 'Treino',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                  if (_salvo)
+                    IconButton(
+                      constraints: const BoxConstraints(),
+                      padding: const EdgeInsets.only(left: 8),
+                      tooltip: 'Editar Treino',
+                      icon: const Icon(
+                        Icons.edit_note_rounded,
+                        color: Color(0xFF29B6F6),
+                        size: 26,
+                      ),
+                      onPressed: _abrirEdicaoTreino,
+                    ),
+                ],
               ),
               const SizedBox(height: 4),
               Text(
