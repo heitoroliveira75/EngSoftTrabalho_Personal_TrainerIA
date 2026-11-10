@@ -33,6 +33,14 @@ class _HomeScreenState extends State<HomeScreen> {
   void initState() {
     super.initState();
     nomeUsuario = ApiService().nomeUsuarioAtual;
+    pontosTotais = ApiService().pontuacaoTotalAtual;
+    pontosSemana = ApiService().pontuacaoSemanalAtual;
+    pontosHoje = ApiService().pontuacaoDiariaAtual;
+    sequenciaAtual = ApiService().sequenciaAtual;
+    maiorSequencia = ApiService().maiorSequenciaAtual;
+    if (sequenciaAtual > maiorSequencia) {
+      maiorSequencia = sequenciaAtual;
+    }
     _carregarPontuacoes();
   }
 

@@ -228,10 +228,84 @@ def test_logout_libera_novo_login_sem_bloqueio(client):
         assert r2.get("ja_conectado") is False
 
 
+def test_pontuacao_e_streak_nao_zeram_com_rls_stateless(client):
+    """
+    Regressão pós-Entrada #025:
+    Quando o cliente global 'supabase' opera sem JWT (papel anon bloqueado por RLS, retornando data=[]),
+    ver_pontuacao e ver_perfil devem usar criar_cliente_db(token) autenticado com o JWT do usuário
+    para retornar pontuacao_diaria, pontuacao_semanal, pontuacao_total, sequencia e maior_sequencia reais.
+    """
+    bd._sessoes_ativas_usuarios.clear()
+    usuarios_db = {
+        "uid-atleta-1": {
+            "id": "uid-atleta-1",
+            "nome": "Davi Atleta",
+            "email": "davi@teste.com",
+            "token": "jwt-davi",
+            "pontuacao_diaria": 120,
+            "pontuacao_semanal": 540,
+            "pontuacao_total": 1850,
+            "sequencia": 7,
+            "maior_sequencia": 14,
+            "checagem": True,
+        }
+    }
+    tokens_db = {}
+
+    def _mock_criar_cliente_db(token_jwt: str = None):
+        mock_db = MagicMock()
+        uid_authed = tokens_db.get(token_jwt)
+        linha = [usuarios_db[uid_authed]] if uid_authed in usuarios_db else []
+        mock_table = MagicMock()
+        mock_table.select.return_value.eq.return_value.execute.return_value = SimpleNamespace(data=linha)
+        mock_table.select.return_value.eq.return_value.limit.return_value.execute.return_value = SimpleNamespace(data=linha)
+        mock_db.table.return_value = mock_table
+        return mock_db
+
+    # Simula RLS bloqueando o cliente global 'supabase' (sempre retorna data=[])
+    mock_anon_supabase = MagicMock()
+    mock_anon_supabase.table.return_value.select.return_value.eq.return_value.execute.return_value = SimpleNamespace(data=[])
+    mock_anon_supabase.table.return_value.select.return_value.eq.return_value.limit.return_value.execute.return_value = SimpleNamespace(data=[])
+
+    with patch.object(bd, "criar_cliente_auth", side_effect=_criar_mock_clientes_isolados(usuarios_db, tokens_db)), \
+         patch.object(bd, "criar_cliente_db", side_effect=_mock_criar_cliente_db), \
+         patch.object(bd, "supabase", mock_anon_supabase):
+
+        # 1. Faz login e verifica se métricas já vêm preenchidas no login
+        r_login = client.post("/auth/login", json={"email": "davi@teste.com", "senha": "123"}).json()
+        assert r_login["sucesso"] is True
+        jwt_token = r_login["sessao"]["access_token"]
+        assert r_login["usuario"]["pontuacao_total"] == 1850
+        assert r_login["usuario"]["sequencia"] == 7
+        assert r_login["usuario"]["maior_sequencia"] == 14
+
+        # 2. Consulta /pontuacao/{usuario_id} com o JWT e garante que não vem zerado
+        r_pts = client.get(
+            "/pontuacao/uid-atleta-1",
+            headers={"Authorization": f"Bearer {jwt_token}"},
+        ).json()
+        assert r_pts["sucesso"] is True
+        assert r_pts["pontuacao_diaria"] == 120
+        assert r_pts["pontuacao_semanal"] == 540
+        assert r_pts["pontuacao_total"] == 1850
+        assert r_pts["sequencia"] == 7
+        assert r_pts["maior_sequencia"] == 14
+
+        # 3. Consulta /perfil/{usuario_id} com o JWT e garante que não vem zerado
+        r_perfil = client.get(
+            "/perfil/uid-atleta-1",
+            headers={"Authorization": f"Bearer {jwt_token}"},
+        ).json()
+        assert r_perfil["sucesso"] is True
+        assert r_perfil["perfil"]["pontuacao_total"] == 1850
+        assert r_perfil["perfil"]["sequencia"] == 7
+
+
 if __name__ == "__main__":
     c = TestClient(app)
     test_quatro_usuarios_logando_simultaneamente_nao_viram_ramon(c)
     test_usuario_atual_sem_token_nao_vaza_sessao_do_ramon(c)
     test_bloqueio_segundo_dispositivo_e_forcar_login(c)
     test_logout_libera_novo_login_sem_bloqueio(c)
-    print("TODOS OS 4 TESTES DE ISOLAMENTO E CONTROLE DE DISPOSITIVO UNICO PASSARAM COM SUCESSO!")
+    test_pontuacao_e_streak_nao_zeram_com_rls_stateless(c)
+    print("TODOS OS 5 TESTES DE ISOLAMENTO, RLS E CONTROLE DE DISPOSITIVO UNICO PASSARAM COM SUCESSO!")

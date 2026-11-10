@@ -285,12 +285,22 @@ def api_alterar_senha(req: AlterarSenhaRequest):
 # ============================================================
 
 @app.get("/perfil/{usuario_id}")
-def api_ver_perfil(usuario_id: str):
-    resposta = bd.ver_perfil(usuario_id)
+def api_ver_perfil(usuario_id: str, authorization: Optional[str] = Header(None)):
+    token = _extrair_token_bearer(authorization)
+    if token and not bd.verificar_e_atualizar_sessao_ativa(usuario_id, token):
+        return {
+            "sucesso": False,
+            "sessao_encerrada": True,
+            "mensagem": "Sua sessão foi encerrada porque sua conta foi acessada em outro dispositivo.",
+        }
+    resposta = bd.ver_perfil(usuario_id, token=token) if token else bd.ver_perfil(usuario_id)
     return resposta
 
 @app.put("/perfil/{usuario_id}")
-def api_editar_perfil(usuario_id: str, req: EditarPerfilRequest):
+def api_editar_perfil(usuario_id: str, req: EditarPerfilRequest, authorization: Optional[str] = Header(None)):
+    token = _extrair_token_bearer(authorization)
+    if token:
+        bd.verificar_e_atualizar_sessao_ativa(usuario_id, token)
     resposta = bd.editar_perfil(
         usuario_id=usuario_id,
         nome=req.nome,
@@ -329,18 +339,23 @@ def api_ver_treinos_por_dificuldade(dificuldade: str):
     return resposta
 
 @app.get("/treinos/usuario/{usuario_id}")
-def api_listar_treinos_usuario(usuario_id: str):
+def api_listar_treinos_usuario(usuario_id: str, authorization: Optional[str] = Header(None)):
+    token = _extrair_token_bearer(authorization)
+    if token:
+        bd.verificar_e_atualizar_sessao_ativa(usuario_id, token)
     resposta = bd.listar_treinos(usuario_id)
     return resposta
 
 @app.post("/treinos")
 def api_criar_treino(req: CriarTreinoRequest, authorization: Optional[str] = Header(None)):
+    token = _extrair_token_bearer(authorization)
     usuario_id = req.usuario_id
     if not usuario_id and not req.pre_montado:
-        token = _extrair_token_bearer(authorization)
         usuario_atual = bd.obter_usuario_atual(token=token)
         if usuario_atual and usuario_atual.get("id"):
             usuario_id = str(usuario_atual["id"])
+    elif usuario_id and token:
+        bd.verificar_e_atualizar_sessao_ativa(usuario_id, token)
 
     exercicios_dict = None
     if req.exercicios:
@@ -359,7 +374,8 @@ def api_criar_treino(req: CriarTreinoRequest, authorization: Optional[str] = Hea
     return resposta
 
 @app.put("/treinos/{treino_id}")
-def api_editar_treino(treino_id: str, req: EditarTreinoRequest):
+def api_editar_treino(treino_id: str, req: EditarTreinoRequest, authorization: Optional[str] = Header(None)):
+    token = _extrair_token_bearer(authorization)
     exercicios_dict = None
     if req.exercicios is not None:
         exercicios_dict = [item.model_dump() for item in req.exercicios]
@@ -368,13 +384,20 @@ def api_editar_treino(treino_id: str, req: EditarTreinoRequest):
         treino_id=treino_id,
         nome=req.nome,
         descricao=req.descricao,
+        exercicios=exercicios_dict,
+        token=token
+    ) if token else bd.editar_treino(
+        treino_id=treino_id,
+        nome=req.nome,
+        descricao=req.descricao,
         exercicios=exercicios_dict
     )
     return resposta
 
 @app.delete("/treinos/{treino_id}")
-def api_excluir_treino(treino_id: str):
-    resposta = bd.excluir_treino(treino_id)
+def api_excluir_treino(treino_id: str, authorization: Optional[str] = Header(None)):
+    token = _extrair_token_bearer(authorization)
+    resposta = bd.excluir_treino(treino_id, token=token) if token else bd.excluir_treino(treino_id)
     return resposta
 
 # ============================================================
@@ -393,14 +416,17 @@ def api_ver_pontuacao(usuario_id: str, authorization: Optional[str] = Header(Non
             "sessao_encerrada": True,
             "mensagem": "Sua sessão foi encerrada porque sua conta foi acessada em outro dispositivo.",
         }
-    resposta = bd.ver_pontuacao(usuario_id)
+    resposta = bd.ver_pontuacao(usuario_id, token=token) if token else bd.ver_pontuacao(usuario_id)
     return resposta
 
 @app.post("/pontuacao/diaria")
-def api_adicionar_pontuacao_diaria(req: AdicionarPontuacaoRequest):
+def api_adicionar_pontuacao_diaria(req: AdicionarPontuacaoRequest, authorization: Optional[str] = Header(None)):
     """
     Adiciona pontuação diária ao usuário, atualizando também a semanal, a total, checagem e sequência.
     """
+    token = _extrair_token_bearer(authorization)
+    if token:
+        bd.verificar_e_atualizar_sessao_ativa(req.usuario_id, token)
     resposta = bd.adicionar_pontuacao_diaria(
         usuario_id=req.usuario_id,
         pontos=req.pontos,
@@ -412,11 +438,15 @@ def api_adicionar_pontuacao_diaria(req: AdicionarPontuacaoRequest):
 def api_adicionar_pontuacao_diaria_path(
     usuario_id: str,
     pontos: int = Query(50, gt=0),
-    incrementar_sequencia: Optional[bool] = Query(None)
+    incrementar_sequencia: Optional[bool] = Query(None),
+    authorization: Optional[str] = Header(None),
 ):
     """
     Endpoint alternativo com usuario_id na URL para adicionar pontos diários.
     """
+    token = _extrair_token_bearer(authorization)
+    if token:
+        bd.verificar_e_atualizar_sessao_ativa(usuario_id, token)
     resposta = bd.adicionar_pontuacao_diaria(
         usuario_id=usuario_id,
         pontos=pontos,
@@ -425,58 +455,91 @@ def api_adicionar_pontuacao_diaria_path(
     return resposta
 
 @app.put("/pontuacao/{usuario_id}/sequencia")
-def api_atualizar_sequencia_path(usuario_id: str, sequencia: int = Query(..., ge=0)):
+def api_atualizar_sequencia_path(
+    usuario_id: str,
+    sequencia: int = Query(..., ge=0),
+    authorization: Optional[str] = Header(None),
+):
     """
     Atualiza diretamente o valor da sequência de dias de um usuário.
     """
+    token = _extrair_token_bearer(authorization)
+    if token:
+        bd.verificar_e_atualizar_sessao_ativa(usuario_id, token)
     resposta = bd.atualizar_sequencia(usuario_id=usuario_id, sequencia=sequencia)
     return resposta
 
 @app.post("/pontuacao/sequencia")
-def api_atualizar_sequencia(req: AtualizarSequenciaRequest):
+def api_atualizar_sequencia(req: AtualizarSequenciaRequest, authorization: Optional[str] = Header(None)):
     """
     Atualiza diretamente a sequência de dias através de JSON payload.
     """
+    token = _extrair_token_bearer(authorization)
+    if token:
+        bd.verificar_e_atualizar_sessao_ativa(req.usuario_id, token)
     resposta = bd.atualizar_sequencia(usuario_id=req.usuario_id, sequencia=req.sequencia)
     return resposta
 
 @app.put("/pontuacao/{usuario_id}/maior-sequencia")
-def api_atualizar_maior_sequencia_path(usuario_id: str, maior_sequencia: int = Query(..., ge=0)):
+def api_atualizar_maior_sequencia_path(
+    usuario_id: str,
+    maior_sequencia: int = Query(..., ge=0),
+    authorization: Optional[str] = Header(None),
+):
     """
     Atualiza diretamente o recorde de maior sequência de dias de um usuário.
     """
+    token = _extrair_token_bearer(authorization)
+    if token:
+        bd.verificar_e_atualizar_sessao_ativa(usuario_id, token)
     resposta = bd.atualizar_maior_sequencia(usuario_id=usuario_id, maior_sequencia=maior_sequencia)
     return resposta
 
 @app.post("/pontuacao/maior-sequencia")
-def api_atualizar_maior_sequencia(req: AtualizarMaiorSequenciaRequest):
+def api_atualizar_maior_sequencia(req: AtualizarMaiorSequenciaRequest, authorization: Optional[str] = Header(None)):
     """
     Atualiza diretamente a maior sequência de dias através de JSON payload.
     """
+    token = _extrair_token_bearer(authorization)
+    if token:
+        bd.verificar_e_atualizar_sessao_ativa(req.usuario_id, token)
     resposta = bd.atualizar_maior_sequencia(usuario_id=req.usuario_id, maior_sequencia=req.maior_sequencia)
     return resposta
 
 @app.put("/pontuacao/{usuario_id}/checagem")
-def api_atualizar_checagem_path(usuario_id: str, checagem: bool = Query(...)):
+def api_atualizar_checagem_path(
+    usuario_id: str,
+    checagem: bool = Query(...),
+    authorization: Optional[str] = Header(None),
+):
     """
     Atualiza o status de checagem do usuário.
     """
+    token = _extrair_token_bearer(authorization)
+    if token:
+        bd.verificar_e_atualizar_sessao_ativa(usuario_id, token)
     resposta = bd.atualizar_checagem(usuario_id=usuario_id, checagem=checagem)
     return resposta
 
 @app.post("/pontuacao/checagem")
-def api_atualizar_checagem(req: AtualizarChecagemRequest):
+def api_atualizar_checagem(req: AtualizarChecagemRequest, authorization: Optional[str] = Header(None)):
     """
     Atualiza o status de checagem através de JSON payload.
     """
+    token = _extrair_token_bearer(authorization)
+    if token:
+        bd.verificar_e_atualizar_sessao_ativa(req.usuario_id, token)
     resposta = bd.atualizar_checagem(usuario_id=req.usuario_id, checagem=req.checagem)
     return resposta
 
 @app.post("/pontuacao/{usuario_id}/resetar-checagem")
-def api_resetar_checagem(usuario_id: str):
+def api_resetar_checagem(usuario_id: str, authorization: Optional[str] = Header(None)):
     """
     Reseta a checagem diária do usuário para False.
     """
+    token = _extrair_token_bearer(authorization)
+    if token:
+        bd.verificar_e_atualizar_sessao_ativa(usuario_id, token)
     resposta = bd.resetar_checagem_diaria(usuario_id=usuario_id)
     return resposta
 

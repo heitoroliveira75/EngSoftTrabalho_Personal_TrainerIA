@@ -734,6 +734,7 @@ class ApiService {
         if (data['checagem'] != null) {
           usuarioLogado!['checagem'] = data['checagem'];
         }
+        await salvarSessaoLocal();
       }
       return data;
     } catch (e) {
@@ -792,6 +793,7 @@ class ApiService {
         if (data['checagem'] != null) {
           usuarioLogado!['checagem'] = data['checagem'];
         }
+        await salvarSessaoLocal();
       }
       return data;
     } catch (e) {

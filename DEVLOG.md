@@ -26,6 +26,15 @@
 
 ## Histórico de Entradas
 
+### [Entrada #028] 2026-11-09 — Correção de Leitura e Atualização de Pontuações e Streak sob RLS Stateless
+- **Objetivo / Problema Relatado:**
+  - Após a refatoração de isolamento stateless da `[Entrada #025]`, o cliente global `supabase` passou a operar sem o JWT do usuário logado (papel `anon`), fazendo com que o Row-Level Security (RLS) da tabela `public.usuarios` retornasse `data=[]` em `ver_pontuacao` e `ver_perfil`, zerando a pontuação e o streak de dias na `HomeScreen` e na `ProfileScreen`.
+- **Tasks Executadas e Artefatos Gerados:**
+  - `[TASK-RLS-CLIENT-DB-01]` Criação da fábrica `criar_cliente_db(token)` em `BD/supabase_client.py` (injetando `postgrest.auth(token)` em instância efêmera por requisição) e do resolvedor `_obter_cliente_db(usuario_id, token)` em `BD/main.py` $\rightarrow$ **Artefatos:** `BD/supabase_client.py`, `BD/main.py`.
+  - `[TASK-PONTUACAO-STREAK-02]` Uso do cliente PostgREST autenticado por usuário e fallback via RPC `SECURITY DEFINER` em `ver_pontuacao`, `ver_perfil`, `editar_perfil`, `adicionar_pontuacao_diaria`, `atualizar_sequencia`, `atualizar_maior_sequencia`, `atualizar_checagem`, `fazer_login` e `obter_usuario_atual`, além de propagação do header `Authorization` em `BD/api.py` e hidratação inicial em `lib/screens/home_screen.dart` e `lib/services/api_service.dart` $\rightarrow$ **Artefatos:** `BD/main.py`, `BD/api.py`, `lib/services/api_service.dart`, `lib/screens/home_screen.dart`.
+  - `[TASK-TEST-RLS-STATELESS-03]` Inclusão do teste de regressão `test_pontuacao_e_streak_nao_zeram_com_rls_stateless` simulando bloqueio RLS no cliente anônimo e leitura real via JWT isolado $\rightarrow$ **Artefato:** `tests/test_isolamento_sessao_multiusuario.py`.
+- **Estado Resultante:** Pontuações (`diária`, `semanal`, `total`) e sequência de dias (`sequencia`, `maior_sequencia`) carregadas e persistidas com exatidão para cada usuário logado, mantendo 100% do isolamento multi-usuário stateless.
+
 ### [Entrada #027] 2026-11-09 — Unificação de Agentes/Skills em `.agents/`, Remoção de Redundâncias e Otimização de Tokens
 - **Objetivo / História de Usuário:**
   - Eliminar conflitos e redundâncias entre o `AGENTS.md` da raiz e a pasta `.agents/`, centralizar todos os agentes, skills e rules em `.agents/` e unificar 100% do contexto técnico nos arquivos `.ai_context.md` para leitura ultrarrápida com baixo consumo de tokens.

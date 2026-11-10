@@ -3,7 +3,7 @@ import time
 import uuid
 from datetime import datetime, timezone
 from typing import Optional, List, Dict, Any, Union
-from supabase_client import supabase, criar_cliente_auth
+from supabase_client import supabase, criar_cliente_auth, criar_cliente_db
 
 
 # ============================================================
@@ -23,6 +23,45 @@ def _limpar_token(token: Optional[str]) -> Optional[str]:
     if limpo.lower().startswith("bearer "):
         limpo = limpo[7:].strip()
     return limpo if limpo else None
+
+
+def _obter_token_sessao_usuario(
+    usuario_id: Optional[str] = None,
+    token: Optional[str] = None,
+) -> Optional[str]:
+    """
+    Resolve o token JWT do usuário a partir do parâmetro explícito ou da sessão
+    ativa registrada em memória para aquele usuario_id.
+    """
+    token_limpo = _limpar_token(token)
+    if token_limpo:
+        return token_limpo
+    if usuario_id and str(usuario_id).strip():
+        uid = str(usuario_id).strip()
+        registro = _sessoes_ativas_usuarios.get(uid)
+        if registro:
+            tok_reg = _limpar_token(registro.get("token"))
+            if tok_reg and not tok_reg.startswith("sessao_"):
+                return tok_reg
+    return None
+
+
+def _obter_cliente_db(
+    usuario_id: Optional[str] = None,
+    token: Optional[str] = None,
+):
+    """
+    Retorna um cliente PostgREST isolado e autenticado com o JWT do usuário (quando disponível),
+    permitindo leitura/escrita autorizada pelas políticas RLS do Supabase (auth.uid() = id)
+    sem compartilhar estado entre múltiplos usuários conectados simultaneamente.
+    """
+    token_resolvido = _obter_token_sessao_usuario(usuario_id=usuario_id, token=token)
+    if token_resolvido:
+        try:
+            return criar_cliente_db(token_resolvido)
+        except Exception:
+            pass
+    return supabase
 
 
 def _sessao_esta_ativa_em_outro_dispositivo(usuario_id: str, token_novo: Optional[str] = None) -> bool:
@@ -89,24 +128,105 @@ def _buscar_nome_usuario_tabela(
     usuario_id: str,
     fallback_metadata: Optional[Dict[str, Any]] = None,
 ) -> str:
-    """Busca o nome cadastrado na tabela 'usuarios' para o ID informado, com fallback seguro."""
+    """Busca o nome cadastrado na tabela 'usuarios' para o ID informado usando cliente isolado com JWT."""
     if usuario_id:
-        try:
-            res = (
-                supabase
-                .table("usuarios")
-                .select("nome")
-                .eq("id", str(usuario_id))
-                .limit(1)
-                .execute()
-            )
-            if res.data and res.data[0].get("nome"):
-                return str(res.data[0]["nome"]).strip()
-        except Exception:
-            pass
+        uid = str(usuario_id).strip()
+        cliente_db = _obter_cliente_db(usuario_id=uid)
+        for cli in ([cliente_db, supabase] if cliente_db is not supabase else [supabase]):
+            try:
+                res = (
+                    cli
+                    .table("usuarios")
+                    .select("nome")
+                    .eq("id", uid)
+                    .limit(1)
+                    .execute()
+                )
+                if res.data and res.data[0].get("nome"):
+                    return str(res.data[0]["nome"]).strip()
+            except Exception:
+                pass
     if isinstance(fallback_metadata, dict) and fallback_metadata.get("nome"):
         return str(fallback_metadata["nome"]).strip()
     return ""
+
+
+def _buscar_metricas_usuario_tabela(
+    usuario_id: str,
+    token: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    Busca pontuações e sequência do usuário na tabela 'usuarios' usando cliente isolado
+    autenticado com JWT (satisfazendo políticas RLS) e fallback seguro via RPC.
+    """
+    metricas: Dict[str, Any] = {
+        "pontuacao_diaria": 0,
+        "pontuacao_semanal": 0,
+        "pontuacao_total": 0,
+        "sequencia": 0,
+        "maior_sequencia": 0,
+        "checagem": False,
+    }
+    if not usuario_id:
+        return metricas
+
+    uid = str(usuario_id).strip()
+    cliente_db = _obter_cliente_db(usuario_id=uid, token=token)
+    for cli in ([cliente_db, supabase] if cliente_db is not supabase else [supabase]):
+        try:
+            res = (
+                cli
+                .table("usuarios")
+                .select("nome, pontuacao_diaria, pontuacao_semanal, pontuacao_total, sequencia, maior_sequencia, checagem")
+                .eq("id", uid)
+                .limit(1)
+                .execute()
+            )
+            if res.data:
+                d = res.data[0]
+                diaria = int(d.get("pontuacao_diaria") or 0)
+                semanal = int(d.get("pontuacao_semanal") or 0)
+                total = int(d.get("pontuacao_total") or 0)
+                seq = int(d.get("sequencia") if d.get("sequencia") is not None else 0)
+                maior_seq = int(d.get("maior_sequencia") if d.get("maior_sequencia") is not None else 0)
+                if seq > maior_seq:
+                    maior_seq = seq
+                metricas.update({
+                    "pontuacao_diaria": diaria,
+                    "pontuacao_semanal": semanal,
+                    "pontuacao_total": total,
+                    "sequencia": seq,
+                    "maior_sequencia": maior_seq,
+                    "checagem": bool(d.get("checagem")) if d.get("checagem") is not None else False,
+                })
+                if d.get("nome"):
+                    metricas["nome"] = str(d["nome"]).strip()
+                return metricas
+        except Exception:
+            pass
+
+    # Fallback via RPC SECURITY DEFINER caso a leitura direta não retorne linhas
+    try:
+        mapa = _obter_mapa_usuarios()
+        dados_rpc = mapa.get(uid)
+        if dados_rpc:
+            semanal = int(dados_rpc.get("pontuacao_semanal") or 0)
+            total = int(dados_rpc.get("pontuacao_total") or semanal or 0)
+            seq = int(dados_rpc.get("sequencia") or 0)
+            maior_seq = int(dados_rpc.get("maior_sequencia") or seq or 0)
+            metricas.update({
+                "pontuacao_diaria": int(dados_rpc.get("pontuacao_diaria") or 0),
+                "pontuacao_semanal": semanal,
+                "pontuacao_total": total,
+                "sequencia": seq,
+                "maior_sequencia": max(seq, maior_seq),
+            })
+            if dados_rpc.get("nome"):
+                metricas["nome"] = str(dados_rpc["nome"]).strip()
+    except Exception:
+        pass
+
+    return metricas
 
 
 def criar_conta(nome: str, email: str, senha: str) -> Dict[str, Any]:
@@ -183,6 +303,9 @@ def fazer_login(email: str, senha: str, forcar_login: bool = False) -> Dict[str,
 
         metadata = dict(resposta.user.user_metadata or {})
         nome_usuario = _buscar_nome_usuario_tabela(uid, metadata)
+        metricas = _buscar_metricas_usuario_tabela(uid, token=access_token)
+        if not nome_usuario and metricas.get("nome"):
+            nome_usuario = str(metricas["nome"])
         if nome_usuario and not metadata.get("nome"):
             metadata["nome"] = nome_usuario
 
@@ -194,7 +317,13 @@ def fazer_login(email: str, senha: str, forcar_login: bool = False) -> Dict[str,
                 "id": resposta.user.id,
                 "email": resposta.user.email,
                 "nome": nome_usuario,
-                "user_metadata": metadata
+                "user_metadata": metadata,
+                "pontuacao_diaria": metricas.get("pontuacao_diaria", 0),
+                "pontuacao_semanal": metricas.get("pontuacao_semanal", 0),
+                "pontuacao_total": metricas.get("pontuacao_total", 0),
+                "sequencia": metricas.get("sequencia", 0),
+                "maior_sequencia": metricas.get("maior_sequencia", 0),
+                "checagem": metricas.get("checagem", False),
             },
             "sessao": {
                 "access_token": access_token,
@@ -259,6 +388,9 @@ def obter_usuario_atual(
                         return {"sessao_encerrada": True}
                     metadata = dict(user_obj.user_metadata or {})
                     nome = _buscar_nome_usuario_tabela(uid_resolvido, metadata)
+                    metricas = _buscar_metricas_usuario_tabela(uid_resolvido, token=token_limpo)
+                    if not nome and metricas.get("nome"):
+                        nome = str(metricas["nome"])
                     if nome and not metadata.get("nome"):
                         metadata["nome"] = nome
                     return {
@@ -266,6 +398,12 @@ def obter_usuario_atual(
                         "email": user_obj.email,
                         "nome": nome,
                         "user_metadata": metadata,
+                        "pontuacao_diaria": metricas.get("pontuacao_diaria", 0),
+                        "pontuacao_semanal": metricas.get("pontuacao_semanal", 0),
+                        "pontuacao_total": metricas.get("pontuacao_total", 0),
+                        "sequencia": metricas.get("sequencia", 0),
+                        "maior_sequencia": metricas.get("maior_sequencia", 0),
+                        "checagem": metricas.get("checagem", False),
                     }
         except Exception:
             pass
@@ -274,26 +412,34 @@ def obter_usuario_atual(
     if uid_limpo:
         if not verificar_e_atualizar_sessao_ativa(uid_limpo, token_limpo):
             return {"sessao_encerrada": True}
-        try:
-            res = (
-                supabase
-                .table("usuarios")
-                .select("*")
-                .eq("id", uid_limpo)
-                .limit(1)
-                .execute()
-            )
-            if res.data:
-                u = res.data[0]
-                nome = str(u.get("nome") or "").strip()
-                return {
-                    "id": str(u.get("id") or uid_limpo),
-                    "email": str(u.get("email") or "").strip(),
-                    "nome": nome,
-                    "user_metadata": {"nome": nome},
-                }
-        except Exception:
-            pass
+        cliente_db = _obter_cliente_db(usuario_id=uid_limpo, token=token_limpo)
+        for cli in ([cliente_db, supabase] if cliente_db is not supabase else [supabase]):
+            try:
+                res = (
+                    cli
+                    .table("usuarios")
+                    .select("*")
+                    .eq("id", uid_limpo)
+                    .limit(1)
+                    .execute()
+                )
+                if res.data:
+                    u = res.data[0]
+                    nome = str(u.get("nome") or "").strip()
+                    return {
+                        "id": str(u.get("id") or uid_limpo),
+                        "email": str(u.get("email") or "").strip(),
+                        "nome": nome,
+                        "user_metadata": {"nome": nome},
+                        "pontuacao_diaria": int(u.get("pontuacao_diaria") or 0),
+                        "pontuacao_semanal": int(u.get("pontuacao_semanal") or 0),
+                        "pontuacao_total": int(u.get("pontuacao_total") or 0),
+                        "sequencia": int(u.get("sequencia") if u.get("sequencia") is not None else 0),
+                        "maior_sequencia": int(u.get("maior_sequencia") if u.get("maior_sequencia") is not None else 0),
+                        "checagem": bool(u.get("checagem")) if u.get("checagem") is not None else False,
+                    }
+            except Exception:
+                pass
 
     return None
 
@@ -406,38 +552,52 @@ def atualizar_senha(nova_senha: str) -> Dict[str, Any]:
 # 2. PERFIL DE USUÁRIO
 # ============================================================
 
-def ver_perfil(usuario_id: str) -> Dict[str, Any]:
+def ver_perfil(usuario_id: str, token: Optional[str] = None) -> Dict[str, Any]:
     """
-    Consulta e retorna os dados cadastrais da tabela 'usuarios' referentes ao ID informado.
+    Consulta e retorna os dados cadastrais da tabela 'usuarios' referentes ao ID informado,
+    utilizando cliente PostgREST isolado autenticado com o JWT do usuário.
     """
     if not usuario_id:
         return {"sucesso": False, "mensagem": "ID do usuário é obrigatório."}
 
     try:
+        cliente_db = _obter_cliente_db(usuario_id=usuario_id, token=token)
         resultado = (
-            supabase
+            cliente_db
             .table("usuarios")
             .select("*")
             .eq("id", usuario_id)
             .execute()
         )
+        if not resultado.data and cliente_db is not supabase:
+            resultado = (
+                supabase
+                .table("usuarios")
+                .select("*")
+                .eq("id", usuario_id)
+                .execute()
+            )
 
         if not resultado.data:
             # Fallback via RPC SECURITY DEFINER caso RLS restrinja leitura direta na tabela usuarios
             mapa = _obter_mapa_usuarios()
             dados_rpc = mapa.get(str(usuario_id))
             if dados_rpc:
+                semanal_rpc = dados_rpc.get("pontuacao_semanal") or 0
+                total_rpc = dados_rpc.get("pontuacao_total") or semanal_rpc or 0
+                seq_rpc = dados_rpc.get("sequencia") or 0
+                maior_seq_rpc = dados_rpc.get("maior_sequencia") or seq_rpc or 0
                 return {
                     "sucesso": True,
                     "perfil": {
                         "id": str(usuario_id),
                         "email": "",
                         "nome": dados_rpc.get("nome") or "Usuário",
-                        "pontuacao_diaria": 0,
-                        "pontuacao_semanal": dados_rpc.get("pontuacao_semanal") or 0,
-                        "pontuacao_total": dados_rpc.get("pontuacao_total") or 0,
-                        "sequencia": dados_rpc.get("sequencia") or 0,
-                        "maior_sequencia": dados_rpc.get("maior_sequencia") or 0,
+                        "pontuacao_diaria": dados_rpc.get("pontuacao_diaria") or 0,
+                        "pontuacao_semanal": semanal_rpc,
+                        "pontuacao_total": total_rpc,
+                        "sequencia": seq_rpc,
+                        "maior_sequencia": max(seq_rpc, maior_seq_rpc),
                         "checagem": False,
                     }
                 }
@@ -449,6 +609,8 @@ def ver_perfil(usuario_id: str) -> Dict[str, Any]:
         perfil["pontuacao_total"] = perfil.get("pontuacao_total") or 0
         perfil["sequencia"] = perfil.get("sequencia") if perfil.get("sequencia") is not None else 0
         perfil["maior_sequencia"] = perfil.get("maior_sequencia") if perfil.get("maior_sequencia") is not None else 0
+        if perfil["sequencia"] > perfil["maior_sequencia"]:
+            perfil["maior_sequencia"] = perfil["sequencia"]
         perfil["checagem"] = bool(perfil.get("checagem")) if perfil.get("checagem") is not None else False
 
         return {
@@ -465,7 +627,8 @@ def editar_perfil(
     cpf: Optional[str] = None,
     sequencia: Optional[int] = None,
     maior_sequencia: Optional[int] = None,
-    checagem: Optional[bool] = None
+    checagem: Optional[bool] = None,
+    token: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Atualiza os dados de nome, CPF, sequência, maior sequência e/ou checagem do usuário na tabela 'usuarios'.
@@ -489,18 +652,29 @@ def editar_perfil(
         return {"sucesso": False, "mensagem": "Nenhum dado informado para atualização."}
 
     try:
+        cliente_db = _obter_cliente_db(usuario_id=usuario_id, token=token)
         resultado = (
-            supabase
+            cliente_db
             .table("usuarios")
             .update(dados_atualizacao)
             .eq("id", usuario_id)
             .execute()
         )
+        if not resultado.data and cliente_db is not supabase:
+            resultado = (
+                supabase
+                .table("usuarios")
+                .update(dados_atualizacao)
+                .eq("id", usuario_id)
+                .execute()
+            )
 
         if not resultado.data:
             # Se ainda não existe registro na tabela usuarios, faz upsert
             dados_atualizacao["id"] = usuario_id
-            upsert_res = supabase.table("usuarios").upsert(dados_atualizacao).execute()
+            upsert_res = cliente_db.table("usuarios").upsert(dados_atualizacao).execute()
+            if not upsert_res.data and cliente_db is not supabase:
+                upsert_res = supabase.table("usuarios").upsert(dados_atualizacao).execute()
             if upsert_res.data:
                 return {
                     "sucesso": True,
@@ -810,23 +984,33 @@ def ver_treinos_premont() -> Dict[str, Any]:
         return {"sucesso": False, "mensagem": str(erro), "treinos": []}
 
 
-def listar_treinos(usuario_id: str) -> Dict[str, Any]:
+def listar_treinos(usuario_id: str, token: Optional[str] = None) -> Dict[str, Any]:
     """
     Lista todos os treinos criados por um usuário específico com os respectivos exercícios vinculados.
     """
     if not usuario_id or not str(usuario_id).strip():
         return {"sucesso": False, "mensagem": "ID do usuário é obrigatório.", "treinos": []}
     usuario_id = str(usuario_id).strip()
+    cliente_db = _obter_cliente_db(usuario_id=usuario_id, token=token)
 
     try:
         resultado = (
-            supabase
+            cliente_db
             .table("treinos")
             .select("*, treino_exercicios(*, exercicios(*))")
             .eq("usuario_id", usuario_id)
             .order("id", desc=True)
             .execute()
         )
+        if not resultado.data and cliente_db is not supabase:
+            resultado = (
+                supabase
+                .table("treinos")
+                .select("*, treino_exercicios(*, exercicios(*))")
+                .eq("usuario_id", usuario_id)
+                .order("id", desc=True)
+                .execute()
+            )
 
         treinos = [_desempacotar_treino(t) for t in (resultado.data or [])]
         return {
@@ -836,7 +1020,7 @@ def listar_treinos(usuario_id: str) -> Dict[str, Any]:
     except Exception as erro:
         try:
             res_simples = (
-                supabase
+                cliente_db
                 .table("treinos")
                 .select("*")
                 .eq("usuario_id", usuario_id)
@@ -860,7 +1044,8 @@ def criar_treino(
     exercicios: Optional[List[Dict[str, Any]]] = None,
     dificuldade: Optional[str] = None,
     duracao_minutos: Optional[int] = None,
-    pontos_totais: Optional[int] = None
+    pontos_totais: Optional[int] = None,
+    token: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Cria um novo treino na tabela 'treinos' e insere os exercícios associados na tabela 'treino_exercicios'.
@@ -874,6 +1059,7 @@ def criar_treino(
         return {"sucesso": False, "mensagem": "ID do usuário é obrigatório para treinos personalizados."}
 
     try:
+        cliente_db = _obter_cliente_db(usuario_id=usuario_id, token=token)
         # Serializa os exercícios e metadados em JSON para persistência garantida na coluna 'descricao'
         payload_descricao = {
             "texto": (descricao or "").strip(),
@@ -892,7 +1078,9 @@ def criar_treino(
         if usuario_id:
             dados_treino["usuario_id"] = usuario_id
 
-        res_treino = supabase.table("treinos").insert(dados_treino).execute()
+        res_treino = cliente_db.table("treinos").insert(dados_treino).execute()
+        if not res_treino.data and cliente_db is not supabase:
+            res_treino = supabase.table("treinos").insert(dados_treino).execute()
 
         if not res_treino.data:
             return {"sucesso": False, "mensagem": "Não foi possível criar o treino."}
@@ -918,7 +1106,7 @@ def criar_treino(
                         "repeticoes": item.get("repeticoes", 10)
                     })
 
-                res_ex = supabase.table("treino_exercicios").insert(registros_exercicios).execute()
+                res_ex = cliente_db.table("treino_exercicios").insert(registros_exercicios).execute()
                 exercicios_adicionados = res_ex.data or []
             except Exception as e_ex:
                 # Caso a tabela treino_exercicios falhe por constraint de FK ou RLS,
@@ -940,7 +1128,8 @@ def editar_treino(
     treino_id: Union[int, str],
     nome: Optional[str] = None,
     descricao: Optional[str] = None,
-    exercicios: Optional[List[Dict[str, Any]]] = None
+    exercicios: Optional[List[Dict[str, Any]]] = None,
+    token: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Atualiza os dados do treino (nome/descrição) e/ou substitui a lista de exercícios vinculados.
@@ -949,6 +1138,7 @@ def editar_treino(
         return {"sucesso": False, "mensagem": "ID do treino é obrigatório."}
 
     try:
+        cliente_db = _obter_cliente_db(token=token)
         dados_atualizacao = {}
         if nome is not None and nome.strip() != "":
             dados_atualizacao["nome"] = nome.strip()
@@ -957,19 +1147,29 @@ def editar_treino(
 
         if dados_atualizacao:
             res_treino = (
-                supabase
+                cliente_db
                 .table("treinos")
                 .update(dados_atualizacao)
                 .eq("id", treino_id)
                 .execute()
             )
+            if not res_treino.data and cliente_db is not supabase:
+                res_treino = (
+                    supabase
+                    .table("treinos")
+                    .update(dados_atualizacao)
+                    .eq("id", treino_id)
+                    .execute()
+                )
             if not res_treino.data:
                 return {"sucesso": False, "mensagem": "Treino não encontrado para atualização."}
 
         if exercicios is not None:
             # Preserva e atualiza o JSON na coluna 'descricao' com a nova ordem dos exercícios
             try:
-                res_atual = supabase.table("treinos").select("descricao").eq("id", treino_id).execute()
+                res_atual = cliente_db.table("treinos").select("descricao").eq("id", treino_id).execute()
+                if not res_atual.data and cliente_db is not supabase:
+                    res_atual = supabase.table("treinos").select("descricao").eq("id", treino_id).execute()
                 if res_atual.data:
                     desc_atual = res_atual.data[0].get("descricao")
                     payload_desc = {}
@@ -981,12 +1181,12 @@ def editar_treino(
                     if not isinstance(payload_desc, dict):
                         payload_desc = {}
                     payload_desc["exercicios"] = exercicios
-                    supabase.table("treinos").update({"descricao": json.dumps(payload_desc, ensure_ascii=False)}).eq("id", treino_id).execute()
+                    cliente_db.table("treinos").update({"descricao": json.dumps(payload_desc, ensure_ascii=False)}).eq("id", treino_id).execute()
             except Exception as e_desc:
                 print(f"Aviso ao atualizar JSON em descricao do treino: {e_desc}")
 
             try:
-                supabase.table("treino_exercicios").delete().eq("treino_id", treino_id).execute()
+                cliente_db.table("treino_exercicios").delete().eq("treino_id", treino_id).execute()
 
                 if exercicios:
                     registros_exercicios = []
@@ -1003,7 +1203,7 @@ def editar_treino(
                             "series": item.get("series", 3),
                             "repeticoes": item.get("repeticoes", 10)
                         })
-                    supabase.table("treino_exercicios").insert(registros_exercicios).execute()
+                    cliente_db.table("treino_exercicios").insert(registros_exercicios).execute()
             except Exception as e_rel:
                 print(f"Aviso ao atualizar treino_exercicios: {e_rel}")
 
@@ -1012,7 +1212,7 @@ def editar_treino(
         return {"sucesso": False, "mensagem": str(erro)}
 
 
-def excluir_treino(treino_id: Union[int, str]) -> Dict[str, Any]:
+def excluir_treino(treino_id: Union[int, str], token: Optional[str] = None) -> Dict[str, Any]:
     """
     Remove o treino da tabela 'treinos' e desvincula suas associações na tabela 'treino_exercicios'.
     """
@@ -1020,8 +1220,12 @@ def excluir_treino(treino_id: Union[int, str]) -> Dict[str, Any]:
         return {"sucesso": False, "mensagem": "ID do treino é obrigatório."}
 
     try:
-        supabase.table("treino_exercicios").delete().eq("treino_id", treino_id).execute()
-        resultado = supabase.table("treinos").delete().eq("id", treino_id).execute()
+        cliente_db = _obter_cliente_db(token=token)
+        cliente_db.table("treino_exercicios").delete().eq("treino_id", treino_id).execute()
+        resultado = cliente_db.table("treinos").delete().eq("id", treino_id).execute()
+        if not resultado.data and cliente_db is not supabase:
+            supabase.table("treino_exercicios").delete().eq("treino_id", treino_id).execute()
+            resultado = supabase.table("treinos").delete().eq("id", treino_id).execute()
 
         if not resultado.data:
             return {"sucesso": False, "mensagem": "Treino não encontrado para exclusão."}
@@ -1035,9 +1239,11 @@ def excluir_treino(treino_id: Union[int, str]) -> Dict[str, Any]:
 # 5. PONTUAÇÕES / GAMIFICAÇÃO
 # ============================================================
 
-def ver_pontuacao(usuario_id: str) -> Dict[str, Any]:
+def ver_pontuacao(usuario_id: str, token: Optional[str] = None) -> Dict[str, Any]:
     """
-    Consulta e retorna a pontuação diária, semanal e total, além da sequência, maior sequência e checagem do usuário na tabela 'usuarios'.
+    Consulta e retorna a pontuação diária, semanal e total, além da sequência,
+    maior sequência e checagem do usuário na tabela 'usuarios' usando cliente isolado
+    autenticado com o JWT do usuário (e fallback seguro via RPC SECURITY DEFINER).
     """
     if not usuario_id:
         return {
@@ -1052,15 +1258,54 @@ def ver_pontuacao(usuario_id: str) -> Dict[str, Any]:
         }
 
     try:
+        cliente_db = _obter_cliente_db(usuario_id=usuario_id, token=token)
         resultado = (
-            supabase
+            cliente_db
             .table("usuarios")
             .select("id, nome, pontuacao_diaria, pontuacao_semanal, pontuacao_total, sequencia, maior_sequencia, checagem")
             .eq("id", usuario_id)
             .execute()
         )
+        if not resultado.data and cliente_db is not supabase:
+            resultado = (
+                supabase
+                .table("usuarios")
+                .select("id, nome, pontuacao_diaria, pontuacao_semanal, pontuacao_total, sequencia, maior_sequencia, checagem")
+                .eq("id", usuario_id)
+                .execute()
+            )
 
         if not resultado.data:
+            # Fallback via RPC SECURITY DEFINER caso RLS restrinja consulta sem token
+            mapa = _obter_mapa_usuarios()
+            dados_rpc = mapa.get(str(usuario_id))
+            if dados_rpc:
+                diaria_rpc = dados_rpc.get("pontuacao_diaria") or 0
+                semanal_rpc = dados_rpc.get("pontuacao_semanal") or 0
+                total_rpc = dados_rpc.get("pontuacao_total") or semanal_rpc or 0
+                seq_rpc = dados_rpc.get("sequencia") if dados_rpc.get("sequencia") is not None else 0
+                maior_seq_rpc = dados_rpc.get("maior_sequencia") if dados_rpc.get("maior_sequencia") is not None else seq_rpc
+                maior_seq_rpc = max(seq_rpc, maior_seq_rpc)
+                return {
+                    "sucesso": True,
+                    "usuario_id": usuario_id,
+                    "nome": dados_rpc.get("nome"),
+                    "pontuacao_diaria": diaria_rpc,
+                    "pontuacao_semanal": semanal_rpc,
+                    "pontuacao_total": total_rpc,
+                    "sequencia": seq_rpc,
+                    "maior_sequencia": maior_seq_rpc,
+                    "checagem": False,
+                    "pontuacoes": {
+                        "pontuacao_diaria": diaria_rpc,
+                        "pontuacao_semanal": semanal_rpc,
+                        "pontuacao_total": total_rpc,
+                        "sequencia": seq_rpc,
+                        "maior_sequencia": maior_seq_rpc,
+                        "checagem": False,
+                    }
+                }
+
             return {
                 "sucesso": False,
                 "mensagem": "Usuário não encontrado na base de dados.",
@@ -1087,6 +1332,8 @@ def ver_pontuacao(usuario_id: str) -> Dict[str, Any]:
         total = dados.get("pontuacao_total") or 0
         sequencia = dados.get("sequencia") if dados.get("sequencia") is not None else 0
         maior_sequencia = dados.get("maior_sequencia") if dados.get("maior_sequencia") is not None else 0
+        if sequencia > maior_sequencia:
+            maior_sequencia = sequencia
         checagem = bool(dados.get("checagem")) if dados.get("checagem") is not None else False
 
         return {
@@ -1124,7 +1371,8 @@ def ver_pontuacao(usuario_id: str) -> Dict[str, Any]:
 def adicionar_pontuacao_diaria(
     usuario_id: str,
     pontos: int = 50,
-    incrementar_sequencia: Optional[bool] = None
+    incrementar_sequencia: Optional[bool] = None,
+    token: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Adiciona pontos diários ao usuário, incrementa as pontuações semanal e total,
@@ -1137,14 +1385,23 @@ def adicionar_pontuacao_diaria(
         return {"sucesso": False, "mensagem": "A quantidade de pontos deve ser maior que zero."}
 
     try:
+        cliente_db = _obter_cliente_db(usuario_id=usuario_id, token=token)
         # Busca a pontuação e status atuais do usuário
         resultado = (
-            supabase
+            cliente_db
             .table("usuarios")
             .select("id, pontuacao_diaria, pontuacao_semanal, pontuacao_total, sequencia, maior_sequencia, checagem")
             .eq("id", usuario_id)
             .execute()
         )
+        if not resultado.data and cliente_db is not supabase:
+            resultado = (
+                supabase
+                .table("usuarios")
+                .select("id, pontuacao_diaria, pontuacao_semanal, pontuacao_total, sequencia, maior_sequencia, checagem")
+                .eq("id", usuario_id)
+                .execute()
+            )
 
         if not resultado.data:
             # Caso o usuário ainda não exista na tabela, tenta fazer upsert inicial
@@ -1158,7 +1415,9 @@ def adicionar_pontuacao_diaria(
                 "maior_sequencia": nova_seq,
                 "checagem": True
             }
-            res_upsert = supabase.table("usuarios").upsert(dados_novos).execute()
+            res_upsert = cliente_db.table("usuarios").upsert(dados_novos).execute()
+            if not res_upsert.data and cliente_db is not supabase:
+                res_upsert = supabase.table("usuarios").upsert(dados_novos).execute()
             if res_upsert.data:
                 return {
                     "sucesso": True,
@@ -1208,20 +1467,29 @@ def adicionar_pontuacao_diaria(
 
         novo_maior_sequencia = max(atual_maior_sequencia, nova_sequencia)
 
+        payload_update = {
+            "pontuacao_diaria": nova_diaria,
+            "pontuacao_semanal": nova_semanal,
+            "pontuacao_total": nova_total,
+            "sequencia": nova_sequencia,
+            "maior_sequencia": novo_maior_sequencia,
+            "checagem": True
+        }
         res_update = (
-            supabase
+            cliente_db
             .table("usuarios")
-            .update({
-                "pontuacao_diaria": nova_diaria,
-                "pontuacao_semanal": nova_semanal,
-                "pontuacao_total": nova_total,
-                "sequencia": nova_sequencia,
-                "maior_sequencia": novo_maior_sequencia,
-                "checagem": True
-            })
+            .update(payload_update)
             .eq("id", usuario_id)
             .execute()
         )
+        if not res_update.data and cliente_db is not supabase:
+            res_update = (
+                supabase
+                .table("usuarios")
+                .update(payload_update)
+                .eq("id", usuario_id)
+                .execute()
+            )
 
         if not res_update.data:
             return {"sucesso": False, "mensagem": "Não foi possível atualizar a pontuação."}
@@ -1249,7 +1517,11 @@ def adicionar_pontuacao_diaria(
         return {"sucesso": False, "mensagem": str(erro)}
 
 
-def atualizar_sequencia(usuario_id: str, sequencia: int) -> Dict[str, Any]:
+def atualizar_sequencia(
+    usuario_id: str,
+    sequencia: int,
+    token: Optional[str] = None,
+) -> Dict[str, Any]:
     """
     Atualiza diretamente o número de dias de sequência do usuário na tabela 'usuarios',
     ajustando automaticamente a maior sequência se a nova sequência for superior.
@@ -1261,8 +1533,11 @@ def atualizar_sequencia(usuario_id: str, sequencia: int) -> Dict[str, Any]:
         return {"sucesso": False, "mensagem": "A sequência deve ser um valor maior ou igual a zero."}
 
     try:
+        cliente_db = _obter_cliente_db(usuario_id=usuario_id, token=token)
         # Busca maior_sequencia atual
-        res_atual = supabase.table("usuarios").select("maior_sequencia").eq("id", usuario_id).execute()
+        res_atual = cliente_db.table("usuarios").select("maior_sequencia").eq("id", usuario_id).execute()
+        if not res_atual.data and cliente_db is not supabase:
+            res_atual = supabase.table("usuarios").select("maior_sequencia").eq("id", usuario_id).execute()
         maior_atual = 0
         if res_atual.data:
             maior_atual = res_atual.data[0].get("maior_sequencia") or 0
@@ -1270,7 +1545,7 @@ def atualizar_sequencia(usuario_id: str, sequencia: int) -> Dict[str, Any]:
         novo_maior = max(maior_atual, int(sequencia))
 
         resultado = (
-            supabase
+            cliente_db
             .table("usuarios")
             .update({
                 "sequencia": int(sequencia),
@@ -1279,6 +1554,17 @@ def atualizar_sequencia(usuario_id: str, sequencia: int) -> Dict[str, Any]:
             .eq("id", usuario_id)
             .execute()
         )
+        if not resultado.data and cliente_db is not supabase:
+            resultado = (
+                supabase
+                .table("usuarios")
+                .update({
+                    "sequencia": int(sequencia),
+                    "maior_sequencia": novo_maior
+                })
+                .eq("id", usuario_id)
+                .execute()
+            )
 
         if not resultado.data:
             return {"sucesso": False, "mensagem": "Usuário não encontrado para atualizar a sequência."}
@@ -1294,7 +1580,11 @@ def atualizar_sequencia(usuario_id: str, sequencia: int) -> Dict[str, Any]:
         return {"sucesso": False, "mensagem": str(erro)}
 
 
-def atualizar_maior_sequencia(usuario_id: str, maior_sequencia: int) -> Dict[str, Any]:
+def atualizar_maior_sequencia(
+    usuario_id: str,
+    maior_sequencia: int,
+    token: Optional[str] = None,
+) -> Dict[str, Any]:
     """
     Atualiza diretamente o recorde de maior sequência em dias do usuário na tabela 'usuarios'.
     """
@@ -1305,13 +1595,22 @@ def atualizar_maior_sequencia(usuario_id: str, maior_sequencia: int) -> Dict[str
         return {"sucesso": False, "mensagem": "A maior sequência deve ser um valor maior ou igual a zero."}
 
     try:
+        cliente_db = _obter_cliente_db(usuario_id=usuario_id, token=token)
         resultado = (
-            supabase
+            cliente_db
             .table("usuarios")
             .update({"maior_sequencia": int(maior_sequencia)})
             .eq("id", usuario_id)
             .execute()
         )
+        if not resultado.data and cliente_db is not supabase:
+            resultado = (
+                supabase
+                .table("usuarios")
+                .update({"maior_sequencia": int(maior_sequencia)})
+                .eq("id", usuario_id)
+                .execute()
+            )
 
         if not resultado.data:
             return {"sucesso": False, "mensagem": "Usuário não encontrado para atualizar maior sequência."}
@@ -1326,7 +1625,11 @@ def atualizar_maior_sequencia(usuario_id: str, maior_sequencia: int) -> Dict[str
         return {"sucesso": False, "mensagem": str(erro)}
 
 
-def atualizar_checagem(usuario_id: str, checagem: bool) -> Dict[str, Any]:
+def atualizar_checagem(
+    usuario_id: str,
+    checagem: bool,
+    token: Optional[str] = None,
+) -> Dict[str, Any]:
     """
     Atualiza o estado da checagem booleana do usuário na tabela 'usuarios'.
     """
@@ -1334,13 +1637,22 @@ def atualizar_checagem(usuario_id: str, checagem: bool) -> Dict[str, Any]:
         return {"sucesso": False, "mensagem": "ID do usuário é obrigatório."}
 
     try:
+        cliente_db = _obter_cliente_db(usuario_id=usuario_id, token=token)
         resultado = (
-            supabase
+            cliente_db
             .table("usuarios")
             .update({"checagem": bool(checagem)})
             .eq("id", usuario_id)
             .execute()
         )
+        if not resultado.data and cliente_db is not supabase:
+            resultado = (
+                supabase
+                .table("usuarios")
+                .update({"checagem": bool(checagem)})
+                .eq("id", usuario_id)
+                .execute()
+            )
 
         if not resultado.data:
             return {"sucesso": False, "mensagem": "Usuário não encontrado para atualizar checagem."}
@@ -1355,11 +1667,11 @@ def atualizar_checagem(usuario_id: str, checagem: bool) -> Dict[str, Any]:
         return {"sucesso": False, "mensagem": str(erro)}
 
 
-def resetar_checagem_diaria(usuario_id: str) -> Dict[str, Any]:
+def resetar_checagem_diaria(usuario_id: str, token: Optional[str] = None) -> Dict[str, Any]:
     """
     Reseta o campo checagem do usuário para False (para novo ciclo diário).
     """
-    return atualizar_checagem(usuario_id, checagem=False)
+    return atualizar_checagem(usuario_id, checagem=False, token=token)
 
 
 # ============================================================
@@ -1377,13 +1689,16 @@ def _obter_mapa_usuarios() -> Dict[str, Dict[str, Any]]:
         if rpc_res.data:
             for u in rpc_res.data:
                 uid = str(u.get("id"))
+                semanal = u.get("pontuacao_semanal") or 0
+                total = u.get("pontuacao_total") or semanal or 0
                 mapa[uid] = {
                     "id": u.get("id"),
                     "nome": u.get("nome") or "Usuário",
                     "sequencia": u.get("sequencia") or 0,
-                    "pontuacao_semanal": u.get("pontuacao_semanal") or 0,
-                    "pontuacao_total": u.get("pontuacao_total") or 0,
-                    "maior_sequencia": u.get("maior_sequencia") or 0,
+                    "pontuacao_diaria": u.get("pontuacao_diaria") or 0,
+                    "pontuacao_semanal": semanal,
+                    "pontuacao_total": total,
+                    "maior_sequencia": u.get("maior_sequencia") or u.get("sequencia") or 0,
                 }
     except Exception:
         pass
