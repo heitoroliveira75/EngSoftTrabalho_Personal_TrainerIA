@@ -16,6 +16,31 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _senhaController = TextEditingController();
   bool _carregando = false;
+  String _mensagemStatus = 'Iniciando servidor e autenticando...';
+
+  @override
+  void initState() {
+    super.initState();
+    _verificarAutoLogin();
+  }
+
+  Future<void> _verificarAutoLogin() async {
+    final credenciais = await ApiService().obterCredenciaisSalvas();
+    if (!mounted || credenciais == null) return;
+
+    final emailSalvo = credenciais['email'] ?? '';
+    final senhaSalva = credenciais['senha'] ?? '';
+    if (emailSalvo.isEmpty || senhaSalva.isEmpty) return;
+
+    setState(() {
+      _emailController.text = emailSalvo;
+      _senhaController.text = senhaSalva;
+      _carregando = true;
+      _mensagemStatus = 'Iniciando servidor e autenticando...';
+    });
+
+    await _executarLogin();
+  }
 
   @override
   void dispose() {
@@ -40,12 +65,20 @@ class _LoginScreenState extends State<LoginScreen> {
 
     setState(() {
       _carregando = true;
+      _mensagemStatus = 'Conectando ao servidor e autenticando...';
     });
 
     final resposta = await ApiService().fazerLogin(
       email: email,
       senha: senha,
       forcarLogin: forcarLogin,
+      onStatus: (msg) {
+        if (mounted) {
+          setState(() {
+            _mensagemStatus = msg;
+          });
+        }
+      },
     );
 
     if (!mounted) return;
@@ -222,6 +255,19 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                             ),
                     ),
+
+                    if (_carregando) ...[
+                      const SizedBox(height: 14),
+                      Text(
+                        _mensagemStatus,
+                        textAlign: TextAlign.center,
+                        style: const TextStyle(
+                          color: Color(0xFF00E676),
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
 
                     const SizedBox(height: 14),
 

@@ -265,7 +265,12 @@ def criar_conta(nome: str, email: str, senha: str) -> Dict[str, Any]:
         return {"sucesso": False, "mensagem": str(erro)}
 
 
-def fazer_login(email: str, senha: str, forcar_login: bool = False) -> Dict[str, Any]:
+def fazer_login(
+    email: str,
+    senha: str,
+    forcar_login: bool = False,
+    token_dispositivo_atual: Optional[str] = None,
+) -> Dict[str, Any]:
     """
     Autentica o usuário com e-mail e senha em uma instância isolada (stateless).
     Verifica se o usuário já possui sessão ativa em outro dispositivo:
@@ -290,8 +295,9 @@ def fazer_login(email: str, senha: str, forcar_login: bool = False) -> Dict[str,
         access_token = resposta.session.access_token if resposta.session else None
         refresh_token = resposta.session.refresh_token if resposta.session else None
 
+        token_atual_limpo = _limpar_token(token_dispositivo_atual)
         # Verifica se já há outro dispositivo conectado nesta conta
-        if not forcar_login and _sessao_esta_ativa_em_outro_dispositivo(uid):
+        if not forcar_login and _sessao_esta_ativa_em_outro_dispositivo(uid, token_novo=token_atual_limpo):
             return {
                 "sucesso": False,
                 "ja_conectado": True,
@@ -1804,6 +1810,7 @@ def buscar_usuarios(nome: str, usuario_atual_id: Optional[str] = None) -> Dict[s
             u["solicitacao_enviada"] = False
             u["solicitacao_recebida"] = False
 
+    usuarios.sort(key=lambda u: str(u.get("nome") or "").strip().lower())
     return {"sucesso": True, "usuarios": usuarios}
 
 
@@ -2027,6 +2034,7 @@ def listar_amigos(usuario_id: str) -> Dict[str, Any]:
                     a["nome"] = mapa_usuarios[amigo_uid]["nome"]
                     a["sequencia"] = mapa_usuarios[amigo_uid]["sequencia"]
                     a["pontos"] = mapa_usuarios[amigo_uid]["pontuacao_semanal"]
+            amigos.sort(key=lambda a: str(a.get("nome") or "").strip().lower())
             return {"sucesso": True, "amigos": amigos}
     except Exception:
         pass
@@ -2082,6 +2090,7 @@ def listar_amigos(usuario_id: str) -> Dict[str, Any]:
                 "pontos": pontos,
             })
 
+        amigos_formatados.sort(key=lambda a: str(a.get("nome") or "").strip().lower())
         return {"sucesso": True, "amigos": amigos_formatados}
     except Exception as erro:
         return {"sucesso": False, "mensagem": f"Erro ao listar amigos: {erro}"}

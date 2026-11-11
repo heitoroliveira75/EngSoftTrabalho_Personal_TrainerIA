@@ -26,6 +26,41 @@
 
 ## Histórico de Entradas
 
+### [Entrada #033] 2026-11-11 — Ordenação Alfabética de Amigos na Tela de Amigos e Backend
+- **Objetivo / Problema Relatado:**
+  - Exibir os nomes dos amigos em ordem alfabética na tela de Amigos (`lib/screens/amigos_screen.dart`) para facilitar a localização e a busca.
+- **Tasks Executadas e Artefatos Gerados:**
+  - `[TASK-FRIENDS-SORT-01]` Implementação de `_ordenarPorNome()` em `lib/screens/amigos_screen.dart` aplicada às listas `_meusAmigos`, `_solicitacoesPendentes` e `_resultadosBusca`, além de ordenação alfabética em `listar_amigos()` e `buscar_usuarios()` em `BD/main.py` $\rightarrow$ **Artefatos:** `lib/screens/amigos_screen.dart`, `BD/main.py`, `.ai_context.md`, `lib/screens/.ai_context.md`, `BD/.ai_context.md`, `DEVLOG.md`.
+- **Decisões Técnicas e Observações:**
+  - A ordenação é *case-insensitive* (`toLowerCase()` / `.lower()`) e realizada tanto na resposta do backend quanto na camada de estado da UI para garantir consistência independentemente da rota/fallback utilizado.
+- **Estado Resultante / Próximos Passos:**
+  - Lista de amigos, solicitações e resultados de busca exibidos em ordem alfabética.
+
+---
+
+### [Entrada #032] 2026-11-11 — Ajustes no Leaderboard: Pontuação no Card "Sua Posição Atual" e Limite Top 15 no Ranking Global
+- **Objetivo / Problema Relatado:**
+  - Na tela de Leaderboard (`lib/screens/leaderboard_screen.dart`), o card superior **"Sua Posição Atual"** não estava exibindo a pontuação real do usuário (que aparecia apenas na linha do próprio usuário na tabela inferior).
+  - Na aba de classificação **Global**, limitar a exibição da tabela aos **15 primeiros colocados** (`Top 15`), mantendo a exibição de **todos os participantes** na aba **Amigos**.
+- **Tasks Executadas e Artefatos Gerados:**
+  - `[TASK-LEADERBOARD-SCORE-01]` Inicialização de `_meusPontos` com o cache de `ApiService`, sincronização de `_meusPontos` e `_minhaSequencia` a partir da entrada do próprio usuário (`is_me == true`) retornada nas listas `_globalLeaderboard` / `_amigosLeaderboard` e padronização visual da exibição de pontos e streak no card **"Sua Posição Atual"** $\rightarrow$ **Artefatos:** `lib/screens/leaderboard_screen.dart`.
+  - `[TASK-LEADERBOARD-TOP15-02]` Aplicação do recorte `itensOrdenados.take(15).toList()` exclusivamente na aba **Global** (`!isAmigosTab`), preservando o cálculo da posição real do usuário no card superior e mantendo a lista completa na aba **Amigos** $\rightarrow$ **Artefatos:** `lib/screens/leaderboard_screen.dart`, `.ai_context.md`, `lib/screens/.ai_context.md`, `DEVLOG.md`.
+- **Decisões Técnicas e Observações:**
+  - O cálculo de `posicaoEfetiva` do card superior continua sendo feito sobre `itensOrdenados` (lista completa) antes do recorte de `itensExibidos` para 15 itens na aba Global, garantindo que o usuário veja sua posição real no ranking global mesmo quando estiver abaixo do 15º lugar.
+- **Estado Resultante / Próximos Passos:**
+  - Card **"Sua Posição Atual"** exibe pontuação e ofensiva sincronizadas com a tabela inferior; aba **Global** exibe apenas o Top 15 e aba **Amigos** exibe todos os amigos.
+
+---
+
+### [Entrada #031] 2026-11-11 — Auto-Login com Estado de Carregamento na Tela Inicial e Despertar Automático do Render
+- **Objetivo / Problema Relatado:**
+  - Quando o aplicativo era aberto com o servidor do Render em hibernação (*cold start*), pular direto para a `HomeScreen` fazia as consultas expirarem em 10 segundos sem token renovado, exibindo apenas valores de placeholder (`Atleta` / `0`).
+  - Garantir que o app sempre inicie na `LoginScreen`, guarde as credenciais localmente e entre automaticamente em estado de carregamento ao abrir, insistindo até acordar o servidor do Render e receber a credencial válida do Supabase e os dados reais do usuário antes de liberar a `HomeScreen`.
+- **Tasks Executadas e Artefatos Gerados:**
+  - `[TASK-AUTH-COLDBOOT-01]` Inicialização na rota `/login` em `lib/main.dart`, persistência de credenciais (`salvarCredenciaisLocais`, `obterCredenciaisSalvas`, `limparCredenciaisLocais`) e loop de *retry* com `acordarServidor()` (`/health`) + sincronização prévia de `verPontuacao` em `fazerLogin`, além de ampliação dos timeouts de leitura para 45s $\rightarrow$ **Artefatos:** `lib/main.dart`, `lib/services/api_service.dart`.
+  - `[TASK-LOGIN-AUTOLOAD-02]` Implementação de `_verificarAutoLogin()` em `lib/screens/login_screen.dart` que preenche e-mail/senha salvos, ativa imediatamente o estado `_carregando = true` com feedback visual de progresso (`_mensagemStatus`) e só navega para `HomeScreen` após confirmação do servidor e do Supabase, além de reconhecimento do `token_dispositivo_atual` em `BD/main.py` e `BD/api.py` para evitar falso bloqueio de sessão no mesmo aparelho $\rightarrow$ **Artefatos:** `lib/screens/login_screen.dart`, `BD/main.py`, `BD/api.py`, `.ai_context.md`, `lib/screens/.ai_context.md`, `BD/.ai_context.md`, `DEVLOG.md`.
+- **Estado Resultante:** O aplicativo guarda as credenciais, abre na tela inicial em estado de carregamento acordando o Render automaticamente e só entra na `HomeScreen` quando o servidor responde com a sessão autenticada do Supabase e as pontuações reais.
+
 ### [Entrada #030] 2026-11-10 — Formatação de Nomes (1 Nome + 1 Sobrenome) e Botão de Ícone para Treino em Dupla em Amigos
 - **Objetivo / História de Usuário:**
   - Evitar que nomes longos quebrem linha nos cards da lista de amigos adicionados, exibindo apenas 1 nome + 1 sobrenome após o amigo ser adicionado (mantendo o nome completo nas abas de busca e solicitações), e remover o texto `"Dupla"` ao lado do ícone de treino para deixar apenas um botão compacto de ícone de treino em dupla.

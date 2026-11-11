@@ -19,8 +19,8 @@ import 'screens/treinos_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  final logado = await ApiService().restaurarSessaoLocal();
-  runApp(MeuAppTreino(usuarioLogado: logado));
+  await ApiService().restaurarSessaoLocal();
+  runApp(const MeuAppTreino(usuarioLogado: false));
 }
 
 class MeuAppTreino extends StatelessWidget {

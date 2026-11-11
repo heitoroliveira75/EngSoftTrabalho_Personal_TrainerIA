@@ -36,6 +36,9 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _meusPontos = ApiService().pontuacaoSemanalAtual > 0
+        ? ApiService().pontuacaoSemanalAtual
+        : ApiService().pontuacaoTotalAtual;
     _minhaSequencia = ApiService().sequenciaAtual;
     _carregarLeaderboard();
   }
@@ -156,21 +159,33 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
               };
             }).toList();
 
-            // Calcular minha posição entre amigos
+            // Calcular minha posição entre amigos e sincronizar meus pontos/streak
             final indexAmigos = _amigosLeaderboard.indexWhere((it) => it['is_me'] == true);
             if (indexAmigos != -1) {
-              _minhaPosicaoAmigos = _amigosLeaderboard[indexAmigos]['posicao'] as int?;
+              final meuReg = _amigosLeaderboard[indexAmigos];
+              _minhaPosicaoAmigos = meuReg['posicao'] as int?;
+              final ptsReg = (meuReg['pontos'] as num?)?.toInt() ?? 0;
+              final seqReg = (meuReg['sequencia'] as num?)?.toInt() ?? 0;
+              if (ptsReg > _meusPontos) _meusPontos = ptsReg;
+              if (seqReg > _minhaSequencia) _minhaSequencia = seqReg;
             }
+          }
+
+          // Sincronizar meus pontos/streak a partir da lista global se presente
+          final indexGlobal = _globalLeaderboard.indexWhere((it) => it['is_me'] == true);
+          if (indexGlobal != -1) {
+            final meuRegGlobal = _globalLeaderboard[indexGlobal];
+            final ptsGlobal = (meuRegGlobal['pontos'] as num?)?.toInt() ?? 0;
+            final seqGlobal = (meuRegGlobal['sequencia'] as num?)?.toInt() ?? 0;
+            if (ptsGlobal > _meusPontos) _meusPontos = ptsGlobal;
+            if (seqGlobal > _minhaSequencia) _minhaSequencia = seqGlobal;
           }
 
           // Processar Posição Global
           if (resPosicao['sucesso'] == true && resPosicao['posicao'] != null) {
             _minhaPosicaoGlobal = (resPosicao['posicao'] as num?)?.toInt();
-          } else {
-            final indexGlobal = _globalLeaderboard.indexWhere((it) => it['is_me'] == true);
-            if (indexGlobal != -1) {
-              _minhaPosicaoGlobal = _globalLeaderboard[indexGlobal]['posicao'] as int?;
-            }
+          } else if (indexGlobal != -1) {
+            _minhaPosicaoGlobal = _globalLeaderboard[indexGlobal]['posicao'] as int?;
           }
 
           _carregando = false;
@@ -276,6 +291,20 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
   }) {
     final itensOrdenados = _obterItensOrdenados(itens);
     final posicaoEfetiva = _obterMinhaPosicaoOrdenada(itensOrdenados) ?? minhaPosicao;
+    final itensExibidos = isAmigosTab
+        ? itensOrdenados
+        : itensOrdenados.take(15).toList();
+
+    final idxMeuItem = itensOrdenados.indexWhere((it) => it['is_me'] == true);
+    final meuItem = idxMeuItem != -1 ? itensOrdenados[idxMeuItem] : null;
+    final int meusPontosCard =
+        (meuItem != null && ((meuItem['pontos'] as num?)?.toInt() ?? 0) > _meusPontos)
+            ? (meuItem['pontos'] as num).toInt()
+            : (_meusPontos > 0 ? _meusPontos : ApiService().pontuacaoSemanalAtual);
+    final int minhaSequenciaCard =
+        (meuItem != null && ((meuItem['sequencia'] as num?)?.toInt() ?? 0) > _minhaSequencia)
+            ? (meuItem['sequencia'] as num).toInt()
+            : (_minhaSequencia > 0 ? _minhaSequencia : ApiService().sequenciaAtual);
 
     return RefreshIndicator(
       onRefresh: _carregarLeaderboard,
@@ -489,11 +518,38 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
                       ),
                       Text(
                         nomeUsuario,
+                        overflow: TextOverflow.ellipsis,
                         style: const TextStyle(
                           color: Colors.white,
                           fontWeight: FontWeight.bold,
                           fontSize: 16,
                         ),
+                      ),
+                      const SizedBox(height: 3),
+                      Row(
+                        children: [
+                          const Icon(Icons.bolt, size: 14, color: Colors.amberAccent),
+                          const SizedBox(width: 2),
+                          Flexible(
+                            child: Text(
+                              '$minhaSequenciaCard dias streak',
+                              style: const TextStyle(color: Colors.white70, fontSize: 11),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          const Icon(Icons.star, size: 13, color: Color(0xFF00E676)),
+                          const SizedBox(width: 2),
+                          Flexible(
+                            child: Text(
+                              '$meusPontosCard pts sem.',
+                              style: const TextStyle(
+                                color: Color(0xFF00E676),
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -501,32 +557,25 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.star, size: 14, color: Color(0xFF00E676)),
-                        const SizedBox(width: 3),
-                        Text(
-                          '$_meusPontos pts sem.',
-                          style: const TextStyle(
-                            color: Color(0xFF00E676),
-                            fontWeight: FontWeight.bold,
-                            fontSize: 14,
-                          ),
-                        ),
-                      ],
+                    Text(
+                      _criterioOrdenacao == 'streak'
+                          ? '$minhaSequenciaCard d'
+                          : '$meusPontosCard pts',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 15,
+                      ),
                     ),
                     const SizedBox(height: 2),
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.bolt, size: 14, color: Colors.amberAccent),
-                        const SizedBox(width: 2),
-                        Text(
-                          '$_minhaSequencia dias streak',
-                          style: const TextStyle(color: Colors.white70, fontSize: 11),
-                        ),
-                      ],
+                    Text(
+                      _criterioOrdenacao == 'streak'
+                          ? '$meusPontosCard pts sem.'
+                          : '$minhaSequenciaCard d streak',
+                      style: const TextStyle(
+                        color: Colors.white54,
+                        fontSize: 11,
+                      ),
                     ),
                   ],
                 ),
@@ -536,16 +585,16 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
           const SizedBox(height: 16),
 
           // Pódio dos 3 primeiros (se houver pelo menos 3)
-          if (itensOrdenados.length >= 3) _buildPodium(itensOrdenados),
+          if (itensExibidos.length >= 3) _buildPodium(itensExibidos),
 
           const SizedBox(height: 16),
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Flexible(
+              Flexible(
                 child: Text(
-                  'Tabela Completa',
-                  style: TextStyle(
+                  isAmigosTab ? 'Tabela Completa' : 'Top 15 da Comunidade',
+                  style: const TextStyle(
                     color: Colors.white70,
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
@@ -569,7 +618,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
           const SizedBox(height: 8),
 
           // Se a lista estiver vazia
-          if (itensOrdenados.isEmpty)
+          if (itensExibidos.isEmpty)
             Container(
               padding: const EdgeInsets.all(32),
               alignment: Alignment.center,
@@ -588,7 +637,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
               ),
             )
           else
-            ...itensOrdenados.map((item) => _buildLeaderboardTile(item)),
+            ...itensExibidos.map((item) => _buildLeaderboardTile(item)),
 
           if (isAmigosTab) ...[
             const SizedBox(height: 20),

@@ -105,6 +105,58 @@ class ApiService {
     } catch (_) {}
   }
 
+  /// Salva as credenciais (e-mail e senha) no aparelho para auto-login ao abrir o app
+  Future<void> salvarCredenciaisLocais(String email, String senha) async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      if (email.trim().isNotEmpty && senha.trim().isNotEmpty) {
+        await prefs.setString('credencial_email', email.trim());
+        await prefs.setString('credencial_senha', senha.trim());
+      }
+    } catch (_) {}
+  }
+
+  /// Recupera as credenciais salvas no aparelho, se existirem
+  Future<Map<String, String>?> obterCredenciaisSalvas() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final email = prefs.getString('credencial_email');
+      final senha = prefs.getString('credencial_senha');
+      if (email != null &&
+          email.trim().isNotEmpty &&
+          senha != null &&
+          senha.trim().isNotEmpty) {
+        return {
+          'email': email.trim(),
+          'senha': senha.trim(),
+        };
+      }
+    } catch (_) {}
+    return null;
+  }
+
+  /// Remove as credenciais salvas no logout explícito do usuário
+  Future<void> limparCredenciaisLocais() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('credencial_email');
+      await prefs.remove('credencial_senha');
+    } catch (_) {}
+  }
+
+  /// Envia um ping leve a /health para despertar o servidor no Render (cold start)
+  Future<bool> acordarServidor({
+    Duration timeout = const Duration(seconds: 25),
+  }) async {
+    try {
+      final url = Uri.parse('$baseUrl/health');
+      final response = await http.get(url).timeout(timeout);
+      return response.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
   // ============================================================
   // 1. AUTENTICAÇÃO E SESSÃO
   // ============================================================
@@ -145,48 +197,85 @@ class ApiService {
     }
   }
 
-  /// Realiza login chamando o endpoint Python /auth/login
+  /// Realiza login chamando o endpoint Python /auth/login, aguardando e insistindo
+  /// automaticamente caso o servidor do Render esteja acordando (cold start).
   Future<Map<String, dynamic>> fazerLogin({
     required String email,
     required String senha,
     bool forcarLogin = false,
+    int maxTentativas = 4,
+    void Function(String mensagem)? onStatus,
   }) async {
-    try {
-      final url = Uri.parse('$baseUrl/auth/login');
-      final response = await http
-          .post(
-            url,
-            headers: _headers,
-            body: jsonEncode({
-              'email': email,
-              'senha': senha,
-              'forcar_login': forcarLogin,
-            }),
-          )
-          .timeout(const Duration(seconds: 60));
+    Object? ultimoErro;
 
-      final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+    for (var tentativa = 1; tentativa <= maxTentativas; tentativa++) {
+      try {
+        if (tentativa == 1) {
+          onStatus?.call('Conectando ao servidor e autenticando...');
+        } else {
+          onStatus?.call(
+            'Iniciando servidor na nuvem (tentativa $tentativa/$maxTentativas)...',
+          );
+          await acordarServidor(timeout: const Duration(seconds: 20));
+        }
 
-      if (data['sucesso'] == true) {
-        if (data['usuario'] != null) {
-          usuarioLogado = Map<String, dynamic>.from(data['usuario'] as Map);
-          if (data['usuario']['id'] != null) {
-            idUsuarioLogado = data['usuario']['id'].toString();
+        final url = Uri.parse('$baseUrl/auth/login');
+        final response = await http
+            .post(
+              url,
+              headers: _headers,
+              body: jsonEncode({
+                'email': email.trim(),
+                'senha': senha.trim(),
+                'forcar_login': forcarLogin,
+              }),
+            )
+            .timeout(const Duration(seconds: 45));
+
+        // Se o Render retornar 502/503/504 HTML durante o cold start, aguarda e tenta novamente
+        if (response.statusCode >= 500 && tentativa < maxTentativas) {
+          await Future.delayed(const Duration(seconds: 3));
+          continue;
+        }
+
+        final data =
+            jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+
+        if (data['sucesso'] == true) {
+          if (data['usuario'] != null) {
+            usuarioLogado = Map<String, dynamic>.from(data['usuario'] as Map);
+            if (data['usuario']['id'] != null) {
+              idUsuarioLogado = data['usuario']['id'].toString();
+            }
+          }
+          if (data['sessao'] != null &&
+              data['sessao']['access_token'] != null) {
+            tokenAcesso = data['sessao']['access_token'];
+          }
+          await salvarCredenciaisLocais(email.trim(), senha.trim());
+          await salvarSessaoLocal();
+
+          // Garante hidratação das pontuações e streak reais antes de concluir o login
+          if (idUsuarioLogado != null && idUsuarioLogado!.isNotEmpty) {
+            onStatus?.call('Sincronizando suas pontuações e sequência...');
+            await verPontuacao(idUsuarioLogado!);
           }
         }
-        if (data['sessao'] != null && data['sessao']['access_token'] != null) {
-          tokenAcesso = data['sessao']['access_token'];
-        }
-        await salvarSessaoLocal();
-      }
 
-      return data;
-    } catch (e) {
-      return {
-        'sucesso': false,
-        'mensagem': 'Erro ao conectar ao servidor: $e',
-      };
+        return data;
+      } catch (e) {
+        ultimoErro = e;
+        if (tentativa < maxTentativas) {
+          await Future.delayed(const Duration(seconds: 3));
+        }
+      }
     }
+
+    return {
+      'sucesso': false,
+      'mensagem':
+          'Não foi possível conectar ao servidor após várias tentativas: $ultimoErro',
+    };
   }
 
   /// Desloga o usuário chamando o endpoint Python /auth/logout
@@ -200,12 +289,13 @@ class ApiService {
       );
       final response = await http
           .post(url, headers: _headers)
-          .timeout(const Duration(seconds: 10));
+          .timeout(const Duration(seconds: 15));
 
       tokenAcesso = null;
       usuarioLogado = null;
       idUsuarioLogado = null;
       await limparSessaoLocal();
+      await limparCredenciaisLocais();
 
       final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
       return data;
@@ -214,6 +304,7 @@ class ApiService {
       usuarioLogado = null;
       idUsuarioLogado = null;
       await limparSessaoLocal();
+      await limparCredenciaisLocais();
       return {
         'sucesso': false,
         'mensagem': 'Erro ao comunicar logout: $e',
@@ -232,7 +323,7 @@ class ApiService {
       );
       final response = await http
           .get(uri, headers: _headers)
-          .timeout(const Duration(seconds: 10));
+          .timeout(const Duration(seconds: 45));
 
       final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
       if (data['sessao_encerrada'] == true) {
@@ -370,7 +461,7 @@ class ApiService {
       final url = Uri.parse('$baseUrl/perfil/$usuarioId');
       final response = await http
           .get(url, headers: _headers)
-          .timeout(const Duration(seconds: 10));
+          .timeout(const Duration(seconds: 45));
 
       final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
       if (data['sucesso'] == true && data['perfil'] != null) {
@@ -467,7 +558,7 @@ class ApiService {
       );
       final response = await http
           .get(uri, headers: _headers)
-          .timeout(const Duration(seconds: 10));
+          .timeout(const Duration(seconds: 45));
 
       final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
       return data;
@@ -697,7 +788,7 @@ class ApiService {
       final url = Uri.parse('$baseUrl/pontuacao/$usuarioId');
       final response = await http
           .get(url, headers: _headers)
-          .timeout(const Duration(seconds: 10));
+          .timeout(const Duration(seconds: 45));
 
       final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
       if (data['sessao_encerrada'] == true) {

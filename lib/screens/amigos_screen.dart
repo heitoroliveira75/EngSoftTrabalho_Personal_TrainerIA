@@ -53,6 +53,16 @@ class _AmigosScreenState extends State<AmigosScreen>
     super.dispose();
   }
 
+  List<Map<String, dynamic>> _ordenarPorNome(List<Map<String, dynamic>> lista) {
+    final copia = List<Map<String, dynamic>>.from(lista);
+    copia.sort((a, b) {
+      final nomeA = (a['nome']?.toString() ?? '').trim().toLowerCase();
+      final nomeB = (b['nome']?.toString() ?? '').trim().toLowerCase();
+      return nomeA.compareTo(nomeB);
+    });
+    return copia;
+  }
+
   Future<void> _carregarAmigos() async {
     setState(() {
       _carregando = true;
@@ -66,14 +76,18 @@ class _AmigosScreenState extends State<AmigosScreen>
       if (mounted) {
         setState(() {
           if (resAmigos['sucesso'] == true && resAmigos['amigos'] is List) {
-            _meusAmigos = List<Map<String, dynamic>>.from(
-              (resAmigos['amigos'] as List).map((e) => Map<String, dynamic>.from(e as Map)),
+            _meusAmigos = _ordenarPorNome(
+              List<Map<String, dynamic>>.from(
+                (resAmigos['amigos'] as List).map((e) => Map<String, dynamic>.from(e as Map)),
+              ),
             );
           }
 
           if (resPendentes['sucesso'] == true && resPendentes['solicitacoes'] is List) {
-            _solicitacoesPendentes = List<Map<String, dynamic>>.from(
-              (resPendentes['solicitacoes'] as List).map((e) => Map<String, dynamic>.from(e as Map)),
+            _solicitacoesPendentes = _ordenarPorNome(
+              List<Map<String, dynamic>>.from(
+                (resPendentes['solicitacoes'] as List).map((e) => Map<String, dynamic>.from(e as Map)),
+              ),
             );
           }
 
@@ -118,8 +132,10 @@ class _AmigosScreenState extends State<AmigosScreen>
         setState(() {
           _buscando = false;
           if (res['sucesso'] == true && res['usuarios'] is List) {
-            _resultadosBusca = List<Map<String, dynamic>>.from(
-              (res['usuarios'] as List).map((e) => Map<String, dynamic>.from(e as Map)),
+            _resultadosBusca = _ordenarPorNome(
+              List<Map<String, dynamic>>.from(
+                (res['usuarios'] as List).map((e) => Map<String, dynamic>.from(e as Map)),
+              ),
             );
           } else {
             _resultadosBusca = [];

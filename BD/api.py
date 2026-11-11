@@ -218,8 +218,14 @@ def api_criar_conta(req: CriarContaRequest):
     return resposta
 
 @app.post("/auth/login")
-def api_fazer_login(req: LoginRequest):
-    resposta = bd.fazer_login(req.email, req.senha, forcar_login=bool(req.forcar_login))
+def api_fazer_login(req: LoginRequest, authorization: Optional[str] = Header(None)):
+    token_atual = _extrair_token_bearer(authorization)
+    resposta = bd.fazer_login(
+        req.email,
+        req.senha,
+        forcar_login=bool(req.forcar_login),
+        token_dispositivo_atual=token_atual,
+    )
     return resposta
 
 @app.post("/auth/logout")
