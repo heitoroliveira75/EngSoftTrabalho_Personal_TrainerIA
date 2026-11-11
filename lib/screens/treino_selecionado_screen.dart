@@ -20,7 +20,6 @@ class TreinoSelecionadoScreen extends StatefulWidget {
 class _TreinoSelecionadoScreenState extends State<TreinoSelecionadoScreen> {
   bool _salvo = false;
   bool _salvando = false;
-  bool _treinando = false;
   String? _idSalvo;
   int _indiceExercicioAtual = 0;
   List<bool> _exerciciosConcluidos = [];
@@ -483,7 +482,6 @@ class _TreinoSelecionadoScreenState extends State<TreinoSelecionadoScreen> {
   }
 
   Future<void> _executarTreino() async {
-    setState(() => _treinando = true);
     final pontos = (widget.treinoData['pontosTotais'] as num?)?.toInt() ?? 100;
     final usuarioId = ApiService().idUsuarioAtual;
 
@@ -499,7 +497,6 @@ class _TreinoSelecionadoScreenState extends State<TreinoSelecionadoScreen> {
     }
 
     if (!mounted) return;
-    setState(() => _treinando = false);
 
     showDialog(
       context: context,

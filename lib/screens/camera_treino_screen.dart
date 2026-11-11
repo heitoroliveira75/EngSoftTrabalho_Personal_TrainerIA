@@ -2109,6 +2109,7 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
       }
 
       _iniciarContadorDescanso();
+      if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

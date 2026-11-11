@@ -6,407 +6,6 @@ import '../services/api_service.dart';
 import 'treino_selecionado_screen.dart';
 import 'criar_exercicio_screen.dart';
 
-// MOCK EXPANDIDO DE DADOS POR DIFICULDADE (FALLBACK OFFLINE)
-final Map<String, List<Map<String, dynamic>>> bancoDeTreinos = {
-  'iniciante': [
-    {
-      'id': '1',
-      'titulo': 'Corpo completo A',
-      'dificuldade': 'Iniciante',
-      'exerciciosCount': 8,
-      'duracaoMinutos': 40,
-      'pontosTotais': 200,
-      'corTema': const Color(0xFF00E676),
-      'exercicios': [
-        {'nome': 'Polichinelo', 'series': 3, 'repeticoes': 12, 'pontos': 20},
-        {
-          'nome': 'Agachamento Livre',
-          'series': 3,
-          'repeticoes': 12,
-          'pontos': 20,
-        },
-        {
-          'nome': 'Flexão com Joelhos',
-          'series': 3,
-          'repeticoes': 10,
-          'pontos': 20,
-        },
-        {
-          'nome': 'Abdominal Supra',
-          'series': 3,
-          'repeticoes': 15,
-          'pontos': 20,
-        },
-        {
-          'nome': 'Prancha Abdominal',
-          'series': 3,
-          'repeticoes': 30,
-          'pontos': 20,
-        },
-        {
-          'nome': 'Elevação Pélvica',
-          'series': 3,
-          'repeticoes': 12,
-          'pontos': 20,
-        },
-        {'nome': 'Passada Parada', 'series': 3, 'repeticoes': 10, 'pontos': 20},
-        {
-          'nome': 'Polichinelo Inverso',
-          'series': 3,
-          'repeticoes': 12,
-          'pontos': 20,
-        },
-      ],
-    },
-    {
-      'id': '2',
-      'titulo': 'Membros Inferiores & Core',
-      'dificuldade': 'Iniciante',
-      'exerciciosCount': 5,
-      'duracaoMinutos': 25,
-      'pontosTotais': 140,
-      'corTema': const Color(0xFF00E676),
-      'exercicios': [
-        {
-          'nome': 'Agachamento Isométrico',
-          'series': 3,
-          'repeticoes': 30,
-          'pontos': 25,
-        },
-        {
-          'nome': 'Afundo Alternado',
-          'series': 3,
-          'repeticoes': 10,
-          'pontos': 25,
-        },
-        {
-          'nome': 'Abdominal Infra',
-          'series': 3,
-          'repeticoes': 12,
-          'pontos': 30,
-        },
-        {'nome': 'Ponte Glúteos', 'series': 3, 'repeticoes': 15, 'pontos': 30},
-        {
-          'nome': 'Elevação de Panturrilha',
-          'series': 3,
-          'repeticoes': 20,
-          'pontos': 30,
-        },
-      ],
-    },
-    {
-      'id': '3',
-      'titulo': 'Mobilidade e Alongamento',
-      'dificuldade': 'Iniciante',
-      'exerciciosCount': 6,
-      'duracaoMinutos': 20,
-      'pontosTotais': 100,
-      'corTema': const Color(0xFF00E676),
-      'exercicios': [
-        {
-          'nome': 'Rotação de Tronco',
-          'series': 2,
-          'repeticoes': 15,
-          'pontos': 15,
-        },
-        {'nome': 'Gato-Camelo', 'series': 3, 'repeticoes': 10, 'pontos': 15},
-        {
-          'nome': 'Alongamento de Posteriores',
-          'series': 2,
-          'repeticoes': 30,
-          'pontos': 20,
-        },
-        {
-          'nome': 'Alongamento de Quadríceps',
-          'series': 2,
-          'repeticoes': 30,
-          'pontos': 20,
-        },
-        {
-          'nome': 'Rotação de Ombros',
-          'series': 2,
-          'repeticoes': 12,
-          'pontos': 15,
-        },
-        {
-          'nome': 'Postura da Criança',
-          'series': 2,
-          'repeticoes': 45,
-          'pontos': 15,
-        },
-      ],
-    },
-  ],
-  'intermediario': [
-    {
-      'id': '4',
-      'titulo': 'Superiores & HIIT',
-      'dificuldade': 'Intermediário',
-      'exerciciosCount': 7,
-      'duracaoMinutos': 45,
-      'pontosTotais': 280,
-      'corTema': const Color(0xFF00E676),
-      'exercicios': [
-        {
-          'nome': 'Flexão Tradicional',
-          'series': 4,
-          'repeticoes': 12,
-          'pontos': 35,
-        },
-        {
-          'nome': 'Tríceps no Banco',
-          'series': 4,
-          'repeticoes': 12,
-          'pontos': 35,
-        },
-        {
-          'nome': 'Mountain Climber',
-          'series': 4,
-          'repeticoes': 20,
-          'pontos': 40,
-        },
-        {
-          'nome': 'Desenvolvimento Halteres',
-          'series': 4,
-          'repeticoes': 10,
-          'pontos': 40,
-        },
-        {'nome': 'Remada Curvada', 'series': 4, 'repeticoes': 12, 'pontos': 40},
-        {
-          'nome': 'Abdominal Remador',
-          'series': 4,
-          'repeticoes': 15,
-          'pontos': 45,
-        },
-        {
-          'nome': 'Prancha Dinâmica',
-          'series': 3,
-          'repeticoes': 40,
-          'pontos': 45,
-        },
-      ],
-    },
-    {
-      'id': '5',
-      'titulo': 'Pernas & Glúteos Intenso',
-      'dificuldade': 'Intermediário',
-      'exerciciosCount': 6,
-      'duracaoMinutos': 35,
-      'pontosTotais': 250,
-      'corTema': const Color(0xFF00E676),
-      'exercicios': [
-        {
-          'nome': 'Agachamento Búlgaro',
-          'series': 3,
-          'repeticoes': 10,
-          'pontos': 40,
-        },
-        {
-          'nome': 'Agachamento Sumô',
-          'series': 4,
-          'repeticoes': 12,
-          'pontos': 40,
-        },
-        {
-          'nome': 'Stiff com Halteres',
-          'series': 4,
-          'repeticoes': 12,
-          'pontos': 40,
-        },
-        {
-          'nome': 'Saltos Vertical na Caixa',
-          'series': 3,
-          'repeticoes': 10,
-          'pontos': 40,
-        },
-        {
-          'nome': 'Elevação Pélvica Unilateral',
-          'series': 3,
-          'repeticoes': 12,
-          'pontos': 45,
-        },
-        {
-          'nome': 'Cadeira Flexora',
-          'series': 3,
-          'repeticoes': 15,
-          'pontos': 45,
-        },
-      ],
-    },
-    {
-      'id': '6',
-      'titulo': 'Desafio Core & Cardio',
-      'dificuldade': 'Intermediário',
-      'exerciciosCount': 5,
-      'duracaoMinutos': 30,
-      'pontosTotais': 220,
-      'corTema': const Color(0xFF00E676),
-      'exercicios': [
-        {'nome': 'Russian Twist', 'series': 4, 'repeticoes': 20, 'pontos': 40},
-        {
-          'nome': 'Prancha Lateral com Elevação',
-          'series': 3,
-          'repeticoes': 10,
-          'pontos': 45,
-        },
-        {
-          'nome': 'Polichinelo com Carga',
-          'series': 4,
-          'repeticoes': 20,
-          'pontos': 45,
-        },
-        {
-          'nome': 'Bicicleta Abdominal',
-          'series': 4,
-          'repeticoes': 20,
-          'pontos': 45,
-        },
-        {
-          'nome': 'Corrida Estacionária',
-          'series': 4,
-          'repeticoes': 45,
-          'pontos': 45,
-        },
-      ],
-    },
-  ],
-  'avancado': [
-    {
-      'id': '7',
-      'titulo': 'Full Body Extreme',
-      'dificuldade': 'Avançado',
-      'exerciciosCount': 8,
-      'duracaoMinutos': 55,
-      'pontosTotais': 480,
-      'corTema': const Color(0xFF00E676),
-      'exercicios': [
-        {
-          'nome': 'Burpee Completo com Flexão',
-          'series': 4,
-          'repeticoes': 15,
-          'pontos': 60,
-        },
-        {
-          'nome': 'Agachamento com Salto',
-          'series': 4,
-          'repeticoes': 20,
-          'pontos': 60,
-        },
-        {
-          'nome': 'Flexão Declinada',
-          'series': 4,
-          'repeticoes': 15,
-          'pontos': 60,
-        },
-        {
-          'nome': 'Pistol Squat (Cada Perna)',
-          'series': 3,
-          'repeticoes': 8,
-          'pontos': 60,
-        },
-        {
-          'nome': 'Barra Fixa Pronada',
-          'series': 4,
-          'repeticoes': 10,
-          'pontos': 60,
-        },
-        {
-          'nome': 'Abdominal Canivete',
-          'series': 4,
-          'repeticoes': 15,
-          'pontos': 60,
-        },
-        {
-          'nome': 'Prancha com Carga',
-          'series': 4,
-          'repeticoes': 60,
-          'pontos': 60,
-        },
-        {'nome': 'Sprawl Cardio', 'series': 4, 'repeticoes': 15, 'pontos': 60},
-      ],
-    },
-    {
-      'id': '8',
-      'titulo': 'Calistenia de Alta Performance',
-      'dificuldade': 'Avançado',
-      'exerciciosCount': 6,
-      'duracaoMinutos': 50,
-      'pontosTotais': 400,
-      'corTema': const Color(0xFF00E676),
-      'exercicios': [
-        {
-          'nome': 'Flexão Diamante',
-          'series': 4,
-          'repeticoes': 15,
-          'pontos': 65,
-        },
-        {
-          'nome': 'Muscle Up / Flexão na Barra',
-          'series': 4,
-          'repeticoes': 6,
-          'pontos': 70,
-        },
-        {
-          'nome': 'Flexão Pseudo-Planoche',
-          'series': 4,
-          'repeticoes': 10,
-          'pontos': 65,
-        },
-        {
-          'nome': 'Agachamento Búlgaro Salto',
-          'series': 4,
-          'repeticoes': 12,
-          'pontos': 65,
-        },
-        {
-          'nome': 'L-Sit na Paralela',
-          'series': 4,
-          'repeticoes': 20,
-          'pontos': 70,
-        },
-        {
-          'nome': 'Dragon Flag Flexion',
-          'series': 3,
-          'repeticoes': 8,
-          'pontos': 65,
-        },
-      ],
-    },
-  ],
-  'meus_treinos': [
-    {
-      'id': 'm1',
-      'titulo': 'Corpo completo',
-      'dificuldade': 'Personalizado',
-      'exerciciosCount': 4,
-      'duracaoMinutos': 20,
-      'pontosTotais': 160,
-      'corTema': const Color(0xFF00E676),
-      'exercicios': [
-        {'nome': 'Polichinelo', 'series': 3, 'repeticoes': 12, 'pontos': 20},
-        {
-          'nome': 'Agachamento Livre',
-          'series': 3,
-          'repeticoes': 12,
-          'pontos': 20,
-        },
-        {
-          'nome': 'Flexão de Braço',
-          'series': 3,
-          'repeticoes': 10,
-          'pontos': 20,
-        },
-        {
-          'nome': 'Prancha Abdominal',
-          'series': 3,
-          'repeticoes': 30,
-          'pontos': 20,
-        },
-      ],
-    },
-  ],
-};
-
 class OpcaoTreinosScreen extends StatefulWidget {
   final String dificuldadeFlag;
 
@@ -450,6 +49,7 @@ class _OpcaoTreinosScreenState extends State<OpcaoTreinosScreen> {
 
     try {
       if (widget.dificuldadeFlag == 'meus_treinos') {
+        // --- 1. CARREGA EXCLUSIVAMENTE OS TREINOS DO USUÁRIO ---
         final idUsuario = ApiService().idUsuarioAtual;
         final res = await ApiService().listarTreinosUsuario(idUsuario);
 
@@ -464,7 +64,6 @@ class _OpcaoTreinosScreenState extends State<OpcaoTreinosScreen> {
           for (final t in treinosRaw) {
             final List<Map<String, dynamic>> exerciciosMapeados = [];
 
-            // 1. Tenta extrair diretamente de t['exercicios']
             if (t['exercicios'] is List &&
                 (t['exercicios'] as List).isNotEmpty) {
               for (final ex in t['exercicios']) {
@@ -488,9 +87,7 @@ class _OpcaoTreinosScreenState extends State<OpcaoTreinosScreen> {
                   });
                 }
               }
-            }
-            // 2. Tenta extrair da relação relacional t['treino_exercicios']
-            else if (t['treino_exercicios'] is List &&
+            } else if (t['treino_exercicios'] is List &&
                 (t['treino_exercicios'] as List).isNotEmpty) {
               for (final te in (t['treino_exercicios'] as List)) {
                 if (te is Map) {
@@ -513,38 +110,6 @@ class _OpcaoTreinosScreenState extends State<OpcaoTreinosScreen> {
                   });
                 }
               }
-            }
-            // 3. Fallback: tenta desempacotar JSON em t['descricao']
-            else if (t['descricao'] != null &&
-                t['descricao'].toString().trim().startsWith('{')) {
-              try {
-                final Map<String, dynamic> parsed = jsonDecode(
-                  t['descricao'].toString(),
-                );
-                if (parsed['exercicios'] is List) {
-                  for (final ex in (parsed['exercicios'] as List)) {
-                    if (ex is Map) {
-                      final series = ex['series'] ?? 3;
-                      final reps = ex['repeticoes'] ?? 10;
-                      final pontos =
-                          ex['pontos'] ??
-                          ex['pontos_totais'] ??
-                          ((series is int) ? series * 15 : 45);
-                      exerciciosMapeados.add({
-                        'id':
-                            ex['id']?.toString() ??
-                            ex['exercicio_id']?.toString() ??
-                            '1',
-                        'nome': ex['nome']?.toString() ?? 'Exercício',
-                        'series': series,
-                        'repeticoes': reps,
-                        'pontos': pontos,
-                        'pontos_totais': pontos,
-                      });
-                    }
-                  }
-                }
-              } catch (_) {}
             }
 
             final totalPontos = exerciciosMapeados.fold<int>(
@@ -579,31 +144,12 @@ class _OpcaoTreinosScreenState extends State<OpcaoTreinosScreen> {
             });
           }
 
-          setState(() {
-            _listaTreinos = convertidos;
-            _carregando = false;
-          });
-          return;
+          if (mounted) setState(() => _listaTreinos = convertidos);
         } else {
-          // Se a lista da API for vazia, usa os treinos locais padrão de meus_treinos marcados como salvos
-          final List locais = bancoDeTreinos['meus_treinos'] ?? [];
-          final convertidosLocais = locais
-              .map(
-                (m) => {
-                  ...Map<String, dynamic>.from(m as Map),
-                  'salvo': true,
-                  'ehMeusTreinos': true,
-                },
-              )
-              .toList();
-          setState(() {
-            _listaTreinos = convertidosLocais;
-            _carregando = false;
-          });
-          return;
+          if (mounted) setState(() => _listaTreinos = []);
         }
       } else {
-        // Busca da API os treinos daquela dificuldade e cruza com os Meus Treinos salvos
+        // --- 2. CARREGA OS TREINOS POR DIFICULDADE (INICIANTE, INTERMEDIÁRIO, AVANÇADO) ---
         final idUsuario = ApiService().idUsuarioAtual;
         final Future<Map<String, dynamic>> reqMeusTreinos = ApiService()
             .listarTreinosUsuario(idUsuario);
@@ -616,7 +162,6 @@ class _OpcaoTreinosScreenState extends State<OpcaoTreinosScreen> {
 
         if (!mounted) return;
 
-        // Mapeia títulos dos treinos já salvos pelo usuário para saber quem já está favoritado
         final Map<String, String> salvosPorTitulo = {};
         if (resMeusTreinos['sucesso'] == true &&
             resMeusTreinos['treinos'] is List) {
@@ -640,9 +185,8 @@ class _OpcaoTreinosScreenState extends State<OpcaoTreinosScreen> {
           final List<Map<String, dynamic>> list = [];
 
           for (final item in raw) {
-            const Color cor = Color(0xFF00E676);
-
-            final titulo = (item['titulo'] ?? 'Treino').toString();
+            final titulo = (item['titulo'] ?? item['nome'] ?? 'Treino')
+                .toString();
             final idSalvo = salvosPorTitulo[titulo.trim().toLowerCase()];
             final bool estaSalvo = idSalvo != null;
 
@@ -656,39 +200,27 @@ class _OpcaoTreinosScreenState extends State<OpcaoTreinosScreen> {
                   item['exerciciosCount'] ??
                   (item['exercicios'] as List?)?.length ??
                   0,
-              'duracaoMinutos': item['duracaoMinutos'] ?? 30,
-              'pontosTotais': item['pontosTotais'] ?? 200,
-              'corTema': cor,
+              'duracaoMinutos':
+                  item['duracaoMinutos'] ?? item['duracao_minutos'] ?? 30,
+              'pontosTotais':
+                  item['pontosTotais'] ?? item['pontos_totais'] ?? 200,
+              'corTema': const Color(0xFF00E676),
               'exercicios': item['exercicios'] ?? [],
             });
           }
 
-          setState(() {
-            _listaTreinos = list;
-            _carregando = false;
-          });
-          return;
+          if (mounted) setState(() => _listaTreinos = list);
+        } else {
+          if (mounted) setState(() => _listaTreinos = []);
         }
       }
-    } catch (_) {
-      // Em caso de falha de conexão, fallback seguro para os dados locais
+    } catch (e) {
+      debugPrint('Erro ao carregar treinos: $e');
+      if (mounted) setState(() => _listaTreinos = []);
+    } finally {
+      // ✅ Garante que o loading sempre encerra, mesmo com falha ou lista vazia
+      if (mounted) setState(() => _carregando = false);
     }
-
-    if (!mounted) return;
-
-    final List locais = bancoDeTreinos[widget.dificuldadeFlag] ?? [];
-    setState(() {
-      _listaTreinos = locais
-          .map(
-            (m) => {
-              ...Map<String, dynamic>.from(m as Map),
-              'salvo': widget.dificuldadeFlag == 'meus_treinos',
-              'ehMeusTreinos': widget.dificuldadeFlag == 'meus_treinos',
-            },
-          )
-          .toList();
-      _carregando = false;
-    });
   }
 
   Future<void> _aoClicarEstrela(Map<String, dynamic> treino) async {
