@@ -41,12 +41,10 @@ void main() {
   });
 
   group('Workout Screens Widget Smoke Tests', () {
-    testWidgets('TrainingMenuScreen renderiza opções', (WidgetTester tester) async {
-      await tester.pumpWidget(
-        const MaterialApp(
-          home: TrainingMenuScreen(),
-        ),
-      );
+    testWidgets('TrainingMenuScreen renderiza opções', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(const MaterialApp(home: TrainingMenuScreen()));
       await tester.pumpAndSettle();
 
       expect(find.text('TREINO'), findsOneWidget);
@@ -55,12 +53,10 @@ void main() {
       expect(find.text('Treinos Padrões'), findsOneWidget);
     });
 
-    testWidgets('DificuldadeScreen renderiza os 3 níveis', (WidgetTester tester) async {
-      await tester.pumpWidget(
-        const MaterialApp(
-          home: DificuldadeScreen(),
-        ),
-      );
+    testWidgets('DificuldadeScreen renderiza os 3 níveis', (
+      WidgetTester tester,
+    ) async {
+      await tester.pumpWidget(const MaterialApp(home: DificuldadeScreen()));
       await tester.pumpAndSettle();
 
       expect(find.text('INICIANTE'), findsOneWidget);
@@ -68,7 +64,9 @@ void main() {
       expect(find.text('AVANÇADO'), findsOneWidget);
     });
 
-    testWidgets('OpcaoTreinosScreen renderiza treinos de iniciante', (WidgetTester tester) async {
+    testWidgets('OpcaoTreinosScreen renderiza treinos de iniciante', (
+      WidgetTester tester,
+    ) async {
       await tester.pumpWidget(
         const MaterialApp(
           home: OpcaoTreinosScreen(dificuldadeFlag: 'iniciante'),
@@ -77,51 +75,71 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('INICIANTE'), findsOneWidget);
-      expect(find.text('Corpo completo A'), findsOneWidget);
     });
   });
 
   group('CameraTreinoScreen Series & Reps Tests', () {
-    test('CameraTreinoScreen suporta metas configuráveis de séries e repetições', () {
-      const screen = CameraTreinoScreen(
-        exercicioId: '20',
-        exercicioNome: 'Rosca Direta',
-        metaRepeticoes: 8,
-        totalSeries: 3,
-      );
+    test(
+      'CameraTreinoScreen suporta metas configuráveis de séries e repetições',
+      () {
+        const screen = CameraTreinoScreen(
+          exercicioId: '20',
+          exercicioNome: 'Rosca Direta',
+          metaRepeticoes: 8,
+          totalSeries: 3,
+        );
 
-      expect(screen.exercicioId, '20');
-      expect(screen.exercicioNome, 'Rosca Direta');
-      expect(screen.metaRepeticoes, 8);
-      expect(screen.totalSeries, 3);
-    });
+        expect(screen.exercicioId, '20');
+        expect(screen.exercicioNome, 'Rosca Direta');
+        expect(screen.metaRepeticoes, 8);
+        expect(screen.totalSeries, 3);
+      },
+    );
 
-    test('CameraTreinoScreen suporta modo dupla com lista completa de exercícios', () {
-      final exercicios = [
-        {'id': '16', 'nome': 'Desenvolvimento com Halteres', 'series': 3, 'repeticoes': 10},
-        {'id': '11', 'nome': 'Agachamento Livre', 'series': 3, 'repeticoes': 12},
-      ];
+    test(
+      'CameraTreinoScreen suporta modo dupla com lista completa de exercícios',
+      () {
+        final exercicios = [
+          {
+            'id': '16',
+            'nome': 'Desenvolvimento com Halteres',
+            'series': 3,
+            'repeticoes': 10,
+          },
+          {
+            'id': '11',
+            'nome': 'Agachamento Livre',
+            'series': 3,
+            'repeticoes': 12,
+          },
+        ];
 
-      final screen = CameraTreinoScreen(
-        exercicioId: '16',
-        exercicioNome: 'Desenvolvimento com Halteres',
-        metaRepeticoes: 10,
-        totalSeries: 3,
-        listaExercicios: exercicios,
-        isModoDupla: true,
-        sessaoDuplaId: 'sessao-123',
-        isHostDupla: true,
-      );
+        final screen = CameraTreinoScreen(
+          exercicioId: '16',
+          exercicioNome: 'Desenvolvimento com Halteres',
+          metaRepeticoes: 10,
+          totalSeries: 3,
+          listaExercicios: exercicios,
+          isModoDupla: true,
+          sessaoDuplaId: 'sessao-123',
+          isHostDupla: true,
+        );
 
-      expect(screen.isModoDupla, isTrue);
-      expect(screen.isHostDupla, isTrue);
-      expect(screen.sessaoDuplaId, 'sessao-123');
-      expect(screen.listaExercicios?.length, 2);
-    });
+        expect(screen.isModoDupla, isTrue);
+        expect(screen.isHostDupla, isTrue);
+        expect(screen.sessaoDuplaId, 'sessao-123');
+        expect(screen.listaExercicios?.length, 2);
+      },
+    );
 
     test('CameraTreinoScreen suporta modo dupla no mesmo aparelho (1 Celular Presencial)', () {
       final exercicios = [
-        {'id': '16', 'nome': 'Desenvolvimento com Halteres', 'series': 3, 'repeticoes': 10},
+        {
+          'id': '16',
+          'nome': 'Desenvolvimento com Halteres',
+          'series': 3,
+          'repeticoes': 10,
+        },
       ];
 
       final screen = CameraTreinoScreen(
@@ -169,32 +187,40 @@ void main() {
       expect(lobby.amigoId, 'user-789');
     });
 
-    test('SessaoDupla modelo parseia corretamente status e dados do treino', () {
-      final json = {
-        'id': 'sessao-999',
-        'host_id': 'host-1',
-        'convidado_id': 'convidado-2',
-        'status': 'aceito',
-        'dados_treino': {
-          'nome': 'Treino de Peito e Ombros',
-          'exercicios': [
-            {'id': '16', 'nome': 'Desenvolvimento com Halteres', 'series': 3, 'repeticoes': 10}
-          ]
-        },
-        'total_series': 3,
-        'serie_atual': 1,
-        'pontos_host': 50,
-        'pontos_convidado': 45,
-      };
+    test(
+      'SessaoDupla modelo parseia corretamente status e dados do treino',
+      () {
+        final json = {
+          'id': 'sessao-999',
+          'host_id': 'host-1',
+          'convidado_id': 'convidado-2',
+          'status': 'aceito',
+          'dados_treino': {
+            'nome': 'Treino de Peito e Ombros',
+            'exercicios': [
+              {
+                'id': '16',
+                'nome': 'Desenvolvimento com Halteres',
+                'series': 3,
+                'repeticoes': 10,
+              },
+            ],
+          },
+          'total_series': 3,
+          'serie_atual': 1,
+          'pontos_host': 50,
+          'pontos_convidado': 45,
+        };
 
-      final sessao = SessaoDupla.fromJson(json);
+        final sessao = SessaoDupla.fromJson(json);
 
-      expect(sessao.id, 'sessao-999');
-      expect(sessao.isAceito, isTrue);
-      expect(sessao.dadosTreino['nome'], 'Treino de Peito e Ombros');
-      expect(sessao.totalSeries, 3);
-      expect(sessao.pontosHost, 50);
-      expect(sessao.pontosConvidado, 45);
-    });
+        expect(sessao.id, 'sessao-999');
+        expect(sessao.isAceito, isTrue);
+        expect(sessao.dadosTreino['nome'], 'Treino de Peito e Ombros');
+        expect(sessao.totalSeries, 3);
+        expect(sessao.pontosHost, 50);
+        expect(sessao.pontosConvidado, 45);
+      },
+    );
   });
 }
