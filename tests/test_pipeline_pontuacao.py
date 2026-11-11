@@ -1649,3 +1649,118 @@ class TestDeteccaoHiperextensaoArticular:
         assert erro == "HIPEREXTENSAO_COTOVELO"
         assert "sem travar" in fsm.traduzir_erro(erro)
 
+
+class TestPuxadaAltaHalteres:
+    """Valida a FSM, detecção de erros e pontuação da Puxada Alta com Halteres."""
+
+    def test_ciclo_ideal_fsm(self):
+        from exercicios_fsm import PuxadaAltaHalteres
+        fsm = PuxadaAltaHalteres()
+        pos = {}
+
+        # Fase 0: Repouso
+        assert fsm.fases[1] == 0
+
+        # 0 -> 1: Início da subida (ombro > 35° e delta > 0)
+        fsm.classificar({"ombro": 45.0, "cotovelo": 150.0}, pos, {"ombro": 10.0})
+        assert fsm.fases[1] == 1
+
+        # 1 -> 2: Pico de elevação (ombro >= 85°)
+        fsm.classificar({"ombro": 95.0, "cotovelo": 75.0}, pos, {"ombro": 15.0})
+        assert fsm.fases[1] == 2
+
+        # 2 -> 3: Descendo (ombro < 80° ou delta < 0)
+        fsm.classificar({"ombro": 75.0, "cotovelo": 95.0}, pos, {"ombro": -10.0})
+        assert fsm.fases[1] == 3
+
+        # 3 -> 0: Fechamento (ombro <= 25°)
+        fsm.classificar({"ombro": 20.0, "cotovelo": 160.0}, pos, {"ombro": -15.0})
+        assert fsm.fases[1] == 0
+        assert fsm.repeticoes == 1
+        assert len(fsm.erros) == 0
+
+    def test_puxada_curta_reprovacao(self):
+        from exercicios_fsm import PuxadaAltaHalteres
+        fsm = PuxadaAltaHalteres()
+        pos = {}
+
+        # 0 -> 1
+        fsm.classificar({"ombro": 50.0, "cotovelo": 140.0}, pos, {"ombro": 15.0})
+        assert fsm.fases[1] == 1
+
+        # Desistência (1 -> 3): delta < 0 antes de atingir pico (ombro < 85°)
+        erro = fsm.classificar({"ombro": 48.0, "cotovelo": 145.0}, pos, {"ombro": -2.0})
+        assert fsm.fases[1] == 3
+        assert erro == "PUXADA_CURTA"
+        assert "PUXADA_CURTA" in fsm.erros
+
+    def test_elevacao_excessiva(self):
+        from exercicios_fsm import PuxadaAltaHalteres
+        fsm = PuxadaAltaHalteres()
+        pos = {}
+
+        fsm.fases = [1, 1]
+        # ombro ultrapassa 120° no pico
+        erro = fsm.classificar({"ombro": 125.0, "cotovelo": 70.0}, pos, {"ombro": 10.0})
+        assert fsm.fases[1] == 2
+        assert "ELEVACAO_EXCESSIVA" in fsm.erros
+
+    def test_cotovelo_caido(self):
+        from exercicios_fsm import PuxadaAltaHalteres
+        fsm = PuxadaAltaHalteres()
+        pos = {}
+
+        fsm.fases = [1, 1]
+        # Ombro no pico, mas cotovelo quase esticado (> 120°)
+        erro = fsm.classificar({"ombro": 90.0, "cotovelo": 135.0}, pos, {"ombro": 5.0})
+        assert fsm.fases[1] == 2
+        assert "COTOVELO_CAIDO" in fsm.erros
+
+    def test_hiperextensao_cotovelo(self):
+        from exercicios_fsm import PuxadaAltaHalteres
+        fsm = PuxadaAltaHalteres()
+        pos = {}
+
+        # Retorno com cotovelo além de 175° ou com desvio retrógrado
+        fsm.fases = [3, 3]
+        erro = fsm.classificar({"ombro": 20.0, "cotovelo": 178.0, "cotovelo_orientado": -3.0}, pos, {"ombro": -5.0})
+        assert "HIPEREXTENSAO_COTOVELO" in fsm.erros
+
+    def test_histerese_repouso_suave(self):
+        from exercicios_fsm import PuxadaAltaHalteres
+        fsm = PuxadaAltaHalteres()
+        pos = {}
+
+        # 0 -> 1 por leve oscilação
+        fsm.classificar({"ombro": 36.0, "cotovelo": 160.0}, pos, {"ombro": 2.0})
+        assert fsm.fases[1] == 1
+
+        # Recuo imediato para <= 28° volta suave para 0 sem acusar PUXADA_CURTA
+        erro = fsm.classificar({"ombro": 25.0, "cotovelo": 162.0}, pos, {"ombro": -2.0})
+        assert fsm.fases[1] == 0
+        assert erro is None
+        assert "PUXADA_CURTA" not in fsm.erros
+        assert fsm.repeticoes == 0
+
+    def test_pipeline_ouro_puxada_alta_gabarito(self):
+        gab = GabaritoExercicio.carregar_json("gabarito_especialista_puxada_alta.json")
+        assert gab.articulacoes == ["ombro", "cotovelo"]
+        assert gab.total_frames >= 30
+
+        orq = OrquestradorSessao("8")
+        resultado_rep = None
+
+        for linha in gab.dados:
+            frame_angulos = {
+                "ombro": float(linha[0]),
+                "cotovelo": float(linha[1]),
+            }
+            _, rep = orq.processar_frame(frame_angulos, visivel=True)
+            if rep is not None:
+                resultado_rep = rep
+
+        assert resultado_rep is not None
+        assert resultado_rep.score_final >= 95.0
+        assert resultado_rep.aprovado is True
+
+

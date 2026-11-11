@@ -177,6 +177,28 @@ def garantir_gabaritos_padrao(sobrescrever: bool = False) -> None:
             descricao="Gabarito padrão ouro para Elevação Lateral (recorte FSM).",
         ).salvar_json(arq_elevacao)
 
+    # 5. Puxada Alta com Halteres: Ombro (20° -> 110° -> 20°), Cotovelo (165° -> 60° -> 165°)
+    arq_puxada = os.path.join(pasta_gabaritos, "gabarito_especialista_puxada_alta.json")
+    if sobrescrever or not os.path.exists(arq_puxada):
+        serie_puxada: List[Dict[str, float]] = []
+        for _ in range(5):
+            serie_puxada.append({"ombro": 20.0, "cotovelo": 165.0})
+        for val_t in t:
+            serie_puxada.append({
+                "ombro": float(20.0 + 90.0 * np.sin(val_t)),
+                "cotovelo": float(165.0 - 105.0 * np.sin(val_t)),
+            })
+        for _ in range(5):
+            serie_puxada.append({"ombro": 20.0, "cotovelo": 165.0})
+
+        dados_puxada = extrair_primeira_repeticao("puxada_alta_halteres", serie_angulos=serie_puxada, lancar_excecao=True)
+        GabaritoExercicio(
+            nome_exercicio="puxada_alta_halteres",
+            articulacoes=["ombro", "cotovelo"],
+            dados=dados_puxada,
+            descricao="Gabarito padrão ouro para Puxada Alta com Halteres (recorte FSM).",
+        ).salvar_json(arq_puxada)
+
 
 if __name__ == "__main__":
     garantir_gabaritos_padrao(sobrescrever=True)

@@ -26,6 +26,22 @@
 
 ## Histórico de Entradas
 
+### [Entrada #016] 2026-11-11 — [Expansão Biomecânica] Implementação da Puxada Alta com Halteres (Dumbbell High Pull) e Extração de Gabarito Especialista
+- **Objetivo / História de Usuário:** Reconhecer, contar repetições e avaliar tecnicamente a execução da Puxada Alta com Halteres / Dumbbell High Pulls (visão frontal), com identificação de erros posturais imediatos (puxada curta desqualificadora, elevação excessiva com risco subacromial, cotovelo caído e hiperextensão articular), extraindo o gabarito oficial padrão ouro a partir do vídeo `Videos dataset/dumbbell_high_pulls.mp4`.
+- **Tasks Executadas e Artefatos Gerados:**
+  - `[TASK-PA.01]` Modelada a FSM `PuxadaAltaHalteres` em [`Códigos/exercicios_fsm.py`](../Códigos/exercicios_fsm.py):
+    - Ciclo de 4 fases (`0: Repouso`, `1: Puxada/Subindo`, `2: Pico de Elevação`, `3: Descendo/Retorno`) monitorando `["ombro", "cotovelo"]`.
+    - Histerese direcional na saída do repouso: retorno suave à fase 0 se oscilar e recuar para $\le 28^\circ$, e disparo de `PUXADA_CURTA` (-25 pts, desqualificador) em desvios concêntricos $1 \to 3$ com ombro $\ge 45^\circ$ antes de atingir o pico ($\ge 85^\circ$).
+    - Detecção imediata de `ELEVACAO_EXCESSIVA` (-15 pts, $ombro > 120^\circ$), `COTOVELO_CAIDO` (-15 pts, $cotovelo > 120^\circ$ no pico) e `HIPEREXTENSAO_COTOVELO` (-15 pts, $cotovelo > 175^\circ$ ou $< -2^\circ$).
+    - Cadastrada sob a tecla `"8"` no `CATALOGO_EXERCICIOS` e aliases `"puxada_alta_halteres"`, `"puxada_alta"`, `"remada_alta"`, `"dumbbell_high_pulls"`.
+  - `[TASK-PA.02]` Extraído e homologado o gabarito oficial padrão ouro em [`Gabaritos/gabarito_especialista_puxada_alta.json`](../Gabaritos/gabarito_especialista_puxada_alta.json) (105 fotogramas) a partir da Repetição #1 do vídeo `Videos dataset/dumbbell_high_pulls.mp4`, com zero erros e 100% de visibilidade. Configurado fallback em [`Códigos/gabarito.py`](../Códigos/gabarito.py).
+  - `[TASK-PA.03]` Registrado `"PUXADA_CURTA"` no conjunto de desqualificação `ERROS_INCOMPLETUDE` em [`Códigos/avaliador_pontuacao.py`](../Códigos/avaliador_pontuacao.py), atualizada legenda do HUD com `[8]Puxada` em [`Códigos/app_tempo_real.py`](../Códigos/app_tempo_real.py) e adicionada a classe `TestPuxadaAltaHalteres` em [`tests/test_pipeline_pontuacao.py`](../tests/test_pipeline_pontuacao.py).
+  - **Suíte Total de Testes:** A suíte de IA avançou de 77 para **84 testes automatizados em `test_pipeline_pontuacao.py`** e **91 testes no total do motor de IA** aprovados com 100% de sucesso.
+- **Decisões Técnicas e Observações:**
+  - O vídeo `dumbbell_high_pulls.mp4` possui 1520 fotogramas a 50 FPS com 100% de visibilidade de marcos no lado direito e esquerdo. A análise cinemática identificou 8 repetições, das quais a Repetição #1 apresentou padrão ouro estrito (ROM ombro $22.9^\circ \to 115.7^\circ$, cotovelo $0^\circ \to 116.4^\circ$, zero erros).
+  - Limiar de `ELEVACAO_EXCESSIVA` calibrado em $120.0^\circ$ para acomodar a tração potente da puxada alta sem permitir rotação interna extrema danosa aos tendões do manguito rotador.
+- **Estado Resultante / Próximos Passos:** Puxada Alta com Halteres 100% funcional, gabarito extraído, HUD adaptado e integrada a toda a suíte de testes.
+
 ### [Entrada #015] 2026-11-10 — [Refatoração Biomecânica] Resolução Definitiva de Repetições Fantasma, Geometria com Ângulos Orientados (Positivos/Negativos) e Detecção de Hiperextensão Articular
 
 > **Documento Consolidado:** Incorpora integralmente o conteúdo e histórico técnico de [`PLANO_RESOLUCAO_FALSOS_POSITIVOS_E_ANGULOS.md`](../PLANO_RESOLUCAO_FALSOS_POSITIVOS_E_ANGULOS.md).  

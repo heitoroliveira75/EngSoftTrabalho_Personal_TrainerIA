@@ -197,7 +197,7 @@ Para transformar o motor matemático de IA em um serviço web consumível pelo a
 3. **Guia Completo para o Front-end (`GUIA_INTEGRACAO_FRONT_IA.md`):**
    * Criado documento com exemplos prontos em Dart/Flutter para que a equipe de telas conecte a câmera e o HUD facilmente.
 4. **Suíte Total de Testes:**
-   * A suíte de pipeline avançou para **77 testes automatizados** aprovados com 100% de sucesso.
+   * A suíte de pipeline avançou para **84 testes automatizados** em `test_pipeline_pontuacao.py` e **91 testes no total do motor de IA** aprovados com 100% de sucesso.
 
 ---
 

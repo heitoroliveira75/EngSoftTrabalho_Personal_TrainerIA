@@ -2,7 +2,7 @@
 
 > **Propósito deste documento:** Permitir que qualquer agente de IA ou desenvolvedor recupere imediatamente 100% do contexto técnico, arquitetural e histórico da frente de **Inteligência Artificial e Visão Computacional** do projeto **Personal Trainer IA**.
 >
-> **Última atualização:** 2026-11-10 (branch `IA`; 7 exercícios homologados; pipeline antifalsos-positivos com ângulos orientados, guardas biomecânicas, histerese e detecção de hiperextensão; 77 testes aprovados)
+> **Última atualização:** 2026-11-11 (branch `IA`; 8 exercícios homologados incluindo Puxada Alta com Halteres; pipeline antifalsos-positivos com ângulos orientados, guardas biomecânicas, histerese e detecção de hiperextensão; 91 testes aprovados)
 
 ---
 

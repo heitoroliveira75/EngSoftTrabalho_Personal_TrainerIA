@@ -566,6 +566,85 @@ class RemadaBaixa(ExercicioBaseFSM):
         return erros_no_frame[0] if erros_no_frame else None
 
 
+class PuxadaAltaHalteres(ExercicioBaseFSM):
+    """
+    Avalia a Puxada Alta com Halteres / Remada Alta (Dumbbell High Pull).
+    Articulações monitoradas: ['ombro', 'cotovelo']
+    - Articulação motora primária: ombro (abdução/elevação vertical).
+    - Articulação sinergista: cotovelo (flexão acompanhando a tração vertical).
+    """
+
+    NOMES_FASES = {
+        0: "Repouso (Halteres a frente)",
+        1: "Puxada / Subindo",
+        2: "Pico de Elevacao",
+        3: "Descendo / Retorno",
+    }
+
+    MENSAGENS_ERRO = {
+        "PUXADA_CURTA": "Subida incompleta: eleve os cotovelos ate a linha dos ombros.",
+        "ELEVACAO_EXCESSIVA": "Cotovelos elevados acima do limite seguro (> 120 graus). Risco de impacto subacromial.",
+        "COTOVELO_CAIDO": "Mantenha os cotovelos elevados e acima da linha dos punhos na puxada.",
+        "HIPEREXTENSAO_COTOVELO": "Evite travar ou hiperextender os cotovelos no final da descida.",
+    }
+
+    PENALIDADES_ERRO = {
+        "PUXADA_CURTA": 25.0,
+        "ELEVACAO_EXCESSIVA": 15.0,
+        "COTOVELO_CAIDO": 15.0,
+        "HIPEREXTENSAO_COTOVELO": 15.0,
+    }
+
+    def identificar_fase(self, angulos: dict, posicoes: dict, angulos_deltas: dict) -> int:
+        ombro = angulos.get("ombro", 0.0)
+        delta_ombro = angulos_deltas.get("ombro", 0.0)
+        fase = self.fases[1]
+
+        if fase == 0:
+            if ombro > 35.0 and delta_ombro > 0:
+                fase = 1
+                self.erros_repeticao_atual = []
+        elif fase == 1:
+            if ombro >= 85.0:
+                fase = 2
+            elif delta_ombro < 0:
+                if ombro >= 45.0:
+                    fase = 3  # Desistência / Repetição curta
+                elif ombro <= 28.0:
+                    fase = 0  # Histerese suave na saída do repouso
+        elif fase == 2:
+            if ombro < 80.0 or delta_ombro < 0:
+                fase = 3
+        elif fase == 3:
+            if ombro <= 25.0:
+                fase = 0
+                self.repeticoes += 1
+
+        return fase
+
+    def classificar(self, angulos: dict, posicoes: dict, angulos_deltas: dict) -> Optional[str]:
+        fase_anterior = self.fases[1]
+        fase_atual = self.identificar_fase(angulos, posicoes, angulos_deltas)
+
+        self.fases[0] = fase_anterior
+        self.fases[1] = fase_atual
+
+        erros_no_frame = []
+        if self.fases[0] == 1 and self.fases[1] == 3:
+            erros_no_frame.append("PUXADA_CURTA")
+        if self.fases[1] == 2 and angulos.get("ombro", 0.0) > 120.0:
+            erros_no_frame.append("ELEVACAO_EXCESSIVA")
+        if self.fases[1] == 2 and angulos.get("cotovelo", 0.0) > 120.0:
+            erros_no_frame.append("COTOVELO_CAIDO")
+        if self.fases[1] in (0, 3) and (angulos.get("cotovelo", 160.0) > 175.0 or angulos.get("cotovelo_orientado", 0.0) < -2.0):
+            erros_no_frame.append("HIPEREXTENSAO_COTOVELO")
+
+        for err in erros_no_frame:
+            self.registrar_erro(err)
+
+        return erros_no_frame[0] if erros_no_frame else None
+
+
 # Catálogo central que liga as teclas de atalho ou IDs aos componentes de cada exercício
 CATALOGO_EXERCICIOS: Dict[str, Dict[str, Any]] = {
     "1": {
@@ -617,6 +696,13 @@ CATALOGO_EXERCICIOS: Dict[str, Dict[str, Any]] = {
         "articulacoes": ["cotovelo", "ombro", "quadril"],
         "arquivo_gabarito": "gabarito_especialista_remada_baixa.json",
     },
+    "8": {
+        "id": "puxada_alta_halteres",
+        "nome": "Puxada Alta com Halteres",
+        "classe_fsm": PuxadaAltaHalteres,
+        "articulacoes": ["ombro", "cotovelo"],
+        "arquivo_gabarito": "gabarito_especialista_puxada_alta.json",
+    },
 }
 
 
@@ -634,6 +720,9 @@ def obter_config_exercicio(identificador: str) -> Dict[str, Any]:
 
     if chave in ("remada", "remada_baixa"):
         return CATALOGO_EXERCICIOS["7"]
+
+    if chave in ("puxada_alta_halteres", "puxada_alta", "remada_alta", "dumbbell_high_pulls", "puxada"):
+        return CATALOGO_EXERCICIOS["8"]
 
     for item in CATALOGO_EXERCICIOS.values():
         if item["id"].lower() == chave:
