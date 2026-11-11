@@ -20,12 +20,20 @@ class ExercicioBaseFSM:
     }
     MENSAGENS_ERRO: Dict[str, str] = {}
     PENALIDADES_ERRO: Dict[str, float] = {}
+    FRAMES_PERSISTENCIA_ERRO: int = 3
+    LIMIAR_ASSIMETRIA_PADRAO: float = 20.0
 
-    def __init__(self):
+    def __init__(self, frames_persistencia_erro: Optional[int] = None):
         self.fases = [0, 0]  # [fase_anterior, fase_atual]
         self.repeticoes = 0
         self.erros: List[str] = []
         self.erros_repeticao_atual: List[str] = []
+        self.contadores_persistencia: Dict[str, int] = {}
+        self.frames_persistencia_erro = (
+            self.FRAMES_PERSISTENCIA_ERRO
+            if frames_persistencia_erro is None
+            else max(1, int(frames_persistencia_erro))
+        )
 
     @property
     def nome_fase_atual(self) -> str:
@@ -34,7 +42,15 @@ class ExercicioBaseFSM:
     def traduzir_erro(self, codigo_erro: Optional[str]) -> str:
         if not codigo_erro:
             return "Movimento dentro dos parametros."
-        return self.MENSAGENS_ERRO.get(codigo_erro, codigo_erro)
+        if codigo_erro in self.MENSAGENS_ERRO:
+            return self.MENSAGENS_ERRO[codigo_erro]
+        if codigo_erro.startswith("ASSIMETRIA_"):
+            art = codigo_erro.replace("ASSIMETRIA_", "").lower()
+            return (
+                f"Assimetria bilateral ({art}): mantenha os dois lados "
+                "subindo e descendo de forma simetrica."
+            )
+        return codigo_erro
 
     def registrar_erro(self, codigo_erro: str) -> None:
         """Registra erro no histórico global e na repetição atual (sem duplicatas na repetição)."""
@@ -42,10 +58,65 @@ class ExercicioBaseFSM:
         if codigo_erro not in self.erros_repeticao_atual:
             self.erros_repeticao_atual.append(codigo_erro)
 
+    def avaliar_erros_posturais_com_debounce(
+        self,
+        candidatos_no_frame: List[str],
+        codigos_monitorados: Optional[List[str]] = None,
+    ) -> List[str]:
+        """
+        Aplica filtro de persistência mínima (debounce) para erros posturais contínuos.
+        Um erro postural só é confirmado após permanecer ativo por `frames_persistencia_erro`
+        frames consecutivos, ignorando espasmos ou ruídos pontuais do detector de pose.
+        """
+        ativos_set = set(candidatos_no_frame)
+        # Limpa apenas os contadores dos códigos que pertencem a este escopo de chamada,
+        # evitando que chamadas independentes (ex.: FSM e simetria bilateral) zerem os contadores uma da outra.
+        escopo = (set(codigos_monitorados) if codigos_monitorados is not None else set(self.contadores_persistencia.keys())) | ativos_set
+
+        confirmados: List[str] = []
+        for codigo in escopo:
+            if codigo in ativos_set:
+                self.contadores_persistencia[codigo] = self.contadores_persistencia.get(codigo, 0) + 1
+                if self.contadores_persistencia[codigo] >= self.frames_persistencia_erro:
+                    confirmados.append(codigo)
+            else:
+                self.contadores_persistencia[codigo] = 0
+
+        # Preserva a ordem determinística de entrada dos candidatos no frame
+        return [c for c in candidatos_no_frame if c in confirmados]
+
+    def resetar_persistencia_erros(self) -> None:
+        """Limpa os contadores de persistência ao fechar ou reiniciar o ciclo."""
+        self.contadores_persistencia.clear()
+
+    def verificar_simetria(
+        self,
+        angulos_dir: Optional[Dict[str, float]],
+        angulos_esq: Optional[Dict[str, float]],
+        articulacoes: List[str],
+        limiar_assimetria: Optional[float] = None,
+    ) -> Optional[str]:
+        """
+        Verifica a simetria bilateral comparando as articulações direita e esquerda
+        durante as fases ativas do exercício (1, 2 e 3).
+        """
+        if not angulos_dir or not angulos_esq:
+            return None
+        if self.fases[1] not in (1, 2, 3):
+            return None
+
+        limiar = self.LIMIAR_ASSIMETRIA_PADRAO if limiar_assimetria is None else float(limiar_assimetria)
+        for art in articulacoes:
+            if art in angulos_dir and art in angulos_esq:
+                if abs(float(angulos_dir[art]) - float(angulos_esq[art])) > limiar:
+                    return f"ASSIMETRIA_{art.upper()}"
+        return None
+
     def consumir_erros_repeticao(self) -> List[str]:
         """Retorna todos os erros ocorridos durante a repetição concluída e limpa o buffer da rep."""
         erros = list(self.erros_repeticao_atual)
         self.erros_repeticao_atual = []
+        self.resetar_persistencia_erros()
         return erros
 
     def identificar_fase(self, angulos: dict, posicoes: dict, angulos_deltas: dict) -> int:
@@ -117,10 +188,19 @@ class DesenvolvimentoOmbro(ExercicioBaseFSM):
         erros_no_frame = []
         if self.fases[0] == 1 and self.fases[1] == 3:
             erros_no_frame.append("REPETICAO_INCOMPLETA")
+
+        candidatos_posturais = []
         if self.fases[1] == 3 and angulos.get("cotovelo", 100.0) < 70.0:
-            erros_no_frame.append("DESCIDA_EXCESSIVA")
+            candidatos_posturais.append("DESCIDA_EXCESSIVA")
         if self.fases[1] in (1, 2, 3) and angulos.get("ombro", 90.0) < 60.0:
-            erros_no_frame.append("OMBRO_CAIDO")
+            candidatos_posturais.append("OMBRO_CAIDO")
+
+        erros_no_frame.extend(
+            self.avaliar_erros_posturais_com_debounce(
+                candidatos_posturais,
+                ["DESCIDA_EXCESSIVA", "OMBRO_CAIDO"],
+            )
+        )
 
         for err in erros_no_frame:
             self.registrar_erro(err)
@@ -190,10 +270,19 @@ class Agachamento(ExercicioBaseFSM):
         erros_no_frame = []
         if self.fases[0] == 1 and self.fases[1] == 3:
             erros_no_frame.append("AGACHAMENTO_CURTO")
+
+        candidatos_posturais = []
         if self.fases[1] in (1, 2, 3) and angulos.get("quadril", 180.0) < 55.0:
-            erros_no_frame.append("TRONCO_MUITO_INCLINADO")
+            candidatos_posturais.append("TRONCO_MUITO_INCLINADO")
         if self.fases[1] in (0, 3) and (angulos.get("joelho", 170.0) > 178.0 or angulos.get("joelho_orientado", 0.0) < -2.0):
-            erros_no_frame.append("HIPEREXTENSAO_JOELHO")
+            candidatos_posturais.append("HIPEREXTENSAO_JOELHO")
+
+        erros_no_frame.extend(
+            self.avaliar_erros_posturais_com_debounce(
+                candidatos_posturais,
+                ["TRONCO_MUITO_INCLINADO", "HIPEREXTENSAO_JOELHO"],
+            )
+        )
 
         for err in erros_no_frame:
             self.registrar_erro(err)
@@ -261,8 +350,17 @@ class RoscaBiceps(ExercicioBaseFSM):
         erros_no_frame = []
         if self.fases[0] == 1 and self.fases[1] == 3:
             erros_no_frame.append("SUBIDA_INCOMPLETA")
+
+        candidatos_posturais = []
         if self.fases[1] in (1, 2, 3) and angulos.get("ombro", 15.0) > 40.0:
-            erros_no_frame.append("OMBRO_INSTAVEL")
+            candidatos_posturais.append("OMBRO_INSTAVEL")
+
+        erros_no_frame.extend(
+            self.avaliar_erros_posturais_com_debounce(
+                candidatos_posturais,
+                ["OMBRO_INSTAVEL"],
+            )
+        )
 
         for err in erros_no_frame:
             self.registrar_erro(err)
@@ -332,10 +430,19 @@ class ElevacaoLateral(ExercicioBaseFSM):
         erros_no_frame = []
         if self.fases[0] == 1 and self.fases[1] == 3:
             erros_no_frame.append("ELEVACAO_CURTA")
+
+        candidatos_posturais = []
         if self.fases[1] == 2 and angulos.get("ombro", 20.0) > 115.0:
-            erros_no_frame.append("ELEVACAO_EXCESSIVA")
+            candidatos_posturais.append("ELEVACAO_EXCESSIVA")
         if self.fases[1] in (1, 2, 3) and angulos.get("cotovelo", 160.0) < 110.0:
-            erros_no_frame.append("COTOVELO_MUITO_FLEXIONADO")
+            candidatos_posturais.append("COTOVELO_MUITO_FLEXIONADO")
+
+        erros_no_frame.extend(
+            self.avaliar_erros_posturais_com_debounce(
+                candidatos_posturais,
+                ["ELEVACAO_EXCESSIVA", "COTOVELO_MUITO_FLEXIONADO"],
+            )
+        )
 
         for err in erros_no_frame:
             self.registrar_erro(err)
@@ -407,12 +514,21 @@ class TricepsCorda(ExercicioBaseFSM):
         erros_no_frame = []
         if self.fases[0] == 1 and self.fases[1] == 3:
             erros_no_frame.append("EXTENSAO_INCOMPLETA")
+
+        candidatos_posturais = []
         if self.fases[1] in (1, 2, 3) and angulos.get("ombro", 0.0) > 35.0:
-            erros_no_frame.append("COTOVELO_AVANCADO")
+            candidatos_posturais.append("COTOVELO_AVANCADO")
         if (self.fases[0] == 3 or self.fases[1] == 3) and angulos.get("cotovelo", 80.0) < 50.0:
-            erros_no_frame.append("SUBIDA_EXCESSIVA")
+            candidatos_posturais.append("SUBIDA_EXCESSIVA")
         if self.fases[1] in (2, 3) and (angulos.get("cotovelo", 80.0) > 175.0 or angulos.get("cotovelo_orientado", 0.0) < -2.0):
-            erros_no_frame.append("HIPEREXTENSAO_COTOVELO")
+            candidatos_posturais.append("HIPEREXTENSAO_COTOVELO")
+
+        erros_no_frame.extend(
+            self.avaliar_erros_posturais_com_debounce(
+                candidatos_posturais,
+                ["COTOVELO_AVANCADO", "SUBIDA_EXCESSIVA", "HIPEREXTENSAO_COTOVELO"],
+            )
+        )
 
         for err in erros_no_frame:
             self.registrar_erro(err)
@@ -482,10 +598,19 @@ class FlexaoDiamante(ExercicioBaseFSM):
         erros_no_frame = []
         if self.fases[0] == 1 and self.fases[1] == 3:
             erros_no_frame.append("FLEXAO_CURTA")
+
+        candidatos_posturais = []
         if self.fases[1] in (1, 2, 3) and angulos.get("ombro", 0.0) > 75.0:
-            erros_no_frame.append("ABERTURA_EXCESSIVA")
+            candidatos_posturais.append("ABERTURA_EXCESSIVA")
         if self.fases[1] in (0, 3) and (angulos.get("cotovelo", 160.0) > 175.0 or angulos.get("cotovelo_orientado", 0.0) < -2.0):
-            erros_no_frame.append("HIPEREXTENSAO_COTOVELO")
+            candidatos_posturais.append("HIPEREXTENSAO_COTOVELO")
+
+        erros_no_frame.extend(
+            self.avaliar_erros_posturais_com_debounce(
+                candidatos_posturais,
+                ["ABERTURA_EXCESSIVA", "HIPEREXTENSAO_COTOVELO"],
+            )
+        )
 
         for err in erros_no_frame:
             self.registrar_erro(err)
@@ -555,10 +680,19 @@ class RemadaBaixa(ExercicioBaseFSM):
         erros_no_frame = []
         if self.fases[0] == 1 and self.fases[1] == 3:
             erros_no_frame.append("REMADA_CURTA")
+
+        candidatos_posturais = []
         if self.fases[1] in (1, 2, 3) and angulos.get("quadril", 90.0) > 125.0:
-            erros_no_frame.append("INCLINACAO_EXCESSIVA_TRONCO")
+            candidatos_posturais.append("INCLINACAO_EXCESSIVA_TRONCO")
         if self.fases[1] in (0, 3) and (angulos.get("cotovelo", 160.0) > 175.0 or angulos.get("cotovelo_orientado", 0.0) < -2.0):
-            erros_no_frame.append("HIPEREXTENSAO_COTOVELO")
+            candidatos_posturais.append("HIPEREXTENSAO_COTOVELO")
+
+        erros_no_frame.extend(
+            self.avaliar_erros_posturais_com_debounce(
+                candidatos_posturais,
+                ["INCLINACAO_EXCESSIVA_TRONCO", "HIPEREXTENSAO_COTOVELO"],
+            )
+        )
 
         for err in erros_no_frame:
             self.registrar_erro(err)
@@ -632,12 +766,21 @@ class PuxadaAltaHalteres(ExercicioBaseFSM):
         erros_no_frame = []
         if self.fases[0] == 1 and self.fases[1] == 3:
             erros_no_frame.append("PUXADA_CURTA")
+
+        candidatos_posturais = []
         if self.fases[1] == 2 and angulos.get("ombro", 0.0) > 120.0:
-            erros_no_frame.append("ELEVACAO_EXCESSIVA")
+            candidatos_posturais.append("ELEVACAO_EXCESSIVA")
         if self.fases[1] == 2 and angulos.get("cotovelo", 0.0) > 120.0:
-            erros_no_frame.append("COTOVELO_CAIDO")
+            candidatos_posturais.append("COTOVELO_CAIDO")
         if self.fases[1] in (0, 3) and (angulos.get("cotovelo", 160.0) > 175.0 or angulos.get("cotovelo_orientado", 0.0) < -2.0):
-            erros_no_frame.append("HIPEREXTENSAO_COTOVELO")
+            candidatos_posturais.append("HIPEREXTENSAO_COTOVELO")
+
+        erros_no_frame.extend(
+            self.avaliar_erros_posturais_com_debounce(
+                candidatos_posturais,
+                ["ELEVACAO_EXCESSIVA", "COTOVELO_CAIDO", "HIPEREXTENSAO_COTOVELO"],
+            )
+        )
 
         for err in erros_no_frame:
             self.registrar_erro(err)
@@ -653,6 +796,7 @@ CATALOGO_EXERCICIOS: Dict[str, Dict[str, Any]] = {
         "classe_fsm": DesenvolvimentoOmbro,
         "articulacoes": ["cotovelo", "ombro"],
         "arquivo_gabarito": "gabarito_especialista_ombro.json",
+        "bilateral": True,
     },
     "2": {
         "id": "agachamento",
@@ -660,6 +804,7 @@ CATALOGO_EXERCICIOS: Dict[str, Dict[str, Any]] = {
         "classe_fsm": Agachamento,
         "articulacoes": ["joelho", "quadril"],
         "arquivo_gabarito": "gabarito_especialista_agachamento.json",
+        "bilateral": True,
     },
     "3": {
         "id": "rosca_biceps",
@@ -667,6 +812,7 @@ CATALOGO_EXERCICIOS: Dict[str, Dict[str, Any]] = {
         "classe_fsm": RoscaBiceps,
         "articulacoes": ["cotovelo", "ombro"],
         "arquivo_gabarito": "gabarito_especialista_rosca.json",
+        "bilateral": False,
     },
     "4": {
         "id": "elevacao_lateral",
@@ -674,6 +820,7 @@ CATALOGO_EXERCICIOS: Dict[str, Dict[str, Any]] = {
         "classe_fsm": ElevacaoLateral,
         "articulacoes": ["ombro", "cotovelo"],
         "arquivo_gabarito": "gabarito_especialista_elevacao_lateral.json",
+        "bilateral": True,
     },
     "5": {
         "id": "triceps_corda",
@@ -681,6 +828,7 @@ CATALOGO_EXERCICIOS: Dict[str, Dict[str, Any]] = {
         "classe_fsm": TricepsCorda,
         "articulacoes": ["cotovelo", "ombro"],
         "arquivo_gabarito": "gabarito_especialista_triceps_corda.json",
+        "bilateral": True,
     },
     "6": {
         "id": "flexao_diamante",
@@ -688,6 +836,7 @@ CATALOGO_EXERCICIOS: Dict[str, Dict[str, Any]] = {
         "classe_fsm": FlexaoDiamante,
         "articulacoes": ["cotovelo", "ombro"],
         "arquivo_gabarito": "gabarito_especialista_flexao_diamante.json",
+        "bilateral": True,
     },
     "7": {
         "id": "remada_baixa",
@@ -695,6 +844,7 @@ CATALOGO_EXERCICIOS: Dict[str, Dict[str, Any]] = {
         "classe_fsm": RemadaBaixa,
         "articulacoes": ["cotovelo", "ombro", "quadril"],
         "arquivo_gabarito": "gabarito_especialista_remada_baixa.json",
+        "bilateral": False,
     },
     "8": {
         "id": "puxada_alta_halteres",
@@ -702,6 +852,7 @@ CATALOGO_EXERCICIOS: Dict[str, Dict[str, Any]] = {
         "classe_fsm": PuxadaAltaHalteres,
         "articulacoes": ["ombro", "cotovelo"],
         "arquivo_gabarito": "gabarito_especialista_puxada_alta.json",
+        "bilateral": True,
     },
 }
 

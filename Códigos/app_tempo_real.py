@@ -40,9 +40,16 @@ def processar_frame_webcam(
     angulos: Dict[str, float],
     visivel: bool,
     alerta_atual: Optional[str],
+    angulos_contralateral: Optional[Dict[str, float]] = None,
+    visivel_contralateral: bool = True,
 ) -> Tuple[Optional[str], Optional[ResultadoPontuacaoRepeticao]]:
     """Delega ao orquestrador o frame e mantém o alerta visível até voltar ao repouso."""
-    alerta, resultado = orquestrador.processar_frame(angulos, visivel=visivel)
+    alerta, resultado = orquestrador.processar_frame(
+        angulos,
+        visivel=visivel,
+        angulos_contralateral=angulos_contralateral,
+        visivel_contralateral=visivel_contralateral,
+    )
     if alerta:
         alerta_atual = orquestrador.fsm.traduzir_erro(alerta)
     elif orquestrador.fsm.fases[1] == 0:
@@ -213,6 +220,8 @@ def main():
 
             angulos_atuais: Dict[str, float] = {}
             corpo_visivel = False
+            angulos_contralateral: Optional[Dict[str, float]] = None
+            visivel_contralateral = False
 
             if resultado.pose_landmarks and len(resultado.pose_landmarks) > 0:
                 pose_landmarks = resultado.pose_landmarks[0]
@@ -222,6 +231,14 @@ def main():
                     lado=lado_ativo,
                 )
 
+                if config.get("bilateral", False):
+                    lado_oposto = "esquerdo" if lado_ativo == "direito" else "direito"
+                    angulos_contralateral, visivel_contralateral = extrair_angulos_exercicio(
+                        landmarks=pose_landmarks,
+                        articulacoes=orquestrador.articulacoes,
+                        lado=lado_oposto,
+                    )
+
                 cor_esqueleto = (0, 0, 255) if alerta_imediato_texto else (0, 255, 0)
                 desenhar_esqueleto(frame, pose_landmarks, w, h, cor_linha=cor_esqueleto)
 
@@ -230,6 +247,8 @@ def main():
                 angulos=angulos_atuais,
                 visivel=corpo_visivel,
                 alerta_atual=alerta_imediato_texto,
+                angulos_contralateral=angulos_contralateral,
+                visivel_contralateral=visivel_contralateral,
             )
             if resultado_repeticao is not None:
                 status = "CORRETA" if resultado_repeticao.aprovado else "INCORRETA"

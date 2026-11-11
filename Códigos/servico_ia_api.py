@@ -215,8 +215,23 @@ class ServicoIA:
             lado=lado,
         )
 
+        angulos_contralateral = None
+        visivel_contralateral = False
+        if orquestrador.config.get("bilateral", False):
+            lado_oposto = "esquerdo" if lado.lower() == "direito" else "direito"
+            angulos_contralateral, visivel_contralateral = extrair_angulos_exercicio(
+                landmarks=landmarks,
+                articulacoes=orquestrador.articulacoes,
+                lado=lado_oposto,
+            )
+
         # 4. Avaliação no motor
-        alerta, res_rep = orquestrador.processar_frame(angulos=angulos, visivel=visivel)
+        alerta, res_rep = orquestrador.processar_frame(
+            angulos=angulos,
+            visivel=visivel,
+            angulos_contralateral=angulos_contralateral,
+            visivel_contralateral=visivel_contralateral,
+        )
 
         ultima_rep = res_rep or (
             orquestrador.historico_repeticoes[-1] if orquestrador.historico_repeticoes else None

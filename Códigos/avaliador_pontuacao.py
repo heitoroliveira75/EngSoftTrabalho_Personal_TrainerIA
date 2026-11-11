@@ -164,7 +164,12 @@ def calcular_pontuacao(
         amplitudes_gabarito[art] = round(float(np.max(col_g) - np.min(col_g)), 1)
 
     razao_cadencia = round(float(dados_usuario.shape[0]) / max(1, gabarito.total_frames), 2)
-    mensagens_erros = [mensagens_map.get(err, err) for err in erros_unicos]
+    mensagens_erros = [
+        fsm_ou_config.get("classe_fsm")().traduzir_erro(err)
+        if err not in mensagens_map and isinstance(fsm_ou_config, dict) and fsm_ou_config.get("classe_fsm") is not None
+        else mensagens_map.get(err, err)
+        for err in erros_unicos
+    ]
 
     # Formulação do Feedback Hierárquico
     if mensagens_erros:
@@ -216,7 +221,7 @@ class OrquestradorSessao:
         self,
         identificador_exercicio: str,
         gabarito_customizado: Optional[GabaritoExercicio] = None,
-        tolerancia_dtw: float = 15.0,
+        tolerancia_dtw: float = 20.0,
         limiar_aprovacao: float = 70.0,
         janela_sakoe_chiba: Optional[float] = 0.20,
         limite_frames_invisivel: int = 30,
@@ -300,9 +305,17 @@ class OrquestradorSessao:
         self,
         angulos: Dict[str, float],
         visivel: bool = True,
+        angulos_contralateral: Optional[Dict[str, float]] = None,
+        visivel_contralateral: bool = True,
     ) -> Tuple[Optional[str], Optional[ResultadoPontuacaoRepeticao]]:
         """
         Processa um único fotograma recebido do pipeline (Webcam, Vídeo ou Teste).
+
+        Args:
+            angulos: Dicionário de ângulos do lado principal monitorado.
+            visivel: Indica se as articulações principais estão visíveis.
+            angulos_contralateral: (Opcional) Ângulos do lado oposto para checagem de simetria bilateral.
+            visivel_contralateral: Indica se as articulações do lado oposto estão visíveis.
 
         Retorno:
             Tuple[alerta_imediato, resultado_repeticao]:
@@ -319,6 +332,8 @@ class OrquestradorSessao:
                 self.fsm.fases[0] = 0
                 self.fsm.fases[1] = 0
                 self.fsm.erros_repeticao_atual = []
+                if hasattr(self.fsm, "resetar_persistencia_erros"):
+                    self.fsm.resetar_persistencia_erros()
                 return "ATENÇÃO: Visão perdida por muito tempo; repetição reiniciada", None
             return "ATENÇÃO: Articulação fora de visão", None
 
@@ -329,6 +344,30 @@ class OrquestradorSessao:
 
         # 3. Processamento no Buffer e classificação na FSM
         dados_rep, erro_imediato = self.buffer.processar_frame(angulos=angulos, angulos_deltas=deltas)
+
+        # 3.1. Checagem universal de simetria bilateral (com debounce para evitar espasmos)
+        if (
+            self.config.get("bilateral", False)
+            and angulos_contralateral
+            and visivel_contralateral
+            and hasattr(self.fsm, "verificar_simetria")
+        ):
+            erro_sim = self.fsm.verificar_simetria(
+                angulos_dir=angulos,
+                angulos_esq=angulos_contralateral,
+                articulacoes=self.articulacoes,
+            )
+            candidatos_sim = [erro_sim] if erro_sim else []
+            codigos_sim_monitorados = [f"ASSIMETRIA_{a.upper()}" for a in self.articulacoes]
+            confirmados_sim = self.fsm.avaliar_erros_posturais_com_debounce(
+                candidatos_sim,
+                codigos_sim_monitorados,
+            )
+            if confirmados_sim:
+                err_sim = confirmados_sim[0]
+                self.fsm.registrar_erro(err_sim)
+                if not erro_imediato:
+                    erro_imediato = err_sim
 
         # 4. Se a repetição foi concluída neste frame, avalia e gera o laudo
         if dados_rep is not None:
@@ -386,7 +425,7 @@ class OrquestradorSessao:
         if todos_erros:
             contagem = Counter(todos_erros)
             erro_comum, qtd = contagem.most_common(1)[0]
-            msg_amigavel = mensagens_map.get(erro_comum, erro_comum)
+            msg_amigavel = self.fsm.traduzir_erro(erro_comum) if erro_comum not in mensagens_map else mensagens_map.get(erro_comum, erro_comum)
             recomendacao = f"Atenção recorrente ({qtd}/{total_reps} reps): {msg_amigavel}"
         else:
             if score_medio >= 85.0:
