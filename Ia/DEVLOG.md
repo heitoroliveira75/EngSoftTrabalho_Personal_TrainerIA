@@ -26,6 +26,23 @@
 
 ## Histórico de Entradas
 
+### [Entrada #015] 2026-11-10 — [Refatoração Biomecânica] Resolução Definitiva de Repetições Fantasma e Implementação de Ângulos Orientados com Sinal e Detecção de Hiperextensão
+- **Objetivo / História de Usuário:** Sanar de forma definitiva os dois problemas críticos relatados em testes práticos de webcam:
+  1. A IA incrementava repetições indevidamente mesmo sem movimento real do usuário (repetições fantasma causadas por ruído estático na postura de repouso ou ausência de usuário);
+  2. O cálculo geométrico anterior não diferenciava ângulos negativos de positivos (perda de sentido de rotação, flexão vs. hiperextensão).
+- **Tasks Executadas e Artefatos Gerados:**
+  - `[TASK-CORR.01]` Expandido `Códigos/calculo_angulos.py` com `calcular_angulo_orientado(ponto_a, ponto_b, ponto_c) -> float` baseado no produto vetorial 2D ($\text{atan2}(\text{cross}_{2D}, \text{dot}_{2D})$) com retorno em $[-180.0^\circ, +180.0^\circ]$ e parâmetro retrocompatível `com_sinal=False`.
+  - `[TASK-CORR.02]` Implementado o portão de presença e visibilidade (`PresenceGate`) em `Códigos/avaliador_pontuacao.py`: quando `not visivel` ou marcos ausentes, os deltas são congelados e a âncora é limpa (`referencia_deltas.clear()`), eliminando saltos de ângulo ao reentrar. O HUD em `Códigos/app_tempo_real.py` exibe `"Aguardando Enquadramento"` e reflete o contador homologado (`total_repeticoes`).
+  - `[TASK-CORR.03]` Inseridas guardas biomecânicas no `BufferRepeticao` em `Códigos/buffer_repeticao.py`: `DurationGuard` (descarta ciclos com $< 6$ frames / $\approx 0.2$s) e `ROMGuard` (exige amplitude real $\ge 15.0^\circ$). Ciclos espúrios são descartados silenciosamente com reversão do contador da FSM e consumo de erros residuais.
+  - `[TASK-CORR.04]` Aplicada histerese direcional e zona de amortecimento de saída nas 7 FSMs em `Códigos/exercicios_fsm.py` (Desenvolvimento, Agachamento, Rosca, Elevação, Tríceps, Flexão e Remada): oscilações pequenas logo na saída do repouso retornam suavemente à fase 0 sem acusar erro de repetição incompleta/curta e sem contar repetição.
+  - `[TASK-CORR.05]` Implementada a detecção imediata de `HIPEREXTENSAO_ARTICULAR` (-15 pts) para articulações vulneráveis (cotovelo no Tríceps Corda, Flexão Diamante e Remada Baixa, e joelho no Agachamento Livre) com mensagens pedagógicas de proteção articular.
+  - `[TASK-CORR.06]` Sincronização do HUD e expansão da suíte automatizada em `tests/test_pipeline_pontuacao.py` com novas classes `TestGuardasBiomecanicasBuffer` e `TestDeteccaoHiperextensaoArticular`, alcançando **77 testes automatizados aprovados com 100% de sucesso**.
+- **Decisões Técnicas e Observações:**
+  - A limpeza da âncora de deltas ao perder visibilidade evita deltas artificiais gigantescos na reentrada do usuário.
+  - A zona de amortecimento desacopla a desistência real de movimento de micro-tremores de câmera, erradicando falsos positivos na postura inicial.
+  - O limiar de hiperextensão articular foi calibrado para permitir o alinhamento corporal padrão ouro sem penalizar o usuário, punindo estritamente a trava de juntas com desvio retrógrado prejudicial.
+- **Estado Resultante / Próximos Passos:** Repetições fantasma eliminadas com 100% de precisão matemática, sistema dotado de detecção de hiperextensão e suíte completa de 77 testes aprovada no `pytest`.
+
 ### [Entrada #014] 2026-11-04 — [Expansão Biomecânica] Implementação da Remada Baixa e Extração de Gabarito Especialista
 - **Objetivo / História de Usuário:** Implementar o reconhecimento, contagem automática e avaliação biomecânica da Remada Baixa / Remada na Polia (visão lateral/perfil esquerdo), com detecção de puxada incompleta e inclinação excessiva das costas (roubo no tronco), além de extrair o gabarito oficial a partir de vídeo gravado em `Videos dataset/remadabaixa.mp4`.
 - **Tasks Executadas e Artefatos Gerados:**

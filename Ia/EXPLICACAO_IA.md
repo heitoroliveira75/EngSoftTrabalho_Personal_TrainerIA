@@ -197,7 +197,38 @@ Para transformar o motor matemático de IA em um serviço web consumível pelo a
 3. **Guia Completo para o Front-end (`GUIA_INTEGRACAO_FRONT_IA.md`):**
    * Criado documento com exemplos prontos em Dart/Flutter para que a equipe de telas conecte a câmera e o HUD facilmente.
 4. **Suíte Total de Testes:**
-   * A suíte saltou de 39 para **52 testes automatizados** no `pytest` (100% de sucesso).
+   * A suíte de pipeline avançou para **77 testes automatizados** aprovados com 100% de sucesso.
+
+---
+
+## 5.2. Como Eliminamos as Repetições Fantasma e Implementamos a Proteção de Hiperextensão
+
+Durante testes reais com webcam, foram identificados dois problemas comuns em sistemas de visão computacional:
+1. A IA incrementava repetições falsas ("fantasmas") mesmo com a pessoa parada em frente à câmera ou saindo do enquadramento;
+2. O algoritmo não sabia se o braço/perna estava esticando normalmente ou hiperextendendo no sentido inverso (risco de lesão).
+
+Para resolver isso de forma definitiva e robusta, criamos uma **blindagem em 4 camadas**:
+
+### Camada 1: Portão de Presença e Visibilidade (`PresenceGate`)
+* Quando o usuário sai da câmera ou os pontos corporais ficam escondidos, o sistema entra em modo de espera.
+* A "memória de posição" (`referencia_deltas.clear()`) é limpa imediatamente. Assim, quando o atleta entra novamente na câmera em outra pose, a IA não compara a pose nova com a antiga de minutos atrás (o que antes gerava um salto fantasma de ângulo).
+
+### Camada 2: Histerese e Zona de Amortecimento nas 7 FSMs
+* Ruídos de vídeo e iluminação causam tremores naturais de +- 1.5 graus nos marcos anatômicos.
+* Antes, se a pessoa estivesse na posição de repouso, qualquer tremor fazia a máquina de estados achar que o movimento começou e, no tremor seguinte, acusar repetição incompleta e somar repetição!
+* Agora, a FSM possui uma **zona de amortecimento de saída**: se o usuário mal se mexeu e recuou, o sistema volta suavemente ao repouso sem gerar erro e sem contar repetição.
+
+### Camada 3: Guardas Biomecânicas no Buffer (`DurationGuard` e `ROMGuard`)
+* Uma repetição humana real não acontece em menos de 0.2 segundos e nem com menos de 15 graus de amplitude.
+* O buffer avalia a repetição concluída sob duas réguas rígidas:
+  1. **`DurationGuard`:** descarta ciclos com duração menor que 6 frames (~0.2s), filtrando estalos de ruído;
+  2. **`ROMGuard`:** exige excursão angular real (>= 15 graus). Tremores parados são descartados silenciosamente sem sujar o histórico.
+
+### Camada 4: Ângulos Orientados e Detecção de Hiperextensão Articular
+* Usando o produto vetorial 2D no intervalo [-180 graus, +180 graus], a IA monitora o alinhamento das articulações.
+* Se o praticante "travar" violentamente os cotovelos (no Tríceps Corda, Flexão Diamante e Remada) ou os joelhos (no Agachamento) além do alinhamento natural seguro (> 175 graus ou desvio retrógrado negativo), a IA emite o alerta imediato no HUD:  
+  `ALERTA POSTURAL: Evite travar/hiperextender a articulação!`  
+  aplicando uma penalidade pedagógica de 15 pontos para ensinar o praticante a manter a tensão nos músculos e proteger ligamentos e cartilagens.
 
 ---
 

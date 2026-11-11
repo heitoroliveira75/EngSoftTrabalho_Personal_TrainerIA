@@ -144,11 +144,13 @@ class Agachamento(ExercicioBaseFSM):
     MENSAGENS_ERRO = {
         "AGACHAMENTO_CURTO": "Subiu antes de atingir a profundidade adequada do joelho.",
         "TRONCO_MUITO_INCLINADO": "Quadril fechou demasiado (< 55 graus); mantenha o peito aberto.",
+        "HIPEREXTENSAO_JOELHO": "Evite travar os joelhos para tras ao ficar em pe; preserve a articulacao.",
     }
 
     PENALIDADES_ERRO = {
         "AGACHAMENTO_CURTO": 25.0,
         "TRONCO_MUITO_INCLINADO": 15.0,
+        "HIPEREXTENSAO_JOELHO": 15.0,
     }
 
     def identificar_fase(self, angulos: dict, posicoes: dict, angulos_deltas: dict) -> int:
@@ -190,6 +192,8 @@ class Agachamento(ExercicioBaseFSM):
             erros_no_frame.append("AGACHAMENTO_CURTO")
         if self.fases[1] in (1, 2, 3) and angulos.get("quadril", 180.0) < 55.0:
             erros_no_frame.append("TRONCO_MUITO_INCLINADO")
+        if self.fases[1] in (0, 3) and (angulos.get("joelho", 170.0) > 178.0 or angulos.get("joelho_orientado", 0.0) < -2.0):
+            erros_no_frame.append("HIPEREXTENSAO_JOELHO")
 
         for err in erros_no_frame:
             self.registrar_erro(err)
@@ -356,12 +360,14 @@ class TricepsCorda(ExercicioBaseFSM):
         "EXTENSAO_INCOMPLETA": "Estenda completamente os bracos no fundo (pelo menos 145 graus) antes de subir.",
         "COTOVELO_AVANCADO": "Mantenha os cotovelos fixos ao lado do tronco (ombro < 35 graus), sem projeta-los para frente.",
         "SUBIDA_EXCESSIVA": "Controle o retorno na subida; nao deixe o cabo puxar os bracos excessivamente (< 50 graus).",
+        "HIPEREXTENSAO_COTOVELO": "Evite travar ou hiperextender os cotovelos no final da descida.",
     }
 
     PENALIDADES_ERRO = {
         "EXTENSAO_INCOMPLETA": 25.0,
         "COTOVELO_AVANCADO": 15.0,
         "SUBIDA_EXCESSIVA": 15.0,
+        "HIPEREXTENSAO_COTOVELO": 15.0,
     }
 
     def identificar_fase(self, angulos: dict, posicoes: dict, angulos_deltas: dict) -> int:
@@ -405,6 +411,8 @@ class TricepsCorda(ExercicioBaseFSM):
             erros_no_frame.append("COTOVELO_AVANCADO")
         if (self.fases[0] == 3 or self.fases[1] == 3) and angulos.get("cotovelo", 80.0) < 50.0:
             erros_no_frame.append("SUBIDA_EXCESSIVA")
+        if self.fases[1] in (2, 3) and (angulos.get("cotovelo", 80.0) > 175.0 or angulos.get("cotovelo_orientado", 0.0) < -2.0):
+            erros_no_frame.append("HIPEREXTENSAO_COTOVELO")
 
         for err in erros_no_frame:
             self.registrar_erro(err)
@@ -428,11 +436,13 @@ class FlexaoDiamante(ExercicioBaseFSM):
     MENSAGENS_ERRO = {
         "FLEXAO_CURTA": "Desca ate aproximar o peito das maos (cotovelo <= 90 graus) antes de subir.",
         "ABERTURA_EXCESSIVA": "Mantenha os cotovelos mais fechados junto ao corpo (ombro < 75 graus) para preservar o estimulo de diamante.",
+        "HIPEREXTENSAO_COTOVELO": "Mantenha os cotovelos levemente destravados no topo da prancha.",
     }
 
     PENALIDADES_ERRO = {
         "FLEXAO_CURTA": 25.0,
         "ABERTURA_EXCESSIVA": 15.0,
+        "HIPEREXTENSAO_COTOVELO": 15.0,
     }
 
     def identificar_fase(self, angulos: dict, posicoes: dict, angulos_deltas: dict) -> int:
@@ -474,6 +484,8 @@ class FlexaoDiamante(ExercicioBaseFSM):
             erros_no_frame.append("FLEXAO_CURTA")
         if self.fases[1] in (1, 2, 3) and angulos.get("ombro", 0.0) > 75.0:
             erros_no_frame.append("ABERTURA_EXCESSIVA")
+        if self.fases[1] in (0, 3) and (angulos.get("cotovelo", 160.0) > 175.0 or angulos.get("cotovelo_orientado", 0.0) < -2.0):
+            erros_no_frame.append("HIPEREXTENSAO_COTOVELO")
 
         for err in erros_no_frame:
             self.registrar_erro(err)
@@ -497,11 +509,13 @@ class RemadaBaixa(ExercicioBaseFSM):
     MENSAGENS_ERRO = {
         "REMADA_CURTA": "Puxe a barra ate o abdomen (cotovelo <= 85 graus) antes de retornar.",
         "INCLINACAO_EXCESSIVA_TRONCO": "Mantenha o tronco firme (quadril <= 125 graus); evite jogar o corpo para tras.",
+        "HIPEREXTENSAO_COTOVELO": "Controle o retorno dos bracos sem travar os cotovelos no final da remada.",
     }
 
     PENALIDADES_ERRO = {
         "REMADA_CURTA": 25.0,
         "INCLINACAO_EXCESSIVA_TRONCO": 15.0,
+        "HIPEREXTENSAO_COTOVELO": 15.0,
     }
 
     def identificar_fase(self, angulos: dict, posicoes: dict, angulos_deltas: dict) -> int:
@@ -516,8 +530,11 @@ class RemadaBaixa(ExercicioBaseFSM):
         elif fase == 1:
             if cotovelo <= 85.0:
                 fase = 2
-            elif delta_cotovelo > 0 and cotovelo >= 130.0:
-                fase = 3
+            elif delta_cotovelo > 0:
+                if cotovelo >= 141.0:
+                    fase = 0
+                elif cotovelo >= 130.0:
+                    fase = 3
         elif fase == 2:
             if cotovelo > 95.0 or delta_cotovelo > 0:
                 fase = 3
@@ -540,6 +557,8 @@ class RemadaBaixa(ExercicioBaseFSM):
             erros_no_frame.append("REMADA_CURTA")
         if self.fases[1] in (1, 2, 3) and angulos.get("quadril", 90.0) > 125.0:
             erros_no_frame.append("INCLINACAO_EXCESSIVA_TRONCO")
+        if self.fases[1] in (0, 3) and (angulos.get("cotovelo", 160.0) > 175.0 or angulos.get("cotovelo_orientado", 0.0) < -2.0):
+            erros_no_frame.append("HIPEREXTENSAO_COTOVELO")
 
         for err in erros_no_frame:
             self.registrar_erro(err)

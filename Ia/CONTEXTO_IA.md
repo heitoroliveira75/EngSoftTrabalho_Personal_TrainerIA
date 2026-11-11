@@ -2,7 +2,7 @@
 
 > **Propósito deste documento:** Permitir que qualquer agente de IA ou desenvolvedor recupere imediatamente 100% do contexto técnico, arquitetural e histórico da frente de **Inteligência Artificial e Visão Computacional** do projeto **Personal Trainer IA**.
 >
-> **Última atualização:** 2026-10-27 (branch `IA` em `af9b3b6`; Sprint `US-01` concluída e homologada com 39 testes; pronta para demo `US-02`)
+> **Última atualização:** 2026-11-10 (branch `IA`; 7 exercícios homologados; pipeline antifalsos-positivos com ângulos orientados, guardas biomecânicas, histerese e detecção de hiperextensão; 77 testes aprovados)
 
 ---
 
@@ -81,10 +81,10 @@ Estes arquivos compõem a frente de trabalho imediata da branch, homologada por 
 | [`./avaliador_pontuacao.py`](./avaliador_pontuacao.py) | Motor central de pontuação (`ResultadoPontuacaoRepeticao`), laudos pedagógicos hierárquicos, gamificação e `OrquestradorSessao` com interface **frame a frame**. | `calcular_pontuacao()`, `OrquestradorSessao`, `ResultadoPontuacaoRepeticao`, `ResumoPontuacaoSessao` | **Concluído na `TASK-06`** |
 | [`./servico_ia_api.py`](./servico_ia_api.py) | Serviço singleton em memória que gerencia instâncias de `OrquestradorSessao` por usuário, decodifica imagens em RAM via `cv2.imdecode` e provê simulação canônica. | `ServicoIA`, `serializar_resultado_repeticao()`, `serializar_resumo_sessao()` | **Concluído na Sprint US-02** |
 | [`./BD/api.py`](./BD/api.py) | Servidor FastAPI unificado expondo rotas REST do Banco e rotas `/ia/*` para o aplicativo móvel. | Rotas `/ia/reiniciar-sessao`, `/ia/processar-frame`, `/ia/simular-repeticao`, `/ia/resumo-sessao`, `/ia/finalizar-serie-e-pontuar` | **Concluído na Sprint US-02** |
-| [`tests/test_pipeline_pontuacao.py`](tests/test_pipeline_pontuacao.py) | Suíte de testes automatizados com `pytest` cobrindo geometria, deltas acumulados, transições de fase, retenção de erros, DTW vetorizado, segmentação canônica, orquestração, aceite AC1 a AC7 e FSMs dos 7 exercícios. | Testes sem dependência de câmera | **Concluído (63 testes)** |
+| [`tests/test_pipeline_pontuacao.py`](tests/test_pipeline_pontuacao.py) | Suíte de testes automatizados com `pytest` cobrindo geometria, ângulos orientados, deltas acumulados, transições de fase com histerese, retenção de erros, DTW vetorizado, segmentação canônica, orquestração, guardas biomecânicas (ROM/Duration), hiperextensão articular e os 7 exercícios do catálogo. | Testes sem dependência de câmera | **Concluído (77 testes)** |
 | [`tests/test_servico_ia_api.py`](tests/test_servico_ia_api.py) | Suíte de testes do gerenciador de sessões de IA em memória, decodificação em RAM e simulações canônicas. | `test_servico_ia_*` | **Concluído (7 testes)** |
 | [`tests/test_api_ia_integrada.py`](tests/test_api_ia_integrada.py) | Suíte de testes end-to-end das rotas FastAPI de IA e envio automático de pontos para a gamificação. | `test_rota_ia_*` | **Concluído (6 testes)** |
-| **Total da Suíte Automatizada** | **70 testes aprovados no `pytest` com 100% de sucesso** | `pytest` | **100% Aprovado** |
+| **Total da Suíte Automatizada** | **77 testes de pipeline + 13 testes de API/Serviço = 90 testes aprovados no `pytest` com 100% de sucesso** | `pytest` | **100% Aprovado** |
 | [`./pytest.ini`](./pytest.ini) | Configuração de execução do `pytest` com inclusão automática do diretório raiz no `pythonpath`. | Configuração de testes | **Ativo** |
 | [`./requirements.txt`](./requirements.txt) | Especificação das dependências oficiais da branch `IA` (`numpy`, `opencv-python`, `mediapipe`, `pytest`). | Gerenciamento de ambiente | **Ativo** |
 

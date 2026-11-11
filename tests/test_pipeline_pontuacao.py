@@ -220,6 +220,34 @@ class TestExerciciosFSM:
                 fsm.classificar(pose_frame, {}, {art_principal: float(ruido * 0.4)})
                 assert fsm.repeticoes == 0, f"FSM {classe_fsm.__name__} contou repetição indevida com ruído!"
 
+    def test_histerese_recuperacao_suave_em_todos_os_exercicios(self):
+        """
+        [TASK-CORR.04] Valida que um início precoce com recuo suave retorna à fase 0
+        em todos os 7 exercícios sem disparar repetição falsa ou penalidade.
+        """
+        cenarios = [
+            (DesenvolvimentoOmbro, {"cotovelo": 105.0, "ombro": 80.0}, {"cotovelo": 100.0, "ombro": 80.0}, "cotovelo", 2.5, -3.0),
+            (Agachamento, {"joelho": 153.0, "quadril": 170.0}, {"joelho": 156.0, "quadril": 170.0}, "joelho", -2.5, 3.0),
+            (RoscaBiceps, {"cotovelo": 143.0, "ombro": 15.0}, {"cotovelo": 146.0, "ombro": 15.0}, "cotovelo", -2.5, 3.0),
+            (ElevacaoLateral, {"ombro": 47.0, "cotovelo": 160.0}, {"ombro": 44.0, "cotovelo": 160.0}, "ombro", 2.5, -3.0),
+            (TricepsCorda, {"cotovelo": 97.0, "ombro": 15.0}, {"cotovelo": 94.0, "ombro": 15.0}, "cotovelo", 2.5, -3.0),
+            (FlexaoDiamante, {"cotovelo": 138.0, "ombro": 50.0}, {"cotovelo": 141.0, "ombro": 50.0}, "cotovelo", -2.5, 3.0),
+            (RemadaBaixa, {"cotovelo": 138.0, "ombro": 30.0, "quadril": 90.0}, {"cotovelo": 142.0, "ombro": 30.0, "quadril": 90.0}, "cotovelo", -2.5, 3.0),
+        ]
+
+        for classe_fsm, pose_inicio, pose_recuo, art, d_in, d_out in cenarios:
+            fsm = classe_fsm()
+            # 1. Sai levemente do repouso para fase 1
+            fsm.classificar(pose_inicio, {}, {art: d_in})
+            assert fsm.fases[1] == 1, f"{classe_fsm.__name__} deveria ter iniciado fase 1"
+
+            # 2. Recua antes da zona de aborto -> deve voltar suavemente para a fase 0 sem acusar erro
+            erro = fsm.classificar(pose_recuo, {}, {art: d_out})
+            assert fsm.fases[1] == 0, f"{classe_fsm.__name__} deveria ter retornado à fase 0 na histerese"
+            assert erro is None, f"{classe_fsm.__name__} acusou erro indevido {erro} no recuo precoce"
+            assert fsm.repeticoes == 0, f"{classe_fsm.__name__} incrementou repetições indevidamente"
+            assert fsm.erros == [], f"{classe_fsm.__name__} registrou erros residuais: {fsm.erros}"
+
     def test_desenvolvimento_ombro_ciclo_ideal(self):
         fsm = DesenvolvimentoOmbro()
         pos = {}
@@ -1568,4 +1596,56 @@ class TestRemadaBaixa:
         assert resultado_rep is not None
         assert resultado_rep.score_final >= 95.0
         assert resultado_rep.aprovado is True
+
+
+class TestDeteccaoHiperextensaoArticular:
+    """[TASK-CORR.05] Valida a detecção de hiperextensão articular perigosa."""
+
+    def test_hiperextensao_joelho_agachamento(self):
+        fsm = Agachamento()
+        pos = {}
+
+        # 1. Posição normal em pé (170°) -> sem erro
+        fsm.classificar({"joelho": 170.0, "quadril": 175.0}, pos, {"joelho": 0.0})
+        assert "HIPEREXTENSAO_JOELHO" not in fsm.erros
+
+        # 2. Joelho travado para trás além de 178° (ou ângulo orientado negativo)
+        erro = fsm.classificar({"joelho": 182.0, "quadril": 175.0, "joelho_orientado": -5.0}, pos, {"joelho": 2.0})
+        assert erro == "HIPEREXTENSAO_JOELHO"
+        assert "HIPEREXTENSAO_JOELHO" in fsm.erros
+        assert "Evite travar os joelhos" in fsm.traduzir_erro(erro)
+
+    def test_hiperextensao_cotovelo_triceps_corda(self):
+        fsm = TricepsCorda()
+        pos = {}
+
+        # 0 -> 1 -> 2 (Fundo de extensão)
+        fsm.classificar({"cotovelo": 110.0, "ombro": 15.0}, pos, {"cotovelo": 15.0})
+        fsm.classificar({"cotovelo": 150.0, "ombro": 15.0}, pos, {"cotovelo": 15.0})
+        assert fsm.fases[1] == 2
+
+        # Tranco com cotovelo forçado além de 175° (hiperextensão no fundo)
+        erro = fsm.classificar({"cotovelo": 178.0, "ombro": 15.0, "cotovelo_orientado": -4.0}, pos, {"cotovelo": 5.0})
+        assert erro == "HIPEREXTENSAO_COTOVELO"
+        assert "HIPEREXTENSAO_COTOVELO" in fsm.erros
+        assert "Evite travar ou hiperextender" in fsm.traduzir_erro(erro)
+
+    def test_hiperextensao_cotovelo_flexao_diamante(self):
+        fsm = FlexaoDiamante()
+        pos = {}
+
+        # Em prancha alta esticando cotovelo além do alinhamento natural
+        erro = fsm.classificar({"cotovelo": 179.0, "ombro": 50.0, "cotovelo_orientado": -3.5}, pos, {"cotovelo": 0.0})
+        assert erro == "HIPEREXTENSAO_COTOVELO"
+        assert "destravados" in fsm.traduzir_erro(erro)
+
+    def test_hiperextensao_cotovelo_remada_baixa(self):
+        fsm = RemadaBaixa()
+        pos = {}
+
+        # No retorno ao repouso, tranco com braços estendidos além de 175°
+        fsm.fases = [3, 3]
+        erro = fsm.classificar({"cotovelo": 178.0, "ombro": 30.0, "quadril": 90.0}, pos, {"cotovelo": 5.0})
+        assert erro == "HIPEREXTENSAO_COTOVELO"
+        assert "sem travar" in fsm.traduzir_erro(erro)
 
