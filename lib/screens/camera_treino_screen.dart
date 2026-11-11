@@ -1451,7 +1451,7 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
                     style: const TextStyle(
                       color: Colors.black,
                       fontWeight: FontWeight.bold,
-                      fontSize: 13,
+                      fontSize: 24,
                     ),
                   ),
                 ),
