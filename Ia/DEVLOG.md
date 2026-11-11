@@ -26,22 +26,180 @@
 
 ## Histórico de Entradas
 
-### [Entrada #015] 2026-11-10 — [Refatoração Biomecânica] Resolução Definitiva de Repetições Fantasma e Implementação de Ângulos Orientados com Sinal e Detecção de Hiperextensão
-- **Objetivo / História de Usuário:** Sanar de forma definitiva os dois problemas críticos relatados em testes práticos de webcam:
-  1. A IA incrementava repetições indevidamente mesmo sem movimento real do usuário (repetições fantasma causadas por ruído estático na postura de repouso ou ausência de usuário);
-  2. O cálculo geométrico anterior não diferenciava ângulos negativos de positivos (perda de sentido de rotação, flexão vs. hiperextensão).
-- **Tasks Executadas e Artefatos Gerados:**
-  - `[TASK-CORR.01]` Expandido `Códigos/calculo_angulos.py` com `calcular_angulo_orientado(ponto_a, ponto_b, ponto_c) -> float` baseado no produto vetorial 2D ($\text{atan2}(\text{cross}_{2D}, \text{dot}_{2D})$) com retorno em $[-180.0^\circ, +180.0^\circ]$ e parâmetro retrocompatível `com_sinal=False`.
-  - `[TASK-CORR.02]` Implementado o portão de presença e visibilidade (`PresenceGate`) em `Códigos/avaliador_pontuacao.py`: quando `not visivel` ou marcos ausentes, os deltas são congelados e a âncora é limpa (`referencia_deltas.clear()`), eliminando saltos de ângulo ao reentrar. O HUD em `Códigos/app_tempo_real.py` exibe `"Aguardando Enquadramento"` e reflete o contador homologado (`total_repeticoes`).
-  - `[TASK-CORR.03]` Inseridas guardas biomecânicas no `BufferRepeticao` em `Códigos/buffer_repeticao.py`: `DurationGuard` (descarta ciclos com $< 6$ frames / $\approx 0.2$s) e `ROMGuard` (exige amplitude real $\ge 15.0^\circ$). Ciclos espúrios são descartados silenciosamente com reversão do contador da FSM e consumo de erros residuais.
-  - `[TASK-CORR.04]` Aplicada histerese direcional e zona de amortecimento de saída nas 7 FSMs em `Códigos/exercicios_fsm.py` (Desenvolvimento, Agachamento, Rosca, Elevação, Tríceps, Flexão e Remada): oscilações pequenas logo na saída do repouso retornam suavemente à fase 0 sem acusar erro de repetição incompleta/curta e sem contar repetição.
-  - `[TASK-CORR.05]` Implementada a detecção imediata de `HIPEREXTENSAO_ARTICULAR` (-15 pts) para articulações vulneráveis (cotovelo no Tríceps Corda, Flexão Diamante e Remada Baixa, e joelho no Agachamento Livre) com mensagens pedagógicas de proteção articular.
-  - `[TASK-CORR.06]` Sincronização do HUD e expansão da suíte automatizada em `tests/test_pipeline_pontuacao.py` com novas classes `TestGuardasBiomecanicasBuffer` e `TestDeteccaoHiperextensaoArticular`, alcançando **77 testes automatizados aprovados com 100% de sucesso**.
-- **Decisões Técnicas e Observações:**
-  - A limpeza da âncora de deltas ao perder visibilidade evita deltas artificiais gigantescos na reentrada do usuário.
-  - A zona de amortecimento desacopla a desistência real de movimento de micro-tremores de câmera, erradicando falsos positivos na postura inicial.
-  - O limiar de hiperextensão articular foi calibrado para permitir o alinhamento corporal padrão ouro sem penalizar o usuário, punindo estritamente a trava de juntas com desvio retrógrado prejudicial.
-- **Estado Resultante / Próximos Passos:** Repetições fantasma eliminadas com 100% de precisão matemática, sistema dotado de detecção de hiperextensão e suíte completa de 77 testes aprovada no `pytest`.
+### [Entrada #015] 2026-11-10 — [Refatoração Biomecânica] Resolução Definitiva de Repetições Fantasma, Geometria com Ângulos Orientados (Positivos/Negativos) e Detecção de Hiperextensão Articular
+
+> **Documento Consolidado:** Incorpora integralmente o conteúdo e histórico técnico de [`PLANO_RESOLUCAO_FALSOS_POSITIVOS_E_ANGULOS.md`](../PLANO_RESOLUCAO_FALSOS_POSITIVOS_E_ANGULOS.md).  
+> **Status:** 100% Concluído e Homologado | **Validação:** 77 testes automatizados aprovados no `pytest` (100% de sucesso).
+
+#### 1. Contexto, Motivação e Diagnóstico das Causas Raízes
+Durante testes em tempo real com câmera e vídeos gravados dos 7 exercícios do catálogo, identificaram-se duas anomalias críticas no pipeline biomecânico:
+1. **Contagem de Repetições Sem Movimento Real ("Ghost Repetitions"):**
+   - O contador era incrementado mesmo com a pessoa parada em frente à câmera em repouso (micro-oscilações de $\pm 2^\circ$), ou quando o enquadramento estava vazio.
+   - Pequenas variações de rastreamento do MediaPipe (ruído de alta frequência/*jitter*) cruzavam limiares estáticos da FSM (`0 -> 1 -> 3 -> 0`) em 2 a 5 frames ($< 0.1$s) sem nenhuma excursão motora real.
+   - *Causas Raízes:* Ausência de guardas de amplitude (`ROMGuard`) e duração (`DurationGuard`) no `BufferRepeticao`; acoplamento indevido do HUD ao contador bruto da FSM (`fsm.repeticoes`) em vez das repetições validadas pelo `OrquestradorSessao`; e injeção de valores padrão com saltos bruscos de delta na reentrada do usuário após perda de visibilidade.
+2. **Incapacidade de Diferenciar Ângulos Positivos de Negativos (Orientação no Plano 2D):**
+   - A função `calcular_angulo` utilizava apenas o produto escalar $\vec{u} \cdot \vec{v}$ rebatendo valores acima de $180^\circ$ com `360.0 - theta`, restringindo o domínio a $[0^\circ, 180^\circ]$.
+   - Com isso, perdia-se o sentido da rotação (horário vs. anti-horário), tornando impossível diferenciar:
+     - **Flexão vs. Hiperextensão:** Um cotovelo ou joelho hiperextendido além de $180^\circ$ (ex.: $195^\circ$) era lido como $165^\circ$, mascarando riscos ortopédicos graves como se fossem flexão normal.
+     - **Inclinação Anterior vs. Posterior:** Inclinar o tronco $20^\circ$ para a frente vs. deitar $20^\circ$ para trás (hiperextensão lombar na remada/desenvolvimento) produziam valores indistinguíveis.
+     - **Abdução vs. Adução:** Elevação lateral vs. cruzamento do membro à frente do tronco.
+
+```mermaid
+flowchart TD
+    subgraph Problema1["Problema 1: Contagem Fantasma (Ghost Repetitions)"]
+        P1A["Ruído de Câmera / Jitter (< 3°)"] --> P1B["FSM sem histerese:\nCruza limiar 0 -> 1 e 1 -> 3"]
+        P1B --> P1C["Buffer sem ROM Guard\n(aceita delta < 5°)"]
+        P1B --> P1D["Buffer sem Duration Guard\n(aceita rep de 3 frames)"]
+        P1C & P1D --> P1E["Incremento Falso de Repetição"]
+    end
+
+    subgraph Problema2["Problema 2: Ângulos Sem Sinal / Sem Orientação"]
+        P2A["Vetor BA e Vetor BC"] --> P2B["np.abs(rad_ba - rad_bc)\ne rebatimento 360 - theta"]
+        P2B --> P2C["Domínio restrito a [0°, 180°]"]
+        P2C --> P2D["Hiperextensão (195°) lida como Flexão (165°)"]
+        P2C --> P2E["Inclinação anterior e posterior indistinguíveis"]
+    end
+```
+
+#### 2. Fundamentação Matemática da Geometria Orientada
+Para preservar o sinal e o sentido trigonométrico, implementou-se a formulação via produto vetorial 2D (determinante) e produto escalar:
+$$\text{cross}_{2D} = u_x v_y - u_y v_x$$
+$$\text{dot}_{2D} = u_x v_x + u_y v_y$$
+$$\theta_{\text{orientado}} = \text{atan2}(\text{cross}_{2D}, \; \text{dot}_{2D}) \in [-180.0^\circ, +180.0^\circ]$$
+
+#### 3. Arquitetura da Solução em 4 Camadas Protetoras
+```mermaid
+flowchart LR
+    A["MediaPipe Pose"] --> B["calculo_angulos.py\ncalcular_angulo_orientado()\n[-180°, +180°]"]
+    B --> C["1. Portão de Presença (PresenceGate)\n(Bloqueia frames sem corpo/invisíveis)"]
+    C --> D["2. FSM com Histerese Direcional\n(Descarta ruído estático na saída do repouso)"]
+    D --> E["3. BufferRepeticao com Guardas:\n- DurationGuard (>= 6 frames / 0.2s)\n- ROMGuard (>= 15° de amplitude real)"]
+    E --> F["4. OrquestradorSessao\n(Contador Oficial Homologado)"]
+    F --> G["HUD Tempo Real & Feedback Didático"]
+```
+
+#### 4. Execução Detalhada das 6 Tasks Atômicas do Plano
+- **`[TASK-CORR.01]` Geometria com Ângulos Orientados e Retrocompatibilidade:**
+  - `Códigos/calculo_angulos.py`: Implementada `calcular_angulo_orientado(ponto_a, ponto_b, ponto_c) -> float` com base no produto vetorial 2D ($\text{atan2}(\text{cross}_{2D}, \text{dot}_{2D})$) retornando valores contínuos em $[-180.0^\circ, +180.0^\circ]$.
+  - Adicionado parâmetro retrocompatível `com_sinal: bool = False` em `calcular_angulo()`, garantindo que gabaritos legados em JSON e o alinhamento DTW continuem operando estritamente em $[0.0^\circ, 180.0^\circ]$ sem quebras de contrato.
+  - Artefatos: [`Códigos/calculo_angulos.py`](../Códigos/calculo_angulos.py), [`tests/test_pipeline_pontuacao.py`](../tests/test_pipeline_pontuacao.py).
+- **`[TASK-CORR.02]` Portão de Presença e Visibilidade (`PresenceGate`):**
+  - `Códigos/avaliador_pontuacao.py`: Inserida barreira estrita quando `not visivel` ou marcos ausentes. Nessas condições, a FSM **congela os deltas**, **não avança fases** e **não incrementa repetições**.
+  - Implementada a limpeza imediata da âncora de deltas (`referencia_deltas.clear()`) ao perder o enquadramento, eliminando saltos gigantescos de delta angular quando o atleta reentra no quadro da câmera.
+  - Artefatos: [`Códigos/avaliador_pontuacao.py`](../Códigos/avaliador_pontuacao.py), [`Códigos/app_tempo_real.py`](../Códigos/app_tempo_real.py).
+- **`[TASK-CORR.03]` Guardas Biomecânicas no Buffer (`ROMGuard` e `DurationGuard`):**
+  - `Códigos/buffer_repeticao.py`: Inseridas duas barreiras de validação física antes de despachar qualquer repetição concluída para o DTW:
+    1. **`DurationGuard`:** Descarta qualquer ciclo com duração menor que `min_frames = 6` fotogramas ($\approx 0.2$s a 30 FPS), filtrando ruídos de alta frequência.
+    2. **`ROMGuard`:** Exige amplitude real mínima de excursão articular ($\max(\theta) - \min(\theta) \ge 15.0^\circ$) na articulação primária motora, bloqueando tremores estáticos em repouso.
+  - Em caso de rejeição pela guarda, o ciclo é descartado silenciosamente: o contador da FSM é restaurado (`self.fsm.repeticoes = max(0, self.fsm.repeticoes - 1)`) e os erros residuais são expurgados via `self.fsm.consumir_erros_repeticao()`, evitando penalizar a próxima repetição válida.
+  - Artefatos: [`Códigos/buffer_repeticao.py`](../Códigos/buffer_repeticao.py), [`tests/test_pipeline_pontuacao.py`](../tests/test_pipeline_pontuacao.py).
+- **`[TASK-CORR.04]` Histerese Direcional e Amortecimento nas 7 FSMs:**
+  - `Códigos/exercicios_fsm.py`: Aplicada histerese direcional em todas as 7 classes FSM (Desenvolvimento, Agachamento, Rosca Bíceps, Elevação Lateral, Tríceps Corda, Flexão Diamante e Remada Baixa).
+  - A saída da Fase 0 (Repouso) exige deslocamento angular real e contínuo. Oscilações pequenas logo após a saída que não sustentam o movimento retornam suavemente à Fase 0 sem transitar para a Fase 3 (Repetição Incompleta), eliminando repetições abortadas falsas e falsos positivos de postura.
+  - Artefatos: [`Códigos/exercicios_fsm.py`](../Códigos/exercicios_fsm.py), [`tests/test_pipeline_pontuacao.py`](../tests/test_pipeline_pontuacao.py).
+- **`[TASK-CORR.05]` Detecção de Hiperextensão Articular e Proteção Biomecânica:**
+  - `Códigos/exercicios_fsm.py`: Criadas regras de proteção ortopédica para articulações sob carga:
+    - **Joelho no Agachamento Livre:** Dispara `HIPEREXTENSAO_JOELHO` se ângulo do joelho $> 178^\circ$ ou ângulo orientado $< -2^\circ$.
+    - **Cotovelo no Tríceps Corda, Flexão Diamante e Remada Baixa:** Dispara `HIPEREXTENSAO_COTOVELO` se ângulo do cotovelo $> 175^\circ$ ou orientado $< -2^\circ$.
+    - Penalidade pedagógica imediata de **-15.0 pontos** e orientação para manter a junta semiflexionada (bloqueio articular protegido).
+  - Artefatos: [`Códigos/exercicios_fsm.py`](../Códigos/exercicios_fsm.py), [`Códigos/avaliador_pontuacao.py`](../Códigos/avaliador_pontuacao.py).
+- **`[TASK-CORR.06]` Sincronização do HUD e Homologação da Suíte Automatizada:**
+  - `Códigos/app_tempo_real.py`: HUD agora consome estritamente `orquestrador.total_repeticoes` (contador homologado após todas as guardas), exibe o status `"Aguardando Enquadramento"` quando invisível e reflete o feedback didático por repetição.
+  - `tests/test_pipeline_pontuacao.py`: Expandido com as classes `TestGuardasBiomecanicasBuffer` e `TestDeteccaoHiperextensaoArticular`, cobrindo rejeição de ruído estático, reversão de contador, portão de presença e hiperextensão.
+  - **Suíte Total:** **77 testes automatizados aprovados no `pytest` com 100% de sucesso**.
+  - Artefatos: [`Códigos/app_tempo_real.py`](../Códigos/app_tempo_real.py), [`tests/test_pipeline_pontuacao.py`](../tests/test_pipeline_pontuacao.py).
+
+#### 5. Matriz de Riscos Técnicos e Mitigações Adotadas
+| Risco Técnico | Probabilidade | Impacto | Estratégia de Mitigação Implementada |
+| :--- | :---: | :---: | :--- |
+| **Quebra de gabaritos JSON legados** por alteração na assinatura de cálculo | Alta | Alto | Manter `com_sinal=False` como padrão. O DTW e gabaritos existentes continuam em $[0^\circ, 180^\circ]$; novos ângulos com sinal são usados nas guardas e regras da FSM. |
+| **Filtro de ROM muito estrito** rejeitar repetições parciais de usuários iniciantes | Média | Médio | Calibrada a tolerância de `ROMGuard` para $15.0^\circ$ (rejeita ruído de jitter $< 5^\circ$ sem penalizar amplitudes encurtadas, que devem ser punidas pedagogicamente pela FSM como repetição curta). |
+| **Falso positivo de incompletude** em micro-movimentos perto do repouso | Alta | Médio | Zona de amortecimento direcional na transição $1 \to 0$ antes de autorizar a transição $1 \to 3$. |
+| **Sobrecarga de CPU em tempo real** | Baixa | Baixo | Todas as verificações de presença, ROM e produto vetorial operam em $O(1)$ sobre vetores NumPy já em RAM. |
+
+---
+
+### [Entrada Consolidada — Sprint Novos Exercícios] 2026-11-04 — [Expansão Biomecânica] Especificação Integral, Modelagem das FSMs, Gabaritos Especialistas e Catálogo Unificado dos Exercícios
+
+> **Documento Consolidado:** Incorpora integralmente a especificação, regras biomecânicas e catálogo de [`PLANO_SPRINT_NOVOS_EXERCICIOS.md`](./PLANO_SPRINT_NOVOS_EXERCICIOS.md).  
+> **Status:** 100% Concluído e Homologado | **Catálogo:** 7 exercícios ativos com FSM, gabaritos ouro, HUD e API.
+
+#### 1. História de Usuário e Arquitetura de Expansão
+*"Como atleta/usuário do Personal Trainer IA, quero que o sistema reconheça, conte repetições e avalie tecnicamente a execução de Tríceps Corda, Elevação Lateral, Flexão de Braço (Push-up / Flexão Diamante), Remada Baixa e Remada Alta, identificando erros posturais em tempo real e comparando meu padrão de movimento contra gabaritos padrão ouro via DTW."*
+
+O sistema opera sob arquitetura desacoplada respeitando o **Princípio Aberto/Fechado (OCP)**: novos exercícios são plugados estendendo `ExercicioBaseFSM` e registrando no `CATALOGO_EXERCICIOS`, sem necessidade de refatorar o motor matemático do DTW ou o orquestrador central:
+
+```mermaid
+flowchart LR
+    subgraph MembrosSuperiores["Membros Superiores"]
+        E1["Tríceps Corda\n(cotovelo + ombro)"]
+        E2["Elevação Lateral\n(ombro + cotovelo)"]
+        E5["Remada Alta\n(ombro + cotovelo)"]
+    end
+
+    subgraph Multiarticulares["Multiarticulares / Tronco"]
+        E3["Flexão / Diamante\n(cotovelo + ombro/quadril)"]
+        E4["Remada Baixa\n(cotovelo + quadril)"]
+    end
+
+    E1 & E2 & E3 & E4 & E5 --> FSM["Máquinas de Estados (FSM)\nFases 0, 1, 2, 3"]
+    FSM --> BUF["Buffer de Repetição Canônico"]
+    BUF --> DTW["DTW Alinhamento Temporal"]
+    DTW --> NOTA["Laudo e Pontuação Multi-Exercício"]
+```
+
+#### 2. Matriz de Configuração do Catálogo Expandido Unificado
+| Tecla | ID do Exercício | Nome Amigável | Articulações | Erro Desqualificador (-25 pts) | Erros Posturais (-15 pts) | Gabarito JSON Especialista |
+| :---: | :--- | :--- | :--- | :--- | :--- | :--- |
+| `1` | `desenvolvimento_ombro` | Desenvolvimento de Ombro | `cotovelo`, `ombro` | `REPETICAO_INCOMPLETA` | `DESCIDA_EXCESSIVA`, `OMBRO_CAIDO` | `gabarito_especialista_ombro.json` |
+| `2` | `agachamento` | Agachamento Livre | `joelho`, `quadril` | `AGACHAMENTO_CURTO` | `TRONCO_MUITO_INCLINADO`, `HIPEREXTENSAO_JOELHO` | `gabarito_especialista_agachamento.json` |
+| `3` | `rosca_biceps` | Rosca Direta de Bíceps | `cotovelo`, `ombro` | `SUBIDA_INCOMPLETA` | `OMBRO_INSTAVEL` | `gabarito_especialista_rosca.json` |
+| `4` | `elevacao_lateral` | Elevação Lateral | `ombro`, `cotovelo` | `ELEVACAO_CURTA` | `ELEVACAO_EXCESSIVA`, `COTOVELO_MUITO_FLEXIONADO` | `gabarito_especialista_elevacao_lateral.json` |
+| `5` | `triceps_corda` | Tríceps Corda | `cotovelo`, `ombro` | `EXTENSAO_INCOMPLETA` | `COTOVELO_AVANCADO`, `SUBIDA_EXCESSIVA`, `HIPEREXTENSAO_COTOVELO` | `gabarito_especialista_triceps_corda.json` |
+| `6` | `flexao` (`flexao_diamante`) | Flexão Diamante / Solo | `cotovelo`, `ombro` / `quadril` | `FLEXAO_CURTA` | `ABERTURA_EXCESSIVA` / `QUADRIL_CAIDO`, `HIPEREXTENSAO_COTOVELO` | `gabarito_especialista_flexao_diamante.json` |
+| `7` | `remada_baixa` (`remada`) | Remada Baixa na Polia | `cotovelo`, `quadril` | `REMADA_CURTA` (`PUXADA_INCOMPLETA`) | `INCLINACAO_EXCESSIVA_TRONCO`, `HIPEREXTENSAO_COTOVELO` | `gabarito_especialista_remada_baixa.json` |
+| `8` | `remada_alta` | Remada Alta (Barra/Halter) | `ombro`, `cotovelo` | `PUXADA_CURTA` | `ELEVACAO_EXCESSIVA`, `COTOVELO_CAIDO` | `gabarito_especialista_remada_alta.json` |
+
+#### 3. Especificações Biomecânicas Detalhadas dos Exercícios
+1. **Tríceps Corda na Polia Alta (`triceps_corda` / `[5]`):**
+   - *Articulações:* Motora: `cotovelo` (extensão para baixo); Estabilidade: `ombro` (úmero alinhado verticalmente junto ao tronco).
+   - *Fases:* `0: Repouso` ($80^\circ - 95^\circ$, ombro $10^\circ - 25^\circ$) $\to$ `1: Extensão` ($> 100^\circ$, `delta > 0`) $\to$ `2: Pico de Contração` ($\ge 150^\circ$) $\to$ `3: Retorno` ($< 140^\circ$) $\to$ `0: Fechamento` ($\le 95^\circ$).
+   - *Erros:* `EXTENSAO_INCOMPLETA` (-25 pts, desqualificador: $1 \to 3$ antes de $150^\circ$); `COTOVELO_AVANCADO` (-15 pts: ombro $> 35^\circ$); `SUBIDA_EXCESSIVA` (-15 pts: cotovelo $< 65^\circ$); `HIPEREXTENSAO_COTOVELO` (-15 pts: cotovelo $> 175^\circ$ ou orientado $< -2^\circ$).
+   - *Gabarito Padrão:* Cotovelo $85^\circ \to 160^\circ \to 85^\circ$, ombro estável em $15^\circ$ (`Gabaritos/gabarito_especialista_triceps_corda.json`).
+2. **Elevação Lateral com Halteres (`elevacao_lateral` / `[4]`):**
+   - *Articulações:* Motora: `ombro` (abdução no plano escapular); Estabilidade: `cotovelo` (semiflexão fixa protetora).
+   - *Fases:* `0: Repouso` ($ombro \le 35^\circ$) $\to$ `1: Subida` ($ombro > 45^\circ$, `delta > 0`) $\to$ `2: Pico de Abdução` ($ombro \ge 80^\circ$ e $\le 100^\circ$) $\to$ `3: Descida` ($ombro < 75^\circ$) $\to$ `0: Fechamento` ($ombro \le 50^\circ$).
+   - *Erros:* `ELEVACAO_CURTA` (-25 pts, desqualificador: $1 \to 3$ antes de $80^\circ$); `ELEVACAO_EXCESSIVA` (-15 pts: ombro $> 100^\circ$); `COTOVELO_MUITO_FLEXIONADO` (-15 pts: cotovelo $< 110^\circ$).
+   - *Gabarito Padrão:* Ombro $20^\circ \to 90^\circ \to 20^\circ$, cotovelo estável em $160^\circ$ (`Gabaritos/gabarito_especialista_elevacao_lateral.json`).
+3. **Flexão Diamante no Solo (`flexao_diamante` / `flexao` / `[6]`):**
+   - *Articulações:* Motora: `cotovelo` (flexão/extensão); Postura/Simetria: `ombro` (abdução controlada rente às costelas) e `quadril` (prancha neutra).
+   - *Fases:* `0: Prancha Alta` ($cotovelo \ge 150^\circ$) $\to$ `1: Descida Excêntrica` ($cotovelo < 140^\circ$) $\to$ `2: Fundo da Flexão` ($cotovelo \le 85^\circ$) $\to$ `3: Subida Concêntrica` ($cotovelo > 100^\circ$) $\to$ `0: Fechamento` ($cotovelo \ge 150^\circ$).
+   - *Erros:* `FLEXAO_CURTA` (-25 pts, desqualificador: $1 \to 3$ antes de atingir $\le 85^\circ$); `ABERTURA_EXCESSIVA` (-15 pts: ombro $> 70^\circ$, cotovelos abertos demais); `HIPEREXTENSAO_COTOVELO` (-15 pts: cotovelo $> 175^\circ$ ou orientado $< -2^\circ$).
+   - *Gabarito Padrão:* Cotovelo $165^\circ \to 78^\circ \to 165^\circ$, ombro em $45^\circ$ (`Gabaritos/gabarito_especialista_flexao_diamante.json`).
+4. **Remada Baixa na Polia / Seated Cable Row (`remada_baixa` / `remada` / `[7]`):**
+   - *Articulações:* Motora: `cotovelo` (flexão e retração escapular); Estabilidade do Tronco: `quadril` (estabilidade lombar neutra).
+   - *Fases:* `0: Braços Estendidos` ($cotovelo \ge 150^\circ$, quadril neutro $85^\circ - 95^\circ$) $\to$ `1: Puxada Concêntrica` ($cotovelo < 140^\circ$) $\to$ `2: Pico de Contração` ($cotovelo \le 80^\circ$) $\to$ `3: Retorno Excêntrico` ($cotovelo > 95^\circ$) $\to$ `0: Fechamento` ($cotovelo \ge 150^\circ$).
+   - *Erros:* `REMADA_CURTA` / `PUXADA_INCOMPLETA` (-25 pts, desqualificador: $1 \to 3$ antes de atingir $\le 80^\circ$); `INCLINACAO_EXCESSIVA_TRONCO` / `BALANCO_TRONCO_EXCESSIVO` (-15 pts: quadril $> 125^\circ$ ou $< 70^\circ$); `HIPEREXTENSAO_COTOVELO` (-15 pts).
+   - *Gabarito Padrão:* Cotovelo $165^\circ \to 60^\circ \to 165^\circ$, quadril estável em $90^\circ$ (`Gabaritos/gabarito_especialista_remada_baixa.json`).
+5. **Remada Alta / Upright Row (`remada_alta` / `[8]`):**
+   - *Articulações:* Motora: `ombro` (elevação/abdução vertical); Sinergista: `cotovelo` (flexão acompanhando a tração vertical).
+   - *Fases:* `0: Repouso Inicial` ($ombro \le 25^\circ$, $cotovelo \ge 155^\circ$) $\to$ `1: Puxada Vertical` ($ombro > 35^\circ$) $\to$ `2: Pico de Contração` ($ombro \ge 80^\circ$ e $\le 100^\circ$, $cotovelo \approx 50^\circ - 75^\circ$) $\to$ `3: Descida Excêntrica` ($ombro < 75^\circ$) $\to$ `0: Fechamento` ($ombro \le 30^\circ$, $cotovelo \ge 150^\circ$).
+   - *Erros:* `PUXADA_CURTA` (-25 pts, desqualificador); `ELEVACAO_EXCESSIVA` (-15 pts: ombro $> 100^\circ$, risco subacromial); `COTOVELO_CAIDO` (-15 pts: cotovelo $> 95^\circ$ no pico, punhos mais altos que cotovelos).
+   - *Gabarito Padrão:* Ombro $20^\circ \to 90^\circ \to 20^\circ$, cotovelo $165^\circ \to 60^\circ \to 165^\circ$ (`Gabaritos/gabarito_especialista_remada_alta.json`).
+
+#### 4. Execução Detalhada das Tasks Atômicas da Sprint de Novos Exercícios
+- **`[TASK-EX.01]` Modelagem das Classes FSM e Catálogo Expandido:**
+  - `Códigos/exercicios_fsm.py`: Implementadas as classes de máquina de estados estendendo `ExercicioBaseFSM` com regras de 4 fases, limiares biomecânicos e acúmulo de erros transientes. Cadastradas no dicionário `CATALOGO_EXERCICIOS` com suporte a chaves numéricas e identificadores amigáveis.
+- **`[TASK-EX.02]` Geração e Recorte Canônico dos Gabaritos Padrão Ouro:**
+  - `Códigos/gabarito.py` e `Códigos/extrator_video.py`: Gerados e extraídos os gabaritos especialistas a partir de vídeos reais do dataset (`triceps.mp4`, `elevacaolateral.mp4`, `diamond_pushup.mp4`, `remadabaixa.mp4`) com isolamento canônico da repetição via `extrair_primeira_repeticao()`.
+- **`[TASK-EX.03]` Registro Centralizado de Erros de Incompletude:**
+  - `Códigos/avaliador_pontuacao.py`: Registrados os códigos desqualificadores (`EXTENSAO_INCOMPLETA`, `ELEVACAO_CURTA`, `FLEXAO_CURTA`, `REMADA_CURTA`, `PUXADA_CURTA`) no conjunto `ERROS_INCOMPLETUDE`, garantindo reprovação imediata (`aprovado = False`) e aplicação de penalidade de 25 pontos.
+- **`[TASK-EX.04]` Integração de Canais de Consumo (Webcam HUD, FastAPI e Simulação):**
+  - `Códigos/app_tempo_real.py`: Atualizada interface gráfica OpenCV com atalhos de seleção rápida por teclado (`[1]` a `[7]`), telemetria em tempo real e visualização de fases.
+  - `Códigos/servico_ia_api.py`: Capacitado o serviço central a gerenciar sessões em memória e rotas de simulação (`/ia/simular-repeticao`) para todos os exercícios do catálogo.
+- **`[TASK-EX.05]` Suíte de Testes Automatizados de Regressão:**
+  - `tests/test_pipeline_pontuacao.py`: Cobertura completa de cada novo exercício com testes de repetição canônica perfeita (atingindo scores $> 95\%$), injeção de erros posturais específicos e interrupção concêntrica.
+  - Testes do `ServicoIA` em `tests/test_servico_ia_api.py` validando simulação canônica de todos os exercícios.
 
 ### [Entrada #014] 2026-11-04 — [Expansão Biomecânica] Implementação da Remada Baixa e Extração de Gabarito Especialista
 - **Objetivo / História de Usuário:** Implementar o reconhecimento, contagem automática e avaliação biomecânica da Remada Baixa / Remada na Polia (visão lateral/perfil esquerdo), com detecção de puxada incompleta e inclinação excessiva das costas (roubo no tronco), além de extrair o gabarito oficial a partir de vídeo gravado em `Videos dataset/remadabaixa.mp4`.
