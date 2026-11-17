@@ -199,6 +199,27 @@ def garantir_gabaritos_padrao(sobrescrever: bool = False) -> None:
             descricao="Gabarito padrão ouro para Puxada Alta com Halteres (recorte FSM).",
         ).salvar_json(arq_puxada)
 
+    # 6. Rosca Martelo (Hammer Curl): Cotovelo (165° -> 55° -> 165°)
+    arq_martelo = os.path.join(pasta_gabaritos, "gabarito_especialista_rosca_martelo.json")
+    if sobrescrever or not os.path.exists(arq_martelo):
+        serie_martelo: List[Dict[str, float]] = []
+        for _ in range(5):
+            serie_martelo.append({"cotovelo": 165.0})
+        for val_t in t:
+            serie_martelo.append({
+                "cotovelo": float(165.0 - 110.0 * np.sin(val_t)),
+            })
+        for _ in range(5):
+            serie_martelo.append({"cotovelo": 165.0})
+
+        dados_martelo = extrair_primeira_repeticao("rosca_martelo", serie_angulos=serie_martelo, lancar_excecao=True)
+        GabaritoExercicio(
+            nome_exercicio="rosca_martelo",
+            articulacoes=["cotovelo"],
+            dados=dados_martelo,
+            descricao="Gabarito padrão ouro para Rosca Martelo (recorte FSM, foco no cotovelo).",
+        ).salvar_json(arq_martelo)
+
 
 if __name__ == "__main__":
     garantir_gabaritos_padrao(sobrescrever=True)

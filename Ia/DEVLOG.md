@@ -26,6 +26,23 @@
 
 ## Histórico de Entradas
 
+### [Entrada #017] 2026-11-17 — [Expansão Biomecânica] Implementação da Rosca Martelo com Foco no Cotovelo e Enquadramento Lateral
+- **Objetivo / História de Usuário:** Reconhecer, contar repetições e avaliar tecnicamente a execução da Rosca Martelo (Hammer Curl) com halteres sob visão lateral/perfil, focando estritamente na flexão/extensão da articulação do cotovelo, orientando o praticante a posicionar a câmera de lado e detectando subida incompleta e hiperextensão articular.
+- **Tasks Executadas e Artefatos Gerados:**
+  - `[TASK-RM.01]` Modelada a FSM `RoscaMartelo` em [`Códigos/exercicios_fsm.py`](../Códigos/exercicios_fsm.py):
+    - Foco exclusivo em `["cotovelo"]`.
+    - 4 fases (`0: Repouso >= 150°`, `1: Subindo < 140°`, `2: Pico <= 70°`, `3: Descendo > 80°`).
+    - Histerese na saída do repouso: retorno suave para 0 se oscilar e recuar para $\ge 148^\circ$ sem contar repetição e sem acusar erro; e detecção de `SUBIDA_INCOMPLETA` (-25 pts, desqualificador) se desistir antes do pico.
+    - Detecção imediata de `HIPEREXTENSAO_COTOVELO` (-15 pts) se o cotovelo ultrapassar $175^\circ$ ou desviar para ângulo orientado negativo.
+    - Cadastrada sob a tecla `"9"` no `CATALOGO_EXERCICIOS` e aliases `"rosca_martelo"`, `"martelo"`, `"hammer_curl"`.
+  - `[TASK-RM.02]` Criado o gabarito oficial em [`Gabaritos/gabarito_especialista_rosca_martelo.json`](../Gabaritos/gabarito_especialista_rosca_martelo.json) com curva canônica de cotovelo ($165^\circ \to 55^\circ \to 165^\circ$) e adicionada geração correspondente em [`Códigos/gabarito.py`](../Códigos/gabarito.py).
+  - `[TASK-RM.03]` Atualizado o HUD em [`Códigos/app_tempo_real.py`](../Códigos/app_tempo_real.py) com atalho `[9]Rosca Martelo` e aviso destacado: `"ORIENTACAO: Fique de perfil / lateral para analise do cotovelo!"`.
+  - `[TASK-RM.04]` Criada a classe `TestRoscaMartelo` em [`tests/test_pipeline_pontuacao.py`](../tests/test_pipeline_pontuacao.py), cobrindo ciclo ideal, desqualificação por subida curta, hiperextensão, histerese suave e alinhamento DTW com nota $\ge 95\%$.
+  - **Suíte Total de Testes:** A suíte de pipeline avançou para **89 testes automatizados em `test_pipeline_pontuacao.py`** e **96 testes no total do motor de IA** aprovados com 100% de sucesso.
+- **Decisões Técnicas e Observações:**
+  - A Rosca Martelo foi isolada para rastrear estritamente a flexão do cotovelo no plano sagital (visão lateral/perfil), atendendo ao requisito de isolamento articular do braquiorradial sem ruídos de abdução de ombro.
+- **Estado Resultante / Próximos Passos:** Rosca Martelo 100% implementada no catálogo com a tecla `[9]`, instrução de perfil no HUD e blindada com testes automatizados.
+
 ### [Entrada #016] 2026-11-11 — [Expansão Biomecânica] Implementação da Puxada Alta com Halteres (Dumbbell High Pull) e Extração de Gabarito Especialista
 - **Objetivo / História de Usuário:** Reconhecer, contar repetições e avaliar tecnicamente a execução da Puxada Alta com Halteres / Dumbbell High Pulls (visão frontal), com identificação de erros posturais imediatos (puxada curta desqualificadora, elevação excessiva com risco subacromial, cotovelo caído e hiperextensão articular), extraindo o gabarito oficial padrão ouro a partir do vídeo `Videos dataset/dumbbell_high_pulls.mp4`.
 - **Tasks Executadas e Artefatos Gerados:**
