@@ -88,10 +88,10 @@ def desenhar_painel_hud(
     # Linha 1: Exercício ativo, lado e atalhos
     cv2.putText(
         frame,
-        f"Ex: {nome_exercicio} ({lado.upper()}) | [1-8]Exercicios [9]Rosca Martelo (DE LADO) [Q]Sair",
+        f"Ex: {nome_exercicio} ({lado.upper()}) | [1-8]Exs [9]Martelo [0]Frances (GRAVE DE LADO) [Q]Sair",
         (12, 25),
         cv2.FONT_HERSHEY_SIMPLEX,
-        0.50,
+        0.48,
         (255, 255, 255),
         1,
     )
@@ -165,10 +165,10 @@ def desenhar_painel_hud(
         1,
     )
 
-    if "martelo" in nome_exercicio.lower():
+    if any(ex in nome_exercicio.lower() for ex in ("martelo", "frances")):
         cv2.putText(
             frame,
-            "ORIENTACAO: Fique de perfil / lateral para analise do cotovelo!",
+            "ORIENTACAO: Fique de perfil / lateral para analise!",
             (420, 180),
             cv2.FONT_HERSHEY_SIMPLEX,
             0.52,

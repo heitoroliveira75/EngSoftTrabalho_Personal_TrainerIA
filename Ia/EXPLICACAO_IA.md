@@ -108,7 +108,7 @@ Se você clonar o repositório e tiver Python instalado:
    ```bash
    pytest
    ```
-   *Roda 39 testes automatizados com 100% de sucesso.*
+   *Roda 95 testes automatizados de pipeline (108 testes totais) com 100% de sucesso.*
 
 3. **Executar Demonstração dos Cenários no Orquestrador (Sem Câmera):**
    ```bash
@@ -124,6 +124,13 @@ Se você clonar o repositório e tiver Python instalado:
    * `1`: Seleciona Desenvolvimento de Ombro.
    * `2`: Seleciona Agachamento.
    * `3`: Seleciona Rosca Bíceps.
+   * `4`: Seleciona Elevação Lateral.
+   * `5`: Seleciona Tríceps Corda.
+   * `6`: Seleciona Flexão Diamante.
+   * `7`: Seleciona Remada Baixa.
+   * `8`: Seleciona Puxada Alta com Halteres.
+   * `9`: Seleciona Rosca Martelo (orientação de perfil/lateral).
+   * `0`: Seleciona Tríceps Francês Sentado (orientação de perfil/lateral).
    * `L`: Alterna entre lado Direito e Esquerdo.
    * `R`: Reinicia a contagem e os erros da sessão.
    * `Q`: Fecha o programa.
