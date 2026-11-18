@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import 'friend_profile_screen.dart';
 import 'lobby_dupla_screen.dart';
 
 class AmigosScreen extends StatefulWidget {
@@ -589,15 +590,32 @@ class _AmigosScreenState extends State<AmigosScreen>
             ),
             child: Row(
               children: [
-                CircleAvatar(
-                  radius: 22,
-                  backgroundColor: const Color(0xFF8A5CF5),
-                  child: Text(
-                    letraAvatar,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18,
+                GestureDetector(
+                  onTap: () async {
+                    final alterou = await Navigator.push<bool>(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => FriendProfileScreen(
+                          amigoId: amigoId,
+                          dadosIniciais: amigo,
+                          isAmigoInicial: true,
+                        ),
+                      ),
+                    );
+                    if (alterou == true && mounted) {
+                      _carregarAmigos();
+                    }
+                  },
+                  child: CircleAvatar(
+                    radius: 22,
+                    backgroundColor: const Color(0xFF8A5CF5),
+                    child: Text(
+                      letraAvatar,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
+                      ),
                     ),
                   ),
                 ),
@@ -615,36 +633,49 @@ class _AmigosScreenState extends State<AmigosScreen>
                         ),
                       ),
                       const SizedBox(height: 4),
-                      Row(
+                      Wrap(
+                        spacing: 10,
+                        runSpacing: 4,
+                        crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
-                          const Icon(Icons.bolt, size: 14, color: Colors.amberAccent),
-                          const SizedBox(width: 2),
-                          Flexible(
-                            child: Text(
-                              '$sequencia dias',
-                              style: const TextStyle(
-                                color: Colors.white60,
-                                fontSize: 12,
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.bolt, size: 14, color: Colors.amberAccent),
+                              const SizedBox(width: 2),
+                              Flexible(
+                                child: Text(
+                                  '$sequencia dias',
+                                  style: const TextStyle(
+                                    color: Colors.white60,
+                                    fontSize: 12,
+                                  ),
+                                ),
                               ),
-                            ),
+                            ],
                           ),
-                          const SizedBox(width: 10),
-                          const Icon(Icons.star, size: 14, color: Color(0xFF00E676)),
-                          const SizedBox(width: 2),
-                          Flexible(
-                            child: Text(
-                              '$pontos pts',
-                              style: const TextStyle(
-                                color: Colors.white60,
-                                fontSize: 12,
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.star, size: 14, color: Color(0xFF00E676)),
+                              const SizedBox(width: 2),
+                              Flexible(
+                                child: Text(
+                                  '$pontos pts',
+                                  style: const TextStyle(
+                                    color: Colors.white60,
+                                    fontSize: 12,
+                                  ),
+                                ),
                               ),
-                            ),
+                            ],
                           ),
                         ],
                       ),
                     ],
                   ),
                 ),
+                const SizedBox(width: 6),
                 ElevatedButton.icon(
                   onPressed: () => _iniciarTreinoComAmigo(amigoId, nome),
                   icon: const Icon(Icons.fitness_center, size: 15),
@@ -652,6 +683,8 @@ class _AmigosScreenState extends State<AmigosScreen>
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF00E676),
                     foregroundColor: Colors.black,
+                    minimumSize: const Size(0, 34),
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                     textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
@@ -659,7 +692,9 @@ class _AmigosScreenState extends State<AmigosScreen>
                 ),
                 const SizedBox(width: 4),
                 IconButton(
-                  icon: const Icon(Icons.person_remove_outlined, color: Colors.redAccent),
+                  constraints: const BoxConstraints(),
+                  padding: const EdgeInsets.all(6),
+                  icon: const Icon(Icons.person_remove_outlined, color: Colors.redAccent, size: 22),
                   tooltip: 'Remover Amigo',
                   onPressed: () => _removerAmigo(amigoId, nome),
                 ),
@@ -711,6 +746,10 @@ class _AmigosScreenState extends State<AmigosScreen>
           final nome = solic['nome']?.toString() ?? 'Usuário';
           final letraAvatar = nome.isNotEmpty ? nome[0].toUpperCase() : 'U';
           final solicitacaoId = solic['id']?.toString() ?? '';
+          final usuarioSolicitanteId =
+              solic['usuario_id']?.toString() ??
+              solic['remetente_id']?.toString() ??
+              '';
           final sequencia = (solic['sequencia'] as num?)?.toInt() ?? 0;
           final pontos = (solic['pontos'] as num?)?.toInt() ?? 0;
 
@@ -727,14 +766,33 @@ class _AmigosScreenState extends State<AmigosScreen>
               children: [
                 Row(
                   children: [
-                    CircleAvatar(
-                      radius: 20,
-                      backgroundColor: const Color(0xFF2196F3),
-                      child: Text(
-                        letraAvatar,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
+                    GestureDetector(
+                      onTap: usuarioSolicitanteId.isNotEmpty
+                          ? () async {
+                              final alterou = await Navigator.push<bool>(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => FriendProfileScreen(
+                                    amigoId: usuarioSolicitanteId,
+                                    dadosIniciais: solic,
+                                    isAmigoInicial: false,
+                                  ),
+                                ),
+                              );
+                              if (alterou == true && mounted) {
+                                _carregarAmigos();
+                              }
+                            }
+                          : null,
+                      child: CircleAvatar(
+                        radius: 20,
+                        backgroundColor: const Color(0xFF2196F3),
+                        child: Text(
+                          letraAvatar,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                       ),
                     ),
@@ -895,14 +953,39 @@ class _AmigosScreenState extends State<AmigosScreen>
                               ),
                               child: Row(
                                 children: [
-                                  CircleAvatar(
-                                    radius: 20,
-                                    backgroundColor: const Color(0xFF2D3139),
-                                    child: Text(
-                                      letraAvatar,
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontWeight: FontWeight.bold,
+                                  GestureDetector(
+                                    onTap: amigoId.isNotEmpty
+                                        ? () async {
+                                            final alterou =
+                                                await Navigator.push<bool>(
+                                                  context,
+                                                  MaterialPageRoute(
+                                                    builder: (context) =>
+                                                        FriendProfileScreen(
+                                                          amigoId: amigoId,
+                                                          dadosIniciais: user,
+                                                          isAmigoInicial:
+                                                              jaAmigo,
+                                                        ),
+                                                  ),
+                                                );
+                                            if (alterou == true && mounted) {
+                                              _executarBusca(
+                                                _buscaController.text,
+                                              );
+                                              _carregarAmigos();
+                                            }
+                                          }
+                                        : null,
+                                    child: CircleAvatar(
+                                      radius: 20,
+                                      backgroundColor: const Color(0xFF2D3139),
+                                      child: Text(
+                                        letraAvatar,
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.bold,
+                                        ),
                                       ),
                                     ),
                                   ),
@@ -920,28 +1003,40 @@ class _AmigosScreenState extends State<AmigosScreen>
                                           ),
                                         ),
                                         const SizedBox(height: 3),
-                                        Row(
+                                        Wrap(
+                                          spacing: 8,
+                                          runSpacing: 4,
+                                          crossAxisAlignment: WrapCrossAlignment.center,
                                           children: [
-                                            const Icon(Icons.bolt, size: 14, color: Colors.amberAccent),
-                                            const SizedBox(width: 2),
-                                            Flexible(
-                                              child: Text(
-                                                '${user['sequencia'] ?? 0} dias streak',
-                                                style: const TextStyle(color: Colors.white70, fontSize: 11),
-                                              ),
-                                            ),
-                                            const SizedBox(width: 8),
-                                            const Icon(Icons.star, size: 13, color: Color(0xFF00E676)),
-                                            const SizedBox(width: 2),
-                                            Flexible(
-                                              child: Text(
-                                                '${user['pontuacao_semanal'] ?? user['pontos'] ?? 0} pts',
-                                                style: const TextStyle(
-                                                  color: Color(0xFF00E676),
-                                                  fontSize: 11,
-                                                  fontWeight: FontWeight.w600,
+                                            Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                const Icon(Icons.bolt, size: 14, color: Colors.amberAccent),
+                                                const SizedBox(width: 2),
+                                                Flexible(
+                                                  child: Text(
+                                                    '${user['sequencia'] ?? 0} dias streak',
+                                                    style: const TextStyle(color: Colors.white70, fontSize: 11),
+                                                  ),
                                                 ),
-                                              ),
+                                              ],
+                                            ),
+                                            Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                const Icon(Icons.star, size: 13, color: Color(0xFF00E676)),
+                                                const SizedBox(width: 2),
+                                                Flexible(
+                                                  child: Text(
+                                                    '${user['pontuacao_semanal'] ?? user['pontos'] ?? 0} pts',
+                                                    style: const TextStyle(
+                                                      color: Color(0xFF00E676),
+                                                      fontSize: 11,
+                                                      fontWeight: FontWeight.w600,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ],
                                             ),
                                           ],
                                         ),
