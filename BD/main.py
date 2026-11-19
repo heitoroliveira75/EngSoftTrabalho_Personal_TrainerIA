@@ -192,7 +192,7 @@ def _buscar_metricas_usuario_tabela(
                 if seq > maior_seq:
                     maior_seq = seq
                 metricas.update({
-                    "pontuacao_diaria": diaria,
+                    "pontuacao_diaria": diaria,''
                     "pontuacao_semanal": semanal,
                     "pontuacao_total": total,
                     "sequencia": (seq + 1),
@@ -602,7 +602,7 @@ def ver_perfil(usuario_id: str, token: Optional[str] = None) -> Dict[str, Any]:
                         "pontuacao_diaria": dados_rpc.get("pontuacao_diaria") or 0,
                         "pontuacao_semanal": semanal_rpc,
                         "pontuacao_total": total_rpc,
-                        "sequencia": seq_rpc,
+                        "sequencia": (seq_rpc + 1),
                         "maior_sequencia": max(seq_rpc, maior_seq_rpc),
                         "checagem": False,
                     }
@@ -1299,14 +1299,14 @@ def ver_pontuacao(usuario_id: str, token: Optional[str] = None) -> Dict[str, Any
                     "pontuacao_diaria": diaria_rpc,
                     "pontuacao_semanal": semanal_rpc,
                     "pontuacao_total": total_rpc,
-                    "sequencia": seq_rpc,
+                    "sequencia": (seq_rpc + 1),
                     "maior_sequencia": maior_seq_rpc,
                     "checagem": False,
                     "pontuacoes": {
                         "pontuacao_diaria": diaria_rpc,
                         "pontuacao_semanal": semanal_rpc,
                         "pontuacao_total": total_rpc,
-                        "sequencia": seq_rpc,
+                        "sequencia": (seq_rpc + 1),
                         "maior_sequencia": maior_seq_rpc,
                         "checagem": False,
                     }
