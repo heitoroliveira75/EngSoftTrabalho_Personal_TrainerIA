@@ -436,7 +436,8 @@ def api_adicionar_pontuacao_diaria(req: AdicionarPontuacaoRequest, authorization
     resposta = bd.adicionar_pontuacao_diaria(
         usuario_id=req.usuario_id,
         pontos=req.pontos,
-        incrementar_sequencia=req.incrementar_sequencia
+        incrementar_sequencia=req.incrementar_sequencia,
+        token=token
     )
     return resposta
 
