@@ -26,6 +26,18 @@
 
 ## Histórico de Entradas
 
+### [Entrada #030] 2026-11-19 — Integração do Exercício de Prancha Abdominal e Extração de Gabarito a partir do Dataset Fit3D
+- **Objetivo / História de Usuário:**
+  - Integrar o exercício de Prancha Abdominal (ID `29` no catálogo do app Flutter e ID `8` no motor biomecânico), criando a máquina de estados `PranchaAbdominal` em `exercicios_fsm.py` e extraindo automaticamente o gabarito padrão ouro de especialista (`gabarito_especialista_prancha_abdominal.json` com 68 frames) via `extrator_video.py` a partir do trecho de prancha alta do vídeo de referência Fit3D (`pushup.mp4` da câmera lateral `50591643` do sujeito `s03`).
+- **Tasks Executadas e Artefatos Gerados:**
+  - `[TASK-IA-FSM-08]` Implementação da classe `PranchaAbdominal(ExercicioBaseFSM)` com avaliação das articulações `quadril`, `joelho` e `cotovelo`, detecção de erros posturais (`QUADRIL_CAIDO`, `QUADRIL_ELEVADO`, `JOELHO_FLEXIONADO`) e registro do exercício no `CATALOGO_EXERCICIOS` e `obter_config_exercicio` (aliases `29`, `8`, `prancha`, `plank`) $\rightarrow$ **Artefatos:** `exercicios_fsm.py`.
+  - `[TASK-IA-GABARITO-08]` Execução do pipeline de extração com MediaPipe Tasks Pose Landmarker e recorte temporal automático pela FSM, gerando gabarito de 68 frames com alinhamento perfeito de ângulos articulares $\rightarrow$ **Artefatos:** `Gabaritos/gabarito_especialista_prancha_abdominal.json`.
+- **Decisões Técnicas e Observações:**
+  - Como o Fit3D é focado em exercícios dinâmicos e a prancha tradicional é isométrica, a extração utilizou a câmera lateral de `pushup.mp4` onde o atleta sustenta a prancha alta antes da execução concêntrica.
+  - A suite de testes de biomecânica (`tests/test_pipeline_pontuacao.py`) foi executada e homologada com 63/63 testes passando.
+- **Estado Resultante / Próximos Passos:**
+  - Exercício de Prancha Abdominal plenamente funcional e disponível para streaming via WebSocket e cálculo de pontuação DTW.
+
 ### [Entrada #029] 2026-11-09 — Padronização Visual de Cores nas Telas Principais (Preto, Cinza Carbono e Verde Neon)
 - **Objetivo / História de Usuário:**
   - Eliminar painéis brancos e cores aleatórias/destoantes (roxo `#8A5CF5` / `#9E7AFF`, azul `#2196F3` / `#29B6F6` / `#64B5F6` e rosa `#E91E63`) nas telas principais do aplicativo, padronizando a identidade visual em tons de preto/grafite (`#0D1117`), cinza carbono (`#1E232A` / `#2D3139`) e verde neon (`#00E676`), preservando as cores semânticas de ícones (raio/estrela em dourado/âmbar `#FFD700` / `#FFB300` e fogo em vermelho `#FF5252`) e nivelando a altura vertical dos cards de métricas na `HomeScreen`.

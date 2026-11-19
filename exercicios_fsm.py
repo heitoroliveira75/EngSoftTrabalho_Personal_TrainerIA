@@ -527,6 +527,84 @@ class RemadaBaixa(ExercicioBaseFSM):
         return erros_no_frame[0] if erros_no_frame else None
 
 
+class PranchaAbdominal(ExercicioBaseFSM):
+    """
+    Avalia a Prancha Abdominal (Plank) em visão lateral.
+    Articulações monitoradas: ['quadril', 'joelho', 'cotovelo']
+    """
+
+    NOMES_FASES = {
+        0: "Repouso (No solo ou em pe)",
+        1: "Entrando na Prancha",
+        2: "Sustentacao (Postura Alinhada)",
+        3: "Saindo da Prancha",
+    }
+
+    MENSAGENS_ERRO = {
+        "QUADRIL_CAIDO": "Cuidado com a lombar! Suba o quadril para manter o corpo alinhado.",
+        "QUADRIL_ELEVADO": "Abaixe um pouco o quadril para ativar o abdomen.",
+        "JOELHO_FLEXIONADO": "Mantenha as pernas estendidas e os joelhos firmes.",
+    }
+
+    PENALIDADES_ERRO = {
+        "QUADRIL_CAIDO": 25.0,
+        "QUADRIL_ELEVADO": 15.0,
+        "JOELHO_FLEXIONADO": 15.0,
+    }
+
+    def identificar_fase(self, angulos: dict, posicoes: dict, angulos_deltas: dict) -> int:
+        quadril = angulos.get("quadril", 90.0)
+        joelho = angulos.get("joelho", 90.0)
+        fase = self.fases[1]
+
+        # Postura de prancha: corpo em linha reta (quadril e joelhos estendidos >= 155 graus)
+        alinhado = (quadril >= 155.0) and (joelho >= 155.0)
+
+        if fase == 0:
+            if alinhado:
+                fase = 1
+                self.erros_repeticao_atual = []
+        elif fase == 1:
+            if alinhado:
+                fase = 2
+            else:
+                fase = 0
+        elif fase == 2:
+            if not alinhado:
+                fase = 3
+        elif fase == 3:
+            if not alinhado:
+                fase = 0
+                self.repeticoes += 1
+
+        return fase
+
+    def classificar(self, angulos: dict, posicoes: dict, angulos_deltas: dict) -> Optional[str]:
+        fase_anterior = self.fases[1]
+        fase_atual = self.identificar_fase(angulos, posicoes, angulos_deltas)
+
+        self.fases[0] = fase_anterior
+        self.fases[1] = fase_atual
+
+        erros_no_frame = []
+        quadril = angulos.get("quadril", 180.0)
+        joelho = angulos.get("joelho", 180.0)
+
+        if self.fases[1] == 2:
+            if quadril < 155.0:
+                erros_no_frame.append("QUADRIL_CAIDO")
+            elif quadril > 195.0:
+                erros_no_frame.append("QUADRIL_ELEVADO")
+
+            if joelho < 155.0:
+                erros_no_frame.append("JOELHO_FLEXIONADO")
+
+        for err in erros_no_frame:
+            self.registrar_erro(err)
+
+        return erros_no_frame[0] if erros_no_frame else None
+
+
 # Catálogo central que liga as teclas de atalho ou IDs aos componentes de cada exercício
 CATALOGO_EXERCICIOS: Dict[str, Dict[str, Any]] = {
     "1": {
@@ -578,14 +656,21 @@ CATALOGO_EXERCICIOS: Dict[str, Dict[str, Any]] = {
         "articulacoes": ["cotovelo", "ombro", "quadril"],
         "arquivo_gabarito": "gabarito_especialista_remada_baixa.json",
     },
+    "8": {
+        "id": "prancha_abdominal",
+        "nome": "Prancha Abdominal",
+        "classe_fsm": PranchaAbdominal,
+        "articulacoes": ["quadril", "joelho", "cotovelo"],
+        "arquivo_gabarito": "gabarito_especialista_prancha_abdominal.json",
+    },
 }
 
 
 def obter_config_exercicio(identificador: str) -> Dict[str, Any]:
     """
-    Busca a configuração do exercício por chave numérica ('1'..'7'),
-    por IDs do catálogo do app mobile ('16', '11', '20', '17', '24', '5', '7')
-    ou por identificador de texto ('desenvolvimento_ombro', 'agachamento', 'elevacao_lateral', etc.).
+    Busca a configuração do exercício por chave numérica ('1'..'8'),
+    por IDs do catálogo do app mobile ('16', '11', '20', '17', '24', '5', '7', '29')
+    ou por identificador de texto ('desenvolvimento_ombro', 'agachamento', 'elevacao_lateral', 'prancha_abdominal', etc.).
     """
     chave = str(identificador).strip().lower()
     if chave in CATALOGO_EXERCICIOS:
@@ -619,6 +704,11 @@ def obter_config_exercicio(identificador: str) -> Dict[str, Any]:
         "7": "7",   # Remada Baixa
         "remada": "7",
         "remada_baixa": "7",
+        "29": "8",  # Prancha Abdominal (Catálogo App)
+        "8": "8",
+        "prancha": "8",
+        "prancha_abdominal": "8",
+        "plank": "8",
     }
     if chave in aliases:
         return CATALOGO_EXERCICIOS[aliases[chave]]
