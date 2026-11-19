@@ -195,7 +195,7 @@ def _buscar_metricas_usuario_tabela(
                     "pontuacao_diaria": diaria,
                     "pontuacao_semanal": semanal,
                     "pontuacao_total": total,
-                    "sequencia": seq,
+                    "sequencia": (seq + 1),
                     "maior_sequencia": maior_seq,
                     "checagem": bool(d.get("checagem")) if d.get("checagem") is not None else False,
                 })
