@@ -575,6 +575,8 @@ def ver_perfil(usuario_id: str, token: Optional[str] = None) -> Dict[str, Any]:
             .eq("id", usuario_id)
             .execute()
         )
+
+
         if not resultado.data and cliente_db is not supabase:
             resultado = (
                 supabase
@@ -1336,7 +1338,7 @@ def ver_pontuacao(usuario_id: str, token: Optional[str] = None) -> Dict[str, Any
         diaria = dados.get("pontuacao_diaria") or 0
         semanal = dados.get("pontuacao_semanal") or 0
         total = dados.get("pontuacao_total") or 0
-        sequencia = dados.get("sequencia") if dados.get("sequencia") is not None else 0
+        sequencia = (dados.get("sequencia") if dados.get("sequencia") is not None else 0) +1
         maior_sequencia = dados.get("maior_sequencia") if dados.get("maior_sequencia") is not None else 0
         if sequencia > maior_sequencia:
             maior_sequencia = sequencia
