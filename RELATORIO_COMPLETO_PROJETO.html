@@ -1,0 +1,1102 @@
+<!DOCTYPE html>
+<html lang="pt-BR" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+<title>Dossi? Completo ? Personal Trainer IA (PersonAI)</title>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
+<style>
+  :root {
+    --bg: #0d1117;
+    --surface: #161b22;
+    --card: #1e232a;
+    --text: #e6edf3;
+    --muted: #8b949e;
+    --primary: #00e676;
+    --accent: #29b6f6;
+    --border: #30363d;
+    --code-bg: #1f242c;
+  }
+  [data-theme="light"] {
+    --bg: #f8fafc;
+    --surface: #ffffff;
+    --card: #f1f5f9;
+    --text: #0f172a;
+    --muted: #475569;
+    --primary: #059669;
+    --accent: #0284c7;
+    --border: #cbd5e1;
+    --code-bg: #e2e8f0;
+  }
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    padding: 0;
+    background-color: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.68;
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .top-bar {
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 10px 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .top-bar .brand {
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--primary);
+  }
+  .top-bar .actions {
+    display: flex;
+    gap: 8px;
+  }
+  .btn {
+    background: var(--card);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 6px 11px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+  }
+  .container {
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 18px 16px 80px 16px;
+  }
+  h1, h2, h3, h4 {
+    color: var(--text);
+    line-height: 1.3;
+    margin-top: 1.8em;
+    margin-bottom: 0.6em;
+  }
+  h1 {
+    font-size: 1.48rem;
+    border-bottom: 2px solid var(--primary);
+    padding-bottom: 10px;
+    color: var(--primary);
+  }
+  h2 {
+    font-size: 1.24rem;
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 6px;
+    color: var(--accent);
+  }
+  h3 { font-size: 1.08rem; color: var(--primary); }
+  p, li { font-size: 0.98rem; }
+  ul, ol { padding-left: 1.3rem; }
+  li { margin-bottom: 0.45rem; }
+  a { color: var(--primary); text-decoration: none; }
+  blockquote {
+    margin: 1rem 0;
+    padding: 12px 15px;
+    background: var(--card);
+    border-left: 4px solid var(--primary);
+    border-radius: 0 8px 8px 0;
+  }
+  code {
+    background: var(--code-bg);
+    padding: 2px 6px;
+    border-radius: 5px;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 0.87em;
+    word-break: break-word;
+  }
+  pre {
+    background: var(--code-bg);
+    padding: 14px;
+    border-radius: 10px;
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    font-size: 0.83rem;
+    line-height: 1.45;
+  }
+  pre code {
+    background: transparent;
+    padding: 0;
+    word-break: normal;
+  }
+  .diagram-box {
+    margin: 1.2rem 0;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface);
+    overflow: hidden;
+  }
+  .diagram-label {
+    background: var(--card);
+    padding: 6px 12px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+  }
+  .table-wrap {
+    width: 100%;
+    overflow-x: auto;
+    margin: 1.2rem 0;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    -webkit-overflow-scrolling: touch;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 520px;
+    font-size: 0.88rem;
+  }
+  th, td {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border);
+    text-align: left;
+    vertical-align: top;
+  }
+  th {
+    background: var(--card);
+    color: var(--primary);
+    font-weight: 700;
+  }
+  hr {
+    border: 0;
+    border-top: 1px solid var(--border);
+    margin: 2rem 0;
+  }
+</style>
+</head>
+<body>
+  <div class="top-bar">
+    <div class="brand">?????? PersonAI ? Dossi? Mobile</div>
+    <div class="actions">
+      <a href="#?ndice-naveg?vel" class="btn">?? ?ndice</a>
+      <button class="btn" onclick="toggleTheme()">?? Tema</button>
+    </div>
+  </div>
+  <div class="container" id="content">
+<h1 id="dossiê-técnico-conceitual-e-arquitetural-completo-personal-trainer-ia-personai">📱 Dossiê Técnico, Conceitual e Arquitetural Completo — Personal Trainer IA (PersonAI)</h1>
+<blockquote><strong>Guia Definitivo de Ponta a Ponta (Edição Otimizada para Leitura Mobile e Apresentação Executiva)</strong><br><strong>Escopo:</strong> Visão de Produto (Investidor), Fundamentação Teórico-Conceitual (Web, API, Banco de Dados e Mobile), Funcionamento Interno de Todos os Módulos, Histórico Evolutivo, <em>System Design Interview</em> e Engenharia de Software Orientada a Agentes (<em>Agentic Coding</em>).<br><strong>Última Atualização:</strong> Outubro de 2026 — Sprints <code>US-01</code> e <code>US-02</code> Concluídas e Homologadas (52/52 testes automatizados aprovados).</blockquote>
+<hr>
+<h2 id="índice-navegável">📑 Índice Navegável</h2>
+<ol>
+<li><strong><a href="#parte-1--visão-executiva-e-pitch-de-produto-nível-investidor">PARTE 1 — Visão Executiva e Pitch de Produto (Nível Investidor)</a></strong></li>
+</ol>
+<ul>
+<li>1.1. O Problema Real de Mercado</li>
+<li>1.2. A Solução: Personal Trainer IA (PersonAI)</li>
+<li>1.3. Diferenciais Competitivos e Fossos Tecnológicos (<em>Moats</em>)</li>
+<li>1.4. Os 4 Pilares do Ecossistema</li>
+</ul>
+<ol>
+<li><strong><a href="#parte-2--fundamentação-teórico-conceitual-para-dominar-front-end-back-end-api-e-banco-de-dados">PARTE 2 — Fundamentação Teórico-Conceitual (Para Dominar Front-end, Back-end, API e Banco de Dados)</a></strong></li>
+</ol>
+<ul>
+<li>2.1. A Anatomia de um Sistema Moderno: Front-end vs. Back-end vs. Banco de Dados</li>
+<li>2.2. O que é uma API, HTTP, REST, JSON e Multipart? Qual API usamos?</li>
+<li>2.3. Conceitos de Banco de Dados Relacional, Auth, JWT, RLS e Stored Procedures (RPC)</li>
+<li>2.4. Infraestrutura em Nuvem (PaaS, BaaS, CORS e Variáveis de Ambiente)</li>
+</ul>
+<ol>
+<li><strong><a href="#parte-3--funcionamento-compreensivo-de-cada-módulo-do-projeto">PARTE 3 — Funcionamento Compreensivo de Cada Módulo do Projeto</a></strong></li>
+</ol>
+<ul>
+<li>3.1. Módulo 1: Motor de Inteligência Artificial e Biomecânica (Branch <code>IA</code>)</li>
+<li>3.2. Módulo 2: Back-end e Gateway REST (<code>./BD/api.py</code> e <code>./BD/main.py</code>)</li>
+<li>3.3. Módulo 3: Banco de Dados Relacional e Segurança (<code>./BD/script_amizades_leaderboard.sql</code>)</li>
+<li>3.4. Módulo 4: Aplicativo Front-end Multiplataforma (<code>lib/</code> em Flutter/Dart)</li>
+</ul>
+<ol>
+<li><strong><a href="#parte-4--histórico-e-evolução-do-desenvolvimento-geral-e-por-módulo">PARTE 4 — Histórico e Evolução do Desenvolvimento (Geral e por Módulo)</a></strong></li>
+</ol>
+<ul>
+<li>4.1. A Evolução do Motor de IA em 6 Fases (Do Protótipo e ML Tabular ao Pipeline Híbrido)</li>
+<li>4.2. Os 6 Problemas Críticos Diagnosticados e Como Foram Resolvidos na Sprint <code>US-01</code></li>
+<li>4.3. A Unificação Full-Stack na Sprint <code>US-02</code></li>
+</ul>
+<ol>
+<li>**<a href="#parte-5--arquitetura-em-nível-de-system-design-interview">PARTE 5 — Arquitetura em Nível de <em>System Design Interview</em></a>**</li>
+</ol>
+<ul>
+<li>5.1. Requisitos Funcionais (FR) e Não-Funcionais (NFR)</li>
+<li>5.2. Estimativas de Capacidade e Matemática de Gargalos (<em>Back-of-the-Envelope</em>)</li>
+<li>5.3. Os 5 Grandes <em>Trade-offs</em> de Engenharia e Justificativas Arquiteturais</li>
+<li>5.4. Aplicação Prática de SOLID e Padrões de Projeto (<em>Design Patterns</em>)</li>
+<li>5.5. Plano de Escalabilidade (De 100 para 100.000 Usuários Simultâneos)</li>
+</ul>
+<ol>
+<li>**<a href="#parte-6--estrutura-do-repositório-governança-de-agentes-skills-e-integração-agente-codebase">PARTE 6 — Estrutura do Repositório, Governança de Agentes (<em>Skills</em>) e Integração Agente-Codebase</a>**</li>
+</ol>
+<ul>
+<li>6.1. Mapa Completo e Taxonomia dos Arquivos do Repositório</li>
+<li>6.2. A Política Inegociável de Preservação de Legados</li>
+<li>6.3. Como Funciona a Engenharia de Software Orientada a Agentes neste Repositório</li>
+<li>6.4. Catálogo Detalhado das <em>Skills</em> e Protocolos dos Agentes de IA</li>
+</ul>
+<ol>
+<li><strong><a href="#parte-7--guia-de-bolso-para-perguntas-de-investidores-professores-e-banca-faq-estratégico">PARTE 7 — Guia de Bolso para Perguntas de Investidores, Professores e Banca (FAQ Estratégico)</a></strong></li>
+</ol>
+<hr>
+<h1 id="parte-1-visão-executiva-e-pitch-de-produto-nível-investidor">PARTE 1 — Visão Executiva e Pitch de Produto (Nível Investidor)</h1>
+<h2 id="11-o-problema-real-de-mercado">1.1. O Problema Real de Mercado</h2>
+<p>O mercado global de fitness e saúde enfrenta um trilema estrutural quando uma pessoa decide treinar em casa ou na academia sem acompanhamento individual:</p>
+<ol>
+<li><strong>Risco Biomecânico e Lesões Invisíveis:</strong> Executar exercícios como Agachamento Livre, Desenvolvimento de Ombros ou Rosca Bíceps com compensações posturais (tronco excessivamente inclinado, cotovelo caindo, ombro instável) ou amplitude encurtada reduz drasticamente a hipertrofia e causa lesões articulares crônicas.</li>
+<li><strong>Inacessibilidade Econômica de Supervisão Humana:</strong> Contratar um Personal Trainer presencial para corrigir cada repetição custa caro e não escala para a grande massa de praticantes.</li>
+<li><strong>Falha dos Aplicativos Tradicionais de Treino:</strong> Os aplicativos convencionais funcionam apenas como &quot;planilhas digitais&quot; ou vídeos passivos: o usuário assiste a uma demonstração, faz o exercício sem nenhum feedback sobre sua postura real, clica em um botão <em>&quot;Concluído&quot;</em> e recebe pontos fictícios. Não há garantia alguma de que o movimento foi feito corretamente — ou sequer de que foi feito.</li>
+</ol>
+<hr>
+<h2 id="12-a-solução-personal-trainer-ia-personai">1.2. A Solução: Personal Trainer IA (PersonAI)</h2>
+<p>O <strong>Personal Trainer IA (PersonAI)</strong> é uma plataforma completa que transforma qualquer câmera comum (de um celular Android/iOS ou webcam de computador) em um <strong>avaliador biomecânico inteligente em tempo real</strong>, integrado a uma rede social gamificada de atletas.</p>
+<p>Sem exigir nenhum sensor vestível (<em>wearable</em>), relógio inteligente ou roupa especial, o sistema:</p>
+<ul>
+<li><strong>Enxerga o corpo do praticante</strong> a cada fotograma (extraindo 33 pontos anatômicos tridimensionais).</li>
+<li><strong>Compreende a fase motora do exercício</strong> em tempo real (Repouso $\rightarrow$ Ida $\rightarrow$ Pico/Fundo $\rightarrow$ Retorno).</li>
+<li><strong>Conta apenas repetições reais</strong> e emite <strong>alertas posturais instantâneos</strong> na tela (HUD) no exato momento em que um desvio biomecânico acontece.</li>
+<li><strong>Avalia a qualidade técnica global de cada repetição (0% a 100%)</strong> comparando a trajetória espaço-temporal do aluno contra o <strong>Gabarito Padrão Ouro de um Especialista</strong>, independentemente de o aluno fazer o movimento rápido ou devagar.</li>
+<li>**Converte qualidade biomecânica em progresso social (<em>Proof-of-Workout</em>):** Apenas repetições tecnicamente aprovadas geram pontos de experiência (<code>pontos_gamificacao</code>), que alimentam a sequência diária (<em>Streak</em>) e posicionam o usuário no <strong>Leaderboard Global e de Amigos</strong>.</li>
+</ul>
+<hr>
+<h2 id="13-diferenciais-competitivos-e-fossos-tecnológicos-moats">1.3. Diferenciais Competitivos e Fossos Tecnológicos (<em>Moats</em>)</h2>
+<p>Se um investidor ou avaliador perguntar <em>&quot;Por que a sua tecnologia é melhor do que simplesmente jogar um vídeo em uma rede neural genérica ou usar um LLM de visão?&quot;</em>, a resposta reside em <strong>quatro decisões estratégicas de produto e engenharia</strong>:</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Diferencial Estratégico</th><th>Abordagem Comum de Mercado (Concorrentes)</th><th>Abordagem do <strong>Personal Trainer IA</strong></th><th>Vantagem para o Negócio e Usuário</th></tr></thead><tbody>
+<tr><td><strong>1. IA Explicável (XAI) vs. Caixa-Preta</strong></td><td>Redes neurais fim-a-fim (<em>End-to-End Deep Learning</em>) que dizem apenas <em>&quot;Certo (80%)&quot;</em> ou <em>&quot;Errado&quot;</em> sem saber explicar o porquê.</td><td><strong>Arquitetura Híbrida (MediaPipe + Geometria 2D + FSM + DTW):</strong> combina visão computacional profunda na base com modelagem matemática explícita no topo.</td><td>O sistema aponta cirurgicamente: <em>&quot;Cotovelo correto, mas seu ombro teve desvio médio de 14.2° em relação à referência&quot;</em>.</td></tr>
+<tr><td><strong>2. Invariância Temporal (Cadência Livre)</strong></td><td>Comparação rígida quadro a quadro (penaliza alunos que treinam de forma lenta e controlada, como na musculação hipertrofiante).</td><td>**Alinhamento Elástico via DTW (<em>Dynamic Time Warping</em>) com Janela de Sakoe-Chiba:** comprime e estica o tempo de forma não-linear.</td><td>Um aluno que leva 2 segundos e outro que leva 6 segundos com boa postura tiram igualmente <strong>&gt; 92% de nota</strong>.</td></tr>
+<tr><td>**3. Escalabilidade de Novos Exercícios (<em>Zero-Training Addition</em>)**</td><td>Exige gravar milhares de vídeos rotulados e treinar uma nova rede neural por semanas para cada novo exercício adicionado ao app.</td><td>**Padrão <em>Strategy + Registry</em> + 1 Vídeo de Especialista (<em>One-Shot Reference</em>):** basta definir as regras angulares na classe FSM e extrair 1 vídeo do personal trainer.</td><td>Novos exercícios são adicionados em <strong>minutos</strong>, sem custo de GPU de treinamento.</td></tr>
+<tr><td><strong>4. Custo Computacional Ultra-Baixo</strong></td><td>Modelos pesados de vídeo que exigem servidores com GPUs dedicadas caras na nuvem (inviabilizando o <em>unit economics</em> de usuários gratuitos).</td><td>Pipeline matemático vetorizado em **NumPy 3D <em>Broadcasting</em><strong> (executa o DTW em </strong>&lt; 0.5 milissegundos** em CPU comum).</td><td>Pode rodar em servidores de baixo custo ou diretamente no processador do celular do usuário.</td></tr>
+</tbody></table></div>
+<hr>
+<h2 id="14-os-4-pilares-do-ecossistema">1.4. Os 4 Pilares do Ecossistema</h2>
+<p>O projeto completo é dividido em <strong>4 grandes camadas integradas</strong>:</p>
+<div class="diagram-box"><div class="diagram-label">?? Diagrama Arquitetural (mermaid)</div><pre class="mermaid">flowchart TB
+    subgraph Pilar1[&quot;1. FRONT-END MULTIPLATAFORMA (Flutter / Dart)&quot;]
+        UI[&quot;17 Telas Mobile/Web (Dark Neon UI)\nLogin, Home, Treinos, Câmera HUD, Amigos, Leaderboard&quot;]
+        APISvc[&quot;ApiService Singleton\n(Cliente HTTP centralizado)&quot;]
+        UI --&gt; APISvc
+    end
+
+    subgraph Pilar2[&quot;2. BACK-END &amp; GATEWAY REST (FastAPI / Python)&quot;]
+        FastAPI[&quot;Servidor FastAPI (./BD/api.py)\nValidação Pydantic + CORS + Swagger Docs&quot;]
+        CoreBD[&quot;Regras de Negócio (./BD/main.py)\nAuth, Perfil, Treinos, Gamificação, Social&quot;]
+        SvcIA[&quot;Serviço IA em Memória (./servico_ia_api.py)\nSessões por Atleta + Decode RAM + Simulador&quot;]
+        FastAPI --&gt; CoreBD
+        FastAPI --&gt; SvcIA
+    end
+
+    subgraph Pilar3[&quot;3. MOTOR BIOMECÂNICO DE IA (Branch IA / Python)&quot;]
+        MP[&quot;MediaPipe PoseLandmarker\n(33 Landmarks 3D)&quot;]
+        Geo[&quot;Cálculo Geométrico (./calculo_angulos.py)\nÂngulos 2D + Âncora de Ruído (1.2°)&quot;]
+        Orq[&quot;Orquestrador de Sessão (./avaliador_pontuacao.py)\nFSM + BufferRepeticao + DTW Vetorizado + Gabaritos JSON&quot;]
+        SvcIA --&gt; MP --&gt; Geo --&gt; Orq
+    end
+
+    subgraph Pilar4[&quot;4. BANCO DE DADOS &amp; NUVEM (Supabase / PostgreSQL)&quot;]
+        SupaAuth[&quot;Supabase Auth\n(JWT + OTP Email)&quot;]
+        PG[&quot;Tabelas Relacionais PostgreSQL\n(usuarios, treinos, exercicios, treino_exercicios, amizades)&quot;]
+        RPC[&quot;9 Stored Procedures RPC (SECURITY DEFINER)\n+ Políticas RLS&quot;]
+        CoreBD --&gt; SupaAuth
+        CoreBD --&gt; PG
+        CoreBD --&gt; RPC
+    end
+
+    APISvc &lt;--&gt;|&quot;HTTP REST (JSON &amp; Multipart Frame)&quot;| FastAPI
+    FastAPI -.-&gt;|&quot;Ponte Automática:\n/ia/finalizar-serie-e-pontuar&quot;| CoreBD</pre></div>
+<hr>
+<h1 id="parte-2-fundamentação-teórico-conceitual-para-dominar-front-end-back-end-api-e-banco-de-dados">PARTE 2 — Fundamentação Teórico-Conceitual (Para Dominar Front-end, Back-end, API e Banco de Dados)</h1>
+<blockquote><strong>Por que esta seção existe?</strong> Como o seu foco principal de desenvolvimento foi o <strong>Motor de Inteligência Artificial</strong> (com apoio de agentes), esta seção foi desenhada como um <strong>curso intensivo descomplicado</strong> sobre todas as outras tecnologias que cercam o seu motor. Ao terminar de ler esta parte, você saberá exatamente o que significa cada sigla (<code>REST</code>, <code>FastAPI</code>, <code>Pydantic</code>, <code>Supabase</code>, <code>RLS</code>, <code>RPC</code>, <code>JWT</code>, <code>CORS</code>, <code>Multipart</code>, <code>StatefulWidget</code>) e por que cada decisão foi tomada.</blockquote>
+<hr>
+<h2 id="21-a-anatomia-de-um-sistema-moderno-front-end-vs-back-end-vs-banco-de-dados">2.1. A Anatomia de um Sistema Moderno: Front-end vs. Back-end vs. Banco de Dados</h2>
+<p>Imagine que o <strong>Personal Trainer IA</strong> é uma <strong>clínica esportiva de alta tecnologia</strong>:</p>
+<ol>
+<li><strong>O Front-end (Aplicativo Flutter) é a Recepção e a Sala de Treino com Espelho Inteligente:</strong></li>
+</ol>
+<ul>
+<li><strong>O que é tecnicamente:</strong> É a camada de apresentação (<em>Client-Side</em>) que roda diretamente no dispositivo do usuário (celular Android, iPhone, navegador Web ou Desktop Windows). Foi escrita na linguagem <strong>Dart</strong> usando o framework <strong>Flutter</strong> (criado pelo Google).</li>
+<li><strong>O que ele faz:</strong> Desenha os botões, cartões, gráficos de pódio, formulários de login e abre a câmera física do aparelho.</li>
+<li><strong>Por que o Front-end não faz tudo sozinho?</strong></li>
+</ul>
+<ol>
+<li><strong>Segurança:</strong> Tudo o que está no celular do usuário pode ser inspecionado ou adulterado por um usuário mal-intencionado. Se a senha mestre do banco de dados estivesse dentro do aplicativo Flutter, qualquer pessoa poderia roubá-la e alterar sua própria pontuação no Leaderboard para 1 milhão de pontos.</li>
+<li><strong>Centralização e Padronização:</strong> Se as regras de negócio (como calcular o ranking, validar amizades ou rodar o motor oficial de IA em Python) ficam em um servidor central, qualquer atualização vale instantaneamente para todos os usuários, sem exigir que baixem uma nova versão na loja de aplicativos.</li>
+</ol>
+<ol>
+<li><strong>O Back-end (Servidor Python FastAPI) é o Gerente Geral e a Equipe de Fisiologistas:</strong></li>
+</ol>
+<ul>
+<li><strong>O que é tecnicamente:</strong> É o programa que roda em um computador remoto na nuvem (<em>Server-Side</em>), invisível aos olhos do usuário final. No nosso projeto, ele fica em [<code>./BD/api.py</code>](./BD/api.py), [<code>./BD/main.py</code>](./BD/main.py) e [<code>./servico_ia_api.py</code>](./servico_ia_api.py).</li>
+<li><strong>O que ele faz:</strong> Ele fica &quot;escutando&quot; pedidos enviados pelo aplicativo Flutter pela internet. Quando o aplicativo diz <em>&quot;O usuário João quer fazer login&quot;</em>, ou <em>&quot;Aqui está a foto do frame #14 do agachamento do João&quot;</em>, o Back-end verifica se os dados são válidos, aciona o <strong>Motor de IA</strong> (em memória RAM) ou consulta o <strong>Banco de Dados</strong>, aplica as regras de negócio e devolve uma resposta limpa para o celular mostrar na tela.</li>
+</ul>
+<ol>
+<li><strong>O Banco de Dados (Supabase / PostgreSQL) é o Arquivo Central Blindado da Clínica:</strong></li>
+</ol>
+<ul>
+<li><strong>O que é tecnicamente:</strong> É um sistema especializado em guardar dados de forma <strong>persistente</strong> (no disco rígido de servidores seguros), estruturada em tabelas interligadas, garantindo que mesmo que o servidor do Back-end seja reiniciado ou acabe a energia, nenhuma conta de usuário, treino ou pontuação seja perdida.</li>
+<li><strong>A Diferença Crucial entre Memória RAM e Banco de Dados no Nosso Projeto:</strong></li>
+<li><strong>Memória RAM (Volátil e Ultra-Rápida):</strong> Quando o aluno está fazendo uma série de 10 agachamentos em frente à câmera, o celular manda ~5 a 8 fotos por segundo. Gravar cada fotograma no banco de dados demoraria dezenas de milissegundos e deixaria o sistema lento e caro. Por isso, o [<code>./servico_ia_api.py</code>](./servico_ia_api.py) mantém a sessão ativa do treino na <strong>Memória RAM</strong> do servidor (<code>self.sessoes[usuario_id]</code>).</li>
+<li><strong>Banco de Dados em Disco (Persistente e Durável):</strong> No instante em que o aluno termina a série e clica em <em>&quot;Finalizar Treino&quot;</em> (<code>POST /ia/finalizar-serie-e-pontuar</code>), o resultado consolidado (ex.: <code>+28 pontos de gamificação</code> e <code>+1 dia de sequência</code>) é gravado permanentemente no banco de dados <strong>PostgreSQL (Supabase)</strong>.</li>
+</ul>
+<hr>
+<h2 id="22-o-que-é-uma-api-http-rest-json-e-multipart-qual-api-usamos">2.2. O que é uma API, HTTP, REST, JSON e Multipart? Qual API usamos?</h2>
+<h3 id="o-conceito-de-api-application-programming-interface">O Conceito de API (<em>Application Programming Interface</em>)</h3>
+<p>Como o Front-end (escrito em <strong>Dart/Flutter</strong>, rodando no celular) conversa com o Back-end (escrito em <strong>Python</strong>, rodando na nuvem), se eles são feitos em linguagens diferentes e estão em máquinas diferentes?</p>
+<p>Eles conversam através de uma <strong>API Web</strong>. Pense na API como um <strong>cardápio padronizado de restaurante com regras estritas de pedido</strong>: o cliente (Flutter) não entra na cozinha (Back-end/Banco de Dados); ele chama o garçom (protocolo <strong>HTTP</strong>) e faz um pedido para um endereço específico (chamado de <strong>Rota</strong> ou <strong>Endpoint</strong>, como <code>/ia/simular-repeticao</code>).</p>
+<h3 id="o-que-significa-api-rest-e-verbos-http">O que significa API REST e Verbos HTTP?</h3>
+<p>Nossa API segue o estilo arquitetural **REST (<em>Representational State Transfer</em>)<strong>, que é o padrão mundial da indústria web. Em uma API REST, cada endereço URL representa um recurso do sistema, e usamos </strong>Verbos HTTP** para indicar qual ação queremos realizar:</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Verbo HTTP</th><th>Significado Conceitual</th><th>Exemplo Real no Nosso Projeto (<code>./BD/api.py</code>)</th></tr></thead><tbody>
+<tr><td>**<code>GET</code>**</td><td><strong>Consultar / Ler</strong> informações sem alterar nada no servidor.</td><td><code>GET /leaderboard/global</code> (busca o ranking de atletas)&lt;br&gt;<code>GET /ia/resumo-sessao?usuario_id=...</code> (lê o laudo da série)</td></tr>
+<tr><td>**<code>POST</code>**</td><td><strong>Criar</strong> um novo registro ou <strong>Disparar um processamento</strong> que altera estado.</td><td><code>POST /auth/login</code> (autentica o usuário)&lt;br&gt;<code>POST /ia/processar-frame</code> (envia imagem para a IA avaliar)&lt;br&gt;<code>POST /ia/finalizar-serie-e-pontuar</code> (consolida série e soma XP)</td></tr>
+<tr><td>**<code>PUT</code>**</td><td><strong>Atualizar / Substituir</strong> dados existentes de um recurso.</td><td><code>PUT /perfil/{usuario_id}</code> (atualiza nome, CPF, sequência)&lt;br&gt;<code>PUT /treinos/{treino_id}</code> (edita um treino existente)</td></tr>
+<tr><td>**<code>PATCH</code>**</td><td><strong>Atualizar Parcialmente</strong> um campo específico (ex.: mudar apenas o status).</td><td><code>PATCH /amigos/solicitacoes/{solicitacao_id}</code> (muda status do convite para <code>&quot;aceito&quot;</code> ou <code>&quot;recusado&quot;</code>)</td></tr>
+<tr><td>**<code>DELETE</code>**</td><td><strong>Apagar / Remover</strong> um registro do sistema.</td><td><code>DELETE /treinos/{treino_id}</code> (exclui um treino)&lt;br&gt;<code>DELETE /amigos/{amigo_id}</code> (desfaz amizade)</td></tr>
+</tbody></table></div>
+<h3 id="o-que-é-json-vs-multipartform-data">O que é JSON vs. Multipart/Form-Data?</h3>
+<p>Na internet, os dados viajam dentro das requisições HTTP em dois formatos principais no nosso projeto:</p>
+<ol>
+<li>**JSON (<em>JavaScript Object Notation</em>):** É um formato de texto leve, estruturado em pares <code>&quot;chave&quot;: valor</code> (muito parecido com um dicionário <code>dict</code> do Python). Quase todas as rotas do nosso sistema recebem e devolvem JSON. Exemplo:</li>
+</ol>
+<pre><code class="lang-json">   {
+     &quot;sucesso&quot;: true,
+     &quot;repeticoes&quot;: 3,
+     &quot;fase_nome&quot;: &quot;Pico do Movimento&quot;,
+     &quot;alerta_imediato&quot;: null
+   }</code></pre>
+<ol>
+<li><strong>Multipart/Form-Data:</strong> O formato JSON é excelente para textos e números, mas é ruim para transmitir arquivos binários pesados (como uma foto <code>.jpg</code> da câmera), pois converter uma imagem para texto (Base64) aumenta seu tamanho em ~33%. Por isso, na rota <code>POST /ia/processar-frame</code>, usamos <code>multipart/form-data</code>: um envelope HTTP que permite enviar os <strong>bytes puros e comprimidos da imagem JPEG</strong> (<code>frame</code>) junto com campos de formulário (<code>usuario_id</code>, <code>exercicio</code>, <code>lado</code>) na mesma viagem de rede!</li>
+</ol>
+<h3 id="quais-tecnologias-de-api-estão-sendo-utilizadas-no-projeto">Quais tecnologias de API estão sendo utilizadas no projeto?</h3>
+<p>Se alguém perguntar <em>&quot;Qual framework de API vocês usam e por quê?&quot;</em>, você deve responder:</p>
+<ol>
+<li><strong>FastAPI (Python):</strong> É o framework web moderno utilizado em [<code>./BD/api.py</code>](./BD/api.py) para construir a nossa API REST. Escolhemos o FastAPI por três motivos técnicos:</li>
+</ol>
+<ul>
+<li><strong>Performance Assíncrona (ASGI via Uvicorn):</strong> É um dos frameworks Python mais rápidos existentes, capaz de lidar com múltiplas requisições concorrentes (como uploads de frames de câmera via <code>async def api_ia_processar_frame</code>).</li>
+<li><strong>Integração Nativa com o Ecossistema de IA:</strong> Como nosso motor biomecânico (<code>MediaPipe</code>, <code>OpenCV</code>, <code>NumPy</code>) é escrito em Python, o FastAPI permite importar e executar o <code>OrquestradorSessao</code> diretamente em memória RAM, sem precisar criar pontes complexas entre linguagens diferentes no servidor.</li>
+<li><strong>Documentação Automática (Swagger UI / OpenAPI):</strong> O FastAPI gera sozinho uma página interativa na rota <code>/docs</code> onde qualquer desenvolvedor ou avaliador pode testar todas as rotas pelo navegador.</li>
+</ul>
+<ol>
+<li><strong>Pydantic v2:</strong> Biblioteca acoplada ao FastAPI (classes <code>BaseModel</code> nas linhas 40–144 de [<code>./BD/api.py</code>](./BD/api.py)). Ela funciona como um &quot;segurança de porta&quot;: antes mesmo de o nosso código rodar, o Pydantic verifica se o JSON enviado pelo celular tem os tipos certos (ex.: se <code>pontos</code> é um número inteiro maior que zero, se <code>status</code> da amizade é estritamente <code>&quot;aceito&quot;</code> ou <code>&quot;recusado&quot;</code>). Se o celular mandar algo inválido, o Pydantic bloqueia automaticamente e devolve um erro padronizado (<code>HTTP 422 Unprocessable Entity</code>).</li>
+</ol>
+<hr>
+<h2 id="23-conceitos-de-banco-de-dados-relacional-auth-jwt-rls-e-stored-procedures-rpc">2.3. Conceitos de Banco de Dados Relacional, Auth, JWT, RLS e Stored Procedures (RPC)</h2>
+<p>O nosso projeto utiliza o <strong>Supabase</strong>, que é uma plataforma **BaaS (<em>Backend-as-a-Service</em>)<strong> de código aberto construída sobre o </strong>PostgreSQL** (o banco de dados relacional open-source mais avançado do mundo). Vamos entender cada peça que usamos nele:</p>
+<h3 id="1-banco-de-dados-relacional-sql-e-chaves-pk-e-fk">1. Banco de Dados Relacional (SQL) e Chaves (<code>PK</code> e <code>FK</code>)</h3>
+<p>Em um banco relacional, nós não jogamos tudo em uma única planilha gigante (o que causaria duplicação e bagunça). Nós separamos os assuntos em <strong>Tabelas</strong> e criamos <strong>Relações</strong> entre elas usando códigos identificadores:</p>
+<ul>
+<li>**Chave Primária (<code>PK — Primary Key</code>):** É o &quot;RG único&quot; de cada linha de uma tabela.</li>
+<li>Nas tabelas <code>usuarios</code> e <code>amizades</code>, usamos <strong>UUID</strong> (<em>Universally Unique Identifier</em>, ex.: <code>a1b2c3d4-...</code>), um código alfanumérico impossível de adivinhar sequencialmente.</li>
+<li>Nas tabelas <code>treinos</code> e <code>exercicios</code>, usamos <strong>SERIAL</strong> (números inteiros autoincrementados: <code>1, 2, 3...</code>).</li>
+<li>**Chave Estrangeira (<code>FK — Foreign Key</code>):** É uma coluna em uma tabela que aponta para a Chave Primária de outra tabela, criando um vínculo.</li>
+<li><em>Exemplo no projeto:</em> Na tabela <code>treinos</code>, existe a coluna <code>usuario_id</code> (FK) que aponta para <code>usuarios.id</code> (PK). Assim sabemos exatamente qual atleta criou qual treino.</li>
+<li>*Relação Muitos-para-Muitos (<code>N:N</code>) com Tabela Associativa:* Um treino pode conter vários exercícios (Agachamento, Flexão, Prancha), e o mesmo exercício &quot;Agachamento&quot; pode estar dentro de centenas de treinos diferentes. No SQL, resolvemos isso criando a tabela intermediária **<code>treino_exercicios</code>**, que guarda o par <code>(treino_id, exercicio_id)</code> mais a <code>ordem</code>, <code>series</code> e <code>repeticoes</code>!</li>
+</ul>
+<h3 id="2-supabase-auth-e-tokens-jwt-json-web-token">2. Supabase Auth e Tokens JWT (<em>JSON Web Token</em>)</h3>
+<ul>
+<li>Quando um usuário cria uma conta (<code>POST /auth/criar-conta</code>), nós <strong>jamais</strong> salvamos a senha dele em texto puro na nossa tabela <code>public.usuarios</code>.</li>
+<li>Em vez disso, delegamos ao <strong>Supabase Auth</strong> (<code>supabase.auth.sign_up</code>), que criptografa a senha com algoritmos seguros (<em>bcrypt</em>) em um esquema protegido separado (<code>auth.users</code>) e dispara um gatilho (<em>Trigger</em> do banco) que cria a ficha pública do atleta em <code>public.usuarios</code> com o mesmo <code>id</code>.</li>
+<li>Quando o usuário faz login (<code>POST /auth/login</code>), o Supabase devolve um **<code>access_token</code> (JWT)<strong> — um &quot;crachá digital assinado criptograficamente&quot; — que comprova a identidade daquele usuário, além de suportar recuperação de senha por código </strong>OTP (<em>One-Time Password</em>)** enviado por e-mail.</li>
+</ul>
+<h3 id="3-o-que-é-rls-row-level-security-e-o-problema-que-ele-gerou">3. O que é RLS (<em>Row-Level Security</em>) e o Problema que Ele Gerou</h3>
+<ul>
+<li><strong>Conceito:</strong> <em>Row-Level Security</em> (Segurança em Nível de Linha) é um recurso do PostgreSQL onde o próprio banco de dados aplica regras de visibilidade em cada linha da tabela. Por exemplo, em <code>public.amizades</code> ([<code>./BD/script_amizades_leaderboard.sql</code>](./BD/script_amizades_leaderboard.sql), linhas 64–94), configuramos políticas RLS garantindo que:</li>
+<li>Só quem recebeu um convite de amizade (<code>amigo_id = auth.uid()</code>) pode aceitá-lo ou recusá-lo.</li>
+<li>Um usuário comum não pode alterar a pontuação ou os dados de outro usuário.</li>
+<li><strong>O Desafio Técnico:</strong> Na tabela <code>public.usuarios</code>, o RLS protege os dados pessoais (como CPF e e-mail) para que um usuário só consiga dar <code>SELECT</code> na sua própria linha. <strong>Mas pense bem:</strong> se o usuário A só pode ler a própria linha dele na tabela <code>usuarios</code>, como o aplicativo vai mostrar o <strong>nome e a pontuação dos outros atletas</strong> no Leaderboard Global, na Busca de Amigos ou nos Convites de Amizade Pendentes?! Se fizéssemos um <code>SELECT</code> comum bloqueado pelo RLS, o nome dos amigos apareceria vazio ou genérico!</li>
+</ul>
+<h3 id="4-a-solução-de-engenharia-stored-procedures-rpc-com-security-definer">4. A Solução de Engenharia: Stored Procedures (RPC) com <code>SECURITY DEFINER</code></h3>
+<p>Para resolver esse dilema com segurança máxima e velocidade de banco de dados, criamos **9 Funções SQL Armazenadas (<em>Stored Procedures</em>)** dentro do PostgreSQL ([<code>./BD/script_amizades_leaderboard.sql</code>](./BD/script_amizades_leaderboard.sql)), chamadas pela API via **RPC (<em>Remote Procedure Call</em> — <code>supabase.rpc(...)</code>)**:</p>
+<ul>
+<li>Essas funções possuem a cláusula **<code>SECURITY DEFINER</code>**.</li>
+<li><strong>O que isso significa?</strong> Significa que a função roda lá dentro do PostgreSQL com a permissão do criador do banco, mas <strong>expõe apenas as colunas públicas estritamente necessárias</strong> (<code>id</code>, <code>nome</code>, <code>pontuacao_semanal</code>, <code>sequencia</code>, <code>maior_sequencia</code>), mantendo o <code>cpf</code> e dados sensíveis 100% ocultos!</li>
+<li>Além disso, o cálculo da posição no ranking (<code>1º, 2º, 3º...</code>) é feito diretamente pelo motor C do PostgreSQL usando <em>Window Functions</em> (<code>ROW_NUMBER() OVER (ORDER BY pontuacao_semanal DESC, sequencia DESC)</code>), o que é ordens de grandeza mais rápido do que puxar milhares de usuários para o Python e ordenar manualmente.</li>
+</ul>
+<hr>
+<h2 id="24-infraestrutura-em-nuvem-paas-baas-cors-e-variáveis-de-ambiente">2.4. Infraestrutura em Nuvem (PaaS, BaaS, CORS e Variáveis de Ambiente)</h2>
+<ol>
+<li>**Hospedagem do Back-end no Render (PaaS — <em>Platform-as-a-Service</em>):**</li>
+</ol>
+<ul>
+<li>O arquivo <code>render.yaml</code> configura o deploy automático do nosso servidor FastAPI na nuvem <strong>Render</strong> (<code>https://personai-t6mf.onrender.com</code>). O Render lê <code>BD/requirements.txt</code>, instala as dependências e inicia o servidor Uvicorn na porta dinâmica <code>$PORT</code>.</li>
+</ul>
+<ol>
+<li>**Variáveis de Ambiente (<code>BD/.env</code>):**</li>
+</ol>
+<ul>
+<li>Chaves secretas como <code>SUPABASE_URL</code> e <code>SUPABASE_SERVICE_ROLE_KEY</code> nunca são escritas diretamente no código-fonte (para não vazarem no GitHub). Elas ficam no arquivo <code>.env</code> local (ignorado pelo <code>.gitignore</code>) e são lidas dinamicamente em [<code>./BD/supabase_client.py</code>](./BD/supabase_client.py) via <code>python-dotenv</code>.</li>
+</ul>
+<ol>
+<li>**CORS (<em>Cross-Origin Resource Sharing</em>):**</li>
+</ol>
+<ul>
+<li>Navegadores web possuem uma trava de segurança que impede que um site/app rodando em um endereço (ex.: Flutter Web em <code>localhost:5000</code>) chame uma API em outro endereço (<code>localhost:8000</code> ou <code>onrender.com</code>), a menos que o servidor autorize explicitamente.</li>
+<li>Nas linhas 28–34 de [<code>./BD/api.py</code>](./BD/api.py), configuramos o <code>CORSMiddleware(allow_origins=[&quot;*&quot;])</code>, garantindo que tanto o Flutter Web, quanto o Emulador Android (<code>10.0.2.2:8000</code>) e aparelhos físicos consigam se comunicar com a API sem bloqueios.</li>
+</ul>
+<hr>
+<h1 id="parte-3-funcionamento-compreensivo-de-cada-módulo-do-projeto">PARTE 3 — Funcionamento Compreensivo de Cada Módulo do Projeto</h1>
+<h2 id="31-módulo-1-motor-de-inteligência-artificial-e-biomecânica-branch-ia">3.1. Módulo 1: Motor de Inteligência Artificial e Biomecânica (Branch <code>IA</code>)</h2>
+<p>O motor de IA foi projetado como um <strong>pipeline em 6 estágios sequenciais</strong>, onde os estágios de captura (1) são totalmente separados dos estágios de matemática biomecânica pura (2 a 6). Vamos dissecar como cada arquivo funciona por dentro:</p>
+<div class="diagram-box"><div class="diagram-label">?? Diagrama Arquitetural (mermaid)</div><pre class="mermaid">flowchart TD
+    subgraph CamadaSensor[&quot;Camada 1: Sensor &amp; Visão Computacional&quot;]
+        S1[&quot;Webcam Local\n(./app_tempo_real.py)\nRunningMode.VIDEO&quot;]
+        S2[&quot;Vídeo Gravado .mp4\n(./extrator_video.py)\nRunningMode.IMAGE&quot;]
+        S3[&quot;Upload Mobile API\n(./servico_ia_api.py)\ncv2.imdecode em RAM&quot;]
+        MP[&quot;MediaPipe PoseLandmarker\n(./pose_landmarker_lite.task)\nExtrai 33 Landmarks (x, y, z, visibility)&quot;]
+        S1 &amp; S2 &amp; S3 --&gt; MP
+    end
+
+    subgraph CamadaGeometria[&quot;Camada 2: Geometria Vetorial (./calculo_angulos.py)&quot;]
+        EXT[&quot;extrair_angulos_exercicio()\nConverte (A, B, C) via arctan2 -&gt; Graus [0°, 180°]\nValida visibility &gt;= 0.5&quot;]
+        DEL[&quot;calcular_deltas_angulares()\nÂncora de Ruído (limiar &gt;= 1.2°)\nRetém tendência em cadências lentas&quot;]
+        MP --&gt; EXT --&gt; DEL
+    end
+
+    subgraph CamadaDominio[&quot;Camada 3: Orquestrador &amp; Domínio Biomecânico&quot;]
+        ORQ[&quot;OrquestradorSessao.processar_frame(angulos, visivel)\n(./avaliador_pontuacao.py)&quot;]
+        FSM[&quot;ExercicioBaseFSM (./exercicios_fsm.py)\nCiclo 0 -&gt; 1 -&gt; 2 -&gt; 3 -&gt; 0\nRetenção transiente: erros_repeticao_atual&quot;]
+        BUF[&quot;BufferRepeticao (./buffer_repeticao.py)\nRecorte Canônico: grava apenas fases 1, 2, 3\nEntrega matriz (N x D) no fechamento 3 -&gt; 0&quot;]
+        DTW[&quot;DTWComparator (./dtw_evaluator.py)\nNumPy 3D Broadcasting + Janela Sakoe-Chiba (20%)\nCompara Aluno (N x D) vs Gabarito JSON (M x D)&quot;]
+        PONT[&quot;calcular_pontuacao()\nScore_Final = clip(Score_DTW - Soma_Penalidades_FSM, 0, 100)\nGera Feedback Hierárquico + XP Gamificação&quot;]
+        
+        DEL --&gt; ORQ
+        ORQ &lt;--&gt; BUF
+        BUF &lt;--&gt; FSM
+        BUF --&gt;|&quot;Ao concluir rep:\nMatriz (N x D)&quot;| DTW
+        DTW --&gt; PONT --&gt; ORQ
+    end</pre></div>
+<h3 id="estágio-1-estimação-de-pose-humana-mediapipe-poselandmarker">Estágio 1: Estimação de Pose Humana (<code>MediaPipe PoseLandmarker</code>)</h3>
+<ul>
+<li><strong>Arquivos:</strong> [<code>./pose_landmarker_lite.task</code>](./pose_landmarker_lite.task) (~5.8 MB, usado para tempo real por sua baixíssima latência) e [<code>./pose_landmarker_full.task</code>](./pose_landmarker_full.task) (~9.4 MB, alta precisão).</li>
+<li><strong>Como funciona:</strong> Para cada imagem RGB, a rede neural convolucional do Google MediaPipe localiza a pessoa e infere **33 pontos anatômicos (<em>landmarks</em>)** numerados de <code>0</code> a <code>32</code>. Cada ponto possui:</li>
+<li><code>x</code> e <code>y</code>: Coordenadas normalizadas no intervalo $[0.0, 1.0]$ relativas à largura e altura da imagem.</li>
+<li><code>z</code>: Profundidade relativa ao centro do quadril.</li>
+<li><code>visibility</code>: Probabilidade no intervalo $[0.0, 1.0]$ de que aquela articulação está visível e não oculta atrás de um objeto ou fora do enquadramento da câmera.</li>
+<li><strong>Dois Modos de Operação:</strong></li>
+<li>Na webcam local ([<code>./app_tempo_real.py</code>](./app_tempo_real.py)), usamos <code>RunningMode.VIDEO</code> (<code>detect_for_video(mp_image, timestamp_ms)</code>), que aproveita a posição do esqueleto do quadro anterior para rastrear o movimento ainda mais rápido.</li>
+<li>No extrator de vídeo ([<code>./extrator_video.py</code>](./extrator_video.py)) e na API web ([<code>./servico_ia_api.py</code>](./servico_ia_api.py)), usamos <code>RunningMode.IMAGE</code> (<code>detect(mp_image)</code>), pois na API web um mesmo servidor pode receber intercaladamente um frame do Usuário A e, 10ms depois, um frame do Usuário B; o modo <code>IMAGE</code> garante que o detector não misture o esqueleto de duas pessoas diferentes!</li>
+</ul>
+<h3 id="estágio-2-geometria-vetorial-2d-e-a-âncora-de-ruído-calculo_angulospycalculo_angulospy">Estágio 2: Geometria Vetorial 2D e a &quot;Âncora de Ruído&quot; ([<code>./calculo_angulos.py</code>](./calculo_angulos.py))</h3>
+<p>Coordenadas $(x, y)$ mudam se o usuário der um passo para trás ou para o lado. Já os <strong>ângulos articulares em graus</strong> são invariantes à escala e posição na tela!</p>
+<ol>
+<li>**Mapeamento Anatômico (<code>MAPA_ARTICULACOES</code>):**</li>
+</ol>
+<p>Cada articulação é definida por uma trinca de pontos $(A, B, C)$, onde <strong>$B$ é o vértice central</strong> (a dobradiça da articulação):</p>
+<ul>
+<li>**<code>cotovelo</code>:<strong> Ombro ($A$) $\rightarrow$ </strong>Cotovelo ($B$)** $\rightarrow$ Punho ($C$). Direita: <code>(12, 14, 16)</code> | Esquerda: <code>(11, 13, 15)</code>.</li>
+<li>**<code>ombro</code>:<strong> Quadril ($A$) $\rightarrow$ </strong>Ombro ($B$)** $\rightarrow$ Cotovelo ($C$). Direita: <code>(24, 12, 14)</code> | Esquerda: <code>(23, 11, 13)</code>.</li>
+<li>**<code>joelho</code>:<strong> Quadril ($A$) $\rightarrow$ </strong>Joelho ($B$)** $\rightarrow$ Tornozelo ($C$). Direita: <code>(24, 26, 28)</code> | Esquerda: <code>(23, 25, 27)</code>.</li>
+<li>**<code>quadril</code>:<strong> Ombro ($A$) $\rightarrow$ </strong>Quadril ($B$)** $\rightarrow$ Joelho ($C$). Direita: <code>(12, 24, 26)</code> | Esquerda: <code>(11, 23, 25)</code>.</li>
+</ul>
+<ol>
+<li>**Trigonometria Vetorial (<code>calcular_angulo</code>):**</li>
+</ol>
+<p>Dados os pontos $A, B, C$, construímos os vetores $\vec{BA} = A - B$ e $\vec{BC} = C - B$, calculamos seus ângulos polares via arco-tangente de dois argumentos (<code>np.arctan2(y, x)</code>), convertemos a diferença absoluta para graus e rebatemos valores maiores que $180^\circ$ ($\theta = 360^\circ - \theta$). O resultado está sempre contido em $[0.0^\circ, 180.0^\circ]$.</p>
+<ol>
+<li>**Verificação de Visibilidade (<code>extrair_angulos_exercicio</code>):**</li>
+</ol>
+<p>Inspeciona apenas as articulações exigidas pelo exercício ativo. Se qualquer um dos 3 pontos $(A, B, C)$ tiver <code>visibility &lt; 0.5</code>, a flag <code>corpo_visivel</code> retorna <code>False</code>.</p>
+<ol>
+<li>**O Algoritmo de Âncora de Ruído (<code>calcular_deltas_angulares</code>):**</li>
+</ol>
+<ul>
+<li>**Para que serve o <code>delta</code>?<strong> A Máquina de Estados precisa saber a </strong>direção do movimento**: o braço está subindo ($\Delta &gt; 0$), descendo ($\Delta &lt; 0$) ou parado ($\Delta = 0$)?</li>
+<li><strong>O Problema da Abordagem Ingênua:</strong> Câmeras sofrem de <em>jitter</em> (pequenas trepidações de $\pm 0.5^\circ$ mesmo com a pessoa parada). Para filtrar o <em>jitter</em>, aplica-se um limiar mínimo de $1.2^\circ$. Porém, se você comparar o frame atual apenas com o frame imediatamente anterior ($t - 1$) e atualizar a referência a cada frame, quando um aluno faz uma repetição <strong>lenta e controlada</strong> (variando apenas $+0.4^\circ$ por frame), a diferença nunca passa de $1.2^\circ$! O delta dá sempre zero e o sistema &quot;fica cego&quot; para repetições lentas.</li>
+<li><strong>A Nossa Solução (Âncora de Ruído):</strong> Mantemos um dicionário <code>referencia</code> que funciona como uma âncora fixa. Enquanto <code>abs(angulo_atual - referencia[art]) &lt; 1.2°</code>, o sistema retorna <code>delta = 0.0</code>, mas <strong>NÃO atualiza a referência</strong>! Assim, no 1º frame lento ($+0.4^\circ$), no 2º ($+0.8^\circ$) e no 3º ($+1.2^\circ$), a variação acumula em relação à âncora, atinge $1.2^\circ$, dispara <code>delta = +1.2°</code> e só então avança a âncora para o novo patamar. Isso rejeita 100% do ruído de câmera e detecta movimentos arbitrariamente lentos!</li>
+</ul>
+<h3 id="estágio-3-máquinas-de-estados-finitos-biomecânicas-exercicios_fsmpyexercicios_fsmpy">Estágio 3: Máquinas de Estados Finitos Biomecânicas ([<code>./exercicios_fsm.py</code>](./exercicios_fsm.py))</h3>
+<p>Toda classe de exercício herda de <code>ExercicioBaseFSM</code> e modela o movimento humano como um grafo direcionado de <strong>4 fases</strong>:</p>
+<ul>
+<li>**<code>Fase 0</code> (Repouso):** Posição inicial relaxada ou estendida.</li>
+<li>**<code>Fase 1</code> (Fase Inicial — Ida):** Início da contração concêntrica (subida na rosca/ombro) ou excêntrica (descida no agachamento).</li>
+<li>**<code>Fase 2</code> (Pico / Fundo):** Ponto de máxima exigência biomecânica (topo do desenvolvimento/rosca ou fundo do agachamento).</li>
+<li>**<code>Fase 3</code> (Retorno — Volta):** Retorno controlado à posição inicial.</li>
+<li>**Fechamento do Ciclo (<code>3 -&gt; 0</code>):** Quando o atleta retorna da Fase 3 para a Fase 0, uma repetição completa é contabilizada (<code>self.repeticoes += 1</code>).</li>
+</ul>
+<p>Veja a tabela exata de transição de fases, detecção de erros e penalidades dos 3 exercícios oficiais do <code>CATALOGO_EXERCICIOS</code>:</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Exercício (<code>id</code> / Tecla)</th><th>Articulações</th><th>Transições de Fase (<code>0 -&gt; 1 -&gt; 2 -&gt; 3 -&gt; 0</code>)</th><th>Transição Anômala (<code>1 -&gt; 3</code>)</th><th>Erros Detectados e Penalidades (<code>PENALIDADES_ERRO</code>)</th></tr></thead><tbody>
+<tr><td><strong>1. Desenvolvimento de Ombro</strong>&lt;br&gt;(<code>desenvolvimento_ombro</code> / <code>&quot;1&quot;</code>)</td><td><code>cotovelo</code>, <code>ombro</code></td><td>• <code>0-&gt;1</code>: <code>cotovelo &gt; 100°</code> e $\Delta &gt; 0$&lt;br&gt;• <code>1-&gt;2</code>: <code>cotovelo &gt;= 150°</code>&lt;br&gt;• <code>2-&gt;3</code>: <code>cotovelo &lt; 140°</code> ou $\Delta &lt; 0$&lt;br&gt;• <code>3-&gt;0</code>: <code>cotovelo &lt;= 100°</code></td><td>$\Delta &lt; 0$ e <code>cotovelo &lt; 130°</code>&lt;br&gt;(Desistiu de subir antes do topo)</td><td>• **<code>REPETICAO_INCOMPLETA</code> (-25 pts):** Transição direta <code>1 -&gt; 3</code>.&lt;br&gt;• **<code>DESCIDA_EXCESSIVA</code> (-15 pts):** Na fase 3, <code>cotovelo &lt; 70°</code>.&lt;br&gt;• **<code>OMBRO_CAIDO</code> (-15 pts):** Nas fases 1, 2 ou 3, <code>ombro &lt; 60°</code>.</td></tr>
+<tr><td><strong>2. Agachamento Livre</strong>&lt;br&gt;(<code>agachamento</code> / <code>&quot;2&quot;</code>)</td><td><code>joelho</code>, <code>quadril</code></td><td>• <code>0-&gt;1</code>: <code>joelho &lt; 155°</code> e $\Delta &lt; 0$&lt;br&gt;• <code>1-&gt;2</code>: <code>joelho &lt;= 105°</code>&lt;br&gt;• <code>2-&gt;3</code>: <code>joelho &gt; 112°</code> ou $\Delta &gt; 0$&lt;br&gt;• <code>3-&gt;0</code>: <code>joelho &gt;= 160°</code></td><td>$\Delta &gt; 0$ e <code>joelho &gt; 120°</code>&lt;br&gt;(Subiu antes de agachar fundo)</td><td>• **<code>AGACHAMENTO_CURTO</code> (-25 pts):** Transição direta <code>1 -&gt; 3</code>.&lt;br&gt;• **<code>TRONCO_MUITO_INCLINADO</code> (-15 pts):** Nas fases 1, 2 ou 3, <code>quadril &lt; 55°</code>.</td></tr>
+<tr><td><strong>3. Rosca Direta de Bíceps</strong>&lt;br&gt;(<code>rosca_biceps</code> / <code>&quot;3&quot;</code>)</td><td><code>cotovelo</code>, <code>ombro</code></td><td>• <code>0-&gt;1</code>: <code>cotovelo &lt; 145°</code> e $\Delta &lt; 0$&lt;br&gt;• <code>1-&gt;2</code>: <code>cotovelo &lt;= 65°</code>&lt;br&gt;• <code>2-&gt;3</code>: <code>cotovelo &gt; 75°</code> ou $\Delta &gt; 0$&lt;br&gt;• <code>3-&gt;0</code>: <code>cotovelo &gt;= 150°</code></td><td>$\Delta &gt; 0$ e <code>cotovelo &gt; 95°</code>&lt;br&gt;(Estendeu antes de contrair no topo)</td><td>• **<code>SUBIDA_INCOMPLETA</code> (-25 pts):** Transição direta <code>1 -&gt; 3</code>.&lt;br&gt;• **<code>OMBRO_INSTAVEL</code> (-15 pts):** Nas fases 1, 2 ou 3, <code>ombro &gt; 40°</code> (roubo com projeção de ombro).</td></tr>
+</tbody></table></div>
+<p><strong>Mecanismo de Memória Transiente sem Mascaramento:</strong></p>
+<ul>
+<li>Em <code>classificar()</code>, todas as condições de erro são testadas com blocos <code>if</code> <strong>independentes</strong> (e não <code>elif</code>), permitindo capturar dois erros que ocorram no mesmo fotograma.</li>
+<li>Além disso, se o aluno deixa o ombro cair no meio da subida (Fase 1), mas corrige antes de voltar ao repouso (Fase 0), esse erro não é esquecido: o método <code>registrar_erro()</code> salva o código em <code>self.erros_repeticao_atual</code> (sem duplicatas). Quando a repetição fecha na Fase 0, o orquestrador chama <code>consumir_erros_repeticao()</code> para cobrar a penalidade justa e limpar a lista para a próxima repetição.</li>
+</ul>
+<h3 id="estágio-4-buffer-de-repetição-e-recorte-canônico-de-gabaritos-buffer_repeticaopybuffer_repeticaopy-e-gabaritopygabaritopy">Estágio 4: Buffer de Repetição e Recorte Canônico de Gabaritos ([<code>./buffer_repeticao.py</code>](./buffer_repeticao.py) e [<code>./gabarito.py</code>](./gabarito.py))</h3>
+<ul>
+<li>**Como o <code>BufferRepeticao</code> funciona:** Enquanto o aluno está parado na Fase 0 (Repouso), o buffer ignora os frames para não poluir a análise com tempo ocioso. No exato fotograma em que a FSM transita de <code>0 -&gt; 1</code>, o buffer inicia uma lista <code>self.frames_atuais = [vetor_frame]</code>. Ele continua empilhando os ângulos durante as fases <code>1</code>, <code>2</code> e <code>3</code>. No frame em que <code>self.fsm.repeticoes</code> aumenta (fechamento <code>3 -&gt; 0</code>), ele adiciona o último frame, converte a lista em uma matriz NumPy bidimensional $(N \times D)$ — onde $N$ é o número de frames da repetição e $D$ é o número de articulações — e a entrega para o cálculo do DTW.</li>
+<li>**A Função Canônica <code>extrair_primeira_repeticao()</code>:<strong> Para que a comparação entre o Aluno e o Especialista seja matematicamente perfeita (permitindo nota $100.0\%$ quando a execução é idêntica), o gabarito do especialista </strong>precisa ser recortado exatamente pelas mesmas regras de início (<code>0 -&gt; 1</code>) e fim (<code>3 -&gt; 0</code>) da FSM**. A função <code>extrair_primeira_repeticao()</code> recebe qualquer série temporal (de um vídeo <code>.mp4</code> de personal trainer em [<code>./extrator_video.py</code>](./extrator_video.py) ou das curvas senoidais padrão em [<code>./gabarito.py</code>](./gabarito.py)) e passa cada frame pelo <code>BufferRepeticao</code>, salvando nos arquivos [<code>./gabarito_especialista_ombro.json</code>](./gabarito_especialista_ombro.json), [<code>./gabarito_especialista_agachamento.json</code>](./gabarito_especialista_agachamento.json) e [<code>./gabarito_especialista_rosca.json</code>](./gabarito_especialista_rosca.json) apenas o núcleo puro do movimento.</li>
+</ul>
+<h3 id="estágio-5-motor-dynamic-time-warping-vetorizado-dtw_evaluatorpydtw_evaluatorpy">Estágio 5: Motor Dynamic Time Warping Vetorizado ([<code>./dtw_evaluator.py</code>](./dtw_evaluator.py))</h3>
+<p>Quando uma repetição termina, temos duas matrizes: a matriz do aluno $A \in \mathbb{R}^{N \times D}$ e a matriz do gabarito especialista $B \in \mathbb{R}^{M \times D}$. Como quase sempre $N \neq M$ (por exemplo, o especialista fez em $M = 42$ frames e o aluno fez mais devagar em $N = 75$ frames), entra em ação a classe <code>DTWComparator</code>:</p>
+<ol>
+<li>**Matriz de Custo Local Vetorizada via <em>NumPy 3D Broadcasting</em>:**</li>
+</ol>
+<p>Precisamos calcular a distância euclidiana entre cada frame $i \in [0, N-1]$ do aluno e cada frame $j \in [0, M-1]$ do especialista considerando todas as $D$ articulações:</p>
+<p>$$C(i, j) = \|\mathbf{a}_i - \mathbf{b}_j\|_2 = \sqrt{\sum_{k=1}^{D} (a_{i,k} - b_{j,k})^2}$$</p>
+<p>Em vez de usar dois loops <code>for</code> aninhados em Python (lento), redimensionamos virtualmente $A$ para $(N, 1, D)$ e $B$ para $(1, M, D)$:</p>
+<pre><code class="lang-python">   diferencas = a[:, None, :] - b[None, :, :]  # Gera tensor 3D (N, M, D) em C!
+   custo = np.linalg.norm(diferencas, axis=2)  # Matriz (N, M) instantânea</code></pre>
+<ol>
+<li>**Faixa de Restrição Dinâmica de Sakoe-Chiba (<code>janela = 0.20</code>):**</li>
+</ol>
+<p>Para impedir que o algoritmo &quot;trapaceie&quot; alinhando o começo da subida do aluno com o final da descida do especialista, restringimos o preenchimento da matriz de programação dinâmica a uma banda diagonal $w_{\text{eff}} = \max(\text{round}(0.20 \cdot \max(N, M)), |N - M|)$.</p>
+<ol>
+<li>**Programação Dinâmica e <em>Backtracking</em> do Caminho Ótimo ($W$):**</li>
+</ol>
+<p>Calculamos o custo acumulado mínimo:</p>
+<p>$$D(i, j) = C(i, j) + \min\big(D(i-1, j-1),\; D(i-1, j),\; D(i, j-1)\big)$$</p>
+<p>E reconstruímos de trás para frente (<em>backtracking</em> de $(N-1, M-1)$ até $(0, 0)$) o caminho ótimo $W = [(i_1, j_1), (i_2, j_2), \dots, (i_L, j_L)]$ de comprimento $L$.</p>
+<ol>
+<li><strong>Distância Normalizada e Score de Similaridade Exponencial:</strong></li>
+</ol>
+<p>Dividimos o custo acumulado total pelo comprimento do caminho $L$ para obter o desvio médio em graus por par alinhado ($d_{\text{norm}} = D(N-1, M-1) / L$), e aplicamos a função de decaimento exponencial com constante de tolerância $\tau = 15.0^\circ$:</p>
+<p>$$\text{Score}_{\text{DTW}} = 100 \cdot \exp\left(-\frac{d_{\text{norm}}}{\tau}\right)$$</p>
+<ul>
+<li>Se $d_{\text{norm}} = 0^\circ$ (execução idêntica ao gabarito) $\rightarrow \text{Score}_{\text{DTW}} = 100.0\%$.</li>
+<li>Se $d_{\text{norm}} = 2.5^\circ$ (pequena variação natural) $\rightarrow \text{Score}_{\text{DTW}} \approx 84.6\%$.</li>
+<li>Se $d_{\text{norm}} = 15.0^\circ$ (erro severo de trajetória) $\rightarrow \text{Score}_{\text{DTW}} \approx 36.8\%$.</li>
+</ul>
+<ol>
+<li><strong>Diagnóstico Explicável por Articulação:</strong></li>
+</ol>
+<p>Usando os índices $(i, j)$ do caminho ótimo $W$, calculamos a média da diferença absoluta de cada coluna $k$ individualmente (<code>np.mean(np.abs(alinhado_a - alinhado_b), axis=0)</code>), gerando o dicionário <code>desvios_por_articulacao</code> (ex.: <code>{&quot;cotovelo&quot;: 3.1, &quot;ombro&quot;: 14.8}</code>).</p>
+<h3 id="estágio-6-avaliador-de-pontuação-e-orquestradorsessao-avaliador_pontuacaopyavaliador_pontuacaopy">Estágio 6: Avaliador de Pontuação e <code>OrquestradorSessao</code> ([<code>./avaliador_pontuacao.py</code>](./avaliador_pontuacao.py))</h3>
+<p>Este módulo é o <strong>cérebro integrador</strong> do domínio biomecânico:</p>
+<ol>
+<li>**Cálculo da Nota Final (<code>calcular_pontuacao</code>):**</li>
+</ol>
+<p>Combina a nota contínua de trajetória ($\text{Score}_{\text{DTW}}$) com os descontos discretos de regras posturais da FSM ($\sum P_{\text{FSM}}$):</p>
+<p>$$\text{Score}_{\text{Final}} = \text{clip}\left(\text{Score}_{\text{DTW}} - \sum_{e \in \text{Erros Únicos}} P_{\text{FSM}}(e),\; 0.0,\; 100.0\right)$$</p>
+<ol>
+<li><strong>Regra Rigorosa de Aprovação:</strong></li>
+</ol>
+<p>Uma repetição só recebe <code>aprovado = True</code> se cumprir <strong>duas condições simultâneas</strong>:</p>
+<ul>
+<li>$\text{Score}_{\text{Final}} \ge 70.0$; <strong>E</strong></li>
+<li>Não possuir nenhum erro desqualificador de incompletude (<code>REPETICAO_INCOMPLETA</code>, <code>AGACHAMENTO_CURTO</code>, <code>SUBIDA_INCOMPLETA</code>). Mesmo que a parte inicial da curva pareça bonita no DTW, se o atleta abortou a repetição no meio, ela é <strong>reprovada</strong>!</li>
+</ul>
+<ol>
+<li><strong>Árvore de Feedback Pedagógico Hierárquico:</strong></li>
+</ol>
+<p>Para não confundir o usuário com excesso de texto no celular, o <code>feedback_principal</code> segue uma hierarquia clínica de 3 níveis:</p>
+<ul>
+<li><strong>Prioridade 1 (Erro Crítico da FSM):</strong> Se houve erro na FSM, exibe a orientação corretiva direta (ex.: <em>&quot;Mantenha os ombros alinhados acima de 60 graus durante a execucao&quot;</em>).</li>
+<li><strong>Prioridade 2 (Desvio de Trajetória no DTW $&gt; 12^\circ$):</strong> Se não houve infração da FSM, mas alguma articulação desviou mais de $12^\circ$ da curva ideal, aponta especificamente qual foi (ex.: <em>&quot;Ajuste a trajetória do ombro: desvio médio de 14.5° em relação à referência&quot;</em>).</li>
+<li><strong>Prioridade 3 (Reforço Positivo):</strong> Caso contrário, parabeniza conforme a faixa (<code>EXCELENTE</code> $\ge 85$, <code>BOM</code> $\ge 70$, <code>REGULAR</code> $\ge 50$).</li>
+</ul>
+<ol>
+<li>**Tolerância Inteligente a Oclusão de Câmera no <code>OrquestradorSessao</code>:**</li>
+</ol>
+<ul>
+<li>Se o usuário tiver uma articulação momentaneamente encoberta (<code>visivel=False</code>) por <strong>até 30 frames consecutivos</strong> (~1 segundo a 30 FPS), o orquestrador <strong>congela o estado atual</strong> sem jogar fora a repetição em andamento e retorna <code>&quot;ATENÇÃO: Articulação fora de visão&quot;</code>.</li>
+<li>Se a perda de visão ultrapassar <strong>30 frames consecutivos</strong> (o aluno saiu da frente da câmera), o orquestrador limpa o buffer e reseta a FSM para a Fase 0 por segurança (<code>&quot;ATENÇÃO: Visão perdida por muito tempo; repetição reiniciada&quot;</code>).</li>
+</ul>
+<ol>
+<li>**Cálculo de Gamificação (<code>gerar_resumo_sessao</code>):**</li>
+</ol>
+<p>Ao final da série, compila o <code>ResumoPontuacaoSessao</code>. Os pontos de gamificação (<code>pontos_gamificacao</code>) são calculados somando $\text{Score}_{\text{Final}} / 10.0$ <strong>exclusivamente das repetições aprovadas</strong>! (Ex.: 3 repetições aprovadas com nota 94.0 geram $9.4 \times 3 = 28.2 \rightarrow 28\text{ pontos}$ no banco). Repetições reprovadas geram <strong>zero pontos</strong>, impedindo trapaças no ranking.</p>
+<hr>
+<h2 id="32-módulo-2-back-end-e-gateway-rest-bdapipy-bdmainpy-e-servico_ia_apipy">3.2. Módulo 2: Back-end e Gateway REST (<code>./BD/api.py</code>, <code>./BD/main.py</code> e <code>./servico_ia_api.py</code>)</h2>
+<p>O Back-end do projeto é dividido em três responsabilidades claras, garantindo organização e separação de conceitos:</p>
+<h3 id="1-o-adaptador-de-ia-em-memória-servico_ia_apipyservico_ia_apipy">1. O Adaptador de IA em Memória ([<code>./servico_ia_api.py</code>](./servico_ia_api.py))</h3>
+<p>Como o motor biomecânico (<code>OrquestradorSessao</code>) não sabe nada sobre HTTP ou arquivos JPEG, o módulo <code>./servico_ia_api.py</code> atua como a **ponte de alta velocidade (Padrão <em>Facade + Singleton</em>)**:</p>
+<ul>
+<li>**Isolamento Multi-Usuário (<code>self.sessoes: Dict[str, OrquestradorSessao]</code>):** Se 20 alunos estiverem treinando ao mesmo tempo no aplicativo móvel, o servidor mantém um dicionário onde a chave é o <code>usuario_id</code> (UUID do atleta) e o valor é a instância exclusiva do <code>OrquestradorSessao</code> daquele atleta. O agachamento do Usuário A jamais interfere na contagem da Rosca Bíceps do Usuário B.</li>
+<li>**Decodificação <em>Zero-Disk I/O</em> em RAM:** Quando o celular envia uma foto em <code>POST /ia/processar-frame</code>, salvar um arquivo <code>temp.jpg</code> no disco rígido e depois lê-lo com <code>cv2.imread()</code> destruiria a performance do servidor. Em vez disso, fazemos tudo na memória RAM em ~2ms:</li>
+</ul>
+<pre><code class="lang-python">  array_np = np.frombuffer(conteudo_bytes, np.uint8)
+  frame_bgr = cv2.imdecode(array_np, cv2.IMREAD_COLOR)</code></pre>
+<ul>
+<li>**Inicialização Preguiçosa (<em>Lazy Loading</em>):** O modelo neural do MediaPipe (<code>pose_landmarker_lite.task</code>) só é carregado na memória na primeira vez que alguém envia uma imagem (<code>_inicializar_detector()</code>), mantendo a inicialização do servidor instantânea para rotas comuns de login/banco e testes unitários.</li>
+<li>**Simulador Canônico para Demonstrações (<code>simular_repeticao</code>):** Injetor que percorre os quadros do gabarito oficial no <code>OrquestradorSessao</code> do usuário, suportando tanto o cenário <code>&quot;ideal&quot;</code> (nota ~96% a 100%) quanto o cenário <code>&quot;postural&quot;</code> (onde subtrai $35^\circ$ do ângulo do ombro no terço final para forçar e demonstrar ao vivo o alerta <code>OMBRO_CAIDO</code> e o desconto de 15 pontos!).</li>
+</ul>
+<h3 id="2-o-servidor-fastapi-e-contratos-pydantic-bdapipybdapipy">2. O Servidor FastAPI e Contratos Pydantic ([<code>./BD/api.py</code>](./BD/api.py))</h3>
+<p>Exibe <strong>31 rotas HTTP</strong> agrupadas em 7 domínios funcionais, todas protegidas por 16 classes <code>BaseModel</code> do Pydantic v2:</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Domínio</th><th>Rotas Expostas em <code>./BD/api.py</code></th><th>O Que Fazem na Prática</th></tr></thead><tbody>
+<tr><td>**1. Autenticação (<code>/auth/*</code>)**</td><td><code>POST /auth/criar-conta</code>&lt;br&gt;<code>POST /auth/login</code>&lt;br&gt;<code>POST /auth/logout</code>&lt;br&gt;<code>GET /auth/usuario-atual</code>&lt;br&gt;<code>POST /auth/esqueceu-senha</code>&lt;br&gt;<code>POST /auth/redefinir-senha</code>&lt;br&gt;<code>POST /auth/alterar-senha</code></td><td>Gerencia todo o ciclo de vida da conta no Supabase Auth: registro com metadata <code>nome</code>, login devolvendo JWT (<code>access_token</code> e <code>refresh_token</code>), disparo de e-mail de recuperação e validação de código OTP de 6 dígitos (<code>verify_otp</code>).</td></tr>
+<tr><td>**2. Perfil (<code>/perfil/*</code>)**</td><td><code>GET /perfil/{usuario_id}</code>&lt;br&gt;<code>PUT /perfil/{usuario_id}</code></td><td>Busca ou atualiza dados cadastrais (<code>nome</code>, <code>cpf</code>) e métricas de jogo. Inclui <em>fallback</em> automático: se a linha ainda não existir em <code>public.usuarios</code>, busca dos metadados do Auth ou executa <code>upsert</code>.</td></tr>
+<tr><td>**3. Exercícios e Treinos (<code>/exercicios</code>, <code>/treinos/*</code>)**</td><td><code>GET /exercicios</code>&lt;br&gt;<code>GET /treinos/pre-montados</code>&lt;br&gt;<code>GET /treinos/dificuldade/{dif}</code>&lt;br&gt;<code>GET /treinos/usuario/{id}</code>&lt;br&gt;<code>POST /treinos</code>&lt;br&gt;<code>PUT /treinos/{id}</code>&lt;br&gt;<code>DELETE /treinos/{id}</code></td><td>Lista o catálogo muscular, entrega os 8 treinos nativos divididos por dificuldade (<code>iniciante</code>, <code>intermediario</code>, <code>avancado</code>) e realiza o CRUD completo de treinos personalizados criados pelo usuário.</td></tr>
+<tr><td>**4. Pontuação e Streak (<code>/pontuacao/*</code>)**</td><td><code>GET /pontuacao/{id}</code>&lt;br&gt;<code>POST /pontuacao/diaria</code>&lt;br&gt;<code>POST /pontuacao/sequencia</code>&lt;br&gt;<code>POST /pontuacao/maior-sequencia</code>&lt;br&gt;<code>POST /pontuacao/checagem</code>&lt;br&gt;<code>POST /pontuacao/{id}/resetar-checagem</code></td><td>Soma pontos na <code>pontuacao_diaria</code>, <code>pontuacao_semanal</code> e <code>pontuacao_total</code>. Se <code>checagem</code> do dia era <code>False</code>, incrementa a <code>sequencia</code> (<em>Streak</em> de dias seguidos), atualiza o recorde <code>maior_sequencia</code> (<code>max(atual, nova)</code>) e marca <code>checagem = True</code>.</td></tr>
+<tr><td>**5. Rede Social e Amizades (<code>/amigos/*</code>)**</td><td><code>GET /amigos/buscar</code>&lt;br&gt;<code>POST /amigos/solicitar</code>&lt;br&gt;<code>GET /amigos/solicitacoes/pendentes</code>&lt;br&gt;<code>PATCH /amigos/solicitacoes/{id}</code>&lt;br&gt;<code>GET /amigos/</code>&lt;br&gt;<code>DELETE /amigos/{amigo_id}</code></td><td>Permite procurar atletas por nome, enviar convite (<code>status = &quot;pendente&quot;</code>), listar convites recebidos, aceitar/recusar (<code>&quot;aceito&quot;</code> / <code>&quot;recusado&quot;</code>) e desfazer amizades.</td></tr>
+<tr><td>**6. Leaderboards (<code>/leaderboard/*</code>)**</td><td><code>GET /leaderboard/global</code>&lt;br&gt;<code>GET /leaderboard/amigos</code>&lt;br&gt;<code>GET /leaderboard/minha-posicao</code></td><td>Retorna o ranking global (até 200 atletas), o ranking fechado entre o usuário e seus amigos aceitos, e a posição ordinal exata do usuário (<code>#1</code>, <code>#2</code>, etc.).</td></tr>
+<tr><td>**7. IA &amp; Biomecânica (<code>/ia/*</code>)**</td><td><code>POST /ia/reiniciar-sessao</code>&lt;br&gt;<code>POST /ia/processar-frame</code>&lt;br&gt;<code>POST /ia/processar-angulos</code>&lt;br&gt;<code>POST /ia/simular-repeticao</code>&lt;br&gt;<code>GET /ia/resumo-sessao</code>&lt;br&gt;<code>POST /ia/finalizar-serie-e-pontuar</code></td><td>Conecta o aplicativo ao motor biomecânico em tempo real e, ao finalizar a série, converte automaticamente as repetições aprovadas em pontos reais no Supabase!</td></tr>
+</tbody></table></div>
+<h3 id="3-as-regras-de-negócio-resilientes-bdmainpybdmainpy">3. As Regras de Negócio Resilientes ([<code>./BD/main.py</code>](./BD/main.py))</h3>
+<p>O arquivo <code>./BD/main.py</code> contém mais de 1.750 linhas de lógica de negócio defensiva. Dois destaques arquiteturais merecem atenção especial:</p>
+<ol>
+<li>**Dupla Persistência de Treinos Personalizados (<code>criar_treino</code> e <code>_desempacotar_treino</code>):**</li>
+</ol>
+<p>Quando um usuário cria um treino personalizado com vários exercícios, o sistema grava o treino na tabela <code>treinos</code> e tenta inserir os itens na tabela associativa <code>treino_exercicios</code>. <strong>Porém</strong>, caso o banco tenha alguma restrição de chave estrangeira ou RLS na tabela associativa, o sistema **também serializa a lista completa de exercícios e metadados (dificuldade, duração, pontos) em JSON dentro da coluna <code>descricao</code>** da tabela <code>treinos</code>! Na hora de ler (<code>_desempacotar_treino</code>), ele reconstrói a lista de exercícios automaticamente de qualquer uma das duas fontes. Resultado: <strong>zero perda de dados sob qualquer condição</strong>.</p>
+<ol>
+<li>**Estratégia <em>Multi-Tier Fallback</em> (3 Camadas de Contingência):**</li>
+</ol>
+<p>Nas funções de busca de usuários, amizades e leaderboard, o código nunca depende de uma única chamada:</p>
+<ul>
+<li><em>Tentativa 1:</em> Invoca a Stored Procedure RPC (<code>SECURITY DEFINER</code>) no PostgreSQL (mais rápida e imune a bloqueio de RLS).</li>
+<li><em>Tentativa 2:</em> Faz <em>fallback</em> usando o mapa global de usuários (<code>_obter_mapa_usuarios()</code>) extraído do leaderboard.</li>
+<li><em>Tentativa 3:</em> Faz consulta direta <code>supabase.table(...).select(...)</code> com tratamento completo de exceções.</li>
+</ul>
+<hr>
+<h2 id="33-módulo-3-banco-de-dados-relacional-e-segurança-bdscript_amizades_leaderboardsqlbdscript_amizades_leaderboardsql">3.3. Módulo 3: Banco de Dados Relacional e Segurança ([<code>./BD/script_amizades_leaderboard.sql</code>](./BD/script_amizades_leaderboard.sql))</h2>
+<p>O banco de dados PostgreSQL no Supabase possui <strong>5 tabelas principais</strong> no esquema <code>public</code> (além da tabela interna <code>auth.users</code> do Supabase Auth):</p>
+<div class="diagram-box"><div class="diagram-label">?? Diagrama Arquitetural (mermaid)</div><pre class="mermaid">erDiagram
+    USUARIOS ||--o{ TREINOS : &quot;cria (1:N)&quot;
+    USUARIOS ||--o{ AMIZADES : &quot;solicita / recebe (N:M)&quot;
+    TREINOS ||--|{ TREINO_EXERCICIOS : &quot;possui itens (1:N)&quot;
+    EXERCICIOS ||--|{ TREINO_EXERCICIOS : &quot;referenciado em (1:N)&quot;
+
+    USUARIOS {
+        uuid id PK &quot;Vinculado a auth.users.id&quot;
+        text nome &quot;Nome de exibicao&quot;
+        text cpf &quot;Documento opcional&quot;
+        integer pontuacao_diaria &quot;XP ganho hoje&quot;
+        integer pontuacao_semanal &quot;XP da semana (Leaderboard)&quot;
+        integer pontuacao_total &quot;XP historico vitalicio&quot;
+        integer sequencia &quot;Streak atual (dias seguidos)&quot;
+        integer maior_sequencia &quot;Recorde historico de Streak&quot;
+        boolean checagem &quot;Ja treinou hoje? (True/False)&quot;
+        timestamptz created_at
+    }
+
+    TREINOS {
+        serial id PK
+        uuid usuario_id FK &quot;Nulo se pre_montado = true&quot;
+        text nome
+        text descricao &quot;Texto ou JSON com metadados/exercicios&quot;
+        boolean pre_montado &quot;True = nativo do app&quot;
+        timestamptz created_at
+    }
+
+    EXERCICIOS {
+        serial id PK
+        text nome
+        text descricao
+        text grupo_muscular &quot;Peito, Costas, Pernas, Ombros...&quot;
+        timestamptz created_at
+    }
+
+    TREINO_EXERCICIOS {
+        serial id PK
+        integer treino_id FK
+        integer exercicio_id FK
+        integer ordem
+        integer series
+        integer repeticoes
+        timestamptz created_at
+    }
+
+    AMIZADES {
+        uuid id PK
+        uuid usuario_id FK &quot;Quem enviou o convite&quot;
+        uuid amigo_id FK &quot;Quem recebeu o convite&quot;
+        varchar status &quot;pendente | aceito | recusado | bloqueado&quot;
+        timestamptz created_at
+        timestamptz updated_at
+    }</pre></div>
+<h3 id="detalhes-de-engenharia-de-banco-de-dados-implementados">Detalhes de Engenharia de Banco de Dados Implementados:</h3>
+<ol>
+<li>**Índice Único Bidirecional Anti-Duplicidade (<code>uq_amizade_par_bidirecional</code>):**</li>
+</ol>
+<p>Um erro clássico em redes sociais iniciantes é permitir que o Usuário A envie convite para o Usuário B <code>(A, B)</code> e, ao mesmo tempo, B envie para A <code>(B, A)</code>, criando duas linhas conflitantes. No nosso SQL, criamos um índice funcional único usando <code>LEAST(usuario_id, amigo_id), GREATEST(usuario_id, amigo_id)</code>. Assim, o banco garante matematicamente que o par <code>{A, B}</code> só pode existir uma única vez, independentemente da direção!</p>
+<ol>
+<li>**Restrição de Auto-Amizade (<code>chk_nao_auto_amizade</code>):**</li>
+</ol>
+<p><code>CHECK (usuario_id != amigo_id)</code> diretamente no motor do PostgreSQL impede que um usuário adicione a si mesmo, mesmo se alguém tentar burlar a API.</p>
+<ol>
+<li><strong>Índices Compostos de Alta Performance:</strong></li>
+</ol>
+<ul>
+<li><code>idx_usuarios_leaderboard_global ON public.usuarios (pontuacao_semanal DESC, sequencia DESC)</code>: Permite que o PostgreSQL entregue o Top 100 do Leaderboard Global instantaneamente sem precisar varrer e ordenar a tabela inteira (<em>Index Scan</em>).</li>
+<li><code>idx_usuarios_nome_busca ON public.usuarios (LOWER(nome))</code>: Acelera buscas insensíveis a maiúsculas/minúsculas.</li>
+</ul>
+<hr>
+<h2 id="34-módulo-4-aplicativo-front-end-multiplataforma-lib-em-flutterdart">3.4. Módulo 4: Aplicativo Front-end Multiplataforma (<code>lib/</code> em Flutter/Dart)</h2>
+<p>O aplicativo móvel e web do <strong>Personal Trainer IA</strong> foi construído em <strong>Flutter (Dart 3.x)</strong>, adotando uma identidade visual <strong>Dark Mode Esportivo</strong> (<code>#0D1117</code> de fundo com acentos em **Verde Neon <code>#00E676</code><strong> e </strong>Rosa/Magenta <code>#E91E63</code>**) projetada para alto contraste e leitura rápida durante o exercício físico.</p>
+<h3 id="arquitetura-interna-do-front-end">Arquitetura Interna do Front-end:</h3>
+<ol>
+<li>**Isolamento Total da Camada de Rede (<code>lib/services/api_service.dart</code>):**</li>
+</ol>
+<ul>
+<li>Implementa o padrão <strong>Singleton</strong> (<code>ApiService()</code>).</li>
+<li><strong>Regra Arquitetural Estrita:</strong> Nenhuma tela visual (<code>lib/screens/*.dart</code>) tem permissão para importar <code>package:http/http.dart</code> ou montar URLs manualmente. Todas as telas chamam métodos semânticos do <code>ApiService</code> (como <code>fazerLogin()</code>, <code>verPontuacao()</code>, <code>obterLeaderboardGlobal()</code>, <code>processarFrameIA()</code>).</li>
+</ul>
+<ol>
+<li>**Detecção Inteligente de Ambiente (<code>lib/config/api_config.dart</code>):**</li>
+</ol>
+<ul>
+<li>Resolve automaticamente para qual URL apontar dependendo de onde o aplicativo está rodando: <code>http://10.0.2.2:8000</code> (quando dentro do Emulador Android, onde <code>10.0.2.2</code> é o IP especial de <em>loopback</em> para o computador hospedeiro), <code>http://127.0.0.1:8000</code> (em Web/Windows Desktop) ou <code>https://personai-t6mf.onrender.com</code> (em Produção na nuvem).</li>
+</ul>
+<ol>
+<li><strong>Gerenciamento de Estado e Ciclo de Vida Seguro:</strong></li>
+</ol>
+<ul>
+<li>Utiliza <code>StatefulWidget</code> com verificação obrigatória de <code>if (!mounted) return;</code> antes de qualquer <code>setState()</code> após chamadas HTTP assíncronas (<code>await</code>), eliminando erros de atualização de telas já fechadas pelo usuário.</li>
+<li>Aplica <strong>Debounce de 350ms</strong> (<code>Timer</code>) na barra de pesquisa de atletas (<code>amigos_screen.dart</code>), garantindo que uma requisição HTTP só seja disparada quando o usuário faz uma pausa na digitação, economizando banda e banco de dados.</li>
+</ul>
+<h3 id="mapa-das-17-telas-do-aplicativo">Mapa das 17 Telas do Aplicativo:</h3>
+<ul>
+<li><strong>Módulo de Autenticação (4 telas):</strong> <code>login_screen.dart</code> (<code>/login</code>), <code>cadastro_screen.dart</code> (<code>/cadastro</code>), <code>esqueceu_senha_screen.dart</code> (<code>/esqueceu-senha</code>) e <code>redefinir_senha_screen.dart</code> (<code>/redefinir-senha</code> com validação de código OTP).</li>
+<li><strong>Módulo de Dashboard e Perfil (4 telas):</strong></li>
+<li><code>home_screen.dart</code> (<code>/home</code>): Painel principal exibindo XP semanal/total, <em>Streak</em> de dias seguidos com ícone de fogo, meta diária e acesso rápido a todos os módulos.</li>
+<li><code>profile_screen.dart</code> (<code>/perfil</code>), <code>change_name_screen.dart</code> (<code>/alterar-nome</code>) e <code>change_password_screen.dart</code> (<code>/alterar-senha</code>).</li>
+<li><strong>Módulo de Treinos e Execução com IA (7 telas):</strong></li>
+<li><code>training_menu_screen.dart</code> (<code>/treino-menu</code>), <code>dificuldade_treino_screen.dart</code> (<code>/dificuldade</code> — Iniciante, Intermediário, Avançado), <code>opcao_treinos_screen.dart</code> (<code>/opcao-treinos</code> e <code>/meus-treinos</code>), <code>treinos_screen.dart</code> (<code>/treinos</code>), <code>criar_exercicio_screen.dart</code> (<code>/criar-treino</code> — construtor customizado) e <code>treino_selecionado_screen.dart</code> (detalhes da rotina).</li>
+<li>**<code>camera_treino_screen.dart</code> (A Tela de Câmera e HUD Biomecânico):** Controla o sensor de câmera do dispositivo (<code>CameraController</code> em <code>ResolutionPreset.medium</code> sem áudio para minimizar latência de rede), captura e transmite frames periodicamente para a API com controle de <em>backpressure</em> (flag <code>_isSending</code> que impede encavalar envios se a internet oscilar), exibe o HUD com <strong>Contador de Repetições</strong>, <strong>Fase Motora</strong>, <strong>Banner de Alerta Postural</strong> (Verde = correto / Vermelho = erro biomecânico) e <strong>Score da Última Repetição</strong>, além do botão de <strong>Simulação IA</strong> e <strong>Finalizar Série</strong>.</li>
+<li><strong>Módulo Social e Gamificação (2 telas):</strong></li>
+<li><code>leaderboard_screen.dart</code> (<code>/leaderboard</code>): Ranking com abas <strong>Global</strong> vs. <strong>Amigos</strong>, seletor dinâmico de ordenação (<strong>Pontuação Semanal</strong> vs. <strong>Streak de Dias</strong>), <strong>Pódio Visual dos Top 3</strong> (Ouro <code>#FFD700</code>, Prata <code>#C0C0C0</code>, Bronze <code>#CD7F32</code>) e card fixo mostrando a posição exata do atleta logado.</li>
+<li><code>amigos_screen.dart</code> (<code>/amigos</code>): Dividida em 3 abas (<em>Meus Amigos</em>, <em>Solicitações Pendentes</em> com botões de aceitar/recusar e <em>Buscar Atletas</em>).</li>
+</ul>
+<hr>
+<h1 id="parte-4-histórico-e-evolução-do-desenvolvimento-geral-e-por-módulo">PARTE 4 — Histórico e Evolução do Desenvolvimento (Geral e por Módulo)</h1>
+<p>Compreender a história evolutiva do projeto — especialmente <strong>o que deu errado nos primeiros experimentos e por que mudamos de rota</strong> — é um dos pontos mais valorizados tanto por bancas acadêmicas quanto por investidores técnicos.</p>
+<hr>
+<h2 id="41-a-evolução-do-motor-de-ia-em-6-fases">4.1. A Evolução do Motor de IA em 6 Fases</h2>
+<div class="diagram-box"><div class="diagram-label">?? Diagrama Arquitetural (mermaid)</div><pre class="mermaid">flowchart TD
+    F1[&quot;FASE 1 (Set/2026): Protótipo Geométrico Inicial\nCálculo de ângulos isolados e contagem simples em script único&quot;]
+    F2[&quot;FASE 2 (Set-Out/2026): Experimento de ML Tabular\n(./Modularização.py + CSVs + scikit-learn)\nExtraía apenas min/max do vídeo inteiro.\n❌ Limitação: Perdia a trajetória no tempo e não explicava onde estava o erro.&quot;]
+    F3[&quot;FASE 3 (Out/2026): O Grande Pivô Arquitetural (FSM + Buffer + DTW)\n(./dev_ombro-inicial.py, ./dtw_inicial.py, ./buffer_repeticao.py)\nIsolamento por repetição e alinhamento elástico de séries temporais.&quot;]
+    F4[&quot;FASE 4 (Out/2026): Expansão Multi-Exercício e Webcam HUD\n(./app_tempo_real.py, ./exercicios_fsm.py, ./gabarito.py)\nCatálogo com Ombro, Agachamento e Rosca + HUD OpenCV ao vivo.&quot;]
+    F5[&quot;FASE 5 (Out/2026 — Sprint US-01): Engenharia de Software &amp; Homologação\n(./avaliador_pontuacao.py, ./dtw_evaluator.py, 39 testes pytest)\nCorreção dos 6 bugs críticos, vetorização NumPy 3D, Sakoe-Chiba e OrquestradorSessao.&quot;]
+    F6[&quot;FASE 6 (Out/2026 — Sprint US-02): Unificação Full-Stack &amp; API em Memória\n(./servico_ia_api.py + ./BD/api.py + 52 testes pytest)\nIntegração REST em RAM com FastAPI, Gamificação Supabase e Guia Flutter.&quot;]
+
+    F1 --&gt; F2 --&gt; F3 --&gt; F4 --&gt; F5 --&gt; F6</pre></div>
+<h3 id="por-que-abandonamos-a-fase-2-machine-learning-tabular-em-modularizaçãopy">Por que abandonamos a Fase 2 (Machine Learning Tabular em <code>./Modularização.py</code>)?</h3>
+<p>Na Fase 2, testamos uma abordagem clássica de ciência de dados: processar um vídeo inteiro de exercício, extrair apenas estatísticas resumidas em uma linha de planilha (<code>cotovelo_min</code>, <code>cotovelo_max</code>, <code>ombro_variacao</code> — ainda preservados nos arquivos históricos [<code>./dataset_pronto_para_ia.csv</code>](./dataset_pronto_para_ia.csv) e [<code>./relatorio_avaliacoes_ia.csv</code>](./relatorio_avaliacoes_ia.csv)) e treinar um classificador do <code>scikit-learn</code> (<code>meu_personal_trainer_ia.pkl</code>).</p>
+<p><strong>Descobrimos três falhas fundamentais nessa abordagem:</strong></p>
+<ol>
+<li><strong>Cegueira Temporal:</strong> Se um aluno subisse o braço torto, desse um tranco no meio e atingisse $165^\circ$ por um milissegundo, o <code>cotovelo_max</code> seria $165^\circ$ (igual ao de um especialista!), enganando o classificador.</li>
+<li><strong>Incapacidade de Segmentar Séries:</strong> Um vídeo real tem 8, 10 ou 12 repetições. Tirar o <code>min/max</code> do vídeo inteiro misturava a 1ª repetição (boa) com a 10ª repetição (fadigada e incorreta).</li>
+<li><strong>Falta de Explicabilidade Pedagógica:</strong> O modelo <code>.pkl</code> não conseguia dizer em qual fase ou articulação ocorreu o erro em tempo real.</li>
+</ol>
+<p>Isso motivou o <strong>Grande Pivô da Fase 3</strong>: substituir o classificador tabular estático pelo <strong>Pipeline Híbrido de Séries Temporais (FSM + BufferRepeticao + DTW)</strong>.</p>
+<hr>
+<h2 id="42-os-6-problemas-críticos-diagnosticados-e-resolvidos-na-sprint-us-01">4.2. Os 6 Problemas Críticos Diagnosticados e Resolvidos na Sprint <code>US-01</code></h2>
+<p>Quando auditamos o código da Fase 4 para iniciar a Sprint <code>US-01</code> (<em>&quot;Pontuação Justa a partir da Comparação de Exercícios&quot;</em>), identificamos <strong>6 problemas técnicos profundos</strong> que impediam a precisão clínica e a integração com o aplicativo. Todos os 6 foram cirurgicamente resolvidos ao longo das <code>TASK-00</code> a <code>TASK-11</code> ([<code>./PLANO_SPRINT_US01.md</code>](./PLANO_SPRINT_US01.md)):</p>
+<div class="table-wrap"><table>
+<thead><tr><th>#</th><th>Problema Técnico Diagnosticado</th><th>Causa Raiz no Código Antigo</th><th>Solução de Engenharia Implementada</th><th>Task / Arquivo</th></tr></thead><tbody>
+<tr><td>:-:</td><td>:---</td><td>:---</td><td>:---</td><td>:---</td></tr>
+<tr><td><strong>1</strong></td><td><strong>Incapacidade de Detectar Repetições Lentas</strong></td><td>A referência angular era atualizada a cada frame mesmo quando <code>abs(diff) &lt; 1.2°</code>, zerando continuamente variações graduais.</td><td>Criada <code>calcular_deltas_angulares()</code> com <strong>Âncora de Ruído</strong>: a referência só avança quando o acumulado atinge $\ge 1.2^\circ$.</td><td><code>TASK-02</code>&lt;br&gt;[<code>./calculo_angulos.py</code>](./calculo_angulos.py)</td></tr>
+<tr><td><strong>2</strong></td><td><strong>Perda de Erros Posturais do Meio da Repetição</strong></td><td>O buffer só lia o erro do frame final (Fase 0 = repouso, onde o erro já havia desaparecido) e usava <code>elif</code> que mascarava erros simultâneos.</td><td>Adicionada memória <code>erros_repeticao_atual</code>, método <code>consumir_erros_repeticao()</code>, blocos <code>if</code> independentes e <code>PENALIDADES_ERRO</code>.</td><td><code>TASK-03</code>&lt;br&gt;[<code>./exercicios_fsm.py</code>](./exercicios_fsm.py)</td></tr>
+<tr><td><strong>3</strong></td><td><strong>Lentidão do DTW em Python Puro e Distorções Temporais</strong></td><td>[<code>./dtw_inicial.py</code>](./dtw_inicial.py) usava dois laços <code>for</code> em Python puro e não tinha restrição de janela temporal.</td><td>Reescrito em [<code>./dtw_evaluator.py</code>](./dtw_evaluator.py) com **NumPy 3D <em>Broadcasting</em><strong> (80x mais rápido), </strong>Janela de Sakoe-Chiba (20%)** e <code>@dataclass DTWResult</code>.</td><td><code>TASK-04</code>&lt;br&gt;[<code>./dtw_evaluator.py</code>](./dtw_evaluator.py)</td></tr>
+<tr><td><strong>4</strong></td><td><strong>Execução 100% Perfeita do Aluno Tirava Apenas ~90%</strong></td><td>Os gabaritos JSON tinham frames extras de repouso nas pontas, enquanto o <code>BufferRepeticao</code> cortava estritamente de <code>0-&gt;1</code> até <code>3-&gt;0</code>.</td><td>Criado o segmentador canônico <code>extrair_primeira_repeticao()</code> e regenerados os 3 JSONs oficiais. Execução ideal agora atinge <strong>100.0%</strong>.</td><td><code>TASK-05</code>&lt;br&gt;[<code>./buffer_repeticao.py</code>](./buffer_repeticao.py)&lt;br&gt;[<code>./gabarito.py</code>](./gabarito.py)</td></tr>
+<tr><td><strong>5</strong></td><td><strong>Lógica de Nota Espalhada e Sem Desconto da FSM</strong></td><td>Webcam, CLI e scripts calculavam notas de formas diferentes e não abatiam erros da FSM do score DTW.</td><td>Criado [<code>./avaliador_pontuacao.py</code>](./avaliador_pontuacao.py) com <code>OrquestradorSessao</code> frame a frame, reprovação de incompletude e feedback hierárquico.</td><td><code>TASK-06</code> a <code>TASK-09</code>&lt;br&gt;[<code>./avaliador_pontuacao.py</code>](./avaliador_pontuacao.py)</td></tr>
+<tr><td><strong>6</strong></td><td><strong>Quebra de Assinatura na CLI e Ausência de Testes</strong></td><td><code>comparar_exercicio.py</code> instanciava <code>ExtratorVideo</code> sem <code>articulacoes</code> (<code>TypeError</code>) e não havia suíte <code>pytest</code>.</td><td>Corrigida a CLI multi-exercício e construída suíte de aceite <code>AC1</code> a <code>AC7</code> com <strong>39 testes unitários e end-to-end</strong>.</td><td><code>TASK-07</code> &amp; <code>TASK-10</code>&lt;br&gt;[<code>./comparar_exercicio.py</code>](./comparar_exercicio.py)</td></tr>
+</tbody></table></div>
+<hr>
+<h2 id="43-a-unificação-full-stack-na-sprint-us-02">4.3. A Unificação Full-Stack na Sprint <code>US-02</code></h2>
+<p>Com o motor de IA 100% blindado na Sprint <code>US-01</code>, a Sprint <code>US-02</code> ([<code>./PLANO_SPRINT_US02_DEMO.md</code>](./PLANO_SPRINT_US02_DEMO.md)) realizou a convergência entre as branches do grupo:</p>
+<ol>
+<li>Importou o módulo <code>./BD/</code> (<code>api.py</code>, <code>main.py</code>, <code>supabase_client.py</code>, <code>script_amizades_leaderboard.sql</code>).</li>
+<li>Criou um fallback resiliente em [<code>./BD/supabase_client.py</code>](./BD/supabase_client.py) para que o servidor e os testes automatizados rodem perfeitamente mesmo em máquinas locais sem arquivo <code>.env</code>.</li>
+<li>Implementou o [<code>./servico_ia_api.py</code>](./servico_ia_api.py) e expôs as 6 rotas <code>/ia/*</code> diretamente no FastAPI ([<code>./BD/api.py</code>](./BD/api.py)), incluindo a rota <code>POST /ia/finalizar-serie-e-pontuar</code> que integra a IA ao banco de dados Supabase em um único passo.</li>
+<li>Elevou a bateria automatizada do projeto de 39 para **52 testes aprovados no <code>pytest</code> em ~2.4 segundos** (<code>tests/test_pipeline_pontuacao.py</code>, <code>tests/test_servico_ia_api.py</code> e <code>tests/test_api_ia_integrada.py</code>).</li>
+<li>Entregou o [<code>./GUIA_INTEGRACAO_FRONT_IA.md</code>](./GUIA_INTEGRACAO_FRONT_IA.md) com contratos JSON e código Dart pronto para o Front-end Flutter.</li>
+</ol>
+<hr>
+<h1 id="parte-5-arquitetura-em-nível-de-system-design-interview">PARTE 5 — Arquitetura em Nível de <em>System Design Interview</em></h1>
+<blockquote><strong>Como usar esta seção:</strong> Em entrevistas de arquitetura de sistemas (<em>System Design Interviews</em> em Big Techs) ou diligências técnicas de investidores (<em>Technical Due Diligence</em>), o avaliador quer ver como você raciocina sobre **Requisitos, Estimativas de Capacidade, Gargalos, <em>Trade-offs</em> (escolhas entre opções concorrentes), Padrões de Projeto e Escalabilidade<strong>. Abaixo está a análise completa do </strong>Personal Trainer IA** nesse formato.</blockquote>
+<hr>
+<h2 id="51-requisitos-funcionais-fr-e-não-funcionais-nfr">5.1. Requisitos Funcionais (FR) e Não-Funcionais (NFR)</h2>
+<h3 id="requisitos-funcionais-fr">Requisitos Funcionais (FR)</h3>
+<ol>
+<li><strong>FR-01 (Avaliação Biomecânica em Tempo Real):</strong> Processar stream de fotogramas ou ângulos articulares, identificando fase motora (<code>0, 1, 2, 3</code>), contando repetições e emitindo alertas posturais imediatos.</li>
+<li><strong>FR-02 (Pontuação Pós-Repetição Explicável):</strong> Ao término de cada repetição, calcular score de $0\%$ a $100\%$ invariante à cadência, aplicando penalidades posturais e gerando laudo pedagógico hierárquico por articulação.</li>
+<li><strong>FR-03 (Gestão de Treinos e Catálogo):</strong> Permitir consultar treinos pré-montados por dificuldade e criar/editar treinos personalizados com múltiplos exercícios.</li>
+<li>**FR-04 (Gamificação <em>Proof-of-Workout</em> e Rede Social):** Converter repetições aprovadas pela IA em pontos diários/semanais, atualizar <em>Streak</em> de dias consecutivos, gerenciar amizades bidirecionais e exibir Leaderboards Global e de Amigos.</li>
+</ol>
+<h3 id="requisitos-não-funcionais-nfr">Requisitos Não-Funcionais (NFR)</h3>
+<ol>
+<li><strong>NFR-01 (Baixa Latência de Feedback):</strong></li>
+</ol>
+<ul>
+<li>Na execução local (<code>./app_tempo_real.py</code>): processamento $\le 33\text{ ms}$ por frame ($\ge 30\text{ FPS}$).</li>
+<li>Na API remota (<code>POST /ia/processar-frame</code>): tempo de processamento interno no servidor $\le 35\text{ ms}$ por frame (~5 a 8 FPS de streaming com controle de <em>backpressure</em> na rede móvel).</li>
+</ul>
+<ol>
+<li><strong>NFR-02 (Complexidade Computacional Determinística):</strong></li>
+</ol>
+<ul>
+<li>Avaliação frame a frame na FSM e Buffer: <strong>$O(1)$ em tempo e $O(1)$ em espaço incremental</strong>.</li>
+<li>Alinhamento DTW (executado <strong>apenas 1 vez</strong> a cada repetição concluída, ou seja, a cada ~3 a 6 segundos): <strong>$O(N \cdot M \cdot D)$</strong> com constante reduzida por vetorização em C e poda da banda de Sakoe-Chiba ($20\%$).</li>
+</ul>
+<ol>
+<li>**NFR-03 (Alta Disponibilidade e Degradação Graciosa — <em>Graceful Degradation</em>):**</li>
+</ol>
+<ul>
+<li>Nenhum frame corrompido, perda momentânea de enquadramento ou série curta ($&lt; 3$ frames) pode derrubar o processo do servidor com exceção não tratada (<code>lancar_excecao=False</code> por padrão).</li>
+<li>Quedas ou bloqueios de RLS no banco de dados são contornados por <em>Multi-Tier Fallback</em> (RPC $\rightarrow$ Cache/Mapa $\rightarrow$ Query direta) e dupla persistência (Relacional + JSON).</li>
+</ul>
+<ol>
+<li>**NFR-04 (Extensibilidade <em>Open/Closed</em>):** Adicionar o exercício #4 ou #50 ao sistema deve exigir $0$ linhas modificadas no motor de avaliação (<code>avaliador_pontuacao.py</code> e <code>dtw_evaluator.py</code>).</li>
+</ol>
+<hr>
+<h2 id="52-estimativas-de-capacidade-e-matemática-de-gargalos-back-of-the-envelope-calculations">5.2. Estimativas de Capacidade e Matemática de Gargalos (<em>Back-of-the-Envelope Calculations</em>)</h2>
+<p>Vamos calcular os números reais de tráfego, CPU e memória do sistema:</p>
+<h3 id="1-tráfego-de-rede-bandwidth-por-atleta-no-streaming-de-vídeo">1. Tráfego de Rede (Bandwidth) por Atleta no Streaming de Vídeo</h3>
+<ul>
+<li>Resolução média enviada pelo celular (<code>ResolutionPreset.medium</code> comprimido em JPEG): <strong>$\approx 35\text{ KB}$ por frame</strong>.</li>
+<li>Taxa de amostragem necessária para biomecânica via API: <strong>$6\text{ FPS}$</strong> (1 frame a cada ~166ms é mais que suficiente para capturar um movimento humano que dura de 2 a 5 segundos).</li>
+<li><strong>Banda de Upload por usuário ativo treinando:</strong> $35\text{ KB} \times 6\text{ FPS} \approx \mathbf{210\text{ KB/s}}$ ($\approx 1.68\text{ Mbps}$, facilmente suportado por qualquer conexão 4G/5G ou Wi-Fi).</li>
+<li><strong>Banda de Download (Resposta JSON da API):</strong> $\approx 450\text{ bytes} \times 6\text{ FPS} \approx \mathbf{2.7\text{ KB/s}}$ (desprezível).</li>
+</ul>
+<h3 id="2-tempo-de-cpu-por-frame-no-servidor-post-iaprocessar-frame">2. Tempo de CPU por Frame no Servidor (<code>POST /ia/processar-frame</code>)</h3>
+<ul>
+<li>**Decodificação JPEG em RAM (<code>cv2.imdecode</code>):** $\approx 1.5\text{ a } 2.5\text{ ms}$ (contra ~15–30 ms se usasse disco rígido!).</li>
+<li>**Inferência <code>MediaPipe PoseLandmarker Lite</code> em CPU:** $\approx 15\text{ a } 22\text{ ms}$.</li>
+<li>**Geometria 2D (<code>arctan2</code>) + Âncora de Ruído + Transição FSM:** $&lt; 0.08\text{ ms}$ ($80\text{ microssegundos}$).</li>
+<li><strong>Cálculo do DTW Vetorizado (apenas no frame final da repetição):</strong></li>
+<li>Para $N = 60$ frames do aluno, $M = 43$ frames do gabarito e $D = 2$ articulações: a matriz tem $60 \times 43 = 2.580$ células.</li>
+<li>Graças ao <em>NumPy 3D Broadcasting</em> (<code>a[:, None, :] - b[None, :, :]</code>) e à restrição de Sakoe-Chiba ($w = 0.20$), o cálculo completo leva <strong>$\approx 0.35\text{ ms}$</strong>!</li>
+</ul>
+<h3 id="3-consumo-de-memória-ram-por-sessão-ativa-orquestradorsessao">3. Consumo de Memória RAM por Sessão Ativa (<code>OrquestradorSessao</code>)</h3>
+<ul>
+<li>Durante uma repetição de 100 frames com 2 articulações (<code>float64</code>), o <code>BufferRepeticao</code> ocupa $100 \times 2 \times 8\text{ bytes} = \mathbf{1.6\text{ KB}}$.</li>
+<li>O histórico de 15 repetições (<code>historico_repeticoes</code>) ocupa menos de <strong>$30\text{ KB}$ por atleta</strong>.</li>
+<li>Ou seja: <strong>1.000 atletas simultâneos</strong> consomem apenas <strong>$\approx 30\text{ MB}$ de RAM</strong> para guardar o estado de suas sessões! O gargalo nunca é a memória das sessões, e sim a CPU da inferência de imagem do MediaPipe (como veremos no Trade-off #2 abaixo).</li>
+</ul>
+<hr>
+<h2 id="53-os-5-grandes-trade-offs-de-engenharia-e-justificativas-arquiteturais">5.3. Os 5 Grandes <em>Trade-offs</em> de Engenharia e Justificativas Arquiteturais</h2>
+<p>Em uma entrevista de System Design, **toda decisão arquitetural é um *trade-off*** (você ganha algo em troca de abrir mão de outra coisa). Aqui estão as 5 decisões centrais do projeto:</p>
+<h3 id="trade-off-1-pipeline-híbrido-mediapipe-fsm-dtw-vs-deep-learning-fim-a-fim-3d-cnn-video-transformer">Trade-off 1: Pipeline Híbrido (MediaPipe + FSM + DTW) vs. Deep Learning Fim-a-Fim (3D-CNN / Video Transformer)</h3>
+<ul>
+<li><strong>Opção A (Deep Learning Fim-a-Fim):</strong> Alimentar uma rede neural profunda com o vídeo bruto para ela cuspir uma nota de 0 a 100.</li>
+<li><em>Desvantagens:</em> Exige milhares de vídeos rotulados por fisioterapeutas para cada exercício; funciona como uma &quot;caixa-preta&quot; (não sabe dizer se o erro foi de $14^\circ$ no ombro ou no cotovelo); exige GPUs caras em produção.</li>
+<li><strong>Opção B (Nossa Escolha — Arquitetura Híbrida):</strong> Usar Deep Learning <strong>apenas onde ele é imbatível</strong> (achar onde estão os 33 pontos do corpo na imagem via MediaPipe) e usar <strong>Geometria + FSM + DTW</strong> para avaliar a biomecânica.</li>
+<li><em>Por que vencemos com essa escolha:</em> Precisamos de <strong>apenas 1 vídeo de referência</strong> (ou curva analítica) para cadastrar qualquer exercício novo; temos determinismo matemático (100% reproduzível em testes); damos diagnóstico explicável em graus por articulação; e rodamos em CPU comum em menos de 1ms.</li>
+</ul>
+<h3 id="trade-off-2-inferência-de-pose-server-side-iaprocessar-frame-vs-edge-ai-on-device-iaprocessar-angulos">Trade-off 2: Inferência de Pose Server-Side (<code>/ia/processar-frame</code>) vs. Edge AI On-Device (<code>/ia/processar-angulos</code>)</h3>
+<ul>
+<li><strong>O Dilema:</strong> Onde o MediaPipe deve transformar a foto da câmera nos 33 pontos do esqueleto? No servidor Python (Server-Side) ou dentro do próprio celular do usuário (Edge AI / On-Device)?</li>
+<li>**Nossa Solução Híbrida (Suporte Duplo no [<code>./BD/api.py</code>](./BD/api.py)):**</li>
+</ul>
+<ol>
+<li>**Modo Server-Side (<code>POST /ia/processar-frame</code>):** O celular manda a foto JPEG e o servidor faz tudo.</li>
+</ol>
+<ul>
+<li><em>Vantagem:</em> O aplicativo Flutter fica extremamente simples e leve (não precisa embutir modelos <code>.task</code> nativos em C++/Kotlin/Swift no Android/iOS/Web), acelerando drasticamente a entrega da demonstração integrada (<code>US-02</code>).</li>
+<li><em>Custo:</em> Consome banda de upload (~210 KB/s) e CPU do servidor.</li>
+</ul>
+<ol>
+<li>**Modo Edge-First (<code>POST /ia/processar-angulos</code>):** Já deixamos implementada e testada na API a rota que recebe apenas o JSON de ângulos (<code>{&quot;cotovelo&quot;: 142.5, &quot;ombro&quot;: 88.0}</code>)!</li>
+</ol>
+<ul>
+<li><em>Vantagem de Escalabilidade:</em> Quando o produto escalar para dezenas de milhares de usuários, o celular extrai os ângulos localmente e manda apenas 100 bytes de texto para a API (ou processa tudo offline), reduzindo o consumo de CPU e banda do servidor em <strong>mais de 98%</strong> sem mudar uma única linha do <code>OrquestradorSessao</code>!</li>
+</ul>
+<h3 id="trade-off-3-estado-de-sessão-em-memória-ram-servicoia-singleton-vs-cache-distribuído-redis">Trade-off 3: Estado de Sessão em Memória RAM (<code>ServicoIA</code> Singleton) vs. Cache Distribuído (Redis)</h3>
+<ul>
+<li><strong>Como funciona hoje:</strong> O <code>ServicoIA</code> guarda <code>self.sessoes[usuario_id] = OrquestradorSessao(...)</code> na memória RAM do processo Python/Uvicorn.</li>
+<li><strong>Por que fizemos assim no MVP:</strong> Latência de leitura/escrita de estado é <strong>$0\text{ ms}$</strong> (ponteiro direto em RAM, sem serialização de rede) e não exige provisionar um servidor extra de cache na nuvem gratuita do Render.</li>
+<li><strong>O que acontece se escalarmos horizontalmente para 4 servidores FastAPI atrás de um Load Balancer?</strong></li>
+</ul>
+<p>Se o Frame #1 do João cair no Servidor 1 e o Frame #2 cair no Servidor 2, o Servidor 2 não teria o histórico em memória do Frame #1.</p>
+<ul>
+<li><strong>Como resolver em Produção Massiva (A Resposta de Ouro na Entrevista):</strong></li>
+</ul>
+<ol>
+<li><strong>Solução Imediata:</strong> Configurar **Sticky Sessions (<em>Session Affinity</em>)** no Load Balancer (Nginx/Cloudflare/AWS ALB) fazendo <em>hash</em> pelo <code>usuario_id</code> ou IP, garantindo que todos os frames de um mesmo atleta caiam sempre no mesmo worker Python.</li>
+<li><strong>Solução Cloud-Native:</strong> Serializar o estado leve da sessão (~2 KB) em um cluster <strong>Redis</strong> em memória compartilhada ou migrar o canal de streaming para uma conexão persistente <strong>WebSocket</strong>.</li>
+</ol>
+<h3 id="trade-off-4-http-rest-com-controle-de-backpressure-vs-websockets-webrtc">Trade-off 4: HTTP REST com Controle de <em>Backpressure</em> vs. WebSockets / WebRTC</h3>
+<ul>
+<li>**Por que usamos HTTP REST Multipart com <em>Backpressure</em> (<code>_isSending</code>):**</li>
+</ul>
+<p>No Flutter (<code>camera_treino_screen.dart</code>), o aplicativo só captura e envia o próximo fotograma quando o servidor termina de responder ao fotograma anterior. Isso cria um **controle de congestionamento adaptativo natural (<em>Self-Clocking Backpressure</em>)**: se a internet do usuário estiver excelente, ele roda a 8 FPS; se o 4G oscilar, ele cai suavemente para 3 FPS sem enfileirar pacotes atrasados (<em>bufferbloat</em>). Além disso, rotas REST funcionam em 100% dos proxies corporativos e podem ser testadas diretamente no Swagger (<code>/docs</code>).</p>
+<h3 id="trade-off-5-cálculos-de-ranking-via-stored-procedures-security-definer-vs-processamento-em-aplicação">Trade-off 5: Cálculos de Ranking via Stored Procedures (<code>SECURITY DEFINER</code>) vs. Processamento em Aplicação</h3>
+<ul>
+<li><strong>Por que usamos RPC no PostgreSQL:</strong></li>
+</ul>
+<p>Se o Back-end Python fizesse <code>SELECT * FROM usuarios</code> para ordenar o Leaderboard ou filtrar amigos, teríamos dois problemas graves: 1) violaria o RLS de privacidade da tabela <code>usuarios</code>, e 2) trafegaria megabytes de dados pela rede entre o Supabase e o Render a cada abertura de tela. Ao encapsular a lógica em 9 funções SQL <code>SECURITY DEFINER</code> com índices compostos (<code>idx_usuarios_leaderboard_global</code>), o PostgreSQL faz o <code>JOIN</code> e o <code>ROW_NUMBER()</code> internamente em menos de $2\text{ ms}$ e devolve apenas as linhas prontas.</p>
+<hr>
+<h2 id="54-aplicação-prática-dos-princípios-solid-e-padrões-de-projeto-design-patterns">5.4. Aplicação Prática dos Princípios SOLID e Padrões de Projeto (<em>Design Patterns</em>)</h2>
+<p>O código do projeto é um estudo de caso exemplar de Engenharia de Software limpa:</p>
+<div class="table-wrap"><table>
+<thead><tr><th>Princípio / Padrão</th><th>Onde Está Aplicado no Código</th><th>Benefício Concreto Obtido</th></tr></thead><tbody>
+<tr><td>**S — <em>Single Responsibility Principle</em> (SRP)**</td><td>Cada módulo faz uma única coisa: <code>calculo_angulos.py</code> (geometria), <code>exercicios_fsm.py</code> (fases/erros), <code>buffer_repeticao.py</code> (recorte), <code>dtw_evaluator.py</code> (alinhamento), <code>gabarito.py</code> (persistência JSON), <code>avaliador_pontuacao.py</code> (notas/orquestração).</td><td>Se quisermos mudar a fórmula da nota, editamos apenas <code>avaliador_pontuacao.py</code> sem risco de quebrar o cálculo trigonométrico ou o DTW.</td></tr>
+<tr><td>**O — <em>Open/Closed Principle</em> (OCP)**</td><td><code>ExercicioBaseFSM</code> + <code>CATALOGO_EXERCICIOS</code> (testado formalmente pelo teste automatizado <code>test_ac7_extensibilidade_poo_novo_exercicio_sem_alterar_motor</code>).</td><td>O sistema é <strong>aberto para extensão</strong> (novos exercícios) e <strong>fechado para modificação</strong> (nenhuma linha do orquestrador ou DTW muda).</td></tr>
+<tr><td>**L — <em>Liskov Substitution Principle</em> (LSP)**</td><td><code>DesenvolvimentoOmbro</code>, <code>Agachamento</code> e <code>RoscaBiceps</code> herdam de <code>ExercicioBaseFSM</code> e são intercambiáveis dentro do <code>BufferRepeticao</code> e do <code>OrquestradorSessao</code>.</td><td>O <code>BufferRepeticao</code> chama <code>self.fsm.classificar(...)</code> sem precisar saber qual exercício está rodando (<code>isinstance</code> zero no loop).</td></tr>
+<tr><td>**D — <em>Dependency Inversion Principle</em> (DIP)**</td><td>Os módulos de domínio biomecânico **não importam <code>cv2</code> nem <code>mediapipe</code>**. Eles dependem apenas de abstrações puras (<code>Dict[str, float]</code>, <code>np.ndarray</code>).</td><td>Permite rodar <strong>52 testes automatizados em 2.4 segundos</strong> sem precisar de webcam física ou vídeos pesados.</td></tr>
+<tr><td>**Padrão *Strategy + Registry***</td><td><code>CATALOGO_EXERCICIOS</code> e <code>obter_config_exercicio()</code> em [<code>./exercicios_fsm.py</code>](./exercicios_fsm.py).</td><td>Seleciona dinamicamente em tempo de execução a estratégia de FSM, articulações e arquivo JSON a partir de <code>&quot;1&quot;</code>, <code>&quot;2&quot;</code>, <code>&quot;agachamento&quot;</code>, etc.</td></tr>
+<tr><td>**Padrão <em>Singleton</em> + *Lazy Loading***</td><td><code>ServicoIA.obter_instancia()</code> em [<code>./servico_ia_api.py</code>](./servico_ia_api.py) e <code>ApiService()</code> em <code>lib/services/api_service.dart</code>.</td><td>Garante uma única instância gerenciadora de sessões e carrega o modelo pesado do MediaPipe apenas uma vez na RAM.</td></tr>
+<tr><td>**Padrão *Adapter / Facade***</td><td>[<code>./servico_ia_api.py</code>](./servico_ia_api.py) e funções <code>serializar_resultado_repeticao()</code>.</td><td>Traduz bytes de imagem HTTP em chamadas ao domínio puro e converte dataclasses complexas em JSON limpo para o Flutter.</td></tr>
+</tbody></table></div>
+<hr>
+<h1 id="parte-6-estrutura-do-repositório-governança-de-agentes-skills-e-integração-agente-codebase">PARTE 6 — Estrutura do Repositório, Governança de Agentes (<em>Skills</em>) e Integração Agente-Codebase</h1>
+<p>Um dos aspectos mais modernos e diferenciados deste projeto é a sua arquitetura de **Engenharia de Software Orientada a Agentes (<em>Agentic Software Engineering</em>)<strong>. Como o desenvolvimento do motor de IA e sua integração foram conduzidos em parceria com agentes autônomos de IA, criamos um </strong>sistema de governança documental e testes sintéticos<strong> que impede os dois maiores problemas de trabalhar com IAs geradoras de código: a </strong>perda de contexto entre sessões<strong> e a </strong>introdução silenciosa de regressões**.</p>
+<hr>
+<h2 id="61-mapa-completo-e-taxonomia-dos-arquivos-do-repositório">6.1. Mapa Completo e Taxonomia dos Arquivos do Repositório</h2>
+<p>O repositório classifica rigorosamente todos os seus arquivos em <strong>5 categorias taxonómicas</strong> (documentadas em [<code>./CONTEXTO_IA.md</code>](./CONTEXTO_IA.md)):</p>
+<pre><code class="lang-text">./ (Raiz do Repositório)
+│
+├── 🧠 1. NÚCLEO ATIVO DO MOTOR DE IA E BIOMECÂNICA (Desacoplado e Homologado)
+│   ├── calculo_angulos.py                # Geometria vetorial 2D + calcular_deltas_angulares() com âncora de 1.2°
+│   ├── exercicios_fsm.py                 # ExercicioBaseFSM + Ombro, Agachamento, Rosca + CATALOGO_EXERCICIOS
+│   ├── buffer_repeticao.py               # BufferRepeticao + extrair_primeira_repeticao() (segmentador canônico)
+│   ├── dtw_evaluator.py                  # DTWComparator vetorizado (NumPy 3D) + Sakoe-Chiba + @dataclass DTWResult
+│   ├── gabarito.py                       # GabaritoExercicio (leitura/escrita JSON e geração canônica padrão)
+│   ├── avaliador_pontuacao.py            # calcular_pontuacao() + OrquestradorSessao frame a frame + Gamificação
+│   └── servico_ia_api.py                 # ServicoIA Singleton em RAM (sessões por atleta, cv2.imdecode, simulador)
+│
+├── 🎥 2. CONSUMIDORES E FERRAMENTAS DE VÍDEO / WEBCAM / SIMULAÇÃO
+│   ├── app_tempo_real.py                 # Aplicação Desktop com Webcam ao vivo, esqueleto OpenCV e painel HUD
+│   ├── comparar_exercicio.py             # CLI para comparar vídeo .mp4 do aluno contra especialista
+│   ├── extrator_video.py                 # Extrator de séries temporais de vídeos .mp4 via MediaPipe IMAGE
+│   └── exemplo_integracao.py             # Simulador sintético offline (cenários ideal, lento, muito lento, incompleto)
+│
+├── 🌐 3. BACK-END FASTAPI E BANCO DE DADOS SUPABASE
+│   └── BD/
+│       ├── api.py                        # Servidor FastAPI unificado (31 rotas: /auth, /perfil, /treinos, /amigos, /leaderboard, /ia)
+│       ├── main.py                       # Regras de negócio do banco, dupla persistência e Multi-Tier Fallbacks
+│       ├── supabase_client.py            # Inicialização do cliente Supabase com fallback seguro sem .env
+│       ├── script_amizades_leaderboard.sql # DDL da tabela amizades, índices, triggers, RLS e 9 Stored Procedures RPC
+│       ├── requirements.txt              # Dependências completas do servidor (FastAPI, Uvicorn, Supabase, MediaPipe, OpenCV)
+│       ├── DATABASE_CONTEXT.md           # Documentação arquitetural humana do Banco e API
+│       └── .ai_context.md                # Contexto compactado de leitura rápida para agentes na pasta BD
+│
+├── 🧪 4. SUÍTE AUTOMATIZADA DE TESTES (52 Testes em ~2.4s)
+│   ├── pytest.ini                        # Configuração oficial do pytest na raiz
+│   └── tests/
+│       ├── test_pipeline_pontuacao.py    # 39 testes: geometria, âncora, FSM, DTW, segmentador, orquestrador e AC1 a AC7
+│       ├── test_servico_ia_api.py        # 7 testes: isolamento multi-usuário em RAM, decode de imagem e simulação
+│       └── test_api_ia_integrada.py      # 6 testes end-to-end: rotas HTTP FastAPI (/ia/*) e pontuação no banco
+│
+├── 📦 5. MODELOS, GABARITOS OFICIAIS E LEGADOS PRESERVADOS
+│   ├── gabarito_especialista_ombro.json        # Curva padrão ouro recortada via FSM (Desenvolvimento de Ombro)
+│   ├── gabarito_especialista_agachamento.json  # Curva padrão ouro recortada via FSM (Agachamento Livre)
+│   ├── gabarito_especialista_rosca.json        # Curva padrão ouro recortada via FSM (Rosca Direta de Bíceps)
+│   ├── pose_landmarker_lite.task               # Modelo neural Google MediaPipe Lite (~5.8 MB)
+│   ├── pose_landmarker_full.task               # Modelo neural Google MediaPipe Full (~9.4 MB)
+│   └── [Legados Preservados]: exercícios_fsm.py, dev_ombro-inicial.py, dtw_inicial.py, Modularização.py, *.csv
+│
+└── 📚 6. GOVERNANÇA DE AGENTES E DOCUMENTAÇÃO VIVA
+    ├── AGENTS.md                         # Constituição obrigatória de inicialização para Agentes de IA
+    ├── CONTEXTO_IA.md                    # Fotografia técnica completa da arquitetura, contratos e arquivos
+    ├── DIRETRIZES_DESENVOLVIMENTO.md     # Protocolo de Engenharia de Software (User Stories -&gt; Tasks -&gt; Commits)
+    ├── PLANO_SPRINT_US01.md              # Plano técnico rastreado por commit da Sprint US-01 (Concluída)
+    ├── PLANO_SPRINT_US02_DEMO.md         # Plano técnico da Sprint US-02 de integração Full-Stack (Concluída)
+    ├── DEVLOG.md                         # Diário de bordo cronológico reverso de todas as sessões e commits
+    ├── EXPLICACAO_IA.md                  # Guia didático em linguagem acessível para humanos e avaliadores
+    └── GUIA_INTEGRACAO_FRONT_IA.md       # Especificação de contratos REST e snippets Dart para o Front-end Flutter</code></pre>
+<hr>
+<h2 id="62-a-política-inegociável-de-preservação-de-legados">6.2. A Política Inegociável de Preservação de Legados</h2>
+<p>Você notará no repositório arquivos como [<code>./exercícios_fsm.py</code>](./exercícios_fsm.py) (com acento), [<code>./dev_ombro-inicial.py</code>](./dev_ombro-inicial.py), [<code>./dtw_inicial.py</code>](./dtw_inicial.py), [<code>./Modularização.py</code>](./Modularização.py) e os datasets <code>.csv</code>.</p>
+<ul>
+<li><strong>Por que eles não foram apagados?</strong></li>
+</ul>
+<p>Em projetos desenvolvidos com agentes de IA, uma falha comum e perigosa é um agente deletar código antigo antes de provar que o código novo cobre 100% dos casos de uso.</p>
+<ul>
+<li>Por isso, instituímos em [<code>./AGENTS.md</code>](./AGENTS.md) e [<code>./DIRETRIZES_DESENVOLVIMENTO.md</code>](./DIRETRIZES_DESENVOLVIMENTO.md) a <strong>Política de Preservação de Legados</strong>: nenhum arquivo histórico é removido prematuramente. Em vez disso, nós <strong>desacoplamos</strong> os consumidores ativos deles (comprovado pelo teste estático <code>test_ac6_verificacao_estatica_ausencia_duplicacao_consumidores</code>) e os mantemos intactos como registro arqueológico da evolução do projeto (Fases 1, 2 e 3) e salvaguarda de regressão até a homologação final da banca.</li>
+</ul>
+<hr>
+<h2 id="63-como-funciona-a-integração-agente-codebase-zero-amnesia-architecture">6.3. Como Funciona a Integração Agente-Codebase (<em>Zero-Amnesia Architecture</em>)</h2>
+<p>Quando um novo agente de IA é iniciado em uma conversa, ele começa com a memória vazia sobre o que aconteceu ontem. Para que qualquer agente recupere <strong>100% da consciência situacional em menos de 30 segundos</strong>, criamos uma <strong>arquitetura de memória externa em 4 camadas</strong>:</p>
+<div class="diagram-box"><div class="diagram-label">?? Diagrama Arquitetural (mermaid)</div><pre class="mermaid">flowchart LR
+    Boot[&quot;Inicialização do Agente\nLê automaticamente ./AGENTS.md&quot;] --&gt; L1[&quot;1. Memória Arquitetural\n(./CONTEXTO_IA.md +\n./BD/.ai_context.md)&quot;]
+    L1 --&gt; L2[&quot;2. Memória Metodológica\n(./DIRETRIZES_DESENVOLVIMENTO.md)&quot;]
+    L2 --&gt; L3[&quot;3. Memória Episódica e Sprint\n(./DEVLOG.md +\n./PLANO_SPRINT_US01.md)&quot;]
+    L3 --&gt; Exec[&quot;4. Execução Controlada\nTasks Atômicas -&gt; Pytest (52 testes)\n-&gt; Commit Semântico -&gt; Sync Docs&quot;]</pre></div>
+<ol>
+<li>**Camada 1 — O Ponto de Entrada Normativo ([<code>./AGENTS.md</code>](./AGENTS.md)):**</li>
+</ol>
+<p>Atua como a &quot;Constituição do Repositório&quot;. Obriga o agente a ler os documentos fundamentais na ordem exata de prioridade antes de escrever uma única linha de código.</p>
+<ol>
+<li>**Camada 2 — Os Mapas de Contexto Instantâneo (<code>CONTEXTO_IA.md</code>, <code>BD/.ai_context.md</code>, <code>lib/screens/.ai_context.md</code>):**</li>
+</ol>
+<p>Notou que tanto na raiz quanto dentro de <code>./BD/</code> e <code>lib/screens/</code> existem arquivos <code>.ai_context.md</code> e <code>*_CONTEXT.md</code>? Eles foram desenhados especificamente para fornecer aos agentes a lista exata de entrypoints, tabelas, rotas e regras de negócio sem que o agente precise ler 20 arquivos de código-fonte para descobrir como o sistema funciona (economizando janela de contexto e evitando alucinações).</p>
+<ol>
+<li>**Camada 3 — A Memória Episódica Viva ([<code>./DEVLOG.md</code>](./DEVLOG.md) e <code>PLANO_SPRINT_*.md</code>):**</li>
+</ol>
+<p>Funciona como uma máquina do tempo sincronizada com o <code>git log</code>. Cada sessão registra quais tasks foram feitas (<code>[TASK-01]</code> a <code>[TASK-11]</code>), qual o hash do commit correspondente (<code>0afd9ee</code>, <code>c340b65</code>, <code>7151ad3</code>, <code>f085106</code>, <code>d02ac24</code>, <code>bdb8e02</code>, <code>76b4c0f</code>, <code>580cd8e</code>, <code>8773f75</code>, <code>af9b3b6</code>, <code>c5591d4</code>, <code>acf2728</code>, <code>83f3d02</code>), quais decisões foram tomadas com o desenvolvedor e qual é a próxima task da fila.</p>
+<hr>
+<h2 id="64-catálogo-detalhado-das-skills-e-regras-operacionais-dos-agentes">6.4. Catálogo Detalhado das <em>Skills</em> e Regras Operacionais dos Agentes</h2>
+<p>As <strong>Skills de Engenharia</strong> codificadas para os agentes neste repositório são:</p>
+<ol>
+<li><strong>Skill de Portabilidade Multiplataforma e Caminhos Estritamente Relativos:</strong></li>
+</ol>
+<ul>
+<li>Como a equipe trabalha em máquinas Windows, Linux e macOS diferentes, os agentes são <strong>terminantemente proibidos</strong> de gravar caminhos absolutos locais de máquina em código, testes ou documentos. Tudo usa caminhos relativos à raiz (<code>./calculo_angulos.py</code>, <code>tests/test_pipeline_pontuacao.py</code>) e <code>encoding=&quot;utf-8&quot;</code> explícito.</li>
+</ul>
+<ol>
+<li>**Skill de Decomposição em Tasks Atômicas Orientadas a Artefatos (<code>1 Task = 1 Artefato Verificável + 1 Commit</code>):**</li>
+</ol>
+<ul>
+<li>Nenhuma História de Usuário é implementada num único bloco monolítico (&quot;big bang&quot;). O agente decompõe a demanda em <code>[TASK-XX.Y]</code>, onde cada task tem um **Critério de Pronto (<em>Definition of Done</em> — DoD)** comprovável no terminal (ex.: <code>pytest</code>) e gera um commit semântico (<code>feat</code>, <code>fix</code>, <code>refactor</code>, <code>test</code>, <code>docs</code>, <code>chore</code>).</li>
+</ul>
+<ol>
+<li>**Skill de Construção <em>Bottom-Up / Contract-First</em>:**</li>
+</ol>
+<ul>
+<li>A ordem de implementação segue rigorosamente a dependência das camadas:</li>
+</ul>
+<p><code>Passo 1: Geometria e Contratos</code> $\rightarrow$ <code>Passo 2: Domínio (FSM/DTW/Buffer)</code> $\rightarrow$ <code>Passo 3: Testes Sintéticos Offline</code> $\rightarrow$ <code>Passo 4: Integração em Canais (CLI/Webcam/API)</code> $\rightarrow$ <code>Passo 5: Sincronização da Documentação Viva</code>.</p>
+<ol>
+<li><strong>Skill de Simulação Biomecânica Sintética (Testabilidade 100% Offline):</strong></li>
+</ol>
+<ul>
+<li>Como um agente de IA rodando em um terminal não tem braços nem pernas para fazer agachamento na frente de uma webcam, criamos geradores matemáticos baseados em funções senoidais (<code>np.linspace</code> e <code>np.sin</code>) dentro de [<code>tests/test_pipeline_pontuacao.py</code>](tests/test_pipeline_pontuacao.py) que simulam:</li>
+<li>Um aluno fazendo repetição perfeita (45 frames);</li>
+<li>Um aluno lento (65 frames) e muito lento (150 frames);</li>
+<li>Um aluno interrompendo a subida na metade (<code>REPETICAO_INCOMPLETA</code>);</li>
+<li>Um aluno deixando o ombro cair no meio do movimento e corrigindo no final (<code>OMBRO_CAIDO</code>).</li>
+<li>Graças a essa skill, qualquer alteração feita pelo agente é validada contra <strong>52 testes em 2.4 segundos</strong>!</li>
+</ul>
+<ol>
+<li><strong>Skill de Sincronização Documental Tripla (Técnica + Planejamento + Humana):</strong></li>
+</ol>
+<ul>
+<li>Ao encerrar qualquer entrega, o agente atualiza simultaneamente o plano da sprint (<code>PLANO_SPRINT_*.md</code>), o log técnico (<code>DEVLOG.md</code> e <code>CONTEXTO_IA.md</code>) e o documento didático para humanos ([<code>./EXPLICACAO_IA.md</code>](./EXPLICACAO_IA.md)).</li>
+</ul>
+<hr>
+<h1 id="parte-7-guia-de-bolso-para-perguntas-de-investidores-professores-e-banca-faq-estratégico">PARTE 7 — Guia de Bolso para Perguntas de Investidores, Professores e Banca (FAQ Estratégico)</h1>
+<p>Use estas respostas rápidas e diretas quando alguém fizer perguntas sobre qualquer área do projeto:</p>
+<h3 id="pergunta-1-por-que-vocês-usaram-fsm-dtw-em-vez-de-treinar-uma-rede-neural-lstm-transformer-para-dar-a-nota-do-exercício">❓ Pergunta 1: <em>&quot;Por que vocês usaram FSM + DTW em vez de treinar uma Rede Neural (LSTM / Transformer) para dar a nota do exercício?&quot;</em></h3>
+<blockquote><strong>Sua Resposta:</strong> *&quot;Na Fase 2 do projeto nós chegamos a testar um modelo de Machine Learning clássico (<code>scikit-learn</code>), mas descobrimos três limitações críticas para um produto real: 1) Redes neurais fim-a-fim funcionam como uma &#x27;caixa-preta&#x27; — elas dizem que o movimento está errado, mas não sabem explicar pedagogicamente em qual articulação e por quantos graus; 2) Elas exigem centenas de vídeos rotulados para cada novo exercício adicionado ao app; e 3) São sensíveis à velocidade do aluno. Com a nossa arquitetura híbrida — usando Deep Learning (MediaPipe) apenas para extrair os 33 marcos anatômicos, Máquina de Estados (FSM) para validar fases e regras posturais instantâneas, e Dynamic Time Warping (DTW) vetorizado com janela de Sakoe-Chiba para alinhar a trajetória no tempo — nós conseguimos invariância total à velocidade do aluno, explicabilidade cirúrgica em graus por articulação, execução em menos de 1 milissegundo em CPU comum e capacidade de cadastrar um novo exercício com apenas 1 vídeo de especialista!&quot;*</blockquote>
+<h3 id="pergunta-2-o-que-acontece-se-o-aluno-fizer-o-exercício-bem-devagar-cadência-controlada-de-musculação-o-sistema-perde-a-contagem-ou-dá-nota-baixa">❓ Pergunta 2: <em>&quot;O que acontece se o aluno fizer o exercício bem devagar (cadência controlada de musculação)? O sistema perde a contagem ou dá nota baixa?&quot;</em></h3>
+<blockquote><strong>Sua Resposta:</strong> *&quot;Não! Esse foi um dos desafios mais interessantes que resolvemos em duas frentes. Primeiro, na camada geométrica (<code>calculo_angulos.py</code>), criamos um algoritmo de <strong>Âncora de Ruído</strong> com limiar de $1.2^\circ$: em vez de zerar a referência a cada fotograma (o que cegava o sistema em movimentos lentos), a âncora acumula variações graduais até cruzar $1.2^\circ$, filtrando trepidações da câmera sem perder movimentos lentos. Segundo, na camada de avaliação (<code>dtw_evaluator.py</code>), o algoritmo <strong>DTW</strong> estica e comprime o eixo do tempo de forma elástica. Nos nossos testes automatizados (<code>AC2</code>), provamos que uma repetição feita em 40 frames (rápida), 65 frames (lenta) ou 150 frames (muito lenta) é contada perfeitamente e recebe nota acima de 92%!&quot;*</blockquote>
+<h3 id="pergunta-3-como-o-aplicativo-mobile-flutter-conversa-com-o-motor-de-ia-python-e-com-o-banco-de-dados-supabase">❓ Pergunta 3: <em>&quot;Como o aplicativo mobile (Flutter) conversa com o motor de IA (Python) e com o Banco de Dados (Supabase)?&quot;</em></h3>
+<blockquote><strong>Sua Resposta:</strong> *&quot;Adotamos uma arquitetura cliente-servidor em 3 camadas conectadas por uma <strong>API REST em FastAPI</strong> (<code>BD/api.py</code>). O aplicativo Flutter nunca acessa o banco de dados diretamente nem guarda chaves secretas; ele usa um serviço centralizado (<code>ApiService</code>) que envia requisições HTTP para o nosso servidor FastAPI. Durante o treino com câmera, o Flutter envia os quadros JPEG via <code>POST /ia/processar-frame</code> (<code>multipart/form-data</code>). O FastAPI decodifica a imagem diretamente na <strong>memória RAM</strong> (<code>cv2.imdecode</code>, sem tocar no disco rígido), passa pelo <code>OrquestradorSessao</code> isolado por <code>usuario_id</code> e devolve em milissegundos o JSON com a contagem, fase e alertas para o HUD. Quando o aluno clica em &#x27;Finalizar Série&#x27; (<code>POST /ia/finalizar-serie-e-pontuar</code>), o próprio servidor FastAPI converte as repetições aprovadas em pontos de gamificação e já grava no PostgreSQL (Supabase), atualizando a sequência diária (Streak) e a posição do atleta no Leaderboard.&quot;*</blockquote>
+<h3 id="pergunta-4-como-vocês-garantem-a-segurança-dos-dados-no-banco-de-dados-e-como-resolveram-o-cálculo-do-leaderboard-e-amizades">❓ Pergunta 4: <em>&quot;Como vocês garantem a segurança dos dados no Banco de Dados e como resolveram o cálculo do Leaderboard e Amizades?&quot;</em></h3>
+<blockquote><strong>Sua Resposta:</strong> *&quot;Usamos o <strong>Supabase (PostgreSQL)</strong> com autenticação baseada em <strong>JWT (JSON Web Tokens)</strong> e <strong>RLS (Row-Level Security)</strong> ativado nas tabelas, garantindo que um usuário comum não possa alterar dados de terceiros. Para que o Leaderboard Global, o Leaderboard de Amigos e a Busca de Atletas pudessem ler o nome e a pontuação da comunidade com altíssima velocidade sem violar o RLS de dados sensíveis (como CPF), escrevemos **9 Stored Procedures (funções RPC em SQL com <code>SECURITY DEFINER</code>)** diretamente no PostgreSQL, apoiadas por índices compostos (<code>pontuacao_semanal DESC, sequencia DESC</code>) e um índice único bidirecional (<code>LEAST/GREATEST</code>) que impede duplicidade de amizades.&quot;*</blockquote>
+<h3 id="pergunta-5-quão-fácil-é-adicionar-um-4º-ou-5º-exercício-ex-elevação-lateral-ou-flexão-de-braço-no-sistema-hoje">❓ Pergunta 5: <em>&quot;Quão fácil é adicionar um 4º ou 5º exercício (ex.: Elevação Lateral ou Flexão de Braço) no sistema hoje?&quot;</em></h3>
+<blockquote><strong>Sua Resposta:</strong> *&quot;Graças ao <strong>Princípio Aberto/Fechado (SOLID)</strong> e ao padrão <strong>Strategy + Registry</strong> (<code>CATALOGO_EXERCICIOS</code>), adicionar um novo exercício exige <strong>zero alterações</strong> no Orquestrador, no Buffer, no DTW ou na API FastAPI. Basta criar uma subclasse herdando de <code>ExercicioBaseFSM</code> com os limiares angulares daquele exercício, fornecer o JSON de referência e registrá-la no catálogo. Inclusive, o nosso teste automatizado <code>AC7</code> faz exatamente isso em tempo de execução para provar matematicamente que a arquitetura é extensível.&quot;*</blockquote>
+<hr>
+<p><em>Relatório gerado automaticamente para consulta técnica, estudo de arquitetura e apresentação executiva — <strong>Personal Trainer IA (PersonAI)</strong>.</em></p>
+  </div>
+  <script>
+    function toggleTheme() {
+      const root = document.documentElement;
+      const cur = root.getAttribute('data-theme');
+      root.setAttribute('data-theme', cur === 'light' ? 'dark' : 'light');
+    }
+    window.addEventListener('DOMContentLoaded', () => {
+      if (window.renderMathInElement) {
+        renderMathInElement(document.getElementById('content'), {
+          delimiters: [
+            {left: '$$', right: '$$', display: true},
+            {left: '$', right: '$', display: false}
+          ],
+          throwOnError: false
+        });
+      }
+      if (window.mermaid) {
+        mermaid.initialize({ startOnLoad: true, theme: 'dark' });
+      }
+    });
+  </script>
+</body>
+</html>
