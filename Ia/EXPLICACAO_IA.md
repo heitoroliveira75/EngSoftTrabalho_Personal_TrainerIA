@@ -108,7 +108,7 @@ Se você clonar o repositório e tiver Python instalado:
    ```bash
    pytest
    ```
-   *Roda 39 testes automatizados com 100% de sucesso.*
+   *Roda 95 testes automatizados de pipeline (108 testes totais) com 100% de sucesso.*
 
 3. **Executar Demonstração dos Cenários no Orquestrador (Sem Câmera):**
    ```bash
@@ -124,6 +124,13 @@ Se você clonar o repositório e tiver Python instalado:
    * `1`: Seleciona Desenvolvimento de Ombro.
    * `2`: Seleciona Agachamento.
    * `3`: Seleciona Rosca Bíceps.
+   * `4`: Seleciona Elevação Lateral.
+   * `5`: Seleciona Tríceps Corda.
+   * `6`: Seleciona Flexão Diamante.
+   * `7`: Seleciona Remada Baixa.
+   * `8`: Seleciona Puxada Alta com Halteres.
+   * `9`: Seleciona Rosca Martelo (orientação de perfil/lateral).
+   * `0`: Seleciona Tríceps Francês Sentado (orientação de perfil/lateral).
    * `L`: Alterna entre lado Direito e Esquerdo.
    * `R`: Reinicia a contagem e os erros da sessão.
    * `Q`: Fecha o programa.
@@ -197,7 +204,7 @@ Para transformar o motor matemático de IA em um serviço web consumível pelo a
 3. **Guia Completo para o Front-end (`GUIA_INTEGRACAO_FRONT_IA.md`):**
    * Criado documento com exemplos prontos em Dart/Flutter para que a equipe de telas conecte a câmera e o HUD facilmente.
 4. **Suíte Total de Testes:**
-   * A suíte de pipeline avançou para **84 testes automatizados** em `test_pipeline_pontuacao.py` e **91 testes no total do motor de IA** aprovados com 100% de sucesso.
+   * A suíte de pipeline avançou para **89 testes automatizados** em `test_pipeline_pontuacao.py` e **96 testes no total do motor de IA** aprovados com 100% de sucesso.
 
 ---
 

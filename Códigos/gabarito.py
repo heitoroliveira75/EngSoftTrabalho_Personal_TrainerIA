@@ -179,7 +179,7 @@ def garantir_gabaritos_padrao(sobrescrever: bool = False) -> None:
 
     # 5. Puxada Alta com Halteres: Ombro (20° -> 110° -> 20°), Cotovelo (165° -> 60° -> 165°)
     arq_puxada = os.path.join(pasta_gabaritos, "gabarito_especialista_puxada_alta.json")
-    if sobrescrever or not os.path.exists(arq_puxada):
+    if not os.path.exists(arq_puxada):
         serie_puxada: List[Dict[str, float]] = []
         for _ in range(5):
             serie_puxada.append({"ombro": 20.0, "cotovelo": 165.0})
@@ -198,6 +198,49 @@ def garantir_gabaritos_padrao(sobrescrever: bool = False) -> None:
             dados=dados_puxada,
             descricao="Gabarito padrão ouro para Puxada Alta com Halteres (recorte FSM).",
         ).salvar_json(arq_puxada)
+
+    # 6. Rosca Martelo (Hammer Curl): Cotovelo (165° -> 55° -> 165°)
+    arq_martelo = os.path.join(pasta_gabaritos, "gabarito_especialista_rosca_martelo.json")
+    if sobrescrever or not os.path.exists(arq_martelo):
+        serie_martelo: List[Dict[str, float]] = []
+        for _ in range(5):
+            serie_martelo.append({"cotovelo": 165.0})
+        for val_t in t:
+            serie_martelo.append({
+                "cotovelo": float(165.0 - 110.0 * np.sin(val_t)),
+            })
+        for _ in range(5):
+            serie_martelo.append({"cotovelo": 165.0})
+
+        dados_martelo = extrair_primeira_repeticao("rosca_martelo", serie_angulos=serie_martelo, lancar_excecao=True)
+        GabaritoExercicio(
+            nome_exercicio="rosca_martelo",
+            articulacoes=["cotovelo"],
+            dados=dados_martelo,
+            descricao="Gabarito padrão ouro para Rosca Martelo (recorte FSM, foco no cotovelo).",
+        ).salvar_json(arq_martelo)
+
+    # 7. Tríceps Francês Sentado: Cotovelo (160° -> 65° -> 160°), Ombro elevado (~160°)
+    arq_frances = os.path.join(pasta_gabaritos, "gabarito_especialista_triceps_frances.json")
+    if sobrescrever or not os.path.exists(arq_frances):
+        serie_frances: List[Dict[str, float]] = []
+        for _ in range(5):
+            serie_frances.append({"cotovelo": 160.0, "ombro": 160.0})
+        for val_t in t:
+            serie_frances.append({
+                "cotovelo": float(160.0 - 95.0 * np.sin(val_t)),
+                "ombro": float(160.0 + 3.0 * np.sin(val_t)),
+            })
+        for _ in range(5):
+            serie_frances.append({"cotovelo": 160.0, "ombro": 160.0})
+
+        dados_frances = extrair_primeira_repeticao("triceps_frances", serie_angulos=serie_frances, lancar_excecao=True)
+        GabaritoExercicio(
+            nome_exercicio="triceps_frances",
+            articulacoes=["cotovelo", "ombro"],
+            dados=dados_frances,
+            descricao="Gabarito padrão ouro para Tríceps Francês Sentado (recorte FSM).",
+        ).salvar_json(arq_frances)
 
 
 if __name__ == "__main__":

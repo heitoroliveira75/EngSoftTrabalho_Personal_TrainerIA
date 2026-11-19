@@ -2088,4 +2088,197 @@ class TestDebounceESimetriaBilateral:
         assert not any(e.startswith("ASSIMETRIA_") for e in res_rosca.erros_fsm)
 
 
+class TestRoscaMartelo:
+    """Valida a FSM, detecção de erros e pontuação da Rosca Martelo (Hammer Curl)."""
+
+    def test_ciclo_ideal_fsm(self):
+        from exercicios_fsm import RoscaMartelo
+        fsm = RoscaMartelo()
+        pos = {}
+
+        # Fase 0: Repouso (cotovelo >= 150°)
+        assert fsm.fases[1] == 0
+
+        # 0 -> 1: Subida concêntrica (cotovelo < 140° e delta < 0)
+        fsm.classificar({"cotovelo": 130.0}, pos, {"cotovelo": -10.0})
+        assert fsm.fases[1] == 1
+
+        # 1 -> 2: Pico de contração (cotovelo <= 70°)
+        fsm.classificar({"cotovelo": 60.0}, pos, {"cotovelo": -15.0})
+        assert fsm.fases[1] == 2
+
+        # 2 -> 3: Descendo (cotovelo > 80° ou delta > 0)
+        fsm.classificar({"cotovelo": 95.0}, pos, {"cotovelo": 15.0})
+        assert fsm.fases[1] == 3
+
+        # 3 -> 0: Fechamento (cotovelo >= 150°)
+        fsm.classificar({"cotovelo": 155.0}, pos, {"cotovelo": 10.0})
+        assert fsm.fases[1] == 0
+        assert fsm.repeticoes == 1
+        assert len(fsm.erros) == 0
+
+    def test_subida_incompleta_reprovacao(self):
+        from exercicios_fsm import RoscaMartelo
+        fsm = RoscaMartelo()
+        pos = {}
+
+        # 0 -> 1
+        fsm.classificar({"cotovelo": 135.0}, pos, {"cotovelo": -10.0})
+        assert fsm.fases[1] == 1
+
+        # Desistência (1 -> 3): começa a estender (delta > 0) antes de atingir pico (cotovelo <= 120°)
+        erro = fsm.classificar({"cotovelo": 115.0}, pos, {"cotovelo": 5.0})
+        assert fsm.fases[1] == 3
+        assert erro == "SUBIDA_INCOMPLETA"
+        assert "SUBIDA_INCOMPLETA" in fsm.erros
+
+    def test_hiperextensao_cotovelo(self):
+        from exercicios_fsm import RoscaMartelo
+        fsm = RoscaMartelo()
+        pos = {}
+
+        # Cotovelo além de 175° ou com desvio retrógrado
+        fsm.fases = [3, 3]
+        erro = fsm.classificar({"cotovelo": 178.0, "cotovelo_orientado": -3.5}, pos, {"cotovelo": 5.0})
+        assert "HIPEREXTENSAO_COTOVELO" in fsm.erros
+
+    def test_histerese_repouso_suave(self):
+        from exercicios_fsm import RoscaMartelo
+        fsm = RoscaMartelo()
+        pos = {}
+
+        # 0 -> 1 por leve oscilação
+        fsm.classificar({"cotovelo": 138.0}, pos, {"cotovelo": -3.0})
+        assert fsm.fases[1] == 1
+
+        # Recuo imediato para >= 148° volta suave para 0 sem acusar SUBIDA_INCOMPLETA
+        erro = fsm.classificar({"cotovelo": 150.0}, pos, {"cotovelo": 4.0})
+        assert fsm.fases[1] == 0
+        assert erro is None
+        assert "SUBIDA_INCOMPLETA" not in fsm.erros
+        assert fsm.repeticoes == 0
+
+    def test_pipeline_ouro_rosca_martelo_gabarito(self):
+        gab = GabaritoExercicio.carregar_json("gabarito_especialista_rosca_martelo.json")
+        assert gab.articulacoes == ["cotovelo"]
+        assert gab.total_frames >= 20
+
+        orq = OrquestradorSessao("9")
+        resultado_rep = None
+
+        for linha in gab.dados:
+            frame_angulos = {
+                "cotovelo": float(linha[0]),
+            }
+            _, rep = orq.processar_frame(frame_angulos, visivel=True)
+            if rep is not None:
+                resultado_rep = rep
+
+        assert resultado_rep is not None
+        assert resultado_rep.score_final >= 95.0
+        assert resultado_rep.aprovado is True
+
+
+class TestTricepsFrances:
+    """Valida a FSM, detecção de erros e pontuação do Tríceps Francês Sentado."""
+
+    def test_ciclo_ideal_fsm(self):
+        from exercicios_fsm import TricepsFrances
+        fsm = TricepsFrances()
+        pos = {}
+
+        # Fase 0: Repouso no topo (braço estendido acima da cabeça)
+        assert fsm.fases[1] == 0
+
+        # 0 -> 1: Descida excêntrica (cotovelo < 135° e delta < 0)
+        fsm.classificar({"cotovelo": 120.0, "ombro": 155.0}, pos, {"cotovelo": -15.0})
+        assert fsm.fases[1] == 1
+
+        # 1 -> 2: Fundo do movimento (cotovelo <= 75°)
+        fsm.classificar({"cotovelo": 65.0, "ombro": 155.0}, pos, {"cotovelo": -15.0})
+        assert fsm.fases[1] == 2
+
+        # 2 -> 3: Subida concêntrica (cotovelo > 85° ou delta > 0)
+        fsm.classificar({"cotovelo": 100.0, "ombro": 155.0}, pos, {"cotovelo": 15.0})
+        assert fsm.fases[1] == 3
+
+        # 3 -> 0: Fechamento no topo (cotovelo >= 145°)
+        fsm.classificar({"cotovelo": 150.0, "ombro": 155.0}, pos, {"cotovelo": 15.0})
+        assert fsm.fases[1] == 0
+        assert fsm.repeticoes == 1
+        assert len(fsm.erros) == 0
+
+    def test_extensao_incompleta_reprovacao(self):
+        from exercicios_fsm import TricepsFrances
+        fsm = TricepsFrances()
+        pos = {}
+
+        # 0 -> 1
+        fsm.classificar({"cotovelo": 125.0, "ombro": 155.0}, pos, {"cotovelo": -10.0})
+        assert fsm.fases[1] == 1
+
+        # Desistência (1 -> 3): começa a estender (delta > 0) antes de atingir o fundo (cotovelo >= 105°)
+        erro = fsm.classificar({"cotovelo": 110.0, "ombro": 155.0}, pos, {"cotovelo": 5.0})
+        assert fsm.fases[1] == 3
+        assert erro == "EXTENSAO_INCOMPLETA"
+        assert "EXTENSAO_INCOMPLETA" in fsm.erros
+
+    def test_braco_baixo(self):
+        from exercicios_fsm import TricepsFrances
+        fsm = TricepsFrances()
+        pos = {}
+
+        fsm.fases = [1, 1]
+        # Praticante deixa o braço cair para frente (ombro < 125°)
+        erro = fsm.classificar({"cotovelo": 100.0, "ombro": 110.0}, pos, {"cotovelo": -10.0})
+        assert "BRACO_BAIXO" in fsm.erros
+
+    def test_hiperextensao_cotovelo(self):
+        from exercicios_fsm import TricepsFrances
+        fsm = TricepsFrances()
+        pos = {}
+
+        # Cotovelo além de 175° no topo
+        fsm.fases = [3, 3]
+        erro = fsm.classificar({"cotovelo": 178.0, "ombro": 155.0, "cotovelo_orientado": -3.0}, pos, {"cotovelo": 5.0})
+        assert "HIPEREXTENSAO_COTOVELO" in fsm.erros
+
+    def test_histerese_repouso_suave(self):
+        from exercicios_fsm import TricepsFrances
+        fsm = TricepsFrances()
+        pos = {}
+
+        # 0 -> 1 por leve oscilação
+        fsm.classificar({"cotovelo": 133.0, "ombro": 155.0}, pos, {"cotovelo": -2.0})
+        assert fsm.fases[1] == 1
+
+        # Recuo imediato para >= 140° volta suave para 0 sem acusar EXTENSAO_INCOMPLETA
+        erro = fsm.classificar({"cotovelo": 142.0, "ombro": 155.0}, pos, {"cotovelo": 4.0})
+        assert fsm.fases[1] == 0
+        assert erro is None
+        assert "EXTENSAO_INCOMPLETA" not in fsm.erros
+        assert fsm.repeticoes == 0
+
+    def test_pipeline_ouro_triceps_frances_gabarito(self):
+        gab = GabaritoExercicio.carregar_json("gabarito_especialista_triceps_frances.json")
+        assert gab.articulacoes == ["cotovelo", "ombro"]
+        assert gab.total_frames >= 20
+
+        orq = OrquestradorSessao("0")
+        resultado_rep = None
+
+        for linha in gab.dados:
+            frame_angulos = {
+                "cotovelo": float(linha[0]),
+                "ombro": float(linha[1]),
+            }
+            _, rep = orq.processar_frame(frame_angulos, visivel=True)
+            if rep is not None:
+                resultado_rep = rep
+
+        assert resultado_rep is not None
+        assert resultado_rep.score_final >= 95.0
+        assert resultado_rep.aprovado is True
+
+
 

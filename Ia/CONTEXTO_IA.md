@@ -2,7 +2,7 @@
 
 > **Propósito deste documento:** Permitir que qualquer agente de IA ou desenvolvedor recupere imediatamente 100% do contexto técnico, arquitetural e histórico da frente de **Inteligência Artificial e Visão Computacional** do projeto **Personal Trainer IA**.
 >
-> **Última atualização:** 2026-11-11 (branch `IA`; 8 exercícios homologados incluindo Puxada Alta com Halteres; pipeline antifalsos-positivos com ângulos orientados, guardas biomecânicas, histerese e detecção de hiperextensão; 91 testes aprovados)
+> **Última atualização:** 2026-11-17 (branch `IA`; 10 exercícios homologados incluindo Rosca Martelo e Tríceps Francês Sentado; pipeline antifalsos-positivos com ângulos orientados, guardas biomecânicas, histerese e detecção de hiperextensão; 95 testes em pipeline / 108 testes totais aprovados)
 
 ---
 
@@ -81,10 +81,10 @@ Estes arquivos compõem a frente de trabalho imediata da branch, homologada por 
 | [`./avaliador_pontuacao.py`](./avaliador_pontuacao.py) | Motor central de pontuação (`ResultadoPontuacaoRepeticao`), laudos pedagógicos hierárquicos, gamificação e `OrquestradorSessao` com interface **frame a frame**. | `calcular_pontuacao()`, `OrquestradorSessao`, `ResultadoPontuacaoRepeticao`, `ResumoPontuacaoSessao` | **Concluído na `TASK-06`** |
 | [`./servico_ia_api.py`](./servico_ia_api.py) | Serviço singleton em memória que gerencia instâncias de `OrquestradorSessao` por usuário, decodifica imagens em RAM via `cv2.imdecode` e provê simulação canônica. | `ServicoIA`, `serializar_resultado_repeticao()`, `serializar_resumo_sessao()` | **Concluído na Sprint US-02** |
 | [`./BD/api.py`](./BD/api.py) | Servidor FastAPI unificado expondo rotas REST do Banco e rotas `/ia/*` para o aplicativo móvel. | Rotas `/ia/reiniciar-sessao`, `/ia/processar-frame`, `/ia/simular-repeticao`, `/ia/resumo-sessao`, `/ia/finalizar-serie-e-pontuar` | **Concluído na Sprint US-02** |
-| [`tests/test_pipeline_pontuacao.py`](tests/test_pipeline_pontuacao.py) | Suíte de testes automatizados com `pytest` cobrindo geometria, ângulos orientados, deltas acumulados, transições de fase com histerese, retenção de erros, DTW vetorizado, segmentação canônica, orquestração, guardas biomecânicas (ROM/Duration), hiperextensão articular e os 7 exercícios do catálogo. | Testes sem dependência de câmera | **Concluído (77 testes)** |
+| [`tests/test_pipeline_pontuacao.py`](tests/test_pipeline_pontuacao.py) | Suíte de testes automatizados com `pytest` cobrindo geometria, ângulos orientados, deltas acumulados, transições de fase com histerese, retenção de erros, DTW vetorizado, segmentação canônica, orquestração, guardas biomecânicas (ROM/Duration), hiperextensão articular e os 10 exercícios do catálogo. | Testes sem dependência de câmera | **Concluído (95 testes)** |
 | [`tests/test_servico_ia_api.py`](tests/test_servico_ia_api.py) | Suíte de testes do gerenciador de sessões de IA em memória, decodificação em RAM e simulações canônicas. | `test_servico_ia_*` | **Concluído (7 testes)** |
 | [`tests/test_api_ia_integrada.py`](tests/test_api_ia_integrada.py) | Suíte de testes end-to-end das rotas FastAPI de IA e envio automático de pontos para a gamificação. | `test_rota_ia_*` | **Concluído (6 testes)** |
-| **Total da Suíte Automatizada** | **77 testes de pipeline + 13 testes de API/Serviço = 90 testes aprovados no `pytest` com 100% de sucesso** | `pytest` | **100% Aprovado** |
+| **Total da Suíte Automatizada** | **95 testes de pipeline + 13 testes de API/Serviço = 108 testes aprovados no `pytest` com 100% de sucesso** | `pytest` | **100% Aprovado** |
 | [`./pytest.ini`](./pytest.ini) | Configuração de execução do `pytest` com inclusão automática do diretório raiz no `pythonpath`. | Configuração de testes | **Ativo** |
 | [`./requirements.txt`](./requirements.txt) | Especificação das dependências oficiais da branch `IA` (`numpy`, `opencv-python`, `mediapipe`, `pytest`). | Gerenciamento de ambiente | **Ativo** |
 
@@ -255,6 +255,47 @@ Todas as classes herdam de `ExercicioBaseFSM` e seguem o ciclo de 4 estados (`0 
    - **Erros detectados:**
      - `REMADA_CURTA` (Penalidade: 25.0 pts, desqualificador): transição direta `1 -> 3` sem atingir a flexão de $85^\circ$.
      - `INCLINACAO_EXCESSIVA_TRONCO` (Penalidade: 15.0 pts): nas fases `1, 2, 3`, `quadril > 125°` (jogar as costas excessivamente para trás para puxar no impulso).
+
+8. **Puxada Alta com Halteres (`tecla "8"`, `PuxadaAltaHalteres`)**
+   - **Articulações:** `["ombro", "cotovelo"]`
+   - **Transições (guiadas por `ombro` e `delta_ombro`):**
+     - `0 -> 1` (Início da tração / puxada): `ombro > 35°` e `delta_ombro > 0`
+     - `1 -> 2` (Pico de elevação / cotovelos altos): `ombro >= 85°`
+     - `1 -> 3` (Puxada curta / desistência precoce): `delta_ombro < 0` e `ombro >= 45°`
+     - `2 -> 3` (Descida excêntrica controlada): `ombro < 95°` ou `delta_ombro < 0`
+     - `3 -> 0` (Retorno completo ao repouso): `ombro <= 28°` (`repeticoes += 1`)
+   - **Erros detectados:**
+     - `PUXADA_CURTA` (Penalidade: 25.0 pts, desqualificador): transição direta `1 -> 3` sem atingir o pico.
+     - `ELEVACAO_EXCESSIVA` (Penalidade: 15.0 pts): na fase `2`, `ombro > 120°`.
+     - `COTOVELO_CAIDO` (Penalidade: 15.0 pts): na fase `2`, `cotovelo > 120°`.
+     - `HIPEREXTENSAO_COTOVELO` (Penalidade: 15.0 pts): nas fases `0, 3`, `cotovelo > 175°`.
+
+9. **Rosca Martelo (`tecla "9"`, `RoscaMartelo`)**
+   - **Enquadramento:** Lateral / Perfil obrigatório (`"enquadramento": "lateral"`).
+   - **Articulações:** `["cotovelo"]` (foco estrito no cotovelo).
+   - **Transições (guiadas por `cotovelo` e `delta_cotovelo`):**
+     - `0 -> 1` (Início da flexão sagital): `cotovelo < 140°` e `delta_cotovelo < 0`
+     - `1 -> 2` (Pico de contração máxima): `cotovelo <= 70°`
+     - `1 -> 3` (Subida incompleta / recuo precoce): `delta_cotovelo > 0` e `cotovelo <= 120°`
+     - `2 -> 3` (Início da descida excêntrica): `cotovelo > 80°` ou `delta_cotovelo > 0`
+     - `3 -> 0` (Retorno estendido): `cotovelo >= 150°` (`repeticoes += 1`)
+   - **Erros detectados:**
+     - `SUBIDA_INCOMPLETA` (Penalidade: 25.0 pts, desqualificador): transição direta `1 -> 3` sem atingir o pico.
+     - `HIPEREXTENSAO_COTOVELO` (Penalidade: 15.0 pts): cotovelo $> 175^\circ$ ou ângulo orientado $< -2^\circ$.
+
+10. **Tríceps Francês Sentado (`tecla "0"`, `TricepsFrances`)**
+    - **Enquadramento:** Lateral / Perfil obrigatório (`"enquadramento": "lateral"`).
+    - **Articulações:** `["cotovelo", "ombro"]` (braço elevado acima da cabeça).
+    - **Transições (guiadas por `cotovelo` e `delta_cotovelo`):**
+      - `0 -> 1` (Início da descida excêntrica atrás da nuca): `cotovelo < 135°` e `delta_cotovelo < 0`
+      - `1 -> 2` (Fundo do movimento / alongamento máximo): `cotovelo <= 75°`
+      - `1 -> 3` (Extensão incompleta / subida prematura): `delta_cotovelo > 0` e `cotovelo >= 105°`
+      - `2 -> 3` (Subida concêntrica overhead): `cotovelo > 85°` ou `delta_cotovelo > 0`
+      - `3 -> 0` (Extensão completa no topo): `cotovelo >= 145°` (`repeticoes += 1`)
+    - **Erros detectados:**
+      - `EXTENSAO_INCOMPLETA` (Penalidade: 25.0 pts, desqualificador): retorno concêntrico sem atingir a flexão de $75^\circ$.
+      - `BRACO_BAIXO` (Penalidade: 15.0 pts): ombro cai para frente ($< 125^\circ$) durante o ciclo.
+      - `HIPEREXTENSAO_COTOVELO` (Penalidade: 15.0 pts): cotovelo trancado além de $175^\circ$ no topo.
 
 ---
 

@@ -788,6 +788,163 @@ class PuxadaAltaHalteres(ExercicioBaseFSM):
         return erros_no_frame[0] if erros_no_frame else None
 
 
+class RoscaMartelo(ExercicioBaseFSM):
+    """
+    Avalia a Rosca Martelo com Halteres (Hammer Curl) - Visão Lateral/Perfil.
+    Foco estrito na articulação do cotovelo: ['cotovelo']
+    - Pegada neutra com palmas voltadas uma para a outra.
+    - Gravação recomendada: de perfil/lado para rastreamento nítido da flexão do braquiorradial.
+    """
+
+    NOMES_FASES = {
+        0: "Repouso (Braco estendido ao lado)",
+        1: "Subindo (Flexao Concentrica)",
+        2: "Pico de Contracao",
+        3: "Descendo (Extensao Excentrica)",
+    }
+
+    MENSAGENS_ERRO = {
+        "SUBIDA_INCOMPLETA": "Flexao incompleta: suba o halter ate contrair o braco no topo (cotovelo <= 70 graus).",
+        "HIPEREXTENSAO_COTOVELO": "Evite travar ou hiperextender o cotovelo no retorno ao repouso.",
+    }
+
+    PENALIDADES_ERRO = {
+        "SUBIDA_INCOMPLETA": 25.0,
+        "HIPEREXTENSAO_COTOVELO": 15.0,
+    }
+
+    def identificar_fase(self, angulos: dict, posicoes: dict, angulos_deltas: dict) -> int:
+        cotovelo = angulos.get("cotovelo", 160.0)
+        delta_cotovelo = angulos_deltas.get("cotovelo", 0.0)
+        fase = self.fases[1]
+
+        if fase == 0:
+            # Sai do repouso se cotovelo começar a flexionar (< 140°) com delta negativo
+            if cotovelo < 140.0 and delta_cotovelo < 0:
+                fase = 1
+                self.erros_repeticao_atual = []
+        elif fase == 1:
+            # Pico de contração da rosca martelo: cotovelo bem flexionado (<= 70°)
+            if cotovelo <= 70.0:
+                fase = 2
+            elif delta_cotovelo > 0:
+                # Se começou a estender/descer antes do pico
+                if cotovelo <= 120.0:
+                    fase = 3  # Desistência / Repetição incompleta
+                elif cotovelo >= 148.0:
+                    fase = 0  # Histerese suave (pequena oscilação perto do repouso)
+        elif fase == 2:
+            # Começou a descer
+            if cotovelo > 80.0 or delta_cotovelo > 0:
+                fase = 3
+        elif fase == 3:
+            # Retorno completo ao repouso
+            if cotovelo >= 150.0:
+                fase = 0
+                self.repeticoes += 1
+
+        return fase
+
+    def classificar(self, angulos: dict, posicoes: dict, angulos_deltas: dict) -> Optional[str]:
+        fase_anterior = self.fases[1]
+        fase_atual = self.identificar_fase(angulos, posicoes, angulos_deltas)
+
+        self.fases[0] = fase_anterior
+        self.fases[1] = fase_atual
+
+        erros_no_frame = []
+        if self.fases[0] == 1 and self.fases[1] == 3:
+            erros_no_frame.append("SUBIDA_INCOMPLETA")
+        if self.fases[1] in (0, 3) and (angulos.get("cotovelo", 160.0) > 175.0 or angulos.get("cotovelo_orientado", 0.0) < -2.0):
+            erros_no_frame.append("HIPEREXTENSAO_COTOVELO")
+
+        for err in erros_no_frame:
+            self.registrar_erro(err)
+
+        return erros_no_frame[0] if erros_no_frame else None
+
+
+class TricepsFrances(ExercicioBaseFSM):
+    """
+    Avalia o Tríceps Francês Sentado (Seated Overhead French Press) - Visão Lateral/Perfil.
+    Articulações: ['cotovelo', 'ombro']
+    - Articulação motora primária: cotovelo (extensão e flexão vertical).
+    - Articulação de postura/estabilidade: ombro (manter o braço apontado para cima).
+    - Gravação recomendada: de perfil/lado para visualização completa da extensão vertical.
+    """
+
+    NOMES_FASES = {
+        0: "Repouso (Bracos estendidos no topo)",
+        1: "Descendo (Flexao atras da cabeca)",
+        2: "Fundo (Maximo Alongamento)",
+        3: "Subindo (Extensao Concentrica)",
+    }
+
+    MENSAGENS_ERRO = {
+        "EXTENSAO_INCOMPLETA": "Descida ou extensao incompleta: flexione ate 75 graus e estenda no topo.",
+        "BRACO_BAIXO": "Mantenha o braco elevado junto a cabeca apontando para o teto (ombro >= 125 graus).",
+        "HIPEREXTENSAO_COTOVELO": "Evite travar ou hiperextender os cotovelos no topo da extensao.",
+    }
+
+    PENALIDADES_ERRO = {
+        "EXTENSAO_INCOMPLETA": 25.0,
+        "BRACO_BAIXO": 15.0,
+        "HIPEREXTENSAO_COTOVELO": 15.0,
+    }
+
+    def identificar_fase(self, angulos: dict, posicoes: dict, angulos_deltas: dict) -> int:
+        cotovelo = angulos.get("cotovelo", 155.0)
+        delta_cotovelo = angulos_deltas.get("cotovelo", 0.0)
+        fase = self.fases[1]
+
+        if fase == 0:
+            # Sai do repouso se cotovelo começar a descer/flexionar (< 135°) com delta negativo
+            if cotovelo < 135.0 and delta_cotovelo < 0:
+                fase = 1
+                self.erros_repeticao_atual = []
+        elif fase == 1:
+            # Fundo do movimento (alongamento atrás da nuca <= 75°)
+            if cotovelo <= 75.0:
+                fase = 2
+            elif delta_cotovelo > 0:
+                # Começou a estender antes de atingir o fundo
+                if cotovelo >= 140.0:
+                    fase = 0  # Histerese suave perto do topo
+                elif cotovelo >= 105.0:
+                    fase = 3  # Desistência / Repetição incompleta
+        elif fase == 2:
+            # Começou a subir/estender
+            if cotovelo > 85.0 or delta_cotovelo > 0:
+                fase = 3
+        elif fase == 3:
+            # Retorno completo à extensão no topo
+            if cotovelo >= 145.0:
+                fase = 0
+                self.repeticoes += 1
+
+        return fase
+
+    def classificar(self, angulos: dict, posicoes: dict, angulos_deltas: dict) -> Optional[str]:
+        fase_anterior = self.fases[1]
+        fase_atual = self.identificar_fase(angulos, posicoes, angulos_deltas)
+
+        self.fases[0] = fase_anterior
+        self.fases[1] = fase_atual
+
+        erros_no_frame = []
+        if self.fases[0] == 1 and self.fases[1] == 3:
+            erros_no_frame.append("EXTENSAO_INCOMPLETA")
+        if self.fases[1] in (1, 2, 3) and angulos.get("ombro", 150.0) < 125.0:
+            erros_no_frame.append("BRACO_BAIXO")
+        if self.fases[1] in (0, 3) and (angulos.get("cotovelo", 155.0) > 175.0 or angulos.get("cotovelo_orientado", 0.0) < -2.0):
+            erros_no_frame.append("HIPEREXTENSAO_COTOVELO")
+
+        for err in erros_no_frame:
+            self.registrar_erro(err)
+
+        return erros_no_frame[0] if erros_no_frame else None
+
+
 # Catálogo central que liga as teclas de atalho ou IDs aos componentes de cada exercício
 CATALOGO_EXERCICIOS: Dict[str, Dict[str, Any]] = {
     "1": {
@@ -854,6 +1011,22 @@ CATALOGO_EXERCICIOS: Dict[str, Dict[str, Any]] = {
         "arquivo_gabarito": "gabarito_especialista_puxada_alta.json",
         "bilateral": True,
     },
+    "9": {
+        "id": "rosca_martelo",
+        "nome": "Rosca Martelo (Perfil)",
+        "classe_fsm": RoscaMartelo,
+        "articulacoes": ["cotovelo"],
+        "arquivo_gabarito": "gabarito_especialista_rosca_martelo.json",
+        "enquadramento": "lateral",
+    },
+    "0": {
+        "id": "triceps_frances",
+        "nome": "Triceps Frances Sentado (Perfil)",
+        "classe_fsm": TricepsFrances,
+        "articulacoes": ["cotovelo", "ombro"],
+        "arquivo_gabarito": "gabarito_especialista_triceps_frances.json",
+        "enquadramento": "lateral",
+    },
 }
 
 
@@ -874,6 +1047,12 @@ def obter_config_exercicio(identificador: str) -> Dict[str, Any]:
 
     if chave in ("puxada_alta_halteres", "puxada_alta", "remada_alta", "dumbbell_high_pulls", "puxada"):
         return CATALOGO_EXERCICIOS["8"]
+
+    if chave in ("rosca_martelo", "martelo", "hammer_curl", "9"):
+        return CATALOGO_EXERCICIOS["9"]
+
+    if chave in ("triceps_frances", "frances", "french_press", "0", "10"):
+        return CATALOGO_EXERCICIOS["0"]
 
     for item in CATALOGO_EXERCICIOS.values():
         if item["id"].lower() == chave:
