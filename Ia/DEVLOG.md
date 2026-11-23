@@ -26,6 +26,23 @@
 
 ## Histórico de Entradas
 
+### [Entrada #019] 2026-11-23 — [Expansão Biomecânica] Implementação da Puxada Alta na Polia com Enquadramento Posterior (Costas)
+- **Objetivo / História de Usuário:** Reconhecer, contar repetições e avaliar tecnicamente com FSM + DTW a execução da Puxada Alta na Polia / Lat Pulldown gravada sob enquadramento posterior (de costas), orientando o praticante a posicionar a câmera atrás de si para capturar a flexão/extensão dos cotovelos e a adução/elevação dos ombros e escápulas, com detecção de puxada curta, ombro elevado e hiperextensão articular.
+- **Tasks Executadas e Artefatos Gerados:**
+  - `[TASK-PAC.01]` Modelada a FSM `PuxadaAltaCostas` em [`Códigos/exercicios_fsm.py`](../Códigos/exercicios_fsm.py):
+    - Articulações monitoradas: `["cotovelo", "ombro"]`.
+    - Ciclo de 4 fases (`0: Repouso no topo >= 145°`, `1: Puxando concêntrico < 140°`, `2: Fundo da puxada <= 80°`, `3: Retorno excêntrico > 90°`).
+    - Histerese suave perto do topo: retorno a 0 se oscilar e recuar para $\ge 140^\circ$ sem contar repetição e sem acusar erro; e disparo de `PUXADA_CURTA` (-25 pts, desqualificador) se desistir antes do fundo ($\ge 105^\circ$).
+    - Detecção imediata de `OMBRO_ELEVADO` (-15 pts se $ombro > 115^\circ$ na fase 2) e `HIPEREXTENSAO_COTOVELO` (-15 pts se $cotovelo > 175^\circ$ ou $< -2^\circ$).
+    - Cadastrada sob a tecla `"c"` (com aliases `"puxada_alta_costas"`, `"puxada_costas"`, `"costas"`, `"lat_pulldown"`, `"puxada_polia"`, `"11"`, `"p"`) no `CATALOGO_EXERCICIOS` com `"enquadramento": "costas"`.
+  - `[TASK-PAC.02]` Criado o gabarito oficial em [`Gabaritos/gabarito_especialista_puxada_costas.json`](../Gabaritos/gabarito_especialista_puxada_costas.json) e alinhado o gerador canônico em [`Códigos/gabarito.py`](../Códigos/gabarito.py).
+  - `[TASK-PAC.03]` Atualizado o HUD em [`Códigos/app_tempo_real.py`](../Códigos/app_tempo_real.py) com atalho `[C]Costas` e banner: `"ORIENTACAO: Fique de costas para a camera para analise!"`.
+  - `[TASK-PAC.04]` Criada a classe `TestPuxadaAltaCostas` em [`tests/test_pipeline_pontuacao.py`](../tests/test_pipeline_pontuacao.py) cobrindo ciclo ideal, puxada curta, ombro elevado, hiperextensão, histerese suave e alinhamento de gabarito DTW com nota $\ge 95\%$.
+  - **Suíte Total de Testes:** A suíte de pipeline avançou para **101 testes automatizados em `test_pipeline_pontuacao.py`** e **108 testes no total do motor de IA** aprovados com 100% de sucesso.
+- **Decisões Técnicas e Observações:**
+  - O enquadramento de costas é o padrão ouro biomecânico para a puxada alta aberta (pulley), permitindo rastrear o movimento de depressão escapular e a trajetória bilateral dos cotovelos sem oclusão da barra ou do tronco.
+- **Estado Resultante / Próximos Passos:** Catálogo agora conta com 11 exercícios completos (`1` a `9`, `0` e `c`), todos cobertos por testes unitários e de integração, com guardas biomecânicas e gabaritos homologados.
+
 ### [Entrada #018] 2026-11-17 — [Expansão Biomecânica] Implementação do Tríceps Francês Sentado com Enquadramento Lateral
 - **Objetivo / História de Usuário:** Reconhecer, contar repetições e avaliar com Dynamic Time Warping (DTW) e penalidades FSM a execução do Tríceps Francês Sentado (Overhead French Press) com halteres sob visão lateral/perfil, orientando o praticante a posicionar a câmera de lado para capturar a extensão overhead e flexão de cotovelos, detectando extensão incompleta, braço baixo (ombro caído) e hiperextensão articular.
 - **Tasks Executadas e Artefatos Gerados:**

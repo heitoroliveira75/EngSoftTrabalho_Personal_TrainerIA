@@ -242,6 +242,28 @@ def garantir_gabaritos_padrao(sobrescrever: bool = False) -> None:
             descricao="Gabarito padrão ouro para Tríceps Francês Sentado (recorte FSM).",
         ).salvar_json(arq_frances)
 
+    # 8. Puxada Alta (Costas / Lat Pulldown): Cotovelo (165° -> 50° -> 165°), Ombro (145° -> 45° -> 145°)
+    arq_costas = os.path.join(pasta_gabaritos, "gabarito_especialista_puxada_costas.json")
+    if not os.path.exists(arq_costas):
+        serie_costas: List[Dict[str, float]] = []
+        for _ in range(5):
+            serie_costas.append({"cotovelo": 165.0, "ombro": 145.0})
+        for val_t in t:
+            serie_costas.append({
+                "cotovelo": float(165.0 - 115.0 * np.sin(val_t)),
+                "ombro": float(145.0 - 100.0 * np.sin(val_t)),
+            })
+        for _ in range(5):
+            serie_costas.append({"cotovelo": 165.0, "ombro": 145.0})
+
+        dados_costas = extrair_primeira_repeticao("puxada_alta_costas", serie_angulos=serie_costas, lancar_excecao=True)
+        GabaritoExercicio(
+            nome_exercicio="puxada_alta_costas",
+            articulacoes=["cotovelo", "ombro"],
+            dados=dados_costas,
+            descricao="Gabarito padrão ouro para Puxada Alta (Costas) - Visão Posterior.",
+        ).salvar_json(arq_costas)
+
 
 if __name__ == "__main__":
     garantir_gabaritos_padrao(sobrescrever=True)

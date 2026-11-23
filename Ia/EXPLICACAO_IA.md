@@ -108,7 +108,7 @@ Se você clonar o repositório e tiver Python instalado:
    ```bash
    pytest
    ```
-   *Roda 95 testes automatizados de pipeline (108 testes totais) com 100% de sucesso.*
+   *Roda 101 testes automatizados de pipeline (114 testes totais) com 100% de sucesso.*
 
 3. **Executar Demonstração dos Cenários no Orquestrador (Sem Câmera):**
    ```bash
@@ -131,6 +131,7 @@ Se você clonar o repositório e tiver Python instalado:
    * `8`: Seleciona Puxada Alta com Halteres.
    * `9`: Seleciona Rosca Martelo (orientação de perfil/lateral).
    * `0`: Seleciona Tríceps Francês Sentado (orientação de perfil/lateral).
+   * `C`: Seleciona Puxada Alta na Polia (orientação posterior / de costas).
    * `L`: Alterna entre lado Direito e Esquerdo.
    * `R`: Reinicia a contagem e os erros da sessão.
    * `Q`: Fecha o programa.
