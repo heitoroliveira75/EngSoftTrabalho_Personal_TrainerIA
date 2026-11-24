@@ -2,6 +2,7 @@
 Módulo de Buffer de Repetição.
 Acumula os fotogramas capturados durante a execução de qualquer exercício,
 utilizando a Máquina de Estados (FSM) ativa para recortar cada repetição completa.
+Inclui Guardas Biomecânicas (DurationGuard e ROMGuard) contra falsos positivos.
 """
 
 from typing import Dict, List, Optional, Tuple, Any, Union, Type
@@ -14,12 +15,21 @@ from exercicios_fsm import ExercicioBaseFSM, obter_config_exercicio
 class BufferRepeticao:
     """
     Acumula os dados da câmara fotograma a fotograma enquanto uma repetição
-    estiver em andamento e entrega a matriz (T x D) ao término do ciclo.
+    estiver em andamento e entrega a matriz (T x D) ao término do ciclo,
+    validando duração mínima (min_frames) e amplitude mínima de movimento (min_rom).
     """
 
-    def __init__(self, fsm: Any, articulacoes: List[str]):
+    def __init__(
+        self,
+        fsm: Any,
+        articulacoes: List[str],
+        min_frames: int = 6,
+        min_rom: float = 15.0,
+    ):
         self.fsm = fsm
         self.articulacoes = articulacoes
+        self.min_frames = int(min_frames)
+        self.min_rom = float(min_rom)
         self.frames_atuais: List[List[float]] = []
 
     def _extrair_vetor(self, angulos: Dict[str, float]) -> List[float]:
@@ -49,6 +59,13 @@ class BufferRepeticao:
 
         vetor_frame = self._extrair_vetor(angulos)
 
+        # 0. Retorno precoce ao repouso sem completar repetição (ex.: histerese 1 -> 0)
+        if fase_anterior != 0 and fase_atual == 0 and self.fsm.repeticoes == reps_anteriores:
+            self.frames_atuais = []
+            if hasattr(self.fsm, "consumir_erros_repeticao"):
+                self.fsm.consumir_erros_repeticao()
+            return None, erro_imediato
+
         # 1. Início da repetição: saiu do repouso (fase 0) para a fase 1
         if fase_anterior == 0 and fase_atual == 1:
             self.frames_atuais = [vetor_frame]
@@ -59,9 +76,33 @@ class BufferRepeticao:
 
         # 3. Repetição concluída: a FSM incrementou o contador de repetições
         if self.fsm.repeticoes > reps_anteriores and len(self.frames_atuais) > 0:
-            self.frames_atuais.append(vetor_frame)
+            if fase_atual == 0:
+                self.frames_atuais.append(vetor_frame)
             repeticao_completa = np.asarray(self.frames_atuais, dtype=float)
             self.frames_atuais = []
+
+            # --- GUARDAS BIOMECÂNICAS (TASK-CORR.03) ---
+            # 3.1. DurationGuard: descarta repetições muito curtas em tempo/frames
+            if len(repeticao_completa) < self.min_frames:
+                self.fsm.repeticoes = reps_anteriores
+                if hasattr(self.fsm, "consumir_erros_repeticao"):
+                    self.fsm.consumir_erros_repeticao()
+                return None, erro_imediato
+
+            # 3.2. ROMGuard: descarta repetições sem excursão angular real (ruído de câmera)
+            # Para exercícios isométricos (ex.: PranchaAbdominal), a FSM pode definir ISOMETRICO = True
+            is_isometrico = bool(getattr(self.fsm, "ISOMETRICO", False))
+            if not is_isometrico and self.min_rom > 0.0 and repeticao_completa.shape[0] > 1:
+                rom_maxima = max(
+                    float(np.ptp(repeticao_completa[:, col]))
+                    for col in range(repeticao_completa.shape[1])
+                )
+                if rom_maxima < self.min_rom:
+                    self.fsm.repeticoes = reps_anteriores
+                    if hasattr(self.fsm, "consumir_erros_repeticao"):
+                        self.fsm.consumir_erros_repeticao()
+                    return None, erro_imediato
+
             return repeticao_completa, erro_imediato
 
         return None, erro_imediato
@@ -72,13 +113,14 @@ def extrair_primeira_repeticao(
     articulacoes: Optional[List[str]] = None,
     serie_angulos: Optional[List[Dict[str, float]]] = None,
     lancar_excecao: bool = False,
+    min_frames: int = 6,
+    min_rom: float = 15.0,
 ) -> Optional[np.ndarray]:
     """
     Segmenta e extrai a primeira repetição completa de uma série temporal de ângulos.
 
-    Utiliza a FSM do exercício e o BufferRepeticao para determinar com exatidão
-    o fotograma em que o movimento sai do repouso (fase 0 -> 1) até o retorno ao repouso (fase 3 -> 0).
-    Os deltas angulares são calculados internamente via calcular_deltas_angulares() com âncora de 1.2 graus.
+    Utiliza a FSM do exercício e o BufferRepeticao com guardas biomecânicas
+    para determinar com exatidão o fotograma de início e término.
 
     Parâmetros:
         fsm_ou_id: Instância de ExercicioBaseFSM, classe da FSM ou identificador (ex: 'desenvolvimento_ombro', '1').
@@ -87,6 +129,8 @@ def extrair_primeira_repeticao(
         serie_angulos: Lista sequencial de dicionários contendo os ângulos calculados em cada fotograma.
         lancar_excecao: Se True, dispara ValueError quando nenhuma repetição completa for detectada.
                         Se False, retorna None graciosamente.
+        min_frames: Duração mínima em frames para aceitar o ciclo (DurationGuard).
+        min_rom: Amplitude mínima em graus para aceitar o ciclo (ROMGuard).
 
     Retorno:
         np.ndarray de formato (T, D) contendo os frames da primeira repetição, ou None se incompleto.
@@ -118,7 +162,12 @@ def extrair_primeira_repeticao(
             raise ValueError("A série de ângulos fornecida está vazia.")
         return None
 
-    buffer = BufferRepeticao(fsm=fsm_instancia, articulacoes=articulacoes)
+    buffer = BufferRepeticao(
+        fsm=fsm_instancia,
+        articulacoes=articulacoes,
+        min_frames=min_frames,
+        min_rom=min_rom,
+    )
     referencia_deltas: Dict[str, float] = {}
 
     for frame_angulos in serie_angulos:

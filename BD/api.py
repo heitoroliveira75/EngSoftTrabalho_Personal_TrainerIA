@@ -54,6 +54,7 @@ class EditarPerfilRequest(BaseModel):
     sequencia: Optional[int] = None
     maior_sequencia: Optional[int] = None
     checagem: Optional[bool] = None
+    perfil_publico: Optional[bool] = None
 
 class ExercicioTreinoItem(BaseModel):
     exercicio_id: Union[int, str]
@@ -74,6 +75,19 @@ class CriarTreinoRequest(BaseModel):
     nome: str
     descricao: Optional[str] = ""
     pre_montado: Optional[bool] = False
+    dificuldade: Optional[str] = None
+    duracao_minutos: Optional[int] = None
+    pontos_totais: Optional[int] = None
+    exercicios: Optional[List[ExercicioTreinoItem]] = None
+
+    model_config = {"extra": "allow"}
+
+class CopiarTreinoRequest(BaseModel):
+    usuario_destino_id: Optional[str] = None
+    dono_origem_id: Optional[str] = None
+    treino_origem_id: Optional[Union[int, str]] = None
+    nome: Optional[str] = None
+    descricao: Optional[str] = ""
     dificuldade: Optional[str] = None
     duracao_minutos: Optional[int] = None
     pontos_totais: Optional[int] = None
@@ -291,15 +305,24 @@ def api_alterar_senha(req: AlterarSenhaRequest):
 # ============================================================
 
 @app.get("/perfil/{usuario_id}")
-def api_ver_perfil(usuario_id: str, authorization: Optional[str] = Header(None)):
+def api_ver_perfil(
+    usuario_id: str,
+    solicitante_id: Optional[str] = Query(None),
+    authorization: Optional[str] = Header(None),
+):
     token = _extrair_token_bearer(authorization)
-    if token and not bd.verificar_e_atualizar_sessao_ativa(usuario_id, token):
+    id_sessao_verificar = solicitante_id.strip() if (solicitante_id and solicitante_id.strip()) else usuario_id
+    if token and not bd.verificar_e_atualizar_sessao_ativa(id_sessao_verificar, token):
         return {
             "sucesso": False,
             "sessao_encerrada": True,
             "mensagem": "Sua sessão foi encerrada porque sua conta foi acessada em outro dispositivo.",
         }
-    resposta = bd.ver_perfil(usuario_id, token=token) if token else bd.ver_perfil(usuario_id)
+    resposta = bd.ver_perfil(
+        usuario_id,
+        token=token,
+        solicitante_id=solicitante_id,
+    )
     return resposta
 
 @app.put("/perfil/{usuario_id}")
@@ -313,7 +336,9 @@ def api_editar_perfil(usuario_id: str, req: EditarPerfilRequest, authorization: 
         cpf=req.cpf,
         sequencia=req.sequencia,
         maior_sequencia=req.maior_sequencia,
-        checagem=req.checagem
+        checagem=req.checagem,
+        perfil_publico=req.perfil_publico,
+        token=token,
     )
     return resposta
 
@@ -345,11 +370,49 @@ def api_ver_treinos_por_dificuldade(dificuldade: str):
     return resposta
 
 @app.get("/treinos/usuario/{usuario_id}")
-def api_listar_treinos_usuario(usuario_id: str, authorization: Optional[str] = Header(None)):
+def api_listar_treinos_usuario(
+    usuario_id: str,
+    solicitante_id: Optional[str] = Query(None),
+    authorization: Optional[str] = Header(None),
+):
     token = _extrair_token_bearer(authorization)
+    id_sessao = solicitante_id.strip() if (solicitante_id and solicitante_id.strip()) else usuario_id
     if token:
-        bd.verificar_e_atualizar_sessao_ativa(usuario_id, token)
-    resposta = bd.listar_treinos(usuario_id)
+        bd.verificar_e_atualizar_sessao_ativa(id_sessao, token)
+    resposta = bd.listar_treinos(
+        usuario_id,
+        token=token,
+        solicitante_id=solicitante_id,
+    )
+    return resposta
+
+@app.post("/treinos/copiar")
+def api_copiar_treino(req: CopiarTreinoRequest, authorization: Optional[str] = Header(None)):
+    token = _extrair_token_bearer(authorization)
+    usuario_destino_id = req.usuario_destino_id
+    if not usuario_destino_id:
+        usuario_atual = bd.obter_usuario_atual(token=token)
+        if usuario_atual and usuario_atual.get("id"):
+            usuario_destino_id = str(usuario_atual["id"])
+    elif token:
+        bd.verificar_e_atualizar_sessao_ativa(usuario_destino_id, token)
+
+    exercicios_dict = None
+    if req.exercicios is not None:
+        exercicios_dict = [item.model_dump() for item in req.exercicios]
+
+    resposta = bd.copiar_treino_atleta(
+        usuario_destino_id=usuario_destino_id or "",
+        dono_origem_id=req.dono_origem_id,
+        treino_origem_id=req.treino_origem_id,
+        nome=req.nome,
+        descricao=req.descricao or "",
+        dificuldade=req.dificuldade,
+        duracao_minutos=req.duracao_minutos,
+        pontos_totais=req.pontos_totais,
+        exercicios=exercicios_dict,
+        token=token,
+    )
     return resposta
 
 @app.post("/treinos")

@@ -88,10 +88,10 @@ def desenhar_painel_hud(
     # Linha 1: Exercício ativo, lado e atalhos
     cv2.putText(
         frame,
-        f"Ex: {nome_exercicio} ({lado.upper()}) | [1]Ombro [2]Agach [3]Rosca [4]Elev [5]Triceps [6]Flexao [7]Remada [Q]Sair",
+        f"Ex: {nome_exercicio} ({lado.upper()}) | [1-8]Exs [9]Martelo [0]Frances [C]Costas [P]Prancha [Q]Sair",
         (12, 25),
         cv2.FONT_HERSHEY_SIMPLEX,
-        0.52,
+        0.48,
         (255, 255, 255),
         1,
     )
@@ -164,6 +164,27 @@ def desenhar_painel_hud(
         (255, 255, 255),
         1,
     )
+
+    if any(ex in nome_exercicio.lower() for ex in ("martelo", "frances", "prancha")):
+        cv2.putText(
+            frame,
+            "ORIENTACAO: Fique de perfil / lateral para analise!",
+            (420, 180),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.52,
+            (0, 215, 255),
+            2,
+        )
+    elif "costas" in nome_exercicio.lower():
+        cv2.putText(
+            frame,
+            "ORIENTACAO: Fique de costas para a camera para analise!",
+            (400, 180),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            0.52,
+            (0, 215, 255),
+            2,
+        )
 
 
 def main():
@@ -249,8 +270,8 @@ def main():
                 frame=frame,
                 nome_exercicio=config["nome"],
                 lado=lado_ativo,
-                repeticoes=orquestrador.fsm.repeticoes,
-                fase_texto=orquestrador.fsm.nome_fase_atual,
+                repeticoes=orquestrador.total_repeticoes,
+                fase_texto="Aguardando Enquadramento" if not corpo_visivel else orquestrador.fsm.nome_fase_atual,
                 angulos=angulos_atuais,
                 corpo_visivel=corpo_visivel,
                 alerta_imediato=alerta_imediato_texto,

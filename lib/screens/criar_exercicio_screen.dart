@@ -1080,7 +1080,11 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
                                           const SizedBox(height: 6),
 
                                           // Informações de Séries, Reps e Total de Reps
-                                          Row(
+                                          Wrap(
+                                            spacing: 6,
+                                            runSpacing: 4,
+                                            crossAxisAlignment:
+                                                WrapCrossAlignment.center,
                                             children: [
                                               Container(
                                                 padding: const EdgeInsets.symmetric(
@@ -1088,7 +1092,7 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
                                                   vertical: 2,
                                                 ),
                                                 decoration: BoxDecoration(
-                                                  color: Colors.white12,
+                                                  color: Colors.white24,
                                                   borderRadius: BorderRadius.circular(6),
                                                 ),
                                                 child: Text(
@@ -1100,16 +1104,11 @@ class _CriarExercicioScreenState extends State<CriarExercicioScreen> {
                                                   ),
                                                 ),
                                               ),
-
-                                              const SizedBox(width: 6),
-
-                                              Flexible(
-                                                child: Text(
-                                                  '(${item.totalRepeticoes} totais)',
-                                                  style: const TextStyle(
-                                                    color: Colors.white60,
-                                                    fontSize: 11,
-                                                  ),
+                                              Text(
+                                                '(${item.totalRepeticoes} totais)',
+                                                style: const TextStyle(
+                                                  color: Colors.white60,
+                                                  fontSize: 11,
                                                 ),
                                               ),
                                             ],

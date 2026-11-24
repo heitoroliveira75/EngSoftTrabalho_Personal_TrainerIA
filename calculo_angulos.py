@@ -24,10 +24,12 @@ MAPA_ARTICULACOES = {
 }
 
 
-def calcular_angulo(ponto_a, ponto_b, ponto_c) -> float:
+def calcular_angulo(ponto_a, ponto_b, ponto_c, com_sinal: bool = False) -> float:
     """
     Calcula o ângulo formado no ponto B (vértice) entre as retas BA e BC.
-    Retorna o ângulo em graus no intervalo [0.0, 180.0].
+    Se com_sinal=False (padrão): Retorna o ângulo em graus no intervalo [0.0, 180.0].
+    Se com_sinal=True: Retorna o ângulo orientado em graus no intervalo [-180.0, 180.0],
+    preservando o sinal do produto vetorial 2D (sentido horário vs anti-horário).
     """
     a = np.array(ponto_a[:2], dtype=float)
     b = np.array(ponto_b[:2], dtype=float)
@@ -36,23 +38,33 @@ def calcular_angulo(ponto_a, ponto_b, ponto_c) -> float:
     vetor_ba = a - b
     vetor_bc = c - b
 
-    rad_ba = np.arctan2(vetor_ba[1], vetor_ba[0])
-    rad_bc = np.arctan2(vetor_bc[1], vetor_bc[0])
+    cross_2d = float(vetor_ba[0] * vetor_bc[1] - vetor_ba[1] * vetor_bc[0])
+    dot_2d = float(np.dot(vetor_ba, vetor_bc))
 
-    diferenca = np.abs(rad_ba - rad_bc)
-    angulo_graus = np.degrees(diferenca)
+    angulo_rad = np.arctan2(cross_2d, dot_2d)
+    angulo_graus = np.degrees(angulo_rad)
 
-    if angulo_graus > 180.0:
-        angulo_graus = 360.0 - angulo_graus
+    if not com_sinal:
+        angulo_graus = np.abs(angulo_graus)
 
     return round(float(angulo_graus), 2)
+
+
+def calcular_angulo_orientado(ponto_a, ponto_b, ponto_c) -> float:
+    """
+    Calcula o ângulo orientado com sinal no intervalo [-180.0, 180.0] graus.
+    Preserva a rotação e sentido da articulação via produto vetorial 2D.
+    Permite diferenciar flexão de hiperextensão e inclinação anterior de posterior.
+    """
+    return calcular_angulo(ponto_a, ponto_b, ponto_c, com_sinal=True)
 
 
 def extrair_angulos_exercicio(
     landmarks,
     articulacoes: List[str],
     lado: str = "direito",
-    visibilidade_minima: float = 0.5
+    visibilidade_minima: float = 0.5,
+    com_sinal: bool = False
 ) -> Tuple[Dict[str, float], bool]:
     """
     Extrai apenas os ângulos exigidos pelo exercício ativo e verifica se
@@ -82,10 +94,9 @@ def extrair_angulos_exercicio(
         ponto_b = [pts[1].x, pts[1].y]
         ponto_c = [pts[2].x, pts[2].y]
 
-        angulos[nome_art] = calcular_angulo(ponto_a, ponto_b, ponto_c)
+        angulos[nome_art] = calcular_angulo(ponto_a, ponto_b, ponto_c, com_sinal=com_sinal)
 
     return angulos, visivel
-
 
 
 def calcular_deltas_angulares(

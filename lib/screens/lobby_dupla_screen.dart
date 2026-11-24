@@ -46,6 +46,11 @@ class _LobbyDuplaScreenState extends State<LobbyDuplaScreen> {
         nomeLower.contains('squat') ||
         nomeLower.contains('perna')) {
       return '11';
+    } else if (raw == '22' ||
+        raw == '9' ||
+        nomeLower.contains('martelo') ||
+        nomeLower.contains('hammer')) {
+      return '22';
     } else if (raw == '20' ||
         raw == '3' ||
         nomeLower.contains('rosca') ||
@@ -53,10 +58,17 @@ class _LobbyDuplaScreenState extends State<LobbyDuplaScreen> {
         nomeLower.contains('bíceps')) {
       return '20';
     } else if (raw == '17' ||
+        raw == '18' ||
         raw == '4' ||
         nomeLower.contains('eleva') ||
         nomeLower.contains('lateral')) {
       return '17';
+    } else if (raw == '26' ||
+        raw == '0' ||
+        nomeLower.contains('frances') ||
+        nomeLower.contains('francês') ||
+        nomeLower.contains('testa')) {
+      return '26';
     } else if (raw == '24' ||
         raw == '23' ||
         raw == '5' ||
@@ -67,9 +79,26 @@ class _LobbyDuplaScreenState extends State<LobbyDuplaScreen> {
     } else if (raw == '6' ||
         nomeLower.contains('diamante') ||
         (nomeLower.contains('flex') && !nomeLower.contains('mesa') && !nomeLower.contains('cadeira'))) {
-      return '5';
-    } else if (raw == '7' || nomeLower.contains('remada')) {
+      return '6';
+    } else if (raw == '8' && (nomeLower.contains('puxada') || nomeLower.contains('alta'))) {
+      return '8';
+    } else if (raw == 'c' ||
+        nomeLower.contains('puxada frontal') ||
+        nomeLower.contains('puxada costas') ||
+        nomeLower.contains('pulldown')) {
+      return 'c';
+    } else if (raw == '8' ||
+        nomeLower.contains('puxada alta') ||
+        nomeLower.contains('remada alta')) {
+      return '8';
+    } else if (raw == '7' || raw == '10' || nomeLower.contains('remada')) {
       return '7';
+    } else if (raw == '29' ||
+        raw == 'p' ||
+        raw == '12' ||
+        nomeLower.contains('prancha') ||
+        nomeLower.contains('plank')) {
+      return '29';
     } else {
       return '16';
     }

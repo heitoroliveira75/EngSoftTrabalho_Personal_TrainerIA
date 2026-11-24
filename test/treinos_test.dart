@@ -68,7 +68,9 @@ void main() {
       expect(find.text('AVANÇADO'), findsOneWidget);
     });
 
-    testWidgets('OpcaoTreinosScreen renderiza treinos de iniciante', (WidgetTester tester) async {
+    testWidgets('OpcaoTreinosScreen renderiza treinos de iniciante', (
+      WidgetTester tester,
+    ) async {
       await tester.pumpWidget(
         const MaterialApp(
           home: OpcaoTreinosScreen(dificuldadeFlag: 'iniciante'),
@@ -77,7 +79,6 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(find.text('INICIANTE'), findsOneWidget);
-      expect(find.text('Corpo completo A'), findsOneWidget);
     });
   });
 

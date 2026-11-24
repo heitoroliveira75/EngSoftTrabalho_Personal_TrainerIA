@@ -60,7 +60,12 @@ class GabaritoExercicio:
             nome_base = os.path.basename(caminho_arquivo)
             raiz_repo = os.path.dirname(raiz_projeto)
             candidato = os.path.join(raiz_projeto, nome_base)
-            for cand in [os.path.join("Gabaritos", nome_base), os.path.join(raiz_repo, "Gabaritos", nome_base), candidato]:
+            for cand in [
+                os.path.join("Gabaritos", nome_base),
+                os.path.join(raiz_projeto, "Gabaritos", nome_base),
+                os.path.join(raiz_repo, "Gabaritos", nome_base),
+                candidato,
+            ]:
                 if os.path.exists(cand):
                     candidato = cand
                     break
@@ -79,17 +84,18 @@ class GabaritoExercicio:
 
 def garantir_gabaritos_padrao(sobrescrever: bool = False) -> None:
     """
-    Cria ou regenera os arquivos JSON de referência para Desenvolvimento de Ombro,
-    Agachamento e Rosca de Bíceps utilizando o segmentador canônico da FSM.
+    Cria ou regenera os arquivos JSON de referência para os exercícios utilizando
+    o segmentador canônico da FSM.
 
     Parâmetros:
         sobrescrever: Se True, recria os gabaritos no disco mesmo se já existirem.
     """
     frames_movimento = 45
     t = np.linspace(0, np.pi, frames_movimento)
+    pasta_gabaritos = "Gabaritos" if os.path.exists("Gabaritos") else "."
 
     # 1. Desenvolvimento de Ombro: Cotovelo (90° -> 165° -> 90°), Ombro (80° -> 155° -> 80°)
-    arq_ombro = "gabarito_especialista_ombro.json"
+    arq_ombro = os.path.join(pasta_gabaritos, "gabarito_especialista_ombro.json")
     if sobrescrever or not os.path.exists(arq_ombro):
         serie_ombro: List[Dict[str, float]] = []
         for _ in range(5):
@@ -111,7 +117,7 @@ def garantir_gabaritos_padrao(sobrescrever: bool = False) -> None:
         ).salvar_json(arq_ombro)
 
     # 2. Agachamento Livre: Joelho (170° -> 90° -> 170°), Quadril (170° -> 85° -> 170°)
-    arq_agachamento = "gabarito_especialista_agachamento.json"
+    arq_agachamento = os.path.join(pasta_gabaritos, "gabarito_especialista_agachamento.json")
     if sobrescrever or not os.path.exists(arq_agachamento):
         serie_agach: List[Dict[str, float]] = []
         for _ in range(5):
@@ -133,7 +139,7 @@ def garantir_gabaritos_padrao(sobrescrever: bool = False) -> None:
         ).salvar_json(arq_agachamento)
 
     # 3. Rosca Direta de Bíceps: Cotovelo (165° -> 50° -> 165°), Ombro estável (~15°)
-    arq_rosca = "gabarito_especialista_rosca.json"
+    arq_rosca = os.path.join(pasta_gabaritos, "gabarito_especialista_rosca.json")
     if sobrescrever or not os.path.exists(arq_rosca):
         serie_rosca: List[Dict[str, float]] = []
         for _ in range(5):
@@ -155,7 +161,6 @@ def garantir_gabaritos_padrao(sobrescrever: bool = False) -> None:
         ).salvar_json(arq_rosca)
 
     # 4. Elevação Lateral: Ombro (20° -> 90° -> 20°), Cotovelo estável (~160°)
-    pasta_gabaritos = "Gabaritos" if os.path.exists("Gabaritos") else "."
     arq_elevacao = os.path.join(pasta_gabaritos, "gabarito_especialista_elevacao_lateral.json")
     if sobrescrever or not os.path.exists(arq_elevacao):
         serie_elev: List[Dict[str, float]] = []
@@ -176,6 +181,93 @@ def garantir_gabaritos_padrao(sobrescrever: bool = False) -> None:
             dados=dados_elev,
             descricao="Gabarito padrão ouro para Elevação Lateral (recorte FSM).",
         ).salvar_json(arq_elevacao)
+
+    # 5. Puxada Alta com Halteres: Ombro (20° -> 110° -> 20°), Cotovelo (165° -> 60° -> 165°)
+    arq_puxada = os.path.join(pasta_gabaritos, "gabarito_especialista_puxada_alta.json")
+    if not os.path.exists(arq_puxada):
+        serie_puxada: List[Dict[str, float]] = []
+        for _ in range(5):
+            serie_puxada.append({"ombro": 20.0, "cotovelo": 165.0})
+        for val_t in t:
+            serie_puxada.append({
+                "ombro": float(20.0 + 90.0 * np.sin(val_t)),
+                "cotovelo": float(165.0 - 105.0 * np.sin(val_t)),
+            })
+        for _ in range(5):
+            serie_puxada.append({"ombro": 20.0, "cotovelo": 165.0})
+
+        dados_puxada = extrair_primeira_repeticao("puxada_alta_halteres", serie_angulos=serie_puxada, lancar_excecao=True)
+        GabaritoExercicio(
+            nome_exercicio="puxada_alta_halteres",
+            articulacoes=["ombro", "cotovelo"],
+            dados=dados_puxada,
+            descricao="Gabarito padrão ouro para Puxada Alta com Halteres (recorte FSM).",
+        ).salvar_json(arq_puxada)
+
+    # 6. Rosca Martelo (Hammer Curl): Cotovelo (165° -> 55° -> 165°)
+    arq_martelo = os.path.join(pasta_gabaritos, "gabarito_especialista_rosca_martelo.json")
+    if sobrescrever or not os.path.exists(arq_martelo):
+        serie_martelo: List[Dict[str, float]] = []
+        for _ in range(5):
+            serie_martelo.append({"cotovelo": 165.0})
+        for val_t in t:
+            serie_martelo.append({
+                "cotovelo": float(165.0 - 110.0 * np.sin(val_t)),
+            })
+        for _ in range(5):
+            serie_martelo.append({"cotovelo": 165.0})
+
+        dados_martelo = extrair_primeira_repeticao("rosca_martelo", serie_angulos=serie_martelo, lancar_excecao=True)
+        GabaritoExercicio(
+            nome_exercicio="rosca_martelo",
+            articulacoes=["cotovelo"],
+            dados=dados_martelo,
+            descricao="Gabarito padrão ouro para Rosca Martelo (recorte FSM, foco no cotovelo).",
+        ).salvar_json(arq_martelo)
+
+    # 7. Tríceps Francês Sentado: Cotovelo (160° -> 65° -> 160°), Ombro elevado (~160°)
+    arq_frances = os.path.join(pasta_gabaritos, "gabarito_especialista_triceps_frances.json")
+    if sobrescrever or not os.path.exists(arq_frances):
+        serie_frances: List[Dict[str, float]] = []
+        for _ in range(5):
+            serie_frances.append({"cotovelo": 160.0, "ombro": 160.0})
+        for val_t in t:
+            serie_frances.append({
+                "cotovelo": float(160.0 - 95.0 * np.sin(val_t)),
+                "ombro": float(160.0 + 3.0 * np.sin(val_t)),
+            })
+        for _ in range(5):
+            serie_frances.append({"cotovelo": 160.0, "ombro": 160.0})
+
+        dados_frances = extrair_primeira_repeticao("triceps_frances", serie_angulos=serie_frances, lancar_excecao=True)
+        GabaritoExercicio(
+            nome_exercicio="triceps_frances",
+            articulacoes=["cotovelo", "ombro"],
+            dados=dados_frances,
+            descricao="Gabarito padrão ouro para Tríceps Francês Sentado (recorte FSM).",
+        ).salvar_json(arq_frances)
+
+    # 8. Puxada Alta (Costas / Lat Pulldown): Cotovelo (165° -> 50° -> 165°), Ombro (145° -> 45° -> 145°)
+    arq_costas = os.path.join(pasta_gabaritos, "gabarito_especialista_puxada_costas.json")
+    if not os.path.exists(arq_costas):
+        serie_costas: List[Dict[str, float]] = []
+        for _ in range(5):
+            serie_costas.append({"cotovelo": 165.0, "ombro": 145.0})
+        for val_t in t:
+            serie_costas.append({
+                "cotovelo": float(165.0 - 115.0 * np.sin(val_t)),
+                "ombro": float(145.0 - 100.0 * np.sin(val_t)),
+            })
+        for _ in range(5):
+            serie_costas.append({"cotovelo": 165.0, "ombro": 145.0})
+
+        dados_costas = extrair_primeira_repeticao("puxada_alta_costas", serie_angulos=serie_costas, lancar_excecao=True)
+        GabaritoExercicio(
+            nome_exercicio="puxada_alta_costas",
+            articulacoes=["cotovelo", "ombro"],
+            dados=dados_costas,
+            descricao="Gabarito padrão ouro para Puxada Alta (Costas) - Visão Posterior.",
+        ).salvar_json(arq_costas)
 
 
 if __name__ == "__main__":

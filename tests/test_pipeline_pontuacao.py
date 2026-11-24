@@ -7,12 +7,11 @@ import pytest
 import numpy as np
 import sys
 from pathlib import Path
-_DIR_CODIGOS = Path(__file__).resolve().parent.parent / "Códigos"
-if str(_DIR_CODIGOS) not in sys.path:
-    sys.path.insert(0, str(_DIR_CODIGOS))
 from typing import Optional, List, Dict, Any
 from types import ModuleType, SimpleNamespace
-from calculo_angulos import calcular_angulo, calcular_deltas_angulares
+from calculo_angulos import calcular_angulo, calcular_angulo_orientado, calcular_deltas_angulares
+from exercicios_fsm import ExercicioBaseFSM
+from buffer_repeticao import BufferRepeticao
 
 
 class TestCalculoAngulos:
@@ -25,6 +24,19 @@ class TestCalculoAngulos:
         # Linha reta: A=(-1, 0), B=(0, 0), C=(1, 0) -> 180 graus
         ang = calcular_angulo((-1, 0), (0, 0), (1, 0))
         assert pytest.approx(ang, rel=1e-2) == 180.0
+
+    def test_calcular_angulo_orientado_sinais(self):
+        # Sentido anti-horário: BA=(1, 0) -> BC=(0, 1) produz ângulo positivo (+90 graus)
+        ang_pos = calcular_angulo_orientado((1, 0), (0, 0), (0, 1))
+        assert pytest.approx(ang_pos, rel=1e-2) == 90.0
+
+        # Sentido horário: BA=(0, 1) -> BC=(1, 0) produz ângulo negativo (-90 graus)
+        ang_neg = calcular_angulo_orientado((0, 1), (0, 0), (1, 0))
+        assert pytest.approx(ang_neg, rel=1e-2) == -90.0
+
+        # Retrocompatibilidade: calcular_angulo sem sinal retorna magnitude positiva
+        assert pytest.approx(calcular_angulo((1, 0), (0, 0), (0, 1)), rel=1e-2) == 90.0
+        assert pytest.approx(calcular_angulo((0, 1), (0, 0), (1, 0)), rel=1e-2) == 90.0
 
     def test_calcular_deltas_inicializacao(self):
         referencia = {}
@@ -152,11 +164,87 @@ from exercicios_fsm import (
     DesenvolvimentoOmbro,
     Agachamento,
     RoscaBiceps,
+    ElevacaoLateral,
+    TricepsCorda,
+    FlexaoDiamante,
+    RemadaBaixa,
     obter_config_exercicio,
 )
 
 
 class TestExerciciosFSM:
+    def test_histerese_rejeita_ruido_estatico_no_repouso(self):
+        """[TASK-CORR.04] Garante que ruído estático no repouso não faz a FSM sair da fase 0."""
+        fsm = DesenvolvimentoOmbro()
+        pos = {}
+        for val in [89.0, 91.0, 92.5, 91.0, 89.5, 90.5]:
+            fsm.classificar({"cotovelo": val, "ombro": 80.0}, pos, {"cotovelo": 0.8})
+            assert fsm.fases[1] == 0
+            assert fsm.repeticoes == 0
+            assert fsm.erros == []
+
+    def test_histerese_recupera_para_repouso_sem_erro_se_movimento_mal_iniciou(self):
+        """[TASK-CORR.04] Se o usuário subiu apenas 3 graus além do limiar e voltou, não acusa incompleto."""
+        fsm = DesenvolvimentoOmbro()
+        pos = {}
+        fsm.classificar({"cotovelo": 105.0, "ombro": 80.0}, pos, {"cotovelo": 2.5})
+        assert fsm.fases[1] == 1
+        erro = fsm.classificar({"cotovelo": 100.0, "ombro": 80.0}, pos, {"cotovelo": -3.0})
+        assert fsm.fases[1] == 0
+        assert erro is None
+        assert fsm.repeticoes == 0
+        assert fsm.erros == []
+
+    def test_histerese_todas_as_7_fsms_imunes_a_ruido_estatico(self):
+        """[TASK-CORR.04] Valida que nenhuma das 7 FSMs acumula repetições falsas sob ruído estático."""
+        casos = [
+            (DesenvolvimentoOmbro, {"cotovelo": 90.0, "ombro": 80.0}, "cotovelo"),
+            (Agachamento, {"joelho": 175.0, "quadril": 170.0}, "joelho"),
+            (RoscaBiceps, {"cotovelo": 165.0, "ombro": 15.0}, "cotovelo"),
+            (ElevacaoLateral, {"ombro": 25.0, "cotovelo": 160.0}, "ombro"),
+            (TricepsCorda, {"cotovelo": 80.0, "ombro": 15.0}, "cotovelo"),
+            (FlexaoDiamante, {"cotovelo": 160.0, "ombro": 50.0}, "cotovelo"),
+            (RemadaBaixa, {"cotovelo": 160.0, "ombro": 30.0, "quadril": 90.0}, "cotovelo"),
+        ]
+
+        for classe_fsm, pose_base, art_principal in casos:
+            fsm = classe_fsm()
+            val_base = pose_base[art_principal]
+            for i in range(25):
+                ruido = float(np.sin(i * 1.5) * 2.0)
+                pose_frame = dict(pose_base)
+                pose_frame[art_principal] = val_base + ruido
+                fsm.classificar(pose_frame, {}, {art_principal: float(ruido * 0.4)})
+                assert fsm.repeticoes == 0, f"FSM {classe_fsm.__name__} contou repetição indevida com ruído!"
+
+    def test_histerese_recuperacao_suave_em_todos_os_exercicios(self):
+        """
+        [TASK-CORR.04] Valida que um início precoce com recuo suave retorna à fase 0
+        em todos os 7 exercícios sem disparar repetição falsa ou penalidade.
+        """
+        cenarios = [
+            (DesenvolvimentoOmbro, {"cotovelo": 105.0, "ombro": 80.0}, {"cotovelo": 100.0, "ombro": 80.0}, "cotovelo", 2.5, -3.0),
+            (Agachamento, {"joelho": 153.0, "quadril": 170.0}, {"joelho": 156.0, "quadril": 170.0}, "joelho", -2.5, 3.0),
+            (RoscaBiceps, {"cotovelo": 143.0, "ombro": 15.0}, {"cotovelo": 146.0, "ombro": 15.0}, "cotovelo", -2.5, 3.0),
+            (ElevacaoLateral, {"ombro": 52.0, "cotovelo": 160.0}, {"ombro": 45.0, "cotovelo": 160.0}, "ombro", 2.5, -3.0),
+            (TricepsCorda, {"cotovelo": 97.0, "ombro": 15.0}, {"cotovelo": 94.0, "ombro": 15.0}, "cotovelo", 2.5, -3.0),
+            (FlexaoDiamante, {"cotovelo": 128.0, "ombro": 50.0}, {"cotovelo": 136.0, "ombro": 50.0}, "cotovelo", -2.5, 3.0),
+            (RemadaBaixa, {"cotovelo": 138.0, "ombro": 30.0, "quadril": 90.0}, {"cotovelo": 142.0, "ombro": 30.0, "quadril": 90.0}, "cotovelo", -2.5, 3.0),
+        ]
+
+        for classe_fsm, pose_inicio, pose_recuo, art, d_in, d_out in cenarios:
+            fsm = classe_fsm()
+            # 1. Sai levemente do repouso para fase 1
+            fsm.classificar(pose_inicio, {}, {art: d_in})
+            assert fsm.fases[1] == 1, f"{classe_fsm.__name__} deveria ter iniciado fase 1"
+
+            # 2. Recua antes da zona de aborto -> deve voltar suavemente para a fase 0 sem acusar erro
+            erro = fsm.classificar(pose_recuo, {}, {art: d_out})
+            assert fsm.fases[1] == 0, f"{classe_fsm.__name__} deveria ter retornado à fase 0 na histerese"
+            assert erro is None, f"{classe_fsm.__name__} acusou erro indevido {erro} no recuo precoce"
+            assert fsm.repeticoes == 0, f"{classe_fsm.__name__} incrementou repetições indevidamente"
+            assert fsm.erros == [], f"{classe_fsm.__name__} registrou erros residuais: {fsm.erros}"
+
     def test_desenvolvimento_ombro_ciclo_ideal(self):
         fsm = DesenvolvimentoOmbro()
         pos = {}
@@ -523,6 +611,58 @@ class TestSegmentadorCanonicoEGabarito:
         assert pytest.approx(res.distancia_normalizada, abs=1e-3) == 0.0
 
 
+class TestGuardasBiomecanicasBuffer:
+    """[TASK-CORR.03] Valida a rejeição de falsos positivos pelo BufferRepeticao."""
+
+    def test_duration_guard_rejeita_ciclo_ultracurto(self):
+        class FSMFalsaCurta(ExercicioBaseFSM):
+            def identificar_fase(self, a, p, d):
+                return 0
+            def classificar(self, a, p, d):
+                self.fases = [3, 0]
+                self.repeticoes += 1
+                return None
+
+        fsm = FSMFalsaCurta()
+        buffer = BufferRepeticao(fsm=fsm, articulacoes=["cotovelo"], min_frames=6, min_rom=15.0)
+        buffer.frames_atuais = [[90.0], [95.0], [90.0]]
+        rep, erro = buffer.processar_frame({"cotovelo": 90.0})
+        assert rep is None
+
+    def test_rom_guard_rejeita_oscilacao_sem_amplitude_real(self):
+        class FSMFalsaOscilacao(ExercicioBaseFSM):
+            def identificar_fase(self, a, p, d):
+                return 0
+            def classificar(self, a, p, d):
+                self.fases = [3, 0]
+                self.repeticoes += 1
+                return None
+
+        fsm = FSMFalsaOscilacao()
+        buffer = BufferRepeticao(fsm=fsm, articulacoes=["cotovelo"], min_frames=6, min_rom=15.0)
+        buffer.frames_atuais = [[90.0 + (i % 2) * 2.0] for i in range(14)]
+        rep, erro = buffer.processar_frame({"cotovelo": 90.0})
+        assert rep is None
+
+    def test_guardas_aceitam_repeticao_com_duracao_e_amplitude_validas(self):
+        class FSMValida(ExercicioBaseFSM):
+            def identificar_fase(self, a, p, d):
+                return 0
+            def classificar(self, a, p, d):
+                self.fases = [3, 0]
+                self.repeticoes += 1
+                return None
+
+        fsm = FSMValida()
+        buffer = BufferRepeticao(fsm=fsm, articulacoes=["cotovelo"], min_frames=6, min_rom=15.0)
+        t = np.linspace(0, np.pi, 20)
+        buffer.frames_atuais = [[float(90.0 + 70.0 * np.sin(val))] for val in t]
+        rep, erro = buffer.processar_frame({"cotovelo": 90.0})
+        assert rep is not None
+        assert isinstance(rep, np.ndarray)
+        assert rep.shape[0] == 21
+
+
 class TestOrquestradorEAvaliadorPontuacao:
     def _criar_frames_desenvolvimento(self, n_mov=45, margem=5, desvio_ombro=0.0):
         t = np.linspace(0, np.pi, n_mov)
@@ -673,6 +813,31 @@ class TestOrquestradorEAvaliadorPontuacao:
         assert res is None
         assert orq.buffer.frames_atuais == []
 
+    def test_presence_gate_sem_repeticao_fantasma_quando_invisivel_ou_vazio(self):
+        """
+        [TASK-CORR.02] Garante que frames sem visibilidade ou com marcos vazios
+        não progridem a FSM, não criam deltas espúrios e não contam repetições fantasma.
+        """
+        orq = OrquestradorSessao("desenvolvimento_ombro", limite_frames_invisivel=15)
+
+        # 1. Simula 50 frames sem detecção (câmera vazia)
+        for _ in range(50):
+            alerta, rep = orq.processar_frame(angulos={}, visivel=False)
+            assert rep is None
+
+        assert orq.total_repeticoes == 0
+        assert orq.fsm.repeticoes == 0
+        assert orq.buffer.frames_atuais == []
+        assert len(orq.referencia_deltas) == 0
+
+        # 2. Usuário entra no quadro em uma pose qualquer
+        alerta, rep = orq.processar_frame({"cotovelo": 120.0, "ombro": 100.0}, visivel=True)
+        assert rep is None
+        # Na primeira leitura visível, a referência é ancorada com deltas zerados
+        assert orq.referencia_deltas["cotovelo"] == 120.0
+        assert orq.fsm.fases[1] == 0
+        assert orq.total_repeticoes == 0
+
     def test_orquestrador_trocar_exercicio_e_reiniciar_serie(self):
         orq = OrquestradorSessao("desenvolvimento_ombro")
         assert orq.id_exercicio == "desenvolvimento_ombro"
@@ -688,6 +853,43 @@ class TestOrquestradorEAvaliadorPontuacao:
         orq.reiniciar_serie()
         assert len(orq.historico_repeticoes) == 0
         assert orq.fsm.repeticoes == 0
+
+    def test_calcular_pontuacao_com_alinhamento_baseline_offset_estatico(self):
+        # Valida que uma repetição com offset constante (ex.: biotipo diferente ou câmera inclinada
+        # que adiciona +10 graus em todas as articulações) obtém score alto quando alinhar_baseline=True
+        gab = GabaritoExercicio.carregar_json("gabarito_especialista_ombro.json")
+        conf = {"classe_fsm": DesenvolvimentoOmbro}
+
+        # Simula aluno com deslocamento de +10.0 graus em cotovelo e +8.0 graus no ombro
+        dados_aluno_com_offset = np.column_stack((
+            gab.dados[:, 0] + 10.0,
+            gab.dados[:, 1] + 8.0,
+        ))
+
+        # 1. Com alinhamento de baseline (novo padrão) -> avalia a forma/morfologia
+        res_alinhado = calcular_pontuacao(
+            dados_usuario=dados_aluno_com_offset,
+            gabarito=gab,
+            erros_fsm=[],
+            fsm_ou_config=conf,
+            alinhar_baseline=True,
+        )
+        assert res_alinhado.aprovado is True
+        assert res_alinhado.score_final >= 95.0
+        # O diagnóstico real deve continuar registrando os desvios médios brutos reais (10° e 8°)
+        assert pytest.approx(res_alinhado.desvios_por_articulacao["cotovelo"], abs=1e-1) == 10.0
+        assert pytest.approx(res_alinhado.desvios_por_articulacao["ombro"], abs=1e-1) == 8.0
+
+        # 2. Sem alinhamento de baseline -> penaliza o deslocamento constante
+        res_sem_alinhamento = calcular_pontuacao(
+            dados_usuario=dados_aluno_com_offset,
+            gabarito=gab,
+            erros_fsm=[],
+            fsm_ou_config=conf,
+            alinhar_baseline=False,
+        )
+        # O score sem alinhamento é estritamente menor do que com alinhamento de baseline
+        assert res_sem_alinhamento.score_final < res_alinhado.score_final
 
     def test_exemplo_integracao_cenarios_apresentam_vereditos_esperados(self):
         ideal, resumo_ideal = executar_sessao(criar_frames_movimento_completo(55))
@@ -920,11 +1122,10 @@ class TestCriteriosAceiteUS01:
         """
         import pathlib
         raiz = pathlib.Path(__file__).resolve().parent.parent
-        pasta_codigos = raiz / "Códigos" if (raiz / "Códigos").exists() else raiz
         consumidores = [
-            pasta_codigos / "app_tempo_real.py",
-            pasta_codigos / "comparar_exercicio.py",
-            pasta_codigos / "exemplo_integracao.py",
+            raiz / "app_tempo_real.py",
+            raiz / "comparar_exercicio.py",
+            raiz / "exemplo_integracao.py",
         ]
 
         for script in consumidores:
@@ -1387,4 +1588,503 @@ class TestRemadaBaixa:
         assert resultado_rep is not None
         assert resultado_rep.score_final >= 95.0
         assert resultado_rep.aprovado is True
+
+
+class TestDeteccaoHiperextensaoArticular:
+    """[TASK-CORR.05] Valida a detecção de hiperextensão articular perigosa."""
+
+    def test_hiperextensao_joelho_agachamento(self):
+        fsm = Agachamento()
+        pos = {}
+
+        # 1. Posição normal em pé (170°) -> sem erro
+        fsm.classificar({"joelho": 170.0, "quadril": 175.0}, pos, {"joelho": 0.0})
+        assert "HIPEREXTENSAO_JOELHO" not in fsm.erros
+
+        # 2. Joelho travado para trás além de 178° (ou ângulo orientado negativo)
+        erro = fsm.classificar({"joelho": 182.0, "quadril": 175.0, "joelho_orientado": -5.0}, pos, {"joelho": 2.0})
+        assert erro == "HIPEREXTENSAO_JOELHO"
+        assert "HIPEREXTENSAO_JOELHO" in fsm.erros
+        assert "Evite travar os joelhos" in fsm.traduzir_erro(erro)
+
+    def test_hiperextensao_cotovelo_triceps_corda(self):
+        fsm = TricepsCorda()
+        pos = {}
+
+        # 0 -> 1 -> 2 (Fundo de extensão)
+        fsm.classificar({"cotovelo": 110.0, "ombro": 15.0}, pos, {"cotovelo": 15.0})
+        fsm.classificar({"cotovelo": 150.0, "ombro": 15.0}, pos, {"cotovelo": 15.0})
+        assert fsm.fases[1] == 2
+
+        # Tranco com cotovelo forçado além de 175° (hiperextensão no fundo)
+        erro = fsm.classificar({"cotovelo": 178.0, "ombro": 15.0, "cotovelo_orientado": -4.0}, pos, {"cotovelo": 5.0})
+        assert erro == "HIPEREXTENSAO_COTOVELO"
+        assert "HIPEREXTENSAO_COTOVELO" in fsm.erros
+        assert "Evite travar ou hiperextender" in fsm.traduzir_erro(erro)
+
+    def test_hiperextensao_cotovelo_flexao_diamante(self):
+        fsm = FlexaoDiamante()
+        pos = {}
+
+        # Em prancha alta esticando cotovelo além do alinhamento natural
+        erro = fsm.classificar({"cotovelo": 179.0, "ombro": 50.0, "cotovelo_orientado": -3.5}, pos, {"cotovelo": 0.0})
+        assert erro == "HIPEREXTENSAO_COTOVELO"
+        assert "destravados" in fsm.traduzir_erro(erro)
+
+    def test_hiperextensao_cotovelo_remada_baixa(self):
+        fsm = RemadaBaixa()
+        pos = {}
+
+        # No retorno ao repouso, tranco com braços estendidos além de 175°
+        fsm.fases = [3, 3]
+        erro = fsm.classificar({"cotovelo": 178.0, "ombro": 30.0, "quadril": 90.0}, pos, {"cotovelo": 5.0})
+        assert erro == "HIPEREXTENSAO_COTOVELO"
+        assert "sem travar" in fsm.traduzir_erro(erro)
+
+
+class TestPuxadaAltaHalteres:
+    """Valida a FSM, detecção de erros e pontuação da Puxada Alta com Halteres."""
+
+    def test_ciclo_ideal_fsm(self):
+        from exercicios_fsm import PuxadaAltaHalteres
+        fsm = PuxadaAltaHalteres()
+        pos = {}
+
+        # Fase 0: Repouso
+        assert fsm.fases[1] == 0
+
+        # 0 -> 1: Início da subida (ombro > 35° e delta > 0)
+        fsm.classificar({"ombro": 45.0, "cotovelo": 150.0}, pos, {"ombro": 10.0})
+        assert fsm.fases[1] == 1
+
+        # 1 -> 2: Pico de elevação (ombro >= 85°)
+        fsm.classificar({"ombro": 95.0, "cotovelo": 75.0}, pos, {"ombro": 15.0})
+        assert fsm.fases[1] == 2
+
+        # 2 -> 3: Descendo (ombro < 80° ou delta < 0)
+        fsm.classificar({"ombro": 75.0, "cotovelo": 95.0}, pos, {"ombro": -10.0})
+        assert fsm.fases[1] == 3
+
+        # 3 -> 0: Fechamento (ombro <= 25°)
+        fsm.classificar({"ombro": 20.0, "cotovelo": 160.0}, pos, {"ombro": -15.0})
+        assert fsm.fases[1] == 0
+        assert fsm.repeticoes == 1
+        assert len(fsm.erros) == 0
+
+    def test_puxada_curta_reprovacao(self):
+        from exercicios_fsm import PuxadaAltaHalteres
+        fsm = PuxadaAltaHalteres()
+        pos = {}
+
+        # 0 -> 1
+        fsm.classificar({"ombro": 50.0, "cotovelo": 140.0}, pos, {"ombro": 15.0})
+        assert fsm.fases[1] == 1
+
+        # Desistência (1 -> 3): delta < 0 antes de atingir pico (ombro < 85°)
+        erro = fsm.classificar({"ombro": 48.0, "cotovelo": 145.0}, pos, {"ombro": -2.0})
+        assert fsm.fases[1] == 3
+        assert erro == "PUXADA_CURTA"
+        assert "PUXADA_CURTA" in fsm.erros
+
+    def test_elevacao_excessiva(self):
+        from exercicios_fsm import PuxadaAltaHalteres
+        fsm = PuxadaAltaHalteres()
+        pos = {}
+
+        fsm.fases = [1, 1]
+        # ombro ultrapassa 120° no pico
+        erro = fsm.classificar({"ombro": 125.0, "cotovelo": 70.0}, pos, {"ombro": 10.0})
+        assert fsm.fases[1] == 2
+        assert "ELEVACAO_EXCESSIVA" in fsm.erros
+
+    def test_cotovelo_caido(self):
+        from exercicios_fsm import PuxadaAltaHalteres
+        fsm = PuxadaAltaHalteres()
+        pos = {}
+
+        fsm.fases = [1, 1]
+        # Ombro no pico, mas cotovelo quase esticado (> 120°)
+        erro = fsm.classificar({"ombro": 90.0, "cotovelo": 135.0}, pos, {"ombro": 5.0})
+        assert fsm.fases[1] == 2
+        assert "COTOVELO_CAIDO" in fsm.erros
+
+    def test_hiperextensao_cotovelo(self):
+        from exercicios_fsm import PuxadaAltaHalteres
+        fsm = PuxadaAltaHalteres()
+        pos = {}
+
+        # Retorno com cotovelo além de 175° ou com desvio retrógrado
+        fsm.fases = [3, 3]
+        erro = fsm.classificar({"ombro": 20.0, "cotovelo": 178.0, "cotovelo_orientado": -3.0}, pos, {"ombro": -5.0})
+        assert "HIPEREXTENSAO_COTOVELO" in fsm.erros
+
+    def test_histerese_repouso_suave(self):
+        from exercicios_fsm import PuxadaAltaHalteres
+        fsm = PuxadaAltaHalteres()
+        pos = {}
+
+        # 0 -> 1 por leve oscilação
+        fsm.classificar({"ombro": 36.0, "cotovelo": 160.0}, pos, {"ombro": 2.0})
+        assert fsm.fases[1] == 1
+
+        # Recuo imediato para <= 28° volta suave para 0 sem acusar PUXADA_CURTA
+        erro = fsm.classificar({"ombro": 25.0, "cotovelo": 162.0}, pos, {"ombro": -2.0})
+        assert fsm.fases[1] == 0
+        assert erro is None
+        assert "PUXADA_CURTA" not in fsm.erros
+        assert fsm.repeticoes == 0
+
+    def test_pipeline_ouro_puxada_alta_gabarito(self):
+        gab = GabaritoExercicio.carregar_json("gabarito_especialista_puxada_alta.json")
+        assert gab.articulacoes == ["ombro", "cotovelo"]
+        assert gab.total_frames >= 30
+
+        orq = OrquestradorSessao("8")
+        resultado_rep = None
+
+        for linha in gab.dados:
+            frame_angulos = {
+                "ombro": float(linha[0]),
+                "cotovelo": float(linha[1]),
+            }
+            _, rep = orq.processar_frame(frame_angulos, visivel=True)
+            if rep is not None:
+                resultado_rep = rep
+
+        assert resultado_rep is not None
+        assert resultado_rep.score_final >= 95.0
+        assert resultado_rep.aprovado is True
+
+
+class TestRoscaMartelo:
+    """Valida a FSM, detecção de erros e pontuação da Rosca Martelo (Hammer Curl)."""
+
+    def test_ciclo_ideal_fsm(self):
+        from exercicios_fsm import RoscaMartelo
+        fsm = RoscaMartelo()
+        pos = {}
+
+        # Fase 0: Repouso (cotovelo >= 150°)
+        assert fsm.fases[1] == 0
+
+        # 0 -> 1: Subida concêntrica (cotovelo < 140° e delta < 0)
+        fsm.classificar({"cotovelo": 130.0}, pos, {"cotovelo": -10.0})
+        assert fsm.fases[1] == 1
+
+        # 1 -> 2: Pico de contração (cotovelo <= 70°)
+        fsm.classificar({"cotovelo": 60.0}, pos, {"cotovelo": -15.0})
+        assert fsm.fases[1] == 2
+
+        # 2 -> 3: Descendo (cotovelo > 80° ou delta > 0)
+        fsm.classificar({"cotovelo": 95.0}, pos, {"cotovelo": 15.0})
+        assert fsm.fases[1] == 3
+
+        # 3 -> 0: Fechamento (cotovelo >= 150°)
+        fsm.classificar({"cotovelo": 155.0}, pos, {"cotovelo": 10.0})
+        assert fsm.fases[1] == 0
+        assert fsm.repeticoes == 1
+        assert len(fsm.erros) == 0
+
+    def test_subida_incompleta_reprovacao(self):
+        from exercicios_fsm import RoscaMartelo
+        fsm = RoscaMartelo()
+        pos = {}
+
+        # 0 -> 1
+        fsm.classificar({"cotovelo": 135.0}, pos, {"cotovelo": -10.0})
+        assert fsm.fases[1] == 1
+
+        # Desistência (1 -> 3): começa a estender (delta > 0) antes de atingir pico (cotovelo <= 120°)
+        erro = fsm.classificar({"cotovelo": 115.0}, pos, {"cotovelo": 5.0})
+        assert fsm.fases[1] == 3
+        assert erro == "SUBIDA_INCOMPLETA"
+        assert "SUBIDA_INCOMPLETA" in fsm.erros
+
+    def test_hiperextensao_cotovelo(self):
+        from exercicios_fsm import RoscaMartelo
+        fsm = RoscaMartelo()
+        pos = {}
+
+        # Cotovelo além de 175° ou com desvio retrógrado
+        fsm.fases = [3, 3]
+        erro = fsm.classificar({"cotovelo": 178.0, "cotovelo_orientado": -3.5}, pos, {"cotovelo": 5.0})
+        assert "HIPEREXTENSAO_COTOVELO" in fsm.erros
+
+    def test_histerese_repouso_suave(self):
+        from exercicios_fsm import RoscaMartelo
+        fsm = RoscaMartelo()
+        pos = {}
+
+        # 0 -> 1 por leve oscilação
+        fsm.classificar({"cotovelo": 138.0}, pos, {"cotovelo": -3.0})
+        assert fsm.fases[1] == 1
+
+        # Recuo imediato para >= 148° volta suave para 0 sem acusar SUBIDA_INCOMPLETA
+        erro = fsm.classificar({"cotovelo": 150.0}, pos, {"cotovelo": 4.0})
+        assert fsm.fases[1] == 0
+        assert erro is None
+        assert "SUBIDA_INCOMPLETA" not in fsm.erros
+        assert fsm.repeticoes == 0
+
+    def test_pipeline_ouro_rosca_martelo_gabarito(self):
+        gab = GabaritoExercicio.carregar_json("gabarito_especialista_rosca_martelo.json")
+        assert gab.articulacoes == ["cotovelo"]
+        assert gab.total_frames >= 20
+
+        orq = OrquestradorSessao("9")
+        resultado_rep = None
+
+        for linha in gab.dados:
+            frame_angulos = {
+                "cotovelo": float(linha[0]),
+            }
+            _, rep = orq.processar_frame(frame_angulos, visivel=True)
+            if rep is not None:
+                resultado_rep = rep
+
+        assert resultado_rep is not None
+        assert resultado_rep.score_final >= 95.0
+        assert resultado_rep.aprovado is True
+
+
+class TestTricepsFrances:
+    """Valida a FSM, detecção de erros e pontuação do Tríceps Francês Sentado."""
+
+    def test_ciclo_ideal_fsm(self):
+        from exercicios_fsm import TricepsFrances
+        fsm = TricepsFrances()
+        pos = {}
+
+        # Fase 0: Repouso no topo (braço estendido acima da cabeça)
+        assert fsm.fases[1] == 0
+
+        # 0 -> 1: Descida excêntrica (cotovelo < 135° e delta < 0)
+        fsm.classificar({"cotovelo": 120.0, "ombro": 155.0}, pos, {"cotovelo": -15.0})
+        assert fsm.fases[1] == 1
+
+        # 1 -> 2: Fundo do movimento (cotovelo <= 75°)
+        fsm.classificar({"cotovelo": 65.0, "ombro": 155.0}, pos, {"cotovelo": -15.0})
+        assert fsm.fases[1] == 2
+
+        # 2 -> 3: Subida concêntrica (cotovelo > 85° ou delta > 0)
+        fsm.classificar({"cotovelo": 100.0, "ombro": 155.0}, pos, {"cotovelo": 15.0})
+        assert fsm.fases[1] == 3
+
+        # 3 -> 0: Fechamento no topo (cotovelo >= 145°)
+        fsm.classificar({"cotovelo": 150.0, "ombro": 155.0}, pos, {"cotovelo": 15.0})
+        assert fsm.fases[1] == 0
+        assert fsm.repeticoes == 1
+        assert len(fsm.erros) == 0
+
+    def test_extensao_incompleta_reprovacao(self):
+        from exercicios_fsm import TricepsFrances
+        fsm = TricepsFrances()
+        pos = {}
+
+        # 0 -> 1
+        fsm.classificar({"cotovelo": 125.0, "ombro": 155.0}, pos, {"cotovelo": -10.0})
+        assert fsm.fases[1] == 1
+
+        # Desistência (1 -> 3): começa a estender (delta > 0) antes de atingir o fundo (cotovelo >= 105°)
+        erro = fsm.classificar({"cotovelo": 110.0, "ombro": 155.0}, pos, {"cotovelo": 5.0})
+        assert fsm.fases[1] == 3
+        assert erro == "EXTENSAO_INCOMPLETA"
+        assert "EXTENSAO_INCOMPLETA" in fsm.erros
+
+    def test_braco_baixo(self):
+        from exercicios_fsm import TricepsFrances
+        fsm = TricepsFrances()
+        pos = {}
+
+        fsm.fases = [1, 1]
+        # Praticante deixa o braço cair para frente (ombro < 125°)
+        erro = fsm.classificar({"cotovelo": 100.0, "ombro": 110.0}, pos, {"cotovelo": -10.0})
+        assert "BRACO_BAIXO" in fsm.erros
+
+    def test_hiperextensao_cotovelo(self):
+        from exercicios_fsm import TricepsFrances
+        fsm = TricepsFrances()
+        pos = {}
+
+        # Cotovelo além de 175° no topo
+        fsm.fases = [3, 3]
+        erro = fsm.classificar({"cotovelo": 178.0, "ombro": 155.0, "cotovelo_orientado": -3.0}, pos, {"cotovelo": 5.0})
+        assert "HIPEREXTENSAO_COTOVELO" in fsm.erros
+
+    def test_histerese_repouso_suave(self):
+        from exercicios_fsm import TricepsFrances
+        fsm = TricepsFrances()
+        pos = {}
+
+        # 0 -> 1 por leve oscilação
+        fsm.classificar({"cotovelo": 133.0, "ombro": 155.0}, pos, {"cotovelo": -2.0})
+        assert fsm.fases[1] == 1
+
+        # Recuo imediato para >= 140° volta suave para 0 sem acusar EXTENSAO_INCOMPLETA
+        erro = fsm.classificar({"cotovelo": 142.0, "ombro": 155.0}, pos, {"cotovelo": 4.0})
+        assert fsm.fases[1] == 0
+        assert erro is None
+        assert "EXTENSAO_INCOMPLETA" not in fsm.erros
+        assert fsm.repeticoes == 0
+
+    def test_pipeline_ouro_triceps_frances_gabarito(self):
+        gab = GabaritoExercicio.carregar_json("gabarito_especialista_triceps_frances.json")
+        assert gab.articulacoes == ["cotovelo", "ombro"]
+        assert gab.total_frames >= 20
+
+        orq = OrquestradorSessao("0")
+        resultado_rep = None
+
+        for linha in gab.dados:
+            frame_angulos = {
+                "cotovelo": float(linha[0]),
+                "ombro": float(linha[1]),
+            }
+            _, rep = orq.processar_frame(frame_angulos, visivel=True)
+            if rep is not None:
+                resultado_rep = rep
+
+        assert resultado_rep is not None
+        assert resultado_rep.score_final >= 95.0
+        assert resultado_rep.aprovado is True
+
+
+class TestPuxadaAltaCostas:
+    """Valida a FSM, detecção de erros e pontuação da Puxada Alta (Costas / Lat Pulldown)."""
+
+    def test_ciclo_ideal_fsm(self):
+        from exercicios_fsm import PuxadaAltaCostas
+        fsm = PuxadaAltaCostas()
+        pos = {}
+
+        # Fase 0: Repouso no topo (braços estendidos no alto)
+        assert fsm.fases[1] == 0
+
+        # 0 -> 1: Puxando para baixo (cotovelo < 140° e delta < 0)
+        fsm.classificar({"cotovelo": 130.0, "ombro": 110.0}, pos, {"cotovelo": -15.0})
+        assert fsm.fases[1] == 1
+
+        # 1 -> 2: Fundo da puxada / pico de contração (cotovelo <= 80°)
+        fsm.classificar({"cotovelo": 70.0, "ombro": 60.0}, pos, {"cotovelo": -15.0})
+        assert fsm.fases[1] == 2
+
+        # 2 -> 3: Subida / retorno controlado (cotovelo > 90° ou delta > 0)
+        fsm.classificar({"cotovelo": 105.0, "ombro": 90.0}, pos, {"cotovelo": 15.0})
+        assert fsm.fases[1] == 3
+
+        # 3 -> 0: Fechamento no topo (cotovelo >= 145°)
+        fsm.classificar({"cotovelo": 150.0, "ombro": 135.0}, pos, {"cotovelo": 15.0})
+        assert fsm.fases[1] == 0
+        assert fsm.repeticoes == 1
+        assert len(fsm.erros) == 0
+
+    def test_puxada_curta_reprovacao(self):
+        from exercicios_fsm import PuxadaAltaCostas
+        fsm = PuxadaAltaCostas()
+        pos = {}
+
+        # 0 -> 1
+        fsm.classificar({"cotovelo": 130.0, "ombro": 115.0}, pos, {"cotovelo": -10.0})
+        assert fsm.fases[1] == 1
+
+        # Desistência (1 -> 3): começa a estender (delta > 0) antes de atingir o fundo (cotovelo >= 105°)
+        erro = fsm.classificar({"cotovelo": 115.0, "ombro": 110.0}, pos, {"cotovelo": 5.0})
+        assert fsm.fases[1] == 3
+        assert erro == "PUXADA_CURTA"
+        assert "PUXADA_CURTA" in fsm.erros
+
+    def test_ombro_elevado(self):
+        from exercicios_fsm import PuxadaAltaCostas
+        fsm = PuxadaAltaCostas()
+        pos = {}
+
+        fsm.fases = [1, 2]
+        # Aluno desce os braços mas deixa os ombros excessivamente altos (> 115°)
+        erro = fsm.classificar({"cotovelo": 75.0, "ombro": 120.0}, pos, {"cotovelo": -5.0})
+        assert "OMBRO_ELEVADO" in fsm.erros
+
+    def test_hiperextensao_cotovelo(self):
+        from exercicios_fsm import PuxadaAltaCostas
+        fsm = PuxadaAltaCostas()
+        pos = {}
+
+        # Cotovelo além de 175° no topo ou com desvio retrógrado
+        fsm.fases = [3, 3]
+        erro = fsm.classificar({"cotovelo": 178.0, "ombro": 140.0, "cotovelo_orientado": -3.0}, pos, {"cotovelo": 5.0})
+        assert "HIPEREXTENSAO_COTOVELO" in fsm.erros
+
+    def test_histerese_repouso_suave(self):
+        from exercicios_fsm import PuxadaAltaCostas
+        fsm = PuxadaAltaCostas()
+        pos = {}
+
+        # 0 -> 1 por leve oscilação
+        fsm.classificar({"cotovelo": 138.0, "ombro": 140.0}, pos, {"cotovelo": -2.0})
+        assert fsm.fases[1] == 1
+
+        # Recuo imediato para >= 140° volta suave para 0 sem acusar PUXADA_CURTA
+        erro = fsm.classificar({"cotovelo": 142.0, "ombro": 142.0}, pos, {"cotovelo": 4.0})
+        assert fsm.fases[1] == 0
+        assert erro is None
+        assert "PUXADA_CURTA" not in fsm.erros
+        assert fsm.repeticoes == 0
+
+    def test_pipeline_ouro_puxada_costas_gabarito(self):
+        gab = GabaritoExercicio.carregar_json("gabarito_especialista_puxada_costas.json")
+        assert gab.articulacoes == ["cotovelo", "ombro"]
+        assert gab.total_frames >= 20
+
+        orq = OrquestradorSessao("c")
+        resultado_rep = None
+
+        for linha in gab.dados:
+            frame_angulos = {
+                "cotovelo": float(linha[0]),
+                "ombro": float(linha[1]),
+            }
+            _, rep = orq.processar_frame(frame_angulos, visivel=True)
+            if rep is not None:
+                resultado_rep = rep
+
+        assert resultado_rep is not None
+        assert resultado_rep.score_final >= 95.0
+        assert resultado_rep.aprovado is True
+
+
+class TestPranchaAbdominal:
+    """Valida a FSM isométrica e o gabarito da Prancha Abdominal."""
+
+    def test_ciclo_ideal_e_pipeline_ouro_prancha(self):
+        from exercicios_fsm import PranchaAbdominal
+        gab = GabaritoExercicio.carregar_json("gabarito_especialista_prancha_abdominal.json")
+        assert gab.articulacoes == ["quadril", "joelho", "cotovelo"]
+        assert gab.total_frames >= 20
+
+        orq = OrquestradorSessao("29")
+        assert isinstance(orq.fsm, PranchaAbdominal)
+        assert orq.fsm.ISOMETRICO is True
+
+        resultado_rep = None
+        for linha in gab.dados:
+            frame_angulos = {
+                "quadril": float(linha[0]),
+                "joelho": float(linha[1]),
+                "cotovelo": float(linha[2]),
+            }
+            _, rep = orq.processar_frame(frame_angulos, visivel=True)
+            if rep is not None:
+                resultado_rep = rep
+
+        # Caso o vídeo ainda termine alinhado, fecha saindo da prancha
+        if resultado_rep is None:
+            for _ in range(3):
+                _, rep = orq.processar_frame({"quadril": 110.0, "joelho": 110.0, "cotovelo": 120.0}, visivel=True)
+                if rep is not None:
+                    resultado_rep = rep
+                    break
+
+        assert resultado_rep is not None
+        assert resultado_rep.score_final >= 90.0
+        assert resultado_rep.aprovado is True
+
 

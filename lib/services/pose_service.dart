@@ -149,8 +149,34 @@ class PoseService {
       );
     }
 
+    // 2.5. Prancha Abdominal (29 / p / 12): quadril, joelho e cotovelo
+    if (exId == '29' || exId == 'p' || exId == '12' || exId.contains('prancha') || exId.contains('plank')) {
+      if (ombro == null || cotovelo == null || punho == null || quadril == null || joelho == null || tornozelo == null) {
+        return null;
+      }
+
+      final visivel = _landmarkVisivel(ombro) &&
+                      _landmarkVisivel(cotovelo) &&
+                      _landmarkVisivel(quadril) &&
+                      _landmarkVisivel(joelho);
+
+      final angQuadril = _calcularAngulo(ombro, quadril, joelho);
+      final angJoelho = _calcularAngulo(quadril, joelho, tornozelo);
+      final angCotovelo = _calcularAngulo(ombro, cotovelo, punho);
+
+      return PoseResultado(
+        angulos: {
+          'quadril': double.parse(angQuadril.toStringAsFixed(1)),
+          'joelho': double.parse(angJoelho.toStringAsFixed(1)),
+          'cotovelo': double.parse(angCotovelo.toStringAsFixed(1)),
+        },
+        visivel: visivel,
+      );
+    }
+
     // 3. Exercícios de membros superiores:
-    // Desenvolvimento (16/1), Rosca (20/3), Elevação Lateral (17/4), Tríceps Corda (24/23/5), Flexão (5/6)
+    // Desenvolvimento (16/1), Rosca (20/3), Elevação Lateral (17/18/4), Tríceps Corda (24/23/5), Flexão (5/6),
+    // Puxada Alta Halteres (8), Rosca Martelo (22/9), Tríceps Francês/Testa (26/0), Puxada Alta Costas/Frontal (c)
     if (ombro == null || cotovelo == null || punho == null || quadril == null) {
       return null;
     }

@@ -1451,7 +1451,7 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
                     style: const TextStyle(
                       color: Colors.black,
                       fontWeight: FontWeight.bold,
-                      fontSize: 13,
+                      fontSize: 24,
                     ),
                   ),
                 ),
@@ -2109,6 +2109,7 @@ class _CameraTreinoScreenState extends State<CameraTreinoScreen> {
       }
 
       _iniciarContadorDescanso();
+      if (!mounted) return;
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(

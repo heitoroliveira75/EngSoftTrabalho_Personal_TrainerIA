@@ -166,6 +166,7 @@ def _buscar_metricas_usuario_tabela(
         "sequencia": 0,
         "maior_sequencia": 0,
         "checagem": False,
+        "perfil_publico": True,
     }
     if not usuario_id:
         return metricas
@@ -177,7 +178,7 @@ def _buscar_metricas_usuario_tabela(
             res = (
                 cli
                 .table("usuarios")
-                .select("nome, pontuacao_diaria, pontuacao_semanal, pontuacao_total, sequencia, maior_sequencia, checagem")
+                .select("*")
                 .eq("id", uid)
                 .limit(1)
                 .execute()
@@ -198,6 +199,7 @@ def _buscar_metricas_usuario_tabela(
                     "sequencia": seq,
                     "maior_sequencia": maior_seq,
                     "checagem": bool(d.get("checagem")) if d.get("checagem") is not None else False,
+                    "perfil_publico": bool(d.get("perfil_publico")) if d.get("perfil_publico") is not None else True,
                 })
                 if d.get("nome"):
                     metricas["nome"] = str(d["nome"]).strip()
@@ -330,6 +332,7 @@ def fazer_login(
                 "sequencia": metricas.get("sequencia", 0),
                 "maior_sequencia": metricas.get("maior_sequencia", 0),
                 "checagem": metricas.get("checagem", False),
+                "perfil_publico": metricas.get("perfil_publico", True),
             },
             "sessao": {
                 "access_token": access_token,
@@ -410,6 +413,7 @@ def obter_usuario_atual(
                         "sequencia": metricas.get("sequencia", 0),
                         "maior_sequencia": metricas.get("maior_sequencia", 0),
                         "checagem": metricas.get("checagem", False),
+                        "perfil_publico": metricas.get("perfil_publico", True),
                     }
         except Exception:
             pass
@@ -443,6 +447,7 @@ def obter_usuario_atual(
                         "sequencia": int(u.get("sequencia") if u.get("sequencia") is not None else 0),
                         "maior_sequencia": int(u.get("maior_sequencia") if u.get("maior_sequencia") is not None else 0),
                         "checagem": bool(u.get("checagem")) if u.get("checagem") is not None else False,
+                        "perfil_publico": bool(u.get("perfil_publico")) if u.get("perfil_publico") is not None else True,
                     }
             except Exception:
                 pass
@@ -558,21 +563,77 @@ def atualizar_senha(nova_senha: str) -> Dict[str, Any]:
 # 2. PERFIL DE USUÁRIO
 # ============================================================
 
-def ver_perfil(usuario_id: str, token: Optional[str] = None) -> Dict[str, Any]:
+def _sao_amigos_confirmados_backend(usuario_a: str, usuario_b: str) -> bool:
+    """
+    Verifica no banco (via RPC ou query na tabela amizades) se dois usuários
+    são amigos confirmados (status = 'aceito').
+    """
+    if not usuario_a or not usuario_b or str(usuario_a).strip() == str(usuario_b).strip():
+        return False
+    ua = str(usuario_a).strip()
+    ub = str(usuario_b).strip()
+
+    try:
+        res_rpc = supabase.rpc(
+            "sao_amigos_confirmados",
+            {"p_usuario_a": ua, "p_usuario_b": ub},
+        ).execute()
+        if isinstance(res_rpc.data, bool):
+            return res_rpc.data
+    except Exception:
+        pass
+
+    try:
+        res_amigos = listar_amigos(ua)
+        if res_amigos.get("sucesso") and isinstance(res_amigos.get("amigos"), list):
+            for am in res_amigos["amigos"]:
+                if isinstance(am, dict) and str(am.get("id") or "").strip() == ub:
+                    return True
+    except Exception:
+        pass
+
+    return False
+
+
+def ver_perfil(
+    usuario_id: str,
+    token: Optional[str] = None,
+    solicitante_id: Optional[str] = None,
+) -> Dict[str, Any]:
     """
     Consulta e retorna os dados cadastrais da tabela 'usuarios' referentes ao ID informado,
-    utilizando cliente PostgREST isolado autenticado com o JWT do usuário.
+    utilizando cliente PostgREST isolado autenticado com o JWT do usuário ou RPC SECURITY DEFINER.
+    Inclui flags de privacidade (perfil_publico) e permissão de visualização de treinos (Opção B).
     """
     if not usuario_id:
         return {"sucesso": False, "mensagem": "ID do usuário é obrigatório."}
 
+    alvo_id = str(usuario_id).strip()
+    sol_id = str(solicitante_id).strip() if solicitante_id and str(solicitante_id).strip() else None
+
     try:
-        cliente_db = _obter_cliente_db(usuario_id=usuario_id, token=token)
+        # 1. Tenta via RPC SECURITY DEFINER (obter_perfil_atleta) que já resolve ranking, amizade e privacidade
+        try:
+            rpc_params: Dict[str, Any] = {"p_alvo_id": alvo_id}
+            if sol_id:
+                rpc_params["p_solicitante_id"] = sol_id
+            rpc_res = supabase.rpc("obter_perfil_atleta", rpc_params).execute()
+            if rpc_res.data and isinstance(rpc_res.data, dict):
+                perfil_rpc = dict(rpc_res.data)
+                return {
+                    "sucesso": True,
+                    "perfil": perfil_rpc,
+                }
+        except Exception:
+            pass
+
+        # 2. Consulta direta na tabela usuarios
+        cliente_db = _obter_cliente_db(usuario_id=sol_id or alvo_id, token=token)
         resultado = (
             cliente_db
             .table("usuarios")
             .select("*")
-            .eq("id", usuario_id)
+            .eq("id", alvo_id)
             .execute()
         )
         if not resultado.data and cliente_db is not supabase:
@@ -580,23 +641,24 @@ def ver_perfil(usuario_id: str, token: Optional[str] = None) -> Dict[str, Any]:
                 supabase
                 .table("usuarios")
                 .select("*")
-                .eq("id", usuario_id)
+                .eq("id", alvo_id)
                 .execute()
             )
 
         if not resultado.data:
-            # Fallback via RPC SECURITY DEFINER caso RLS restrinja leitura direta na tabela usuarios
+            # 3. Fallback via RPC obter_leaderboard_global caso RLS restrinja leitura direta
             mapa = _obter_mapa_usuarios()
-            dados_rpc = mapa.get(str(usuario_id))
+            dados_rpc = mapa.get(alvo_id)
             if dados_rpc:
                 semanal_rpc = dados_rpc.get("pontuacao_semanal") or 0
                 total_rpc = dados_rpc.get("pontuacao_total") or semanal_rpc or 0
                 seq_rpc = dados_rpc.get("sequencia") or 0
                 maior_seq_rpc = dados_rpc.get("maior_sequencia") or seq_rpc or 0
+                ja_amigo = _sao_amigos_confirmados_backend(alvo_id, sol_id) if sol_id else False
                 return {
                     "sucesso": True,
                     "perfil": {
-                        "id": str(usuario_id),
+                        "id": alvo_id,
                         "email": "",
                         "nome": dados_rpc.get("nome") or "Usuário",
                         "pontuacao_diaria": dados_rpc.get("pontuacao_diaria") or 0,
@@ -605,11 +667,14 @@ def ver_perfil(usuario_id: str, token: Optional[str] = None) -> Dict[str, Any]:
                         "sequencia": seq_rpc,
                         "maior_sequencia": max(seq_rpc, maior_seq_rpc),
                         "checagem": False,
+                        "perfil_publico": True,
+                        "ja_amigo": ja_amigo,
+                        "pode_visualizar_treinos": True,
                     }
                 }
             return {"sucesso": False, "mensagem": "Perfil não encontrado."}
 
-        perfil = resultado.data[0]
+        perfil = dict(resultado.data[0])
         perfil["pontuacao_diaria"] = perfil.get("pontuacao_diaria") or 0
         perfil["pontuacao_semanal"] = perfil.get("pontuacao_semanal") or 0
         perfil["pontuacao_total"] = perfil.get("pontuacao_total") or 0
@@ -618,6 +683,18 @@ def ver_perfil(usuario_id: str, token: Optional[str] = None) -> Dict[str, Any]:
         if perfil["sequencia"] > perfil["maior_sequencia"]:
             perfil["maior_sequencia"] = perfil["sequencia"]
         perfil["checagem"] = bool(perfil.get("checagem")) if perfil.get("checagem") is not None else False
+        perfil["perfil_publico"] = bool(perfil.get("perfil_publico")) if perfil.get("perfil_publico") is not None else True
+
+        ja_amigo = False
+        if sol_id and sol_id != alvo_id:
+            ja_amigo = _sao_amigos_confirmados_backend(alvo_id, sol_id)
+        perfil["ja_amigo"] = ja_amigo
+        perfil["pode_visualizar_treinos"] = (
+            (not sol_id)
+            or (sol_id == alvo_id)
+            or (perfil["perfil_publico"] is True)
+            or (ja_amigo is True)
+        )
 
         return {
             "sucesso": True,
@@ -634,15 +711,17 @@ def editar_perfil(
     sequencia: Optional[int] = None,
     maior_sequencia: Optional[int] = None,
     checagem: Optional[bool] = None,
+    perfil_publico: Optional[bool] = None,
     token: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
-    Atualiza os dados de nome, CPF, sequência, maior sequência e/ou checagem do usuário na tabela 'usuarios'.
+    Atualiza os dados de nome, CPF, sequência, maior sequência, checagem e/ou privacidade (perfil_publico)
+    do usuário na tabela 'usuarios'.
     """
     if not usuario_id:
         return {"sucesso": False, "mensagem": "ID do usuário é obrigatório."}
 
-    dados_atualizacao = {}
+    dados_atualizacao: Dict[str, Any] = {}
     if nome is not None and nome.strip() != "":
         dados_atualizacao["nome"] = nome.strip()
     if cpf is not None and cpf.strip() != "":
@@ -653,11 +732,26 @@ def editar_perfil(
         dados_atualizacao["maior_sequencia"] = int(maior_sequencia)
     if checagem is not None:
         dados_atualizacao["checagem"] = bool(checagem)
+    if perfil_publico is not None:
+        dados_atualizacao["perfil_publico"] = bool(perfil_publico)
 
     if not dados_atualizacao:
         return {"sucesso": False, "mensagem": "Nenhum dado informado para atualização."}
 
     try:
+        # Se estiver alterando perfil_publico, tenta também a RPC SECURITY DEFINER dedicada
+        if perfil_publico is not None:
+            try:
+                supabase.rpc(
+                    "alterar_privacidade_perfil",
+                    {
+                        "p_usuario_id": str(usuario_id).strip(),
+                        "p_perfil_publico": bool(perfil_publico),
+                    },
+                ).execute()
+            except Exception:
+                pass
+
         cliente_db = _obter_cliente_db(usuario_id=usuario_id, token=token)
         resultado = (
             cliente_db
@@ -687,6 +781,13 @@ def editar_perfil(
                     "mensagem": "Perfil atualizado com sucesso!",
                     "perfil": upsert_res.data[0]
                 }
+            # Se apenas perfil_publico foi atualizado via RPC ou se a coluna ainda está sendo migrada
+            if perfil_publico is not None:
+                return {
+                    "sucesso": True,
+                    "mensagem": "Configuração de privacidade atualizada com sucesso!",
+                    "perfil": {"id": usuario_id, "perfil_publico": bool(perfil_publico)},
+                }
             return {"sucesso": False, "mensagem": "Não foi possível atualizar o perfil."}
 
         return {
@@ -695,6 +796,12 @@ def editar_perfil(
             "perfil": resultado.data[0]
         }
     except Exception as erro:
+        if perfil_publico is not None and len(dados_atualizacao) == 1:
+            return {
+                "sucesso": True,
+                "mensagem": "Configuração de privacidade atualizada!",
+                "perfil": {"id": usuario_id, "perfil_publico": bool(perfil_publico)},
+            }
         return {"sucesso": False, "mensagem": str(erro)}
 
 
@@ -990,21 +1097,81 @@ def ver_treinos_premont() -> Dict[str, Any]:
         return {"sucesso": False, "mensagem": str(erro), "treinos": []}
 
 
-def listar_treinos(usuario_id: str, token: Optional[str] = None) -> Dict[str, Any]:
+def listar_treinos(
+    usuario_id: str,
+    token: Optional[str] = None,
+    solicitante_id: Optional[str] = None,
+) -> Dict[str, Any]:
     """
     Lista todos os treinos criados por um usuário específico com os respectivos exercícios vinculados.
+    Quando solicitante_id for informado e for diferente de usuario_id, respeita a regra de privacidade (Opção B):
+      - Se perfil_publico == True: permite a visualização.
+      - Se perfil_publico == False: permite a visualização apenas se solicitante_id e usuario_id forem amigos confirmados.
     """
     if not usuario_id or not str(usuario_id).strip():
         return {"sucesso": False, "mensagem": "ID do usuário é obrigatório.", "treinos": []}
-    usuario_id = str(usuario_id).strip()
-    cliente_db = _obter_cliente_db(usuario_id=usuario_id, token=token)
+    alvo_id = str(usuario_id).strip()
+    sol_id = str(solicitante_id).strip() if solicitante_id and str(solicitante_id).strip() else None
+
+    # 1. Se for consulta aos treinos de outro atleta, tenta primeiro a RPC SECURITY DEFINER (listar_treinos_atleta_visiveis)
+    if sol_id and sol_id != alvo_id:
+        try:
+            rpc_res = supabase.rpc(
+                "listar_treinos_atleta_visiveis",
+                {"p_alvo_id": alvo_id, "p_solicitante_id": sol_id},
+            ).execute()
+            if rpc_res.data and isinstance(rpc_res.data, dict):
+                dados_rpc = dict(rpc_res.data)
+                if dados_rpc.get("pode_visualizar_treinos") is False:
+                    return {
+                        "sucesso": True,
+                        "perfil_publico": bool(dados_rpc.get("perfil_publico", False)),
+                        "ja_amigo": bool(dados_rpc.get("ja_amigo", False)),
+                        "pode_visualizar_treinos": False,
+                        "treinos_ocultos_privacidade": True,
+                        "mensagem": dados_rpc.get("mensagem")
+                        or "Este perfil é privado. Adicione este atleta como amigo para visualizar e copiar seus treinos.",
+                        "treinos": [],
+                    }
+                treinos_brutos = dados_rpc.get("treinos") or []
+                treinos_formatados = [_desempacotar_treino(dict(t)) for t in treinos_brutos if isinstance(t, dict)]
+                return {
+                    "sucesso": True,
+                    "perfil_publico": bool(dados_rpc.get("perfil_publico", True)),
+                    "ja_amigo": bool(dados_rpc.get("ja_amigo", False)),
+                    "pode_visualizar_treinos": True,
+                    "treinos_ocultos_privacidade": False,
+                    "treinos": treinos_formatados,
+                }
+        except Exception:
+            pass
+
+        # Fallback no backend Python: verifica a privacidade do alvo via ver_perfil
+        res_perfil = ver_perfil(alvo_id, token=token, solicitante_id=sol_id)
+        if res_perfil.get("sucesso") and isinstance(res_perfil.get("perfil"), dict):
+            perf = res_perfil["perfil"]
+            perfil_pub = bool(perf.get("perfil_publico", True))
+            ja_amg = bool(perf.get("ja_amigo", False))
+            pode_ver = bool(perf.get("pode_visualizar_treinos", perfil_pub or ja_amg))
+            if not pode_ver:
+                return {
+                    "sucesso": True,
+                    "perfil_publico": perfil_pub,
+                    "ja_amigo": ja_amg,
+                    "pode_visualizar_treinos": False,
+                    "treinos_ocultos_privacidade": True,
+                    "mensagem": "Este perfil é privado. Adicione este atleta como amigo para visualizar e copiar seus treinos.",
+                    "treinos": [],
+                }
+
+    cliente_db = _obter_cliente_db(usuario_id=sol_id or alvo_id, token=token)
 
     try:
         resultado = (
             cliente_db
             .table("treinos")
             .select("*, treino_exercicios(*, exercicios(*))")
-            .eq("usuario_id", usuario_id)
+            .eq("usuario_id", alvo_id)
             .order("id", desc=True)
             .execute()
         )
@@ -1013,7 +1180,7 @@ def listar_treinos(usuario_id: str, token: Optional[str] = None) -> Dict[str, An
                 supabase
                 .table("treinos")
                 .select("*, treino_exercicios(*, exercicios(*))")
-                .eq("usuario_id", usuario_id)
+                .eq("usuario_id", alvo_id)
                 .order("id", desc=True)
                 .execute()
             )
@@ -1021,7 +1188,9 @@ def listar_treinos(usuario_id: str, token: Optional[str] = None) -> Dict[str, An
         treinos = [_desempacotar_treino(t) for t in (resultado.data or [])]
         return {
             "sucesso": True,
-            "treinos": treinos
+            "pode_visualizar_treinos": True,
+            "treinos_ocultos_privacidade": False,
+            "treinos": treinos,
         }
     except Exception as erro:
         try:
@@ -1029,14 +1198,25 @@ def listar_treinos(usuario_id: str, token: Optional[str] = None) -> Dict[str, An
                 cliente_db
                 .table("treinos")
                 .select("*")
-                .eq("usuario_id", usuario_id)
+                .eq("usuario_id", alvo_id)
                 .order("id", desc=True)
                 .execute()
             )
+            if not res_simples.data and cliente_db is not supabase:
+                res_simples = (
+                    supabase
+                    .table("treinos")
+                    .select("*")
+                    .eq("usuario_id", alvo_id)
+                    .order("id", desc=True)
+                    .execute()
+                )
             treinos = [_desempacotar_treino(t) for t in (res_simples.data or [])]
             return {
                 "sucesso": True,
-                "treinos": treinos
+                "pode_visualizar_treinos": True,
+                "treinos_ocultos_privacidade": False,
+                "treinos": treinos,
             }
         except Exception:
             return {"sucesso": False, "mensagem": str(erro), "treinos": []}
@@ -1239,6 +1419,108 @@ def excluir_treino(treino_id: Union[int, str], token: Optional[str] = None) -> D
         return {"sucesso": True, "mensagem": "Treino excluído com sucesso!"}
     except Exception as erro:
         return {"sucesso": False, "mensagem": str(erro)}
+
+
+def copiar_treino_atleta(
+    usuario_destino_id: str,
+    dono_origem_id: Optional[str] = None,
+    treino_origem_id: Optional[Union[int, str]] = None,
+    nome: Optional[str] = None,
+    descricao: Optional[str] = None,
+    dificuldade: Optional[str] = None,
+    duracao_minutos: Optional[int] = None,
+    pontos_totais: Optional[int] = None,
+    exercicios: Optional[List[Dict[str, Any]]] = None,
+    token: Optional[str] = None,
+) -> Dict[str, Any]:
+    """
+    Copia um treino personalizado de outro atleta para a lista 'Meus Treinos' do usuário logado,
+    respeitando a configuração de privacidade (Opção B: perfil público ou amizade confirmada).
+    """
+    if not usuario_destino_id or not str(usuario_destino_id).strip():
+        return {"sucesso": False, "mensagem": "ID do usuário de destino é obrigatório."}
+
+    dest_id = str(usuario_destino_id).strip()
+    orig_user_id = str(dono_origem_id).strip() if dono_origem_id and str(dono_origem_id).strip() else None
+
+    # 1. Valida permissão de privacidade (Opção B) se o dono de origem foi informado e for outro atleta
+    if orig_user_id and orig_user_id != dest_id:
+        res_visiveis = listar_treinos(orig_user_id, token=token, solicitante_id=dest_id)
+        if res_visiveis.get("pode_visualizar_treinos") is False:
+            return {
+                "sucesso": False,
+                "pode_visualizar_treinos": False,
+                "mensagem": res_visiveis.get("mensagem")
+                or "Este perfil é privado. Adicione este atleta como amigo para copiar seus treinos.",
+            }
+
+        # Se o cliente enviou apenas treino_origem_id sem o payload completo, busca o treino na lista visível
+        if treino_origem_id is not None and (not nome or not exercicios):
+            for t in res_visiveis.get("treinos") or []:
+                if str(t.get("id")) == str(treino_origem_id):
+                    nome = nome or t.get("nome") or t.get("titulo")
+                    descricao = descricao or t.get("descricao_texto") or ""
+                    dificuldade = dificuldade or t.get("dificuldade")
+                    duracao_minutos = duracao_minutos or t.get("duracao_minutos") or t.get("duracaoMinutos")
+                    pontos_totais = pontos_totais or t.get("pontos_totais") or t.get("pontosTotais")
+                    exercicios = exercicios or t.get("exercicios") or []
+                    break
+
+    # 2. Caso ainda falte nome/exercícios e treino_origem_id esteja presente, tenta buscar direto na tabela treinos
+    if treino_origem_id is not None and (not nome or exercicios is None):
+        try:
+            cliente_db = _obter_cliente_db(usuario_id=dest_id, token=token)
+            res_t = (
+                cliente_db
+                .table("treinos")
+                .select("*, treino_exercicios(*, exercicios(*))")
+                .eq("id", treino_origem_id)
+                .execute()
+            )
+            if not res_t.data and cliente_db is not supabase:
+                res_t = (
+                    supabase
+                    .table("treinos")
+                    .select("*, treino_exercicios(*, exercicios(*))")
+                    .eq("id", treino_origem_id)
+                    .execute()
+                )
+            if res_t.data:
+                t_orig = _desempacotar_treino(dict(res_t.data[0]))
+                dono_real = str(t_orig.get("usuario_id") or "").strip()
+                if dono_real and dono_real != dest_id and not orig_user_id:
+                    res_perm = ver_perfil(dono_real, token=token, solicitante_id=dest_id)
+                    perf = res_perm.get("perfil") or {}
+                    if not perf.get("pode_visualizar_treinos", True):
+                        return {
+                            "sucesso": False,
+                            "pode_visualizar_treinos": False,
+                            "mensagem": "Este perfil é privado. Adicione este atleta como amigo para copiar seus treinos.",
+                        }
+                nome = nome or t_orig.get("nome") or t_orig.get("titulo")
+                descricao = descricao or t_orig.get("descricao_texto") or ""
+                dificuldade = dificuldade or t_orig.get("dificuldade")
+                duracao_minutos = duracao_minutos or t_orig.get("duracao_minutos") or t_orig.get("duracaoMinutos")
+                pontos_totais = pontos_totais or t_orig.get("pontos_totais") or t_orig.get("pontosTotais")
+                exercicios = exercicios if exercicios is not None else (t_orig.get("exercicios") or [])
+        except Exception:
+            pass
+
+    nome_final = (nome or "Treino Copiado").strip()
+    res_criacao = criar_treino(
+        usuario_id=dest_id,
+        nome=nome_final,
+        descricao=descricao or "Treino copiado de outro atleta",
+        pre_montado=False,
+        exercicios=exercicios or [],
+        dificuldade=dificuldade or "Personalizado",
+        duracao_minutos=duracao_minutos,
+        pontos_totais=pontos_totais,
+        token=token,
+    )
+    if res_criacao.get("sucesso"):
+        res_criacao["mensagem"] = f'Treino "{nome_final}" copiado para Meus Treinos!'
+    return res_criacao
 
 
 # ============================================================

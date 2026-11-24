@@ -23,6 +23,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
   late String nomeUsuario;
   late String emailUsuario;
   bool _carregando = false;
+  bool _perfilPublico = true;
+  bool _atualizandoPrivacidade = false;
 
   // Métricas de desempenho conectadas ao Supabase
   int pontosTotais = 0;
@@ -36,6 +38,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     nomeUsuario = ApiService().nomeUsuarioAtual;
     emailUsuario = ApiService().emailUsuarioAtual;
     diasSequencia = ApiService().sequenciaAtual;
+    _perfilPublico = ApiService().perfilPublicoAtual;
     _carregarPerfil();
   }
 
@@ -56,6 +59,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           pontosHoje = (perfil['pontuacao_diaria'] as num?)?.toInt() ?? 0;
           pontosSemana = (perfil['pontuacao_semanal'] as num?)?.toInt() ?? 0;
           diasSequencia = (perfil['sequencia'] as num?)?.toInt() ?? ApiService().sequenciaAtual;
+          _perfilPublico = perfil['perfil_publico'] != false;
         });
       }
     } else {
@@ -65,11 +69,54 @@ class _ProfileScreenState extends State<ProfileScreen> {
           nomeUsuario = ApiService().nomeUsuarioAtual;
           emailUsuario = ApiService().emailUsuarioAtual;
           diasSequencia = ApiService().sequenciaAtual;
+          _perfilPublico = ApiService().perfilPublicoAtual;
         });
         if (ApiService().idUsuarioAtual != null) {
           _carregarPerfil();
         }
       }
+    }
+  }
+
+  Future<void> _alternarPrivacidadePerfil(bool novoValor) async {
+    final usuarioId = ApiService().idUsuarioAtual;
+    if (usuarioId == null || _atualizandoPrivacidade) return;
+
+    final valorAnterior = _perfilPublico;
+    setState(() {
+      _perfilPublico = novoValor;
+      _atualizandoPrivacidade = true;
+    });
+
+    final res = await ApiService().editarPerfil(
+      usuarioId,
+      perfilPublico: novoValor,
+    );
+
+    if (!mounted) return;
+    setState(() => _atualizandoPrivacidade = false);
+
+    if (res['sucesso'] == true) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            novoValor
+                ? 'Perfil alterado para Público: outros atletas podem ver e copiar seus treinos.'
+                : 'Perfil alterado para Privado: apenas seus amigos confirmados podem ver e copiar seus treinos.',
+          ),
+          backgroundColor: const Color(0xFF00E676),
+        ),
+      );
+    } else {
+      setState(() => _perfilPublico = valorAnterior);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            res['mensagem']?.toString() ?? 'Não foi possível atualizar a privacidade do perfil.',
+          ),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
     }
   }
 
@@ -278,8 +325,45 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const SizedBox(height: 24),
 
               const Text(
-                'Conta',
+                'Conta & Privacidade',
                 style: TextStyle(fontSize: 20, color: Colors.white, fontWeight: FontWeight.bold),
+              ),
+              const SizedBox(height: 12),
+
+              // Configuração de Privacidade do Perfil (Público / Privado - Opção B)
+              Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xFF2D3139),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(
+                    color: _perfilPublico
+                        ? const Color(0xFF00E676).withValues(alpha: 0.3)
+                        : Colors.amberAccent.withValues(alpha: 0.35),
+                  ),
+                ),
+                child: SwitchListTile(
+                  secondary: Icon(
+                    _perfilPublico ? Icons.public : Icons.lock_outline,
+                    color: _perfilPublico ? const Color(0xFF00E676) : Colors.amberAccent,
+                  ),
+                  title: Text(
+                    _perfilPublico ? 'Perfil Público' : 'Perfil Privado (Apenas Amigos)',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  subtitle: Text(
+                    _perfilPublico
+                        ? 'Qualquer atleta pode visualizar e copiar seus treinos personalizados'
+                        : 'Apenas seus amigos confirmados podem visualizar e copiar seus treinos',
+                    style: const TextStyle(color: Colors.white70, fontSize: 12.5),
+                  ),
+                  value: _perfilPublico,
+                  activeThumbColor: const Color(0xFF00E676),
+                  onChanged: _atualizandoPrivacidade ? null : _alternarPrivacidadePerfil,
+                ),
               ),
               const SizedBox(height: 12),
 

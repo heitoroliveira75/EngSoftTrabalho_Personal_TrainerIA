@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import 'amigos_screen.dart';
+import 'friend_profile_screen.dart';
 
 class LeaderboardScreen extends StatefulWidget {
   final VoidCallback? onBack;
@@ -637,7 +638,9 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
               ),
             )
           else
-            ...itensExibidos.map((item) => _buildLeaderboardTile(item)),
+            ...itensExibidos.map(
+              (item) => _buildLeaderboardTile(item, isAmigosTab: isAmigosTab),
+            ),
 
           if (isAmigosTab) ...[
             const SizedBox(height: 20),
@@ -813,8 +816,12 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
     );
   }
 
-  Widget _buildLeaderboardTile(Map<String, dynamic> item) {
+  Widget _buildLeaderboardTile(
+    Map<String, dynamic> item, {
+    bool isAmigosTab = false,
+  }) {
     final bool isMe = item['is_me'] == true;
+    final String amigoId = item['id']?.toString().trim() ?? '';
     final int posicao = (item['posicao'] as num).toInt();
     final int pontos = (item['pontos'] as num).toInt();
     final int sequencia = (item['sequencia'] as num).toInt();
@@ -857,26 +864,66 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
               ),
             ),
           ),
-          CircleAvatar(
-            radius: 18,
-            backgroundColor: isMe ? const Color(0xFF00E676) : const Color(0xFF1E232A),
-            child: Text(
-              letraAvatar,
-              style: TextStyle(
-                color: isMe ? const Color(0xFF0D1117) : Colors.white,
-                fontWeight: FontWeight.bold,
+          GestureDetector(
+            onTap: (!isMe && amigoId.isNotEmpty)
+                ? () async {
+                    final alterou = await Navigator.push<bool>(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => FriendProfileScreen(
+                          amigoId: amigoId,
+                          dadosIniciais: item,
+                          isAmigoInicial: isAmigosTab,
+                        ),
+                      ),
+                    );
+                    if (alterou == true && mounted) {
+                      _carregarLeaderboard();
+                    }
+                  }
+                : null,
+            child: CircleAvatar(
+              radius: 18,
+              backgroundColor:
+                  isMe ? const Color(0xFF00E676) : const Color(0xFF1E232A),
+              child: Text(
+                letraAvatar,
+                style: TextStyle(
+                  color: isMe ? const Color(0xFF0D1117) : Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Flexible(
-                      child: Text(
+            child: GestureDetector(
+              onTap: (!isMe && amigoId.isNotEmpty)
+                  ? () async {
+                      final alterou = await Navigator.push<bool>(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => FriendProfileScreen(
+                            amigoId: amigoId,
+                            dadosIniciais: item,
+                            isAmigoInicial: isAmigosTab,
+                          ),
+                        ),
+                      );
+                      if (alterou == true && mounted) {
+                        _carregarLeaderboard();
+                      }
+                    }
+                  : null,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 4,
+                    crossAxisAlignment: WrapCrossAlignment.center,
+                    children: [
+                      Text(
                         nome,
                         style: TextStyle(
                           color: isMe ? const Color(0xFF00E676) : Colors.white,
@@ -885,75 +932,66 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
                         ),
                         overflow: TextOverflow.ellipsis,
                       ),
-                    ),
-                    if (isMe) ...[
-                      const SizedBox(width: 6),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF00E676),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: const Text(
-                          'VOCÊ',
-                          style: TextStyle(
-                            color: Color(0xFF0D1117),
-                            fontSize: 9,
-                            fontWeight: FontWeight.bold,
+                      if (isMe)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF00E676),
+                            borderRadius: BorderRadius.circular(4),
                           ),
+                          child: const Text(
+                            'VOCÊ',
+                            style: TextStyle(
+                              color: Color(0xFF0D1117),
+                              fontSize: 9,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 3),
+                  Row(
+                    children: [
+                      Icon(
+                        _criterioOrdenacao == 'streak' ? Icons.star : Icons.bolt,
+                        size: 14,
+                        color: _criterioOrdenacao == 'streak'
+                            ? const Color(0xFF00E676)
+                            : Colors.amberAccent,
+                      ),
+                      const SizedBox(width: 3),
+                      Flexible(
+                        child: Text(
+                          _criterioOrdenacao == 'streak'
+                              ? '$pontos pts sem.'
+                              : '$sequencia dias streak',
+                          style: TextStyle(
+                            color: _criterioOrdenacao == 'streak'
+                                ? const Color(0xFF00E676)
+                                : Colors.white70,
+                            fontSize: 11,
+                            fontWeight: _criterioOrdenacao == 'streak'
+                                ? FontWeight.w600
+                                : FontWeight.normal,
+                          ),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ],
-                  ],
-                ),
-                const SizedBox(height: 3),
-                Row(
-                  children: [
-                    const Icon(Icons.bolt, size: 14, color: Colors.amberAccent),
-                    const SizedBox(width: 2),
-                    Flexible(
-                      child: Text(
-                        '$sequencia dias streak',
-                        style: const TextStyle(color: Colors.white70, fontSize: 11),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    const Icon(Icons.star, size: 13, color: Color(0xFF00E676)),
-                    const SizedBox(width: 2),
-                    Flexible(
-                      child: Text(
-                        '$pontos pts sem.',
-                        style: const TextStyle(
-                          color: Color(0xFF00E676),
-                          fontSize: 11,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+                  ),
+                ],
+              ),
             ),
           ),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Text(
-                _criterioOrdenacao == 'streak' ? '$sequencia d' : '$pontos pts',
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 14,
-                ),
-              ),
-              Text(
-                _criterioOrdenacao == 'streak' ? '$pontos pts sem.' : '$sequencia d streak',
-                style: const TextStyle(
-                  color: Colors.white38,
-                  fontSize: 10,
-                ),
-              ),
-            ],
+          const SizedBox(width: 8),
+          Text(
+            _criterioOrdenacao == 'streak' ? '$sequencia d' : '$pontos pts sem.',
+            style: const TextStyle(
+              color: Colors.white,
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+            ),
           ),
         ],
       ),

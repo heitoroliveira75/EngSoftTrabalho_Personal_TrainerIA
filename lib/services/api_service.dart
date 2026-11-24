@@ -48,6 +48,13 @@ class ApiService {
     return null;
   }
 
+  bool get perfilPublicoAtual {
+    if (usuarioLogado != null && usuarioLogado!['perfil_publico'] != null) {
+      return usuarioLogado!['perfil_publico'] != false;
+    }
+    return true;
+  }
+
   Map<String, String> get _headers => {
         'Content-Type': 'application/json; charset=UTF-8',
         if (tokenAcesso != null) 'Authorization': 'Bearer $tokenAcesso',
@@ -458,7 +465,12 @@ class ApiService {
   /// Consulta dados cadastrais do perfil pelo ID do usuário
   Future<Map<String, dynamic>> verPerfil(String usuarioId) async {
     try {
-      final url = Uri.parse('$baseUrl/perfil/$usuarioId');
+      final uidAtual = idUsuarioAtual;
+      final url = Uri.parse('$baseUrl/perfil/$usuarioId').replace(
+        queryParameters: {
+          if (uidAtual != null && uidAtual.isNotEmpty) 'solicitante_id': uidAtual,
+        },
+      );
       final response = await http
           .get(url, headers: _headers)
           .timeout(const Duration(seconds: 45));
@@ -486,7 +498,7 @@ class ApiService {
     }
   }
 
-  /// Atualiza nome, CPF, sequência, maior sequência e/ou checagem do usuário
+  /// Atualiza nome, CPF, sequência, maior sequência, checagem e/ou privacidade do usuário
   Future<Map<String, dynamic>> editarPerfil(
     String usuarioId, {
     String? nome,
@@ -494,6 +506,7 @@ class ApiService {
     int? sequencia,
     int? maiorSequencia,
     bool? checagem,
+    bool? perfilPublico,
   }) async {
     try {
       final url = Uri.parse('$baseUrl/perfil/$usuarioId');
@@ -507,6 +520,7 @@ class ApiService {
               if (sequencia != null) 'sequencia': sequencia,
               if (maiorSequencia != null) 'maior_sequencia': maiorSequencia,
               if (checagem != null) 'checagem': checagem,
+              if (perfilPublico != null) 'perfil_publico': perfilPublico,
             }),
           )
           .timeout(const Duration(seconds: 60));
@@ -532,6 +546,10 @@ class ApiService {
           if (checagem != null) {
             usuarioLogado!['checagem'] = checagem;
           }
+          if (perfilPublico != null) {
+            usuarioLogado!['perfil_publico'] = perfilPublico;
+          }
+          await salvarSessaoLocal();
         }
       }
       return data;
@@ -624,10 +642,16 @@ class ApiService {
           'treinos': [],
         };
       }
-      final url = Uri.parse('$baseUrl/treinos/usuario/$id');
+      final uidSolicitante = idUsuarioAtual;
+      final url = Uri.parse('$baseUrl/treinos/usuario/$id').replace(
+        queryParameters: {
+          if (uidSolicitante != null && uidSolicitante.isNotEmpty)
+            'solicitante_id': uidSolicitante,
+        },
+      );
       final response = await http
           .get(url, headers: _headers)
-          .timeout(const Duration(seconds: 10));
+          .timeout(const Duration(seconds: 15));
 
       final data = jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
       return data;
@@ -636,6 +660,111 @@ class ApiService {
         'sucesso': false,
         'mensagem': 'Erro ao listar treinos do usuário: $e',
         'treinos': [],
+      };
+    }
+  }
+
+  /// Copia um treino personalizado de outro atleta para a lista "Meus Treinos" do usuário logado
+  Future<Map<String, dynamic>> copiarTreinoDeAtleta({
+    required Map<String, dynamic> treino,
+    required String donoOrigemId,
+    String? nomeAutor,
+  }) async {
+    try {
+      var idDestino = idUsuarioAtual;
+      if (idDestino == null || idDestino.isEmpty) {
+        final resAtual = await obterUsuarioAtual();
+        if (resAtual['sucesso'] == true && resAtual['usuario'] != null) {
+          idDestino = resAtual['usuario']['id']?.toString();
+        }
+      }
+      if (idDestino == null || idDestino.isEmpty) {
+        return {
+          'sucesso': false,
+          'mensagem': 'É necessário estar logado para copiar um treino.',
+        };
+      }
+
+      final nomeOriginal = (treino['nome'] ?? treino['titulo'] ?? 'Treino').toString().trim();
+      final dificuldade = (treino['dificuldade'] ?? 'Personalizado').toString().trim();
+      final duracaoMinutos = (treino['duracao_minutos'] as num?)?.toInt() ??
+          (treino['duracaoMinutos'] as num?)?.toInt() ??
+          30;
+      final pontosTotais = (treino['pontos_totais'] as num?)?.toInt() ??
+          (treino['pontosTotais'] as num?)?.toInt() ??
+          150;
+
+      final List<Map<String, dynamic>> exerciciosNormalizados = [];
+      final rawExercicios = treino['exercicios'];
+      if (rawExercicios is List) {
+        for (int i = 0; i < rawExercicios.length; i++) {
+          final item = rawExercicios[i];
+          if (item is Map) {
+            final series = (item['series'] as num?)?.toInt() ?? 3;
+            final reps = (item['repeticoes'] as num?)?.toInt() ?? 10;
+            final pts = (item['pontos_totais'] as num?)?.toInt() ??
+                (item['pontos'] as num?)?.toInt() ??
+                (series * 15);
+            exerciciosNormalizados.add({
+              'exercicio_id': item['exercicio_id'] ?? item['id'] ?? 1,
+              'ordem': (item['ordem'] as num?)?.toInt() ?? (i + 1),
+              'nome': (item['nome'] ?? 'Exercício').toString(),
+              'series': series,
+              'repeticoes': reps,
+              'pontos': pts,
+              'pontos_totais': pts,
+            });
+          }
+        }
+      }
+
+      final descricaoCopia = (nomeAutor != null && nomeAutor.trim().isNotEmpty)
+          ? 'Copiado do perfil de ${nomeAutor.trim()}'
+          : 'Copiado de outro atleta';
+
+      // Tenta primeiro o endpoint dedicado /treinos/copiar
+      try {
+        final urlCopiar = Uri.parse('$baseUrl/treinos/copiar');
+        final response = await http
+            .post(
+              urlCopiar,
+              headers: _headers,
+              body: jsonEncode({
+                'usuario_destino_id': idDestino,
+                'dono_origem_id': donoOrigemId,
+                'treino_origem_id': treino['id'],
+                'nome': nomeOriginal,
+                'descricao': descricaoCopia,
+                'dificuldade': dificuldade,
+                'duracao_minutos': duracaoMinutos,
+                'pontos_totais': pontosTotais,
+                'exercicios': exerciciosNormalizados,
+              }),
+            )
+            .timeout(const Duration(seconds: 30));
+
+        if (response.statusCode >= 200 && response.statusCode < 300) {
+          final data =
+              jsonDecode(utf8.decode(response.bodyBytes)) as Map<String, dynamic>;
+          return data;
+        }
+      } catch (_) {}
+
+      // Fallback para criarTreino caso o servidor esteja em uma revisão anterior à rota /treinos/copiar
+      return await criarTreino(
+        usuarioId: idDestino,
+        nome: nomeOriginal,
+        descricao: descricaoCopia,
+        preMontado: false,
+        dificuldade: dificuldade,
+        duracaoMinutos: duracaoMinutos,
+        pontosTotais: pontosTotais,
+        exercicios: exerciciosNormalizados,
+      );
+    } catch (e) {
+      return {
+        'sucesso': false,
+        'mensagem': 'Erro ao copiar treino: $e',
       };
     }
   }

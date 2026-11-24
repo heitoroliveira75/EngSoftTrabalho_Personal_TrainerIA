@@ -26,6 +26,28 @@
 
 ## Histórico de Entradas
 
+### [Entrada #035] 2026-11-24 — Privacidade de Perfil (Público/Privado — Opção B) e Visualização/Cópia de Treinos no Perfil do Atleta
+- **Objetivo / História de Usuário:**
+  - Permitir que o usuário configure seu perfil como **Público** ou **Privado (Apenas Amigos)** nas configurações de conta e que, ao abrir o perfil de outro atleta (`FriendProfileScreen`) pelo Ranking ou pela tela de Amigos, veja sua sequência, posição nos rankings e possa visualizar e copiar os treinos personalizados desse atleta para "Meus Treinos" (respeitando a Opção B: se o perfil for privado, apenas amigos confirmados podem ver e copiar os treinos).
+- **Tasks Executadas e Artefatos Gerados:**
+  - `[TASK-DB-PRIVACY-RLS]` Criação do script SQL idempotente adicionando `perfil_publico BOOLEAN NOT NULL DEFAULT TRUE` em `public.usuarios`, funções auxiliares (`sao_amigos_confirmados`, `pode_visualizar_treinos_usuario`), políticas RLS para `usuarios`, `treinos` e `treino_exercicios`, e RPCs `SECURITY DEFINER` (`alterar_privacidade_perfil`, `obter_perfil_atleta`, `listar_treinos_atleta_visiveis`) $\rightarrow$ **Artefatos:** `BD/script_privacidade_e_copia_treinos.sql`.
+  - `[TASK-API-PRIVACY-COPY]` Atualização de `ver_perfil`, `editar_perfil`, `listar_treinos` e adição de `copiar_treino_atleta` em `BD/main.py`, além das rotas `GET /perfil/{usuario_id}`, `PUT /perfil/{usuario_id}`, `GET /treinos/usuario/{usuario_id}` e `POST /treinos/copiar` em `BD/api.py` com suporte a `solicitante_id` e verificação de privacidade Opção B $\rightarrow$ **Artefatos:** `BD/main.py`, `BD/api.py`.
+  - `[TASK-FE-PRIVACY-COPY]` Adição do switch de privacidade ("Perfil Público" / "Perfil Privado - Apenas Amigos") em `lib/screens/profile_screen.dart` e da seção "Treinos de [Atleta]" em `lib/screens/friend_profile_screen.dart` com modal de detalhes dos exercícios, bloqueio visual para não-amigos quando o perfil é privado e botão "Copiar" para clonar o treino diretamente para "Meus Treinos" $\rightarrow$ **Artefatos:** `lib/services/api_service.dart`, `lib/screens/profile_screen.dart`, `lib/screens/friend_profile_screen.dart`.
+- **Decisões Técnicas e Observações:**
+  - Implementados fallbacks resilientes em `BD/main.py` e `lib/services/api_service.dart` para que o aplicativo funcione perfeitamente tanto com as novas RPCs e políticas RLS do script SQL quanto em instâncias onde a migração ainda esteja sendo aplicada.
+- **Estado Resultante / Próximos Passos:**
+  - Controle de privacidade (Opção B) e cópia de treinos entre atletas 100% integrados no banco, backend FastAPI e app Flutter.
+
+### [Entrada #034] 2026-11-24 — Mesclagem Multi-Branch (IA, review_frontend e Teste_frontend_arthur) e Higienização de Redundâncias
+- **Objetivo / História de Usuário:**
+  - Mesclar na branch `Banco-de-Dados` todas as evoluções incrementais feitas pela equipe nas branches `origin/IA`, `origin/review_frontend` e `origin/Teste_frontend_arthur`, preservando as regras de negócio atuais e removendo arquivos duplicados ou obsoletos do repositório.
+- **Tasks Executadas e Artefatos Gerados:**
+  - `[TASK-MERGE-IA-12EX]` Incorporação de 5 novos exercícios (`PuxadaAltaHalteres`, `RoscaMartelo`, `TricepsFrances`, `PuxadaAltaCostas` e `PranchaAbdominal`) e seus respectivos gabaritos JSON em `Gabaritos/`, além de ângulos orientados com sinal (`calcular_angulo_orientado`), histerese direcional, detecção de hiperextensão articular, guardas biomecânicas (`DurationGuard` e `ROMGuard` com suporte a exercícios isométricos) e alinhamento de baseline no DTW $\rightarrow$ **Artefatos:** `calculo_angulos.py`, `buffer_repeticao.py`, `exercicios_fsm.py`, `gabarito.py`, `dtw_evaluator.py`, `avaliador_pontuacao.py`, `app_tempo_real.py`, `Gabaritos/*.json`, `tests/test_pipeline_pontuacao.py`.
+  - `[TASK-MERGE-FE-ARTHUR-JOAO]` Integração da nova tela de perfil de amigo/atleta (`lib/screens/friend_profile_screen.dart`), navegação a partir de `amigos_screen.dart` e `leaderboard_screen.dart` (preservando ordenação alfabética, Nome + 1 Sobrenome e Top 15 Global), ajustes de overflow com `Wrap`, limpeza de código mockado redundante (`bancoDeTreinos`) em `opcao_treinos_screen.dart` e expansão do `PoseService` on-device para os 12 exercícios $\rightarrow$ **Artefatos:** `lib/screens/friend_profile_screen.dart`, `lib/screens/amigos_screen.dart`, `lib/screens/leaderboard_screen.dart`, `lib/screens/criar_exercicio_screen.dart`, `lib/screens/opcao_treinos_screen.dart`, `lib/screens/camera_treino_screen.dart`, `lib/screens/treino_selecionado_screen.dart`, `lib/screens/lobby_dupla_screen.dart`, `lib/services/pose_service.dart`, `test/treinos_test.dart`, `android/gradle.properties`.
+  - `[TASK-CLEANUP-REPO]` Exclusão da pasta duplicada `Códigos/`, dos 7 JSONs de gabarito duplicados na raiz (consolidados em `Gabaritos/`) e de arquivos obsoletos em `BD/` (`BD/main_old.py`, `BD/cadastrar_exercicios.py`, `BD/popular_banco_ia.py`, `BD/cadastrar_exercicios_supabase.sql`, `BD/guia_api`), mantendo intactos todos os arquivos legados protegidos pela Regra 5.
+- **Estado Resultante / Próximos Passos:**
+  - Repositório unificado, limpo e homologado com 12 exercícios biomecânicos, perfil de amigos/atletas e suíte de testes atualizada.
+
 ### [Entrada #033] 2026-11-11 — Ordenação Alfabética de Amigos na Tela de Amigos e Backend
 - **Objetivo / Problema Relatado:**
   - Exibir os nomes dos amigos em ordem alfabética na tela de Amigos (`lib/screens/amigos_screen.dart`) para facilitar a localização e a busca.

@@ -59,7 +59,7 @@ class DTWComparator:
         self,
         tolerancia: float = 30.0,
         janela: Optional[Union[int, float]] = None,
-        deadzone_graus: float = 6.0,
+        deadzone_graus: float = 4.0,
         normalizar_por_articulacao: bool = True,
     ):
         """
