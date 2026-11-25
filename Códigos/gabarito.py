@@ -308,6 +308,28 @@ def garantir_gabaritos_padrao(sobrescrever: bool = False) -> None:
             descricao="Gabarito padrão ouro para Rosca Scott (recorte FSM).",
         ).salvar_json(arq_scott)
 
+    # 11. Crucifixo Invertido com Halteres: Ombro (25° -> 95° -> 25°), Cotovelo estável (~160° -> 145° -> 160°)
+    arq_invertido = os.path.join(pasta_gabaritos, "gabarito_especialista_crucifixo_invertido.json")
+    if not os.path.exists(arq_invertido):
+        serie_invertido: List[Dict[str, float]] = []
+        for _ in range(5):
+            serie_invertido.append({"ombro": 25.0, "cotovelo": 160.0})
+        for val_t in t:
+            serie_invertido.append({
+                "ombro": float(25.0 + 70.0 * np.sin(val_t)),
+                "cotovelo": float(160.0 - 15.0 * np.sin(val_t)),
+            })
+        for _ in range(5):
+            serie_invertido.append({"ombro": 25.0, "cotovelo": 160.0})
+
+        dados_invertido = extrair_primeira_repeticao("crucifixo_invertido", serie_angulos=serie_invertido, lancar_excecao=True)
+        GabaritoExercicio(
+            nome_exercicio="crucifixo_invertido",
+            articulacoes=["ombro", "cotovelo"],
+            dados=dados_invertido,
+            descricao="Gabarito padrão ouro para Crucifixo Invertido com Halteres (recorte FSM).",
+        ).salvar_json(arq_invertido)
+
 
 if __name__ == "__main__":
     garantir_gabaritos_padrao(sobrescrever=True)

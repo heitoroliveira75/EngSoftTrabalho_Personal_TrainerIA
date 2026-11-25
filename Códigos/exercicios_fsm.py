@@ -1040,6 +1040,88 @@ class RoscaScott(ExercicioBaseFSM):
         return erros_no_frame[0] if erros_no_frame else None
 
 
+class CrucifixoInvertido(ExercicioBaseFSM):
+    """
+    Avalia o Crucifixo Invertido com Halteres (Dumbbell Reverse Fly / Bent-Over Rear Delt Fly).
+    Articulações: ['ombro', 'cotovelo']
+    """
+
+    NOMES_FASES = {
+        0: "Bracos Fechados / Repouso Embaixo",
+        1: "Abrindo (Subida / Abducao Horizontal)",
+        2: "Pico de Contracao no Topo (Bracos Abertos)",
+        3: "Fechando (Descida Excentrica Controlada)",
+    }
+
+    MENSAGENS_ERRO = {
+        "ABERTURA_INCOMPLETA": "Abra os bracos ate a linha das costas/ombros (ombro >= 80 graus) antes de retornar.",
+        "COTOVELO_MUITO_FLEXIONADO": "Mantenha os cotovelos fixos semi-flexionados; evite dobrar demais transformando em remada.",
+        "ELEVACAO_EXCESSIVA": "Evite elevar os bracos acima da linha dos ombros para proteger as articulacoes.",
+        "HIPEREXTENSAO_COTOVELO": "Mantenha uma leve flexao nos cotovelos; evite travar ou hiperestender a articulacao.",
+    }
+
+    PENALIDADES_ERRO = {
+        "ABERTURA_INCOMPLETA": 25.0,
+        "COTOVELO_MUITO_FLEXIONADO": 15.0,
+        "ELEVACAO_EXCESSIVA": 15.0,
+        "HIPEREXTENSAO_COTOVELO": 15.0,
+    }
+
+    def identificar_fase(self, angulos: dict, posicoes: dict, angulos_deltas: dict) -> int:
+        ombro = angulos.get("ombro", 25.0)
+        delta_ombro = angulos_deltas.get("ombro", 0.0)
+        fase = self.fases[1]
+
+        if fase == 0:
+            # Sai do repouso quando os braços começam a abrir (ombro > 45°) com delta positivo
+            if ombro > 45.0 and delta_ombro > 0:
+                fase = 1
+                self.erros_repeticao_atual = []
+        elif fase == 1:
+            # Pico de abertura / abdução horizontal (ombro >= 80°)
+            if ombro >= 80.0:
+                fase = 2
+            elif delta_ombro < 0:
+                # Começou a fechar antes de atingir a amplitude completa
+                if ombro <= 45.0:
+                    fase = 0  # Histerese suave perto do repouso
+                elif ombro <= 70.0:
+                    fase = 3  # Desistência / Repetição incompleta (ABERTURA_INCOMPLETA)
+        elif fase == 2:
+            # Início da descida excêntrica / fechamento dos braços
+            if ombro < 75.0 or delta_ombro < 0:
+                fase = 3
+        elif fase == 3:
+            # Retorno completo ao repouso embaixo (ombro <= 40°)
+            if ombro <= 40.0:
+                fase = 0
+                self.repeticoes += 1
+
+        return fase
+
+    def classificar(self, angulos: dict, posicoes: dict, angulos_deltas: dict) -> Optional[str]:
+        fase_anterior = self.fases[1]
+        fase_atual = self.identificar_fase(angulos, posicoes, angulos_deltas)
+
+        self.fases[0] = fase_anterior
+        self.fases[1] = fase_atual
+
+        erros_no_frame = []
+        if self.fases[0] == 1 and self.fases[1] == 3:
+            erros_no_frame.append("ABERTURA_INCOMPLETA")
+        if self.fases[1] in (1, 2, 3) and angulos.get("cotovelo", 155.0) < 110.0:
+            erros_no_frame.append("COTOVELO_MUITO_FLEXIONADO")
+        if self.fases[1] == 2 and angulos.get("ombro", 80.0) > 125.0:
+            erros_no_frame.append("ELEVACAO_EXCESSIVA")
+        if self.fases[1] in (0, 1, 2, 3) and (angulos.get("cotovelo", 155.0) > 175.0 or angulos.get("cotovelo_orientado", 0.0) < -2.0):
+            erros_no_frame.append("HIPEREXTENSAO_COTOVELO")
+
+        for err in erros_no_frame:
+            self.registrar_erro(err)
+
+        return erros_no_frame[0] if erros_no_frame else None
+
+
 # Catálogo central que liga as teclas de atalho ou IDs aos componentes de cada exercício
 CATALOGO_EXERCICIOS: Dict[str, Dict[str, Any]] = {
     "1": {
@@ -1138,6 +1220,14 @@ CATALOGO_EXERCICIOS: Dict[str, Dict[str, Any]] = {
         "arquivo_gabarito": "gabarito_especialista_rosca_scott.json",
         "enquadramento": "lateral",
     },
+    "i": {
+        "id": "crucifixo_invertido",
+        "nome": "Crucifixo Invertido com Halteres",
+        "classe_fsm": CrucifixoInvertido,
+        "articulacoes": ["ombro", "cotovelo"],
+        "arquivo_gabarito": "gabarito_especialista_crucifixo_invertido.json",
+        "enquadramento": "lateral",
+    },
 }
 
 
@@ -1173,6 +1263,9 @@ def obter_config_exercicio(identificador: str) -> Dict[str, Any]:
 
     if chave in ("rosca_scott", "rosca_scoot", "scott", "scoot", "preacher_curl", "13", "s"):
         return CATALOGO_EXERCICIOS["s"]
+
+    if chave in ("crucifixo_invertido", "crucifixo_invertido_halteres", "reverse_fly", "rear_delt_fly", "invertido", "14", "i"):
+        return CATALOGO_EXERCICIOS["i"]
 
     for item in CATALOGO_EXERCICIOS.values():
         if item["id"].lower() == chave:

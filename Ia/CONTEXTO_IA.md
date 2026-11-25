@@ -2,7 +2,7 @@
 
 > **Propósito deste documento:** Permitir que qualquer agente de IA ou desenvolvedor recupere imediatamente 100% do contexto técnico, arquitetural e histórico da frente de **Inteligência Artificial e Visão Computacional** do projeto **Personal Trainer IA**.
 >
-> **Última atualização:** 2026-11-25 (branch `IA`; 13 exercícios homologados incluindo Rosca Scott no Banco; pipeline antifalsos-positivos com ângulos orientados, guardas biomecânicas, histerese e detecção de hiperextensão; 114 testes em pipeline / 121 testes do motor de IA / 127 testes totais aprovados)
+> **Última atualização:** 2026-11-25 (branch `IA`; 14 exercícios homologados incluindo Crucifixo Invertido com Halteres; pipeline antifalsos-positivos com ângulos orientados, guardas biomecânicas, histerese e detecção de hiperextensão; 121 testes em pipeline / 128 testes do motor de IA / 134 testes totais aprovados)
 
 ---
 
@@ -81,10 +81,10 @@ Estes arquivos compõem a frente de trabalho imediata da branch, homologada por 
 | [`./avaliador_pontuacao.py`](./avaliador_pontuacao.py) | Motor central de pontuação (`ResultadoPontuacaoRepeticao`), laudos pedagógicos hierárquicos, gamificação e `OrquestradorSessao` com interface **frame a frame**. | `calcular_pontuacao()`, `OrquestradorSessao`, `ResultadoPontuacaoRepeticao`, `ResumoPontuacaoSessao` | **Concluído na `TASK-06`** |
 | [`./servico_ia_api.py`](./servico_ia_api.py) | Serviço singleton em memória que gerencia instâncias de `OrquestradorSessao` por usuário, decodifica imagens em RAM via `cv2.imdecode` e provê simulação canônica. | `ServicoIA`, `serializar_resultado_repeticao()`, `serializar_resumo_sessao()` | **Concluído na Sprint US-02** |
 | [`./BD/api.py`](./BD/api.py) | Servidor FastAPI unificado expondo rotas REST do Banco e rotas `/ia/*` para o aplicativo móvel. | Rotas `/ia/reiniciar-sessao`, `/ia/processar-frame`, `/ia/simular-repeticao`, `/ia/resumo-sessao`, `/ia/finalizar-serie-e-pontuar` | **Concluído na Sprint US-02** |
-| [`tests/test_pipeline_pontuacao.py`](tests/test_pipeline_pontuacao.py) | Suíte de testes automatizados com `pytest` cobrindo geometria, ângulos orientados, deltas acumulados, transições de fase com histerese, retenção de erros, DTW vetorizado, segmentação canônica, orquestração, guardas biomecânicas (ROM/Duration), hiperextensão articular e os 13 exercícios do catálogo. | Testes sem dependência de câmera | **Concluído (114 testes)** |
+| [`tests/test_pipeline_pontuacao.py`](tests/test_pipeline_pontuacao.py) | Suíte de testes automatizados com `pytest` cobrindo geometria, ângulos orientados, deltas acumulados, transições de fase com histerese, retenção de erros, DTW vetorizado, segmentação canônica, orquestração, guardas biomecânicas (ROM/Duration), hiperextensão articular e os 14 exercícios do catálogo. | Testes sem dependência de câmera | **Concluído (121 testes)** |
 | [`tests/test_servico_ia_api.py`](tests/test_servico_ia_api.py) | Suíte de testes do gerenciador de sessões de IA em memória, decodificação em RAM e simulações canônicas. | `test_servico_ia_*` | **Concluído (7 testes)** |
 | [`tests/test_api_ia_integrada.py`](tests/test_api_ia_integrada.py) | Suíte de testes end-to-end das rotas FastAPI de IA e envio automático de pontos para a gamificação. | `test_rota_ia_*` | **Concluído (6 testes)** |
-| **Total da Suíte Automatizada** | **114 testes de pipeline + 13 testes de API/Serviço = 127 testes aprovados no `pytest` com 100% de sucesso** | `pytest` | **100% Aprovado** |
+| **Total da Suíte Automatizada** | **121 testes de pipeline + 13 testes de API/Serviço = 134 testes aprovados no `pytest` com 100% de sucesso** | `pytest` | **100% Aprovado** |
 | [`./pytest.ini`](./pytest.ini) | Configuração de execução do `pytest` com inclusão automática do diretório raiz no `pythonpath`. | Configuração de testes | **Ativo** |
 | [`./requirements.txt`](./requirements.txt) | Especificação das dependências oficiais da branch `IA` (`numpy`, `opencv-python`, `mediapipe`, `pytest`). | Gerenciamento de ambiente | **Ativo** |
 
@@ -339,6 +339,21 @@ Todas as classes herdam de `ExercicioBaseFSM` e seguem o ciclo de 4 estados (`0 
       - `SUBIDA_INCOMPLETA` (Penalidade: 25.0 pts, desqualificador): desistência sem atingir $\le 75^\circ$.
       - `DESCOLAMENTO_COTOVELO` (Penalidade: 15.0 pts): braço desencosta da almofada do banco ($ombro > 70^\circ$).
       - `HIPEREXTENSAO_COTOVELO` (Penalidade: 15.0 pts): cotovelo hiperextendido no banco ($cotovelo > 175^\circ$ ou desvio retrógrado).
+
+14. **Crucifixo Invertido com Halteres (`tecla "i"`, `CrucifixoInvertido`)**
+    - **Enquadramento:** Lateral / Perfil recomendado (`"enquadramento": "lateral"`).
+    - **Articulações:** `["ombro", "cotovelo"]` (abdução horizontal do ombro para ativação de deltóide posterior com cotovelos estáveis).
+    - **Transições (guiadas por `ombro` e `delta_ombro`):**
+      - `0 -> 1` (Início da abertura com braços fechados embaixo): `ombro > 45°` e `delta_ombro > 0`
+      - `1 -> 2` (Pico de contração no topo com braços abertos): `ombro >= 80°`
+      - `1 -> 3` (Abertura incompleta / desistência prematura): `delta_ombro < 0` e `ombro <= 70°`
+      - `2 -> 3` (Início do retorno excêntrico controlado): `ombro < 75°` ou `delta_ombro < 0`
+      - `3 -> 0` (Braços completamente fechados embaixo): `ombro <= 40°` (`repeticoes += 1`)
+    - **Erros detectados:**
+      - `ABERTURA_INCOMPLETA` (Penalidade: 25.0 pts, desqualificador): não atinge $80^\circ$ de abertura horizontal.
+      - `COTOVELO_MUITO_FLEXIONADO` (Penalidade: 15.0 pts): dobra os cotovelos $< 110^\circ$ virando remada curvada.
+      - `ELEVACAO_EXCESSIVA` (Penalidade: 15.0 pts): sobe além de $125^\circ$ no pico de contração.
+      - `HIPEREXTENSAO_COTOVELO` (Penalidade: 15.0 pts): cotovelos totalmente estendidos/travados $> 175^\circ$.
 
 ---
 

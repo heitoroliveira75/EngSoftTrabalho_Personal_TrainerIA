@@ -26,6 +26,23 @@
 
 ## Histórico de Entradas
 
+### [Entrada #022] 2026-11-25 — [Expansão Biomecânica] Implementação do Crucifixo Invertido com Halteres
+- **Objetivo / História de Usuário:** Reconhecer, contar repetições e avaliar com FSM + DTW a execução do Crucifixo Invertido com Halteres (Bent-Over Rear Delt Fly), monitorando a abdução horizontal/extensão transversa dos ombros e a estabilidade dos cotovelos semi-flexionados, orientando o praticante a posicionar a câmera de perfil/lateral, detectando abertura incompleta, cotovelo excessivamente dobrado (transformando em remada), elevação excessiva acima da linha neutra e hiperextensão articular.
+- **Tasks Executadas e Artefatos Gerados:**
+  - `[TASK-CI.01]` Modelada a FSM `CrucifixoInvertido` em [`Códigos/exercicios_fsm.py`](../Códigos/exercicios_fsm.py):
+    - Articulações monitoradas: `["ombro", "cotovelo"]`.
+    - Ciclo de 4 fases (`0: Braços fechados embaixo <= 40°`, `1: Subindo/abrindo > 45°`, `2: Pico de contração no topo >= 80°`, `3: Descendo/fechando < 75°`).
+    - Histerese suave no repouso: retorno a 0 se oscilar e recuar para $\le 45^\circ$ sem contar repetição e sem acusar erro; e disparo de `ABERTURA_INCOMPLETA` (-25 pts, desqualificador) se desistir antes do pico ($\le 70^\circ$).
+    - Detecção imediata de `COTOVELO_MUITO_FLEXIONADO` (-15 pts se $cotovelo < 110^\circ$, evitando transformação em remada curvada), `ELEVACAO_EXCESSIVA` (-15 pts se $ombro > 125^\circ$) e `HIPEREXTENSAO_COTOVELO` (-15 pts se $cotovelo > 175^\circ$ ou desvio retrógrado).
+    - Cadastrada sob a tecla `"i"` (com aliases `"crucifixo_invertido"`, `"crucifixo_invertido_halteres"`, `"reverse_fly"`, `"rear_delt_fly"`, `"invertido"`, `"14"`, `"i"`) no `CATALOGO_EXERCICIOS` com `"enquadramento": "lateral"`.
+  - `[TASK-CI.02]` Criado o gabarito oficial em [`Gabaritos/gabarito_especialista_crucifixo_invertido.json`](../Gabaritos/gabarito_especialista_crucifixo_invertido.json) e alinhado o gerador em [`Códigos/gabarito.py`](../Códigos/gabarito.py) via `extrair_primeira_repeticao()`.
+  - `[TASK-CI.03]` Atualizado o HUD em [`Códigos/app_tempo_real.py`](../Códigos/app_tempo_real.py) com atalho `[I]Invertido` e banner de orientação lateral (`"ORIENTACAO: Fique de perfil / lateral para analise!"`).
+  - `[TASK-CI.04]` Criada a classe `TestCrucifixoInvertido` em [`tests/test_pipeline_pontuacao.py`](../tests/test_pipeline_pontuacao.py) cobrindo ciclo ideal, abertura incompleta, cotovelo muito flexionado, elevação excessiva, hiperextensão, histerese suave e alinhamento de gabarito DTW com nota $\ge 95\%$.
+  - **Suíte Total de Testes:** A suíte de pipeline avançou para **121 testes automatizados em `test_pipeline_pontuacao.py`** e **128 testes no motor/serviço de IA** (134 com rotas web) aprovados com 100% de sucesso.
+- **Decisões Técnicas e Observações:**
+  - O crucifixo invertido foca na porção posterior do deltóide, rombóides e trapézio médio. Manter os cotovelos fixos semi-flexionados ($\ge 110^\circ$) é fundamental para evitar a ação sinergista dominante do grande dorsal e bíceps (remada).
+- **Estado Resultante / Próximos Passos:** Catálogo agora conta com 14 exercícios completos (`1` a `9`, `0`, `c`, `f`, `s`, `i`), todos cobertos por testes unitários e de integração, com guardas biomecânicas e gabaritos homologados.
+
 ### [Entrada #021] 2026-11-25 — [Expansão Biomecânica] Implementação da Rosca Scott no Banco com Enquadramento Lateral
 - **Objetivo / História de Usuário:** Reconhecer, contar repetições e avaliar com FSM + DTW a execução da Rosca Scott (Preacher Curl) no banco Scott, monitorando a flexão/extensão do cotovelo e a estabilidade do braço apoiado na almofada (ombro fixo), orientando o praticante a posicionar a câmera de perfil/lateral, detectando subida incompleta, descolamento do cotovelo do apoio e hiperextensão articular no retorno excêntrico.
 - **Tasks Executadas e Artefatos Gerados:**
