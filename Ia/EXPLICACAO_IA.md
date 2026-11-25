@@ -50,7 +50,8 @@ Cada exercício segue um ciclo previsível dividido em 4 fases:
 
 **O pulo do gato da FSM:** ela também monitora **erros de execução na hora em que acontecem**:
 * Se o usuário foi da fase 1 para a 3 sem passar pela 2, ele "encurtou" o movimento $\rightarrow$ Alerta: `REPETICAO_INCOMPLETA` ou `AGACHAMENTO_CURTO`.
-* Se durante a execução o ombro caiu ou o tronco inclinou demais $\rightarrow$ Alerta postural imediato na tela.
+* **Filtro Antiespasmo / Debounce de Erros Posturais:** Erros contínuos (como tronco muito inclinado ou ombro instável) utilizam uma persistência mínima (`FRAMES_PERSISTENCIA_ERRO = 3`). Isso significa que oscilações espúrias de 1 frame do MediaPipe são filtradas, só disparando alerta se a falha realmente persistir no movimento do aluno.
+* **Monitoramento de Simetria Bilateral:** Em exercícios bilaterais (onde os dois lados do corpo devem trabalhar juntos, como no desenvolvimento ou flexão), o sistema compara os membros homólogos (direito e esquerdo). Se um lado subir ou descer descompassado em relação ao outro ($> 20.0^\circ$), o alerta de assimetria postural é disparado imediatamente.
 
 ### Passo 4: O Buffer de Repetição (Recorte Temporal)
 Enquanto a pessoa executa o movimento (fases 1, 2 e 3), o sistema guarda todos os ângulos daquele ciclo em uma memória temporária (o *Buffer*). No exato instante em que a FSM detecta o retorno à fase 0, o buffer "empacota" todos os quadros daquela repetição em uma matriz numérica $(N \times D)$ e a envia para a avaliação global de qualidade.
@@ -61,10 +62,14 @@ Aqui está o coração da avaliação técnica:
 * Quando o aluno faz o exercício, ele pode fazer mais rápido (ex.: 30 quadros) ou mais lento (ex.: 60 quadros).
 * Se comparássemos quadro a quadro de forma rígida, o aluno que treina com cadência controlada seria penalizado injustamente.
 * O **DTW (Dynamic Time Warping)** resolve isso: ele é um algoritmo matemático de alinhamento temporal que estica e comprime o tempo elasticamente para encaixar a curva do aluno na curva do especialista.
+* **Recalibração Biomecânica Humana:**
+  1. **Alinhamento de Linha de Base (Baseline Offset):** Normalizamos a pose estática inicial ($\Delta\theta[t] = \theta[t] - \text{baseline}$), garantindo que biotipos diferentes ou pequenas inclinações de câmera não reduzam a nota injustamente.
+  2. **Zona de Tolerância Fisiológica (Deadzone):** Variações corporais naturais de até $4.0^\circ$ têm custo zero na matriz de distância.
+  3. **Normalização por Quantidade de Articulações ($\sqrt{D}$):** Exercícios com mais articulações monitoradas não sofrem penalização acumulada artificial.
 * A partir desse alinhamento elástico, calculamos:
   1. A **distância média em graus** de divergência ao longo de todo o movimento.
-  2. O **Score Percentual de Técnica (0 a 100%)** via fórmula de decaimento suave.
-  3. O **diagnóstico por articulação**: aponta exatamente qual parte do corpo mais divergiu (ex.: *"Cotovelo correto, mas seu ombro abriu 14° a menos que a referência"*).
+  2. O **Score Percentual de Técnica (0 a 100%)** via decaimento exponencial calibrado com $\tau = 20.0^\circ$.
+  3. O **diagnóstico por articulação**: aponta exatamente qual parte do corpo mais divergiu (ex.: *"Cotovelo correto, mas seu ombro abriu 14° a menos que a referência"*), preservando as amplitudes reais absolutas.
 
 ---
 
@@ -73,28 +78,37 @@ Aqui está o coração da avaliação técnica:
 Neste momento, a branch `IA` possui seu núcleo completamente homologado:
 
 ### 3.1. Exercícios Já Mapeados
-O catálogo central (`CATALOGO_EXERCICIOS`) suporta **7 exercícios mapeados**:
+O catálogo central (`CATALOGO_EXERCICIOS`) suporta **14 exercícios mapeados**:
 1. **Desenvolvimento de Ombro (Shoulder Press):** Monitora cotovelo e ombro; detecta repetição incompleta, descida excessiva do braço e ombro caído.
 2. **Agachamento Livre (Squat):** Monitora joelho e quadril; detecta agachamento curto (falta de profundidade) e inclinação excessiva do tronco.
 3. **Rosca Direta de Bíceps (Bicep Curl):** Monitora cotovelo e estabilidade do ombro; detecta flexão incompleta e projeção incorreta do ombro.
-4. **Elevação Lateral de Ombros (Lateral Raise):** Monitora ombro e cotovelo; detecta elevação curta (não atingir a linha dos ombros), elevação excessiva (> 115°, prevenindo pinçamento articular) e cotovelo muito dobrado (< 110°). Conta com gabarito padrão ouro oficial extraído a partir de vídeo gravado em `Videos dataset/elevacaolateral.mp4`.
-5. **Tríceps Corda na Polia (Cable Triceps Pushdown):** Monitora cotovelo (extensão para baixo) e estabilidade do ombro; detecta extensão incompleta no fundo, avanço dos cotovelos (ombro > 35°) e subida excessiva dos cabos. Conta com gabarito especialista oficial extraído a partir de vídeo gravado em `Videos dataset/triceps.mp4`.
-6. **Flexão Diamante (Diamond Push-up):** Monitora cotovelo e ombro em visão frontal durante a prancha no solo; detecta flexão curta (`FLEXAO_CURTA`, se o usuário subir antes de atingir $\le 90^\circ$ no fundo) e cotovelos excessivamente abertos (`ABERTURA_EXCESSIVA`, ombro $> 75^\circ$, preservando a ativação de tríceps). Conta com gabarito especialista padrão ouro oficial extraído a partir de vídeo gravado em `Videos dataset/diamond_pushup.mp4`.
-7. **Remada Baixa / Remada na Polia (Seated Cable Row):** Monitora cotovelo, ombro e inclinação do quadril/tronco em visão lateral/perfil; detecta puxada curta (`REMADA_CURTA`, não puxar o cabo até o abdômen a $\le 85^\circ$) e inclinação excessiva das costas para trás (`INCLINACAO_EXCESSIVA_TRONCO`, quadril $> 125^\circ$, evitando o "roubo" de usar o impulso lombar em vez dos dorsais). Conta com gabarito especialista oficial homologado com 100% de pontuação a partir de vídeo gravado em `Videos dataset/remadabaixa.mp4`.
-* Todos os exercícios contam com alternância de lado (**Direito** ou **Esquerdo**).
+4. **Elevação Lateral de Ombros (Lateral Raise):** Monitora ombro e cotovelo; detecta elevação curta, elevação excessiva e cotovelo dobrado.
+5. **Tríceps Corda na Polia (Cable Triceps Pushdown):** Monitora cotovelo e estabilidade do ombro; detecta extensão incompleta e avanço dos cotovelos.
+6. **Flexão de Braço (Push-up):** Monitora cotovelo e ombro em prancha; detecta flexão curta e cotovelos excessivamente abertos.
+7. **Remada Baixa na Polia (Seated Cable Row):** Monitora cotovelo, ombro e inclinação do quadril/tronco; detecta puxada curta e inclinação lombar excessiva.
+8. **Puxada Alta (Lat Pulldown):** Monitora cotovelo e ombro; detecta puxada curta e elevação dos ombros.
+9. **Rosca Martelo (Hammer Curl):** Monitora cotovelo em pegada neutra e visão de perfil.
+0. **Tríceps Francês Sentado (French Press):** Monitora extensão vertical de cotovelo e estabilidade do braço.
+c. **Puxada Alta Costas:** Monitora a puxada na polia com enquadramento de costas (visão posterior).
+f. **Crucifixo Reto com Halteres (Chest Fly):** Monitora abdução horizontal no banco reto e estabilidade dos cotovelos semi-flexionados.
+s. **Rosca Scott (Preacher Curl):** Monitora flexão de cotovelo com braços apoiados na almofada inclinada.
+i. **Crucifixo Invertido com Halteres (Rear Delt Fly):** Monitora abdução horizontal para deltoide posterior em visão lateral.
+* Todos os exercícios contam com alternância de lado (**Direito** ou **Esquerdo**) e monitoramento automático de simetria bilateral nos exercícios indicados.
 
 ### 3.2. Módulos Ativos do Sistema
 * [`calculo_angulos.py`](./calculo_angulos.py): Motor geométrico que calcula ângulos articulares em 2D, verifica visibilidade dos marcos e possui o cálculo de deltas angulares com âncora de ruído (`calcular_deltas_angulares`), que preserva a detecção de movimentos lentos sem sofrer com ruído de câmera.
-* [`exercicios_fsm.py`](./exercicios_fsm.py): Contrato base `ExercicioBaseFSM` e máquinas de estado dos 3 exercícios. Conta com memória isolada de erros por repetição (`consumir_erros_repeticao`), checagens sem mascaramento (`if` independentes) e dicionário formal de penalidades (`PENALIDADES_ERRO`).
+* [`exercicios_fsm.py`](./exercicios_fsm.py): Contrato base `ExercicioBaseFSM` e máquinas de estado dos 14 exercícios. Conta com memória isolada de erros por repetição (`consumir_erros_repeticao`), checagens sem mascaramento (`if` independentes), debounce de persistência (`FRAMES_PERSISTENCIA_ERRO = 3`) e dicionário formal de penalidades (`PENALIDADES_ERRO`).
 * [`buffer_repeticao.py`](./buffer_repeticao.py): Coletor e recortador automático de repetições completas guiado pelas fases da FSM.
-* [`dtw_evaluator.py`](./dtw_evaluator.py): **Novo motor unificado de Dynamic Time Warping.** Vetorizado em NumPy 3D *broadcasting* (até 80x mais rápido), com suporte à janela de restrição dinâmica de Sakoe-Chiba, tolerância $\tau$ configurável, contrato tipado `@dataclass DTWResult` e degradação graciosa para tempo real.
+* [`dtw_evaluator.py`](./dtw_evaluator.py): **Motor unificado de Dynamic Time Warping.** Vetorizado em NumPy 3D *broadcasting* (alta performance), com janela de restrição dinâmica de Sakoe-Chiba, zona de tolerância fisiológica (`deadzone = 4.0`), normalização por $\sqrt{D}$ e contrato tipado `@dataclass DTWResult`.
+* [`avaliador_pontuacao.py`](./avaliador_pontuacao.py): Normalização de baseline estático ($\Delta\theta[t] = \theta[t] - \text{baseline}$), verificação de simetria bilateral em tempo real, cálculo pedagógico de notas e gamificação.
 * [`dtw_inicial.py`](./dtw_inicial.py): Módulo legado preservado intacto como salvaguarda histórica.
 * [`gabarito.py`](./gabarito.py): Sistema de persistência em JSON e gerador automático de gabaritos padrão caso os arquivos ainda não existam.
-* [`extrator_video.py`](./extrator_video.py): Extrai, por pose detectada, o número do frame, os ângulos articulares e a visibilidade. Não calcula deltas; no fluxo de avaliação, essa responsabilidade é do `OrquestradorSessao`. Também segmenta vídeos de especialistas para gerar gabaritos.
+* [`extrator_video.py`](./extrator_video.py): Extrai, por pose detectada, o número do frame, os ângulos articulares e a visibilidade, carregando o modelo MediaPipe via buffer em RAM imune a problemas de path no Windows.
 * [`comparar_exercicio.py`](./comparar_exercicio.py): CLI multi-exercício integrada ao orquestrador, com relatório por repetição e resumo da sessão.
 * [`app_tempo_real.py`](./app_tempo_real.py): Aplicação completa com webcam (OpenCV), desenho do esqueleto na tela, painel HUD superior com contagem de repetições, fase atual, ângulos ao vivo, alertas vermelhos de erro e veredito final da última repetição com score DTW.
-* [`tests/test_pipeline_pontuacao.py`](./tests/test_pipeline_pontuacao.py): Suíte com **63 testes automatizados** (e 70 no total do repositório) aprovados com 100% de sucesso, cobrindo cálculo de ângulos, FSMs dos 7 exercícios, DTW, segmentador canônico, gabaritos, orquestração frame a frame, gamificação, contrato do extrator e a suíte completa de aceite AC1 a AC7 (incluindo extensibilidade OCP).
-* **Gabaritos JSON oficiais em `Gabaritos/`:** Ombro, Agachamento, Rosca Bíceps, Elevação Lateral, Tríceps Corda, Flexão Diamante e Remada Baixa.
+* [`servico_ia_api.py`](./servico_ia_api.py) e [`BD/api.py`](./BD/api.py): Serviço singleton em memória e rotas REST FastAPI `/ia/*` para integração com o aplicativo móvel.
+* [`tests/test_pipeline_pontuacao.py`](./tests/test_pipeline_pontuacao.py): Suíte com **124 testes automatizados** (e 137 no total do repositório) aprovados com 100% de sucesso, cobrindo cálculo de ângulos, FSMs dos 14 exercícios, DTW, segmentador canônico, gabaritos, orquestração frame a frame, gamificação, contrato do extrator e a suíte completa de aceite AC1 a AC7 (incluindo extensibilidade OCP).
+* **Gabaritos JSON oficiais em `Gabaritos/`:** Gabaritos para os 14 exercícios do catálogo.
 
 ### 3.3. Como um Humano Pode Testar Hoje no Computador
 Se você clonar o repositório e tiver Python instalado:

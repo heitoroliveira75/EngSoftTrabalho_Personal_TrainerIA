@@ -2,7 +2,7 @@
 
 > **Propósito deste documento:** Permitir que qualquer agente de IA ou desenvolvedor recupere imediatamente 100% do contexto técnico, arquitetural e histórico da frente de **Inteligência Artificial e Visão Computacional** do projeto **Personal Trainer IA**.
 >
-> **Última atualização:** 2026-11-25 (branch `IA`; 14 exercícios homologados incluindo Crucifixo Invertido com Halteres; pipeline antifalsos-positivos com ângulos orientados, guardas biomecânicas, histerese e detecção de hiperextensão; 121 testes em pipeline / 128 testes do motor de IA / 134 testes totais aprovados)
+> **Última atualização:** 2026-11-25 (branch `IA`; 14 exercícios homologados com deadzone fisiológica, normalização por $\sqrt{D}$, alinhamento de baseline, debounce postural e monitoramento de simetria bilateral; 124 testes em pipeline / 131 testes do motor de IA / 137 testes totais aprovados com 100% de sucesso)
 
 ---
 
@@ -20,16 +20,20 @@ O sistema utiliza uma arquitetura híbrida em dois níveis complementares sobre 
    - Opera **frame a frame** ($O(1)$ por fotograma).
    - Identifica em qual fase biomecânica o aluno está (`0: Repouso`, `1: Concêntrica/Excêntrica Inicial`, `2: Pico/Fundo`, `3: Retorno`).
    - Conta repetições completas ao detectar o ciclo `0 -> 1 -> 2 -> 3 -> 0`.
+   - **Debounce de Persistência Postural (`FRAMES_PERSISTENCIA_ERRO = 3`):** Filtra ruídos de alta frequência do MediaPipe (espasmos de 1 frame), registrando erros contínuos (ex.: `OMBRO_CAIDO`, `TRONCO_MUITO_INCLINADO`, `OMBRO_INSTAVEL`) apenas após sustentação mínima, enquanto erros críticos estruturais de transição permanecem imediatos.
+   - **Monitoramento Universal de Simetria Bilateral:** Para exercícios com flag `"bilateral": True`, avalia a concordância angular entre os membros direito e esquerdo, emitindo o alerta `ASSIMETRIA_BILATERAL` caso a discrepância ultrapasse $20.0^\circ$.
    - Emite **alertas posturais imediatos** baseados em regras geométricas e transições anômalas (ex.: `REPETICAO_INCOMPLETA` quando o usuário interrompe a fase `1` e vai direto para a `3` sem atingir o pico `2`; `DESCIDA_EXCESSIVA`, `OMBRO_CAIDO`, `TRONCO_MUITO_INCLINADO`, `OMBRO_INSTAVEL`).
 
 2. **Avaliação Global de Trajetória via Dynamic Time Warping (DTW):**
    - Opera **ao término de cada repetição completa**, recortada pelo `BufferRepeticao`.
-   - Compara a matriz temporal multivariada do aluno ($N \times D$, onde $N$ é o número de frames da repetição e $D$ é o número de articulações monitoradas) contra o **Gabarito do Especialista** ($M \times D$).
+   - **Alinhamento de Linha de Base (Baseline Normalization):** Subtrai a postura estática de repouso ($\Delta\theta[t] = \theta[t] - \text{baseline}$), avaliando a qualidade dinâmica da curva motora e neutralizando variações anatômicas do biotipo ou rotação de câmera.
+   - **Deadzone Fisiológica ($\text{deadzone} = 4.0^\circ$):** Pequenas discrepâncias fisiológicas menores que a deadzone contam com custo zero, refletindo a variabilidade motora humana natural.
+   - **Normalização por Dimensionalidade ($\sqrt{D}$):** A distância acumulada é dividida por $\sqrt{D}$ (onde $D$ é o número de articulações monitoradas), garantindo justiça métrica entre exercícios bi e uniarticulares.
    - Como o DTW realiza alinhamento elástico não-linear no tempo, ele avalia a qualidade da trajetória angular **independentemente da velocidade/cadência** do aluno.
-   - Produz um **Score de Similaridade Técnica** ($0\%$ a $100\%$) via decaimento exponencial:
+   - Produz um **Score de Similaridade Técnica** ($0\%$ a $100\%$) via decaimento exponencial calibrado ($\tau = 20.0^\circ$):
      $$\text{Score} = 100 \cdot \exp\left(-\frac{d_{\text{norm}}}{\tau}\right)$$
-     onde $d_{\text{norm}}$ é a distância euclidiana acumulada dividida pelo comprimento do *warping path* e $\tau$ é a tolerância em graus (padrão: $15.0^\circ$).
-   - Calcula o **desvio médio absoluto em graus por articulação** ao longo do caminho ótimo alinhado, apontando qual articulação mais divergiu do padrão ouro.
+     onde $d_{\text{norm}}$ é a distância euclidiana normalizada dividida pelo comprimento do *warping path* e $\tau = 20.0^\circ$.
+   - Calcula o **desvio médio absoluto em graus por articulação** ao longo do caminho ótimo alinhado (preservando desvios reais sem a subtração de baseline no relatório pedagógico), apontando qual articulação mais divergiu do padrão ouro.
 
 ---
 
@@ -81,10 +85,10 @@ Estes arquivos compõem a frente de trabalho imediata da branch, homologada por 
 | [`./avaliador_pontuacao.py`](./avaliador_pontuacao.py) | Motor central de pontuação (`ResultadoPontuacaoRepeticao`), laudos pedagógicos hierárquicos, gamificação e `OrquestradorSessao` com interface **frame a frame**. | `calcular_pontuacao()`, `OrquestradorSessao`, `ResultadoPontuacaoRepeticao`, `ResumoPontuacaoSessao` | **Concluído na `TASK-06`** |
 | [`./servico_ia_api.py`](./servico_ia_api.py) | Serviço singleton em memória que gerencia instâncias de `OrquestradorSessao` por usuário, decodifica imagens em RAM via `cv2.imdecode` e provê simulação canônica. | `ServicoIA`, `serializar_resultado_repeticao()`, `serializar_resumo_sessao()` | **Concluído na Sprint US-02** |
 | [`./BD/api.py`](./BD/api.py) | Servidor FastAPI unificado expondo rotas REST do Banco e rotas `/ia/*` para o aplicativo móvel. | Rotas `/ia/reiniciar-sessao`, `/ia/processar-frame`, `/ia/simular-repeticao`, `/ia/resumo-sessao`, `/ia/finalizar-serie-e-pontuar` | **Concluído na Sprint US-02** |
-| [`tests/test_pipeline_pontuacao.py`](tests/test_pipeline_pontuacao.py) | Suíte de testes automatizados com `pytest` cobrindo geometria, ângulos orientados, deltas acumulados, transições de fase com histerese, retenção de erros, DTW vetorizado, segmentação canônica, orquestração, guardas biomecânicas (ROM/Duration), hiperextensão articular e os 14 exercícios do catálogo. | Testes sem dependência de câmera | **Concluído (121 testes)** |
+| [`tests/test_pipeline_pontuacao.py`](tests/test_pipeline_pontuacao.py) | Suíte de testes automatizados com `pytest` cobrindo geometria, ângulos orientados, deltas acumulados, transições de fase com histerese, retenção de erros, DTW vetorizado com deadzone e $\sqrt{D}$, segmentação canônica, orquestração com baseline offset, guardas biomecânicas (ROM/Duration), hiperextensão articular e os 14 exercícios do catálogo. | Testes sem dependência de câmera | **Concluído (124 testes)** |
 | [`tests/test_servico_ia_api.py`](tests/test_servico_ia_api.py) | Suíte de testes do gerenciador de sessões de IA em memória, decodificação em RAM e simulações canônicas. | `test_servico_ia_*` | **Concluído (7 testes)** |
 | [`tests/test_api_ia_integrada.py`](tests/test_api_ia_integrada.py) | Suíte de testes end-to-end das rotas FastAPI de IA e envio automático de pontos para a gamificação. | `test_rota_ia_*` | **Concluído (6 testes)** |
-| **Total da Suíte Automatizada** | **121 testes de pipeline + 13 testes de API/Serviço = 134 testes aprovados no `pytest` com 100% de sucesso** | `pytest` | **100% Aprovado** |
+| **Total da Suíte Automatizada** | **124 testes de pipeline + 13 testes de API/Serviço = 137 testes aprovados no `pytest` com 100% de sucesso** | `pytest` | **100% Aprovado** |
 | [`./pytest.ini`](./pytest.ini) | Configuração de execução do `pytest` com inclusão automática do diretório raiz no `pythonpath`. | Configuração de testes | **Ativo** |
 | [`./requirements.txt`](./requirements.txt) | Especificação das dependências oficiais da branch `IA` (`numpy`, `opencv-python`, `mediapipe`, `pytest`). | Gerenciamento de ambiente | **Ativo** |
 

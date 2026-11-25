@@ -26,6 +26,26 @@
 
 ## Histórico de Entradas
 
+### [Entrada #023] 2026-11-25 — [Recalibração Biomecânica & Blindagem] Deadzone, Normalização DTW, Baseline, Debounce FSM, Simetria Bilateral e Suíte 100% Verde
+- **Objetivo / História de Usuário:** Recalibrar a formulação matemática de pontuação e a resiliência da FSM para mitigar ruídos de câmera/MediaPipe e evitar notas excessivamente punitivas em execuções humanas legítimas, introduzindo: zona de tolerância fisiológica (deadzone), normalização por dimensionalidade articular ($\sqrt{D}$), alinhamento de linha de base de repouso (baseline offset), filtro antiespasmo com debounce de persistência na FSM, monitoramento universal de simetria bilateral e blindagem multiplataforma do carregamento de modelos MediaPipe em memória.
+- **Tasks Executadas e Artefatos Gerados:**
+  - `[TASK-01]` Implementada a **Deadzone Fisiológica** ($4.0^\circ$) e **Normalização por $\sqrt{D}$** em [`Códigos/dtw_evaluator.py`](../Códigos/dtw_evaluator.py):
+    - Subtrai a margem de tolerância biológica das distâncias ponto a ponto na matriz de custo DTW ($\max(0, |x - y| - \text{deadzone})$).
+    - Divide a distância euclidiana por $\sqrt{D}$ para que exercícios com mais articulações monitoradas não sofram penalização desproporcional.
+  - `[TASK-02]` Implementado o **Alinhamento de Linha de Base (Baseline Normalization)** e calibração de $\tau = 20.0$ em [`Códigos/avaliador_pontuacao.py`](../Códigos/avaliador_pontuacao.py):
+    - Subtrai a postura de repouso ($\Delta\theta[t] = \theta[t] - \text{baseline}$) antes do DTW, avaliando a qualidade motora da trajetória independentemente de variações anatômicas estáticas ou ângulo da câmera, preservando os desvios absolutos originais no laudo pedagógico.
+  - `[TASK-03]` Implementado o **Debounce de Persistência Postural na FSM** e **Monitoramento Universal de Simetria Bilateral**:
+    - `ExercicioBaseFSM` em [`Códigos/exercicios_fsm.py`](../Códigos/exercicios_fsm.py) passa a exigir persistência mínima (`FRAMES_PERSISTENCIA_ERRO = 3`) para erros posturais contínuos, filtrando espasmos de 1 frame do MediaPipe sem atrasar erros estruturais de transição de fase.
+    - Suporte a monitoramento bilateral com extração e comparação contralateral em tempo real (`Códigos/app_tempo_real.py`), no orquestrador (`Códigos/avaliador_pontuacao.py`) e na API de back-end (`Códigos/servico_ia_api.py`), emitindo o alerta postural `ASSIMETRIA_BILATERAL` caso a discrepância ultrapasse $20.0^\circ$.
+  - `[TASK-04]` **Blindagem Multiplataforma de Carregamento de Modelos**:
+    - Em [`Códigos/servico_ia_api.py`](../Códigos/servico_ia_api.py), [`Códigos/app_tempo_real.py`](../Códigos/app_tempo_real.py), [`Códigos/extrator_video.py`](../Códigos/extrator_video.py) e [`Códigos/avaliar_exercicio_ia.py`](../Códigos/avaliar_exercicio_ia.py), o carregamento do MediaPipe Tasks passa a usar `model_asset_buffer` lido via Python em memória binária, com busca em cascata na raiz e subdiretórios, eliminando falhas de codificação de caminhos com caracteres não-ASCII no Windows C++.
+  - `[TASK-05]` **Documentação Viva Atualizada**:
+    - Sincronizados [`Ia/DEVLOG.md`](./DEVLOG.md), [`Ia/CONTEXTO_IA.md`](./CONTEXTO_IA.md) e [`Ia/EXPLICACAO_IA.md`](./EXPLICACAO_IA.md).
+  - **Suíte Total de Testes:** **137 testes automatizados** aprovados com 100% de sucesso (124 em `test_pipeline_pontuacao.py`, 7 em `test_servico_ia_api.py` e 6 em `test_api_ia_integrada.py`).
+- **Decisões Técnicas e Observações:**
+  - A combinação de $\text{deadzone} = 4.0^\circ$ e $\tau = 20.0^\circ$ com debounce de 3 quadros mantém a pontuação justa para praticantes humanos reais (notas $\ge 90\%$ para padrões motores corretos) sem afrouxar a rigidez contra assimetrias ou erros posturais sustentados.
+- **Estado Resultante / Próximos Passos:** Pipeline completamente estável, robusto, 100% testado e com documentação técnica e humana alinhada na branch `IA`.
+
 ### [Entrada #022] 2026-11-25 — [Expansão Biomecânica] Implementação do Crucifixo Invertido com Halteres
 - **Objetivo / História de Usuário:** Reconhecer, contar repetições e avaliar com FSM + DTW a execução do Crucifixo Invertido com Halteres (Bent-Over Rear Delt Fly), monitorando a abdução horizontal/extensão transversa dos ombros e a estabilidade dos cotovelos semi-flexionados, orientando o praticante a posicionar a câmera de perfil/lateral, detectando abertura incompleta, cotovelo excessivamente dobrado (transformando em remada), elevação excessiva acima da linha neutra e hiperextensão articular.
 - **Tasks Executadas e Artefatos Gerados:**
