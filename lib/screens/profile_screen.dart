@@ -102,7 +102,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           content: Text(
             novoValor
                 ? 'Perfil alterado para Público: outros atletas podem ver e copiar seus treinos.'
-                : 'Perfil alterado para Privado: apenas seus amigos confirmados podem ver e copiar seus treinos.',
+                : 'Perfil alterado para Privado: apenas seus amigos podem ver e copiar seus treinos.',
           ),
           backgroundColor: const Color(0xFF00E676),
         ),
@@ -356,8 +356,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                   subtitle: Text(
                     _perfilPublico
-                        ? 'Qualquer atleta pode visualizar e copiar seus treinos personalizados'
-                        : 'Apenas seus amigos confirmados podem visualizar e copiar seus treinos',
+                        ? 'Qualquer atleta pode ver e copiar seus treinos'
+                        : 'Apenas seus amigos podem visualizar e copiar seus treinos',
                     style: const TextStyle(color: Colors.white70, fontSize: 12.5),
                   ),
                   value: _perfilPublico,
