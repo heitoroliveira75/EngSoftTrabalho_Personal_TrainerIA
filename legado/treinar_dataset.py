@@ -7,10 +7,18 @@ Machine Learning (.pkl via joblib) para classificar execuções futuras.
 
 import argparse
 import os
+import sys
+from pathlib import Path
 from typing import List, Dict, Any, Tuple
 import joblib
 import numpy as np
 from sklearn.ensemble import RandomForestClassifier
+
+DIRETORIO_ATUAL = Path(__file__).resolve().parent
+RAIZ_REPO = DIRETORIO_ATUAL.parent
+for _dir in (RAIZ_REPO, RAIZ_REPO / "ia", DIRETORIO_ATUAL):
+    if str(_dir) not in sys.path:
+        sys.path.insert(0, str(_dir))
 
 from exercicios_fsm import CATALOGO_EXERCICIOS
 from buffer_repeticao import BufferRepeticao

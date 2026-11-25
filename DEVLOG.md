@@ -26,6 +26,17 @@
 
 ## Histórico de Entradas
 
+### [Entrada #036] 2026-11-25 — Reorganização Estrutural da Raiz do Repositório (`ia/`, `docs/`, `legado/`)
+- **Objetivo / História de Usuário:**
+  - Limpar e estruturar o diretório base do repositório, movendo scripts do motor de IA, documentações humanas/planos de sprint e arquivos legados para pastas dedicadas (`ia/`, `docs/` e `legado/`), mantendo na raiz apenas os arquivos essenciais de build e configuração (Flutter, Docker, Render, Pytest, `README.md`, `DEVLOG.md`, `.ai_context.md`) sem quebrar importações, testes ou deploy.
+- **Tasks Executadas e Artefatos Gerados:**
+  - `[TASK-ORG-IA]` Migração dos 11 módulos Python ativos de IA e dos 2 modelos `.task` do MediaPipe para `ia/`, ajustando a resolução de `sys.path` em `BD/api.py`, `pytest.ini` e `tests/*`, além da busca resiliente de `Gabaritos/` e modelos `.task` em `ia/gabarito.py` e `ia/extrator_video.py` $\rightarrow$ **Artefatos:** `ia/*`, `BD/api.py`, `pytest.ini`, `tests/test_pipeline_pontuacao.py`, `tests/test_isolamento_sessao_multiusuario.py`.
+  - `[TASK-ORG-DOCS-LEGADO]` Migração de 15 arquivos de documentação humana, planos de sprint e diagramas `.png` para `docs/` (atualizando links em `README.md`) e de 8 arquivos históricos/experimentos para `legado/` $\rightarrow$ **Artefatos:** `docs/*`, `legado/*`, `README.md`, `.ai_context.md`, `BD/.ai_context.md`, `.agents/rules/project-rules.md`.
+- **Decisões Técnicas e Observações:**
+  - O `BD/api.py` (executado com `rootDir: BD` no Render e da raiz no Docker/Pytest) agora injeta `RAIZ_REPOSITORIO / "ia"` no `sys.path`, permitindo que todas as importações entre `BD/api.py` e os módulos internos de `ia/` funcionem de forma transparente em qualquer diretório de trabalho.
+- **Estado Resultante / Próximos Passos:**
+  - Pasta raiz enxuta com apenas 13 arquivos de configuração essenciais; todos os testes automatizados (`pytest`) e análise estática (`flutter analyze`) validados sem quebras.
+
 ### [Entrada #035] 2026-11-24 — Privacidade de Perfil (Público/Privado — Opção B) e Visualização/Cópia de Treinos no Perfil do Atleta
 - **Objetivo / História de Usuário:**
   - Permitir que o usuário configure seu perfil como **Público** ou **Privado (Apenas Amigos)** nas configurações de conta e que, ao abrir o perfil de outro atleta (`FriendProfileScreen`) pelo Ranking ou pela tela de Amigos, veja sua sequência, posição nos rankings e possa visualizar e copiar os treinos personalizados desse atleta para "Meus Treinos" (respeitando a Opção B: se o perfil for privado, apenas amigos confirmados podem ver e copiar os treinos).

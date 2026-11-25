@@ -21,16 +21,21 @@ MODELO_URL_PADRAO = (
     "https://storage.googleapis.com/mediapipe-models/pose_landmarker/"
     "pose_landmarker_lite/float16/latest/pose_landmarker_lite.task"
 )
-MODELO_ARQUIVO_PADRAO = "pose_landmarker_lite.task"
+DIRETORIO_IA = os.path.dirname(os.path.abspath(__file__))
+MODELO_ARQUIVO_PADRAO = os.path.join(DIRETORIO_IA, "pose_landmarker_lite.task")
 
 
 def garantir_modelo_pose(caminho_modelo: str = MODELO_ARQUIVO_PADRAO) -> str:
     """Garante que o ficheiro .task do MediaPipe existe localmente."""
     if not os.path.exists(caminho_modelo):
-        raiz_repo = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        candidato = os.path.join(raiz_repo, os.path.basename(caminho_modelo))
-        if os.path.exists(candidato):
-            return candidato
+        nome_base = os.path.basename(caminho_modelo)
+        raiz_repo = os.path.dirname(DIRETORIO_IA)
+        for candidato in (
+            os.path.join(DIRETORIO_IA, nome_base),
+            os.path.join(raiz_repo, nome_base),
+        ):
+            if os.path.exists(candidato):
+                return candidato
         print(f"A transferir modelo oficial do MediaPipe Tasks ({caminho_modelo})...")
         urllib.request.urlretrieve(MODELO_URL_PADRAO, caminho_modelo)
         print("Transferência concluída com sucesso!")

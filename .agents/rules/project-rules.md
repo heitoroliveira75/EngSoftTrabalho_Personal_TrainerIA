@@ -9,10 +9,10 @@
    - Nenhuma alteração em código funcional deve ser feita sem antes apresentar uma proposta concisa (Objetivo, Arquivos Afetados, Estratégia e Impactos) e obter aprovação explícita do usuário.
 
 3. **Portabilidade e Convenções de Código:**
-   - Utilize **exclusivamente caminhos relativos à raiz** do repositório (ex.: `lib/main.dart`, `BD/api.py`, `calculo_angulos.py`). É proibido usar caminhos absolutos locais (`C:\...`, `/home/...`, `file:///...`).
+   - Utilize **exclusivamente caminhos relativos à raiz** do repositório (ex.: `lib/main.dart`, `BD/api.py`, `ia/calculo_angulos.py`). É proibido usar caminhos absolutos locais (`C:\...`, `/home/...`, `file:///...`).
    - Novos módulos Python devem usar nomes `snake_case` em ASCII puro, *type hints*, docstrings com unidades explícitas (graus, frames, ms) e `encoding="utf-8"`.
-   - Mantenha o domínio biomecânico (`calculo_angulos.py`, `exercicios_fsm.py`, `buffer_repeticao.py`, `dtw_evaluator.py`, `gabarito.py`, `avaliador_pontuacao.py`) desacoplado de OpenCV/MediaPipe.
-   - Preserve os arquivos legados (`exercícios_fsm.py`, `dev_ombro-inicial.py`, `dtw_inicial.py`, `Modularização.py`, `*.csv`) intactos.
+   - Mantenha o domínio biomecânico (`ia/calculo_angulos.py`, `ia/exercicios_fsm.py`, `ia/buffer_repeticao.py`, `ia/dtw_evaluator.py`, `ia/gabarito.py`, `ia/avaliador_pontuacao.py`) desacoplado de OpenCV/MediaPipe.
+   - Preserve os arquivos legados em `legado/` (`exercícios_fsm.py`, `dev_ombro-inicial.py`, `dtw_inicial.py`, `Modularização.py`, `*.csv`) intactos.
 
 4. **Testes via CI e Sincronização Automática Obrigatória:**
    - **Não execute suítes de testes localmente** (`pytest`, `flutter test`, `flutter analyze`) a cada modificação; a validação ocorre via GitHub Actions (`.github/workflows/ci.yml`). Só rode testes locais se o usuário pedir explicitamente.

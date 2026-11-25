@@ -7,13 +7,13 @@ import uvicorn
 import sys
 from pathlib import Path
 
-# Garantir que a raiz do repositório e o diretório BD estejam no sys.path
+# Garantir que a raiz do repositório, o módulo IA e o diretório BD estejam no sys.path
 DIRETORIO_BD = Path(__file__).resolve().parent
 RAIZ_REPOSITORIO = DIRETORIO_BD.parent
-if str(RAIZ_REPOSITORIO) not in sys.path:
-    sys.path.insert(0, str(RAIZ_REPOSITORIO))
-if str(DIRETORIO_BD) not in sys.path:
-    sys.path.insert(0, str(DIRETORIO_BD))
+DIRETORIO_IA = RAIZ_REPOSITORIO / "ia"
+for _dir in (RAIZ_REPOSITORIO, DIRETORIO_IA, DIRETORIO_BD):
+    if str(_dir) not in sys.path:
+        sys.path.insert(0, str(_dir))
 
 import main as bd
 from supabase_client import supabase

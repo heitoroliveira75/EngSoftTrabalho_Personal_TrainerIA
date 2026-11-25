@@ -1122,10 +1122,11 @@ class TestCriteriosAceiteUS01:
         """
         import pathlib
         raiz = pathlib.Path(__file__).resolve().parent.parent
+        pasta_ia = raiz / "ia" if (raiz / "ia").exists() else raiz
         consumidores = [
-            raiz / "app_tempo_real.py",
-            raiz / "comparar_exercicio.py",
-            raiz / "exemplo_integracao.py",
+            pasta_ia / "app_tempo_real.py",
+            pasta_ia / "comparar_exercicio.py",
+            pasta_ia / "exemplo_integracao.py",
         ]
 
         for script in consumidores:

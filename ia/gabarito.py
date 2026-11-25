@@ -92,7 +92,16 @@ def garantir_gabaritos_padrao(sobrescrever: bool = False) -> None:
     """
     frames_movimento = 45
     t = np.linspace(0, np.pi, frames_movimento)
-    pasta_gabaritos = "Gabaritos" if os.path.exists("Gabaritos") else "."
+    raiz_modulo = os.path.dirname(os.path.abspath(__file__))
+    raiz_repo = os.path.dirname(raiz_modulo)
+    if os.path.exists("Gabaritos"):
+        pasta_gabaritos = "Gabaritos"
+    elif os.path.exists(os.path.join(raiz_repo, "Gabaritos")):
+        pasta_gabaritos = os.path.join(raiz_repo, "Gabaritos")
+    elif os.path.exists(os.path.join(raiz_modulo, "Gabaritos")):
+        pasta_gabaritos = os.path.join(raiz_modulo, "Gabaritos")
+    else:
+        pasta_gabaritos = "."
 
     # 1. Desenvolvimento de Ombro: Cotovelo (90° -> 165° -> 90°), Ombro (80° -> 155° -> 80°)
     arq_ombro = os.path.join(pasta_gabaritos, "gabarito_especialista_ombro.json")

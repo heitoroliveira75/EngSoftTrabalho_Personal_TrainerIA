@@ -7,13 +7,21 @@ e compara cada repetição com o modelo (.pkl) e a curva consenso aprendidos pel
 import argparse
 import csv
 import os
+import sys
 import time
+from pathlib import Path
 from typing import Dict, Any, List
 import cv2
 import joblib
 import mediapipe as mp
 from mediapipe.tasks import python
 from mediapipe.tasks.python import vision
+
+DIRETORIO_ATUAL = Path(__file__).resolve().parent
+RAIZ_REPO = DIRETORIO_ATUAL.parent
+for _dir in (RAIZ_REPO, RAIZ_REPO / "ia", DIRETORIO_ATUAL):
+    if str(_dir) not in sys.path:
+        sys.path.insert(0, str(_dir))
 
 from exercicios_fsm import CATALOGO_EXERCICIOS
 from buffer_repeticao import BufferRepeticao

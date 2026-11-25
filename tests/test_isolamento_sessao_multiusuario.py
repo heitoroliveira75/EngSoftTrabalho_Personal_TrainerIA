@@ -13,8 +13,9 @@ from types import SimpleNamespace
 from unittest.mock import patch, MagicMock
 
 RAIZ_REPO = Path(__file__).resolve().parent.parent
-if str(RAIZ_REPO) not in sys.path:
-    sys.path.insert(0, str(RAIZ_REPO))
+for _p in (RAIZ_REPO, RAIZ_REPO / "ia", RAIZ_REPO / "BD"):
+    if str(_p) not in sys.path:
+        sys.path.insert(0, str(_p))
 
 # Salvaguarda para ambientes leves onde pacotes nativos de imagem não estejam instalados
 for _mod in ("numpy", "cv2", "multipart", "python_multipart", "multipart.multipart"):
