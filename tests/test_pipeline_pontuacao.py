@@ -2059,5 +2059,118 @@ class TestPuxadaAltaCostas:
         assert resultado_rep.aprovado is True
 
 
+class TestCrucifixoReto:
+    """Valida a FSM, detecção de erros e pontuação do Crucifixo Reto com Halteres."""
+
+    def test_ciclo_ideal_fsm(self):
+        from exercicios_fsm import CrucifixoReto
+        fsm = CrucifixoReto()
+        pos = {}
+
+        # Fase 0: Repouso no topo (braços fechados acima do peito, ombro <= 45°)
+        assert fsm.fases[1] == 0
+
+        # 0 -> 1: Abrindo os braços (ombro > 45° e delta > 0)
+        fsm.classificar({"ombro": 55.0, "cotovelo": 142.0}, pos, {"ombro": 10.0})
+        assert fsm.fases[1] == 1
+
+        # 1 -> 2: Fundo do crucifixo / máxima abertura (ombro >= 80°)
+        fsm.classificar({"ombro": 85.0, "cotovelo": 140.0}, pos, {"ombro": 10.0})
+        assert fsm.fases[1] == 2
+
+        # 2 -> 3: Fechando os braços (ombro < 75° ou delta < 0)
+        fsm.classificar({"ombro": 70.0, "cotovelo": 141.0}, pos, {"ombro": -10.0})
+        assert fsm.fases[1] == 3
+
+        # 3 -> 0: Fechamento completo acima do peito (ombro <= 45°)
+        fsm.classificar({"ombro": 40.0, "cotovelo": 145.0}, pos, {"ombro": -10.0})
+        assert fsm.fases[1] == 0
+        assert fsm.repeticoes == 1
+        assert len(fsm.erros) == 0
+
+    def test_abertura_incompleta_reprovacao(self):
+        from exercicios_fsm import CrucifixoReto
+        fsm = CrucifixoReto()
+        pos = {}
+
+        # 0 -> 1
+        fsm.classificar({"ombro": 55.0, "cotovelo": 142.0}, pos, {"ombro": 10.0})
+        assert fsm.fases[1] == 1
+
+        # Desistência (1 -> 3): começa a fechar (delta < 0) antes de atingir 80° (ombro <= 70°)
+        erro = fsm.classificar({"ombro": 65.0, "cotovelo": 142.0}, pos, {"ombro": -5.0})
+        assert fsm.fases[1] == 3
+        assert erro == "ABERTURA_INCOMPLETA"
+        assert "ABERTURA_INCOMPLETA" in fsm.erros
+
+    def test_cotovelo_muito_flexionado(self):
+        from exercicios_fsm import CrucifixoReto
+        fsm = CrucifixoReto()
+        pos = {}
+
+        fsm.fases = [1, 1]
+        # Aluno dobra excessivamente os cotovelos (< 105°), virando supino
+        erro = fsm.classificar({"ombro": 60.0, "cotovelo": 95.0}, pos, {"ombro": 5.0})
+        assert "COTOVELO_MUITO_FLEXIONADO" in fsm.erros
+
+    def test_abertura_excessiva(self):
+        from exercicios_fsm import CrucifixoReto
+        fsm = CrucifixoReto()
+        pos = {}
+
+        fsm.fases = [1, 2]
+        # Braços descem muito abaixo da linha do banco (> 115°)
+        erro = fsm.classificar({"ombro": 120.0, "cotovelo": 140.0}, pos, {"ombro": 5.0})
+        assert "ABERTURA_EXCESSIVA" in fsm.erros
+
+    def test_hiperextensao_cotovelo(self):
+        from exercicios_fsm import CrucifixoReto
+        fsm = CrucifixoReto()
+        pos = {}
+
+        # Cotovelo além de 175° ou com desvio retrógrado
+        fsm.fases = [1, 1]
+        erro = fsm.classificar({"ombro": 60.0, "cotovelo": 178.0, "cotovelo_orientado": -3.0}, pos, {"ombro": 5.0})
+        assert "HIPEREXTENSAO_COTOVELO" in fsm.erros
+
+    def test_histerese_repouso_suave(self):
+        from exercicios_fsm import CrucifixoReto
+        fsm = CrucifixoReto()
+        pos = {}
+
+        # 0 -> 1 por leve oscilação
+        fsm.classificar({"ombro": 46.0, "cotovelo": 145.0}, pos, {"ombro": 2.0})
+        assert fsm.fases[1] == 1
+
+        # Recuo imediato para <= 48° volta suave para 0 sem acusar ABERTURA_INCOMPLETA
+        erro = fsm.classificar({"ombro": 44.0, "cotovelo": 145.0}, pos, {"ombro": -2.0})
+        assert fsm.fases[1] == 0
+        assert erro is None
+        assert "ABERTURA_INCOMPLETA" not in fsm.erros
+        assert fsm.repeticoes == 0
+
+    def test_pipeline_ouro_crucifixo_reto_gabarito(self):
+        gab = GabaritoExercicio.carregar_json("gabarito_especialista_crucifixo_reto.json")
+        assert gab.articulacoes == ["ombro", "cotovelo"]
+        assert gab.total_frames >= 20
+
+        orq = OrquestradorSessao("f")
+        resultado_rep = None
+
+        for linha in gab.dados:
+            frame_angulos = {
+                "ombro": float(linha[0]),
+                "cotovelo": float(linha[1]),
+            }
+            _, rep = orq.processar_frame(frame_angulos, visivel=True)
+            if rep is not None:
+                resultado_rep = rep
+
+        assert resultado_rep is not None
+        assert resultado_rep.score_final >= 95.0
+        assert resultado_rep.aprovado is True
+
+
+
 
 

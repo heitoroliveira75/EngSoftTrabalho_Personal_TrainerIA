@@ -880,6 +880,88 @@ class PuxadaAltaCostas(ExercicioBaseFSM):
         return erros_no_frame[0] if erros_no_frame else None
 
 
+class CrucifixoReto(ExercicioBaseFSM):
+    """
+    Avalia o Crucifixo Reto com Halteres (Dumbbell Flat Bench Fly).
+    Articulações: ['ombro', 'cotovelo']
+    """
+
+    NOMES_FASES = {
+        0: "Topo / Bracos Fechados Acima do Peito (Repouso)",
+        1: "Abrindo (Descida / Abducao Horizontal)",
+        2: "Pico de Alongamento (Bracos Abertos)",
+        3: "Fechando (Subida / Aducao Horizontal)",
+    }
+
+    MENSAGENS_ERRO = {
+        "ABERTURA_INCOMPLETA": "Abra os bracos completamente ate a linha do peito (ombro >= 80 graus) antes de fechar.",
+        "COTOVELO_MUITO_FLEXIONADO": "Mantenha os cotovelos semi-flexionados fixos; evite dobrar demais virando um supino.",
+        "ABERTURA_EXCESSIVA": "Evite descer os halteres abaixo da linha dos ombros para proteger as articulacoes.",
+        "HIPEREXTENSAO_COTOVELO": "Mantenha uma leve flexao nos cotovelos; evite travar ou hiperestender.",
+    }
+
+    PENALIDADES_ERRO = {
+        "ABERTURA_INCOMPLETA": 25.0,
+        "COTOVELO_MUITO_FLEXIONADO": 15.0,
+        "ABERTURA_EXCESSIVA": 15.0,
+        "HIPEREXTENSAO_COTOVELO": 15.0,
+    }
+
+    def identificar_fase(self, angulos: dict, posicoes: dict, angulos_deltas: dict) -> int:
+        ombro = angulos.get("ombro", 30.0)
+        delta_ombro = angulos_deltas.get("ombro", 0.0)
+        fase = self.fases[1]
+
+        if fase == 0:
+            # Sai do repouso quando os braços começam a abrir (ombro > 45°) com delta positivo
+            if ombro > 45.0 and delta_ombro > 0:
+                fase = 1
+                self.erros_repeticao_atual = []
+        elif fase == 1:
+            # Fundo do crucifixo (máxima abertura na linha do peito >= 80°)
+            if ombro >= 80.0:
+                fase = 2
+            elif delta_ombro < 0:
+                # Começou a fechar antes de atingir a amplitude completa
+                if ombro <= 48.0:
+                    fase = 0  # Histerese suave perto do topo
+                elif ombro <= 70.0:
+                    fase = 3  # Desistência / Repetição incompleta (ABERTURA_INCOMPLETA)
+        elif fase == 2:
+            # Começou a fechar os braços (subida concêntrica)
+            if ombro < 75.0 or delta_ombro < 0:
+                fase = 3
+        elif fase == 3:
+            # Fechamento completo dos braços acima do peito
+            if ombro <= 45.0:
+                fase = 0
+                self.repeticoes += 1
+
+        return fase
+
+    def classificar(self, angulos: dict, posicoes: dict, angulos_deltas: dict) -> Optional[str]:
+        fase_anterior = self.fases[1]
+        fase_atual = self.identificar_fase(angulos, posicoes, angulos_deltas)
+
+        self.fases[0] = fase_anterior
+        self.fases[1] = fase_atual
+
+        erros_no_frame = []
+        if self.fases[0] == 1 and self.fases[1] == 3:
+            erros_no_frame.append("ABERTURA_INCOMPLETA")
+        if self.fases[1] in (1, 2, 3) and angulos.get("cotovelo", 145.0) < 105.0:
+            erros_no_frame.append("COTOVELO_MUITO_FLEXIONADO")
+        if self.fases[1] == 2 and angulos.get("ombro", 80.0) > 115.0:
+            erros_no_frame.append("ABERTURA_EXCESSIVA")
+        if self.fases[1] in (0, 1, 2, 3) and (angulos.get("cotovelo", 145.0) > 175.0 or angulos.get("cotovelo_orientado", 0.0) < -2.0):
+            erros_no_frame.append("HIPEREXTENSAO_COTOVELO")
+
+        for err in erros_no_frame:
+            self.registrar_erro(err)
+
+        return erros_no_frame[0] if erros_no_frame else None
+
+
 # Catálogo central que liga as teclas de atalho ou IDs aos componentes de cada exercício
 CATALOGO_EXERCICIOS: Dict[str, Dict[str, Any]] = {
     "1": {
@@ -962,6 +1044,14 @@ CATALOGO_EXERCICIOS: Dict[str, Dict[str, Any]] = {
         "arquivo_gabarito": "gabarito_especialista_puxada_costas.json",
         "enquadramento": "costas",
     },
+    "f": {
+        "id": "crucifixo_reto",
+        "nome": "Crucifixo Reto com Halteres",
+        "classe_fsm": CrucifixoReto,
+        "articulacoes": ["ombro", "cotovelo"],
+        "arquivo_gabarito": "gabarito_especialista_crucifixo_reto.json",
+        "enquadramento": "livre",
+    },
 }
 
 
@@ -991,6 +1081,9 @@ def obter_config_exercicio(identificador: str) -> Dict[str, Any]:
 
     if chave in ("puxada_alta_costas", "puxada_costas", "costas", "lat_pulldown", "puxada_polia", "11", "c", "p"):
         return CATALOGO_EXERCICIOS["c"]
+
+    if chave in ("crucifixo_reto", "crucifixo", "crucifixo_halteres", "chest_fly", "fly", "12", "f", "x"):
+        return CATALOGO_EXERCICIOS["f"]
 
     for item in CATALOGO_EXERCICIOS.values():
         if item["id"].lower() == chave:

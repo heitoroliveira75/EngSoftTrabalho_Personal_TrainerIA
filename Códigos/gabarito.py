@@ -264,6 +264,28 @@ def garantir_gabaritos_padrao(sobrescrever: bool = False) -> None:
             descricao="Gabarito padrão ouro para Puxada Alta (Costas) - Visão Posterior.",
         ).salvar_json(arq_costas)
 
+    # 9. Crucifixo Reto com Halteres: Ombro (25° -> 85° -> 25°), Cotovelo estável (~145° -> 140° -> 145°)
+    arq_crucifixo = os.path.join(pasta_gabaritos, "gabarito_especialista_crucifixo_reto.json")
+    if not os.path.exists(arq_crucifixo):
+        serie_crucifixo: List[Dict[str, float]] = []
+        for _ in range(5):
+            serie_crucifixo.append({"ombro": 25.0, "cotovelo": 145.0})
+        for val_t in t:
+            serie_crucifixo.append({
+                "ombro": float(25.0 + 60.0 * np.sin(val_t)),
+                "cotovelo": float(145.0 - 5.0 * np.sin(val_t)),
+            })
+        for _ in range(5):
+            serie_crucifixo.append({"ombro": 25.0, "cotovelo": 145.0})
+
+        dados_crucifixo = extrair_primeira_repeticao("crucifixo_reto", serie_angulos=serie_crucifixo, lancar_excecao=True)
+        GabaritoExercicio(
+            nome_exercicio="crucifixo_reto",
+            articulacoes=["ombro", "cotovelo"],
+            dados=dados_crucifixo,
+            descricao="Gabarito padrão ouro para Crucifixo Reto com Halteres (recorte FSM).",
+        ).salvar_json(arq_crucifixo)
+
 
 if __name__ == "__main__":
     garantir_gabaritos_padrao(sobrescrever=True)
