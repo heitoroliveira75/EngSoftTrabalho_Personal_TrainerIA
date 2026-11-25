@@ -22,6 +22,25 @@ DIRETORIO_RAIZ = os.path.dirname(os.path.abspath(__file__))
 MODELO_ARQUIVO_PADRAO = os.path.join(DIRETORIO_RAIZ, "pose_landmarker_lite.task")
 
 
+def resolver_caminho_modelo(caminho_informado: Optional[str] = None) -> str:
+    """Resolve o melhor caminho existente para o modelo pose_landmarker_lite.task."""
+    candidatos = []
+    if caminho_informado:
+        candidatos.append(caminho_informado)
+
+    raiz_repo = os.path.dirname(DIRETORIO_RAIZ)
+    candidatos.extend([
+        os.path.join(raiz_repo, "pose_landmarker_lite.task"),
+        os.path.join(DIRETORIO_RAIZ, "pose_landmarker_lite.task"),
+        os.path.abspath("pose_landmarker_lite.task"),
+    ])
+
+    for c in candidatos:
+        if os.path.exists(c):
+            return c
+    return candidatos[0] if candidatos else os.path.join(raiz_repo, "pose_landmarker_lite.task")
+
+
 def serializar_resultado_repeticao(res: Optional[ResultadoPontuacaoRepeticao]) -> Optional[Dict[str, Any]]:
     """Converte a dataclass ResultadoPontuacaoRepeticao em dicionário serializável em JSON."""
     if res is None:
@@ -89,17 +108,22 @@ class ServicoIA:
         from mediapipe.tasks import python
         from mediapipe.tasks.python import vision
 
-        if not os.path.exists(self.caminho_modelo):
+        caminho_final = resolver_caminho_modelo(self.caminho_modelo)
+
+        if not os.path.exists(caminho_final):
             # Se não existir localmente, tenta baixar o arquivo padrão
             import urllib.request
             url = (
                 "https://storage.googleapis.com/mediapipe-models/pose_landmarker/"
                 "pose_landmarker_lite/float16/latest/pose_landmarker_lite.task"
             )
-            print(f"Baixando modelo PoseLandmarker em {self.caminho_modelo}...")
-            urllib.request.urlretrieve(url, self.caminho_modelo)
+            print(f"Baixando modelo PoseLandmarker em {caminho_final}...")
+            urllib.request.urlretrieve(url, caminho_final)
 
-        base_options = python.BaseOptions(model_asset_path=self.caminho_modelo)
+        with open(caminho_final, "rb") as f:
+            modelo_bytes = f.read()
+
+        base_options = python.BaseOptions(model_asset_buffer=modelo_bytes)
         options = vision.PoseLandmarkerOptions(
             base_options=base_options,
             running_mode=vision.RunningMode.IMAGE,

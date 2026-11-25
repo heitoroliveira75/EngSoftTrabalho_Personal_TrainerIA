@@ -35,7 +35,9 @@ def gravar_video_usuario(caminho_saida: str = "treino_usuario.mp4") -> str:
     posicionar e salva a gravação em arquivo .mp4 para ser analisada pela IA.
     """
     caminho_modelo = garantir_modelo_pose()
-    base_options = python.BaseOptions(model_asset_path=caminho_modelo)
+    with open(caminho_modelo, "rb") as f:
+        modelo_bytes = f.read()
+    base_options = python.BaseOptions(model_asset_buffer=modelo_bytes)
     options = vision.PoseLandmarkerOptions(
         base_options=base_options,
         running_mode=vision.RunningMode.VIDEO,

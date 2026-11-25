@@ -48,7 +48,10 @@ class ExtratorVideo:
         self.lado = lado
         self.caminho_modelo = garantir_modelo_pose(caminho_modelo)
 
-        base_options = python.BaseOptions(model_asset_path=self.caminho_modelo)
+        with open(self.caminho_modelo, "rb") as f:
+            modelo_bytes = f.read()
+
+        base_options = python.BaseOptions(model_asset_buffer=modelo_bytes)
         options = vision.PoseLandmarkerOptions(
             base_options=base_options,
             running_mode=vision.RunningMode.IMAGE,

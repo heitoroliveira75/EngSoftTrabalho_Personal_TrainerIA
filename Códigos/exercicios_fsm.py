@@ -1338,6 +1338,7 @@ CATALOGO_EXERCICIOS: Dict[str, Dict[str, Any]] = {
         "articulacoes": ["cotovelo"],
         "arquivo_gabarito": "gabarito_especialista_rosca_martelo.json",
         "enquadramento": "lateral",
+        "bilateral": False,
     },
     "0": {
         "id": "triceps_frances",
@@ -1346,6 +1347,7 @@ CATALOGO_EXERCICIOS: Dict[str, Dict[str, Any]] = {
         "articulacoes": ["cotovelo", "ombro"],
         "arquivo_gabarito": "gabarito_especialista_triceps_frances.json",
         "enquadramento": "lateral",
+        "bilateral": False,
     },
     "c": {
         "id": "puxada_alta_costas",
@@ -1354,6 +1356,7 @@ CATALOGO_EXERCICIOS: Dict[str, Dict[str, Any]] = {
         "articulacoes": ["cotovelo", "ombro"],
         "arquivo_gabarito": "gabarito_especialista_puxada_costas.json",
         "enquadramento": "costas",
+        "bilateral": True,
     },
     "f": {
         "id": "crucifixo_reto",
@@ -1362,6 +1365,7 @@ CATALOGO_EXERCICIOS: Dict[str, Dict[str, Any]] = {
         "articulacoes": ["ombro", "cotovelo"],
         "arquivo_gabarito": "gabarito_especialista_crucifixo_reto.json",
         "enquadramento": "livre",
+        "bilateral": True,
     },
     "s": {
         "id": "rosca_scott",
@@ -1370,6 +1374,7 @@ CATALOGO_EXERCICIOS: Dict[str, Dict[str, Any]] = {
         "articulacoes": ["cotovelo", "ombro"],
         "arquivo_gabarito": "gabarito_especialista_rosca_scott.json",
         "enquadramento": "lateral",
+        "bilateral": False,
     },
     "i": {
         "id": "crucifixo_invertido",
@@ -1378,6 +1383,7 @@ CATALOGO_EXERCICIOS: Dict[str, Dict[str, Any]] = {
         "articulacoes": ["ombro", "cotovelo"],
         "arquivo_gabarito": "gabarito_especialista_crucifixo_invertido.json",
         "enquadramento": "lateral",
+        "bilateral": False,
     },
 }
 

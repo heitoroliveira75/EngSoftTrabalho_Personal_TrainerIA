@@ -209,8 +209,11 @@ def main():
     garantir_gabaritos_padrao()
     caminho_modelo = garantir_modelo_pose()
 
+    with open(caminho_modelo, "rb") as f:
+        modelo_bytes = f.read()
+
     # 2. Configura o MediaPipe PoseLandmarker em modo VIDEO para rastreio rápido ao vivo
-    base_options = python.BaseOptions(model_asset_path=caminho_modelo)
+    base_options = python.BaseOptions(model_asset_buffer=modelo_bytes)
     options = vision.PoseLandmarkerOptions(
         base_options=base_options,
         running_mode=vision.RunningMode.VIDEO,
