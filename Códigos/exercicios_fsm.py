@@ -962,6 +962,84 @@ class CrucifixoReto(ExercicioBaseFSM):
         return erros_no_frame[0] if erros_no_frame else None
 
 
+class RoscaScott(ExercicioBaseFSM):
+    """
+    Avalia a Rosca Scott / Preacher Curl no banco Scott em visão lateral/perfil.
+    Articulações: ['cotovelo', 'ombro']
+    """
+
+    NOMES_FASES = {
+        0: "Bracos Estendidos no Banco (Repouso)",
+        1: "Subindo (Flexao Concentrica)",
+        2: "Pico de Contracao no Topo",
+        3: "Descendo (Extensao Controlada)",
+    }
+
+    MENSAGENS_ERRO = {
+        "SUBIDA_INCOMPLETA": "Suba a barra completamente ate o topo (cotovelo <= 75 graus) antes de descer.",
+        "DESCOLAMENTO_COTOVELO": "Mantenha os cotovelos e bracos firmemente apoiados na almofada do banco Scott.",
+        "HIPEREXTENSAO_COTOVELO": "Evite trancos ou hiperextensao ao estender os cotovelos no final da descida.",
+    }
+
+    PENALIDADES_ERRO = {
+        "SUBIDA_INCOMPLETA": 25.0,
+        "DESCOLAMENTO_COTOVELO": 15.0,
+        "HIPEREXTENSAO_COTOVELO": 15.0,
+    }
+
+    def identificar_fase(self, angulos: dict, posicoes: dict, angulos_deltas: dict) -> int:
+        cotovelo = angulos.get("cotovelo", 150.0)
+        delta_cotovelo = angulos_deltas.get("cotovelo", 0.0)
+        fase = self.fases[1]
+
+        if fase == 0:
+            # Sai do repouso se cotovelo começar a flexionar (< 140°) com delta negativo
+            if cotovelo < 140.0 and delta_cotovelo < 0:
+                fase = 1
+                self.erros_repeticao_atual = []
+        elif fase == 1:
+            # Pico de contração no topo (<= 75°)
+            if cotovelo <= 75.0:
+                fase = 2
+            elif delta_cotovelo > 0:
+                # Começou a estender antes de atingir o topo
+                if cotovelo >= 140.0:
+                    fase = 0  # Histerese suave perto do repouso
+                elif cotovelo >= 105.0:
+                    fase = 3  # Desistência / Repetição incompleta (SUBIDA_INCOMPLETA)
+        elif fase == 2:
+            # Início da descida excêntrica
+            if cotovelo > 85.0 or delta_cotovelo > 0:
+                fase = 3
+        elif fase == 3:
+            # Retorno à extensão completa no banco
+            if cotovelo >= 145.0:
+                fase = 0
+                self.repeticoes += 1
+
+        return fase
+
+    def classificar(self, angulos: dict, posicoes: dict, angulos_deltas: dict) -> Optional[str]:
+        fase_anterior = self.fases[1]
+        fase_atual = self.identificar_fase(angulos, posicoes, angulos_deltas)
+
+        self.fases[0] = fase_anterior
+        self.fases[1] = fase_atual
+
+        erros_no_frame = []
+        if self.fases[0] == 1 and self.fases[1] == 3:
+            erros_no_frame.append("SUBIDA_INCOMPLETA")
+        if self.fases[1] in (1, 2, 3) and angulos.get("ombro", 45.0) > 70.0:
+            erros_no_frame.append("DESCOLAMENTO_COTOVELO")
+        if self.fases[1] in (0, 3) and (angulos.get("cotovelo", 150.0) > 175.0 or angulos.get("cotovelo_orientado", 0.0) < -2.0):
+            erros_no_frame.append("HIPEREXTENSAO_COTOVELO")
+
+        for err in erros_no_frame:
+            self.registrar_erro(err)
+
+        return erros_no_frame[0] if erros_no_frame else None
+
+
 # Catálogo central que liga as teclas de atalho ou IDs aos componentes de cada exercício
 CATALOGO_EXERCICIOS: Dict[str, Dict[str, Any]] = {
     "1": {
@@ -1052,6 +1130,14 @@ CATALOGO_EXERCICIOS: Dict[str, Dict[str, Any]] = {
         "arquivo_gabarito": "gabarito_especialista_crucifixo_reto.json",
         "enquadramento": "livre",
     },
+    "s": {
+        "id": "rosca_scott",
+        "nome": "Rosca Scott",
+        "classe_fsm": RoscaScott,
+        "articulacoes": ["cotovelo", "ombro"],
+        "arquivo_gabarito": "gabarito_especialista_rosca_scott.json",
+        "enquadramento": "lateral",
+    },
 }
 
 
@@ -1084,6 +1170,9 @@ def obter_config_exercicio(identificador: str) -> Dict[str, Any]:
 
     if chave in ("crucifixo_reto", "crucifixo", "crucifixo_halteres", "chest_fly", "fly", "12", "f", "x"):
         return CATALOGO_EXERCICIOS["f"]
+
+    if chave in ("rosca_scott", "rosca_scoot", "scott", "scoot", "preacher_curl", "13", "s"):
+        return CATALOGO_EXERCICIOS["s"]
 
     for item in CATALOGO_EXERCICIOS.values():
         if item["id"].lower() == chave:

@@ -26,6 +26,23 @@
 
 ## Histórico de Entradas
 
+### [Entrada #021] 2026-11-25 — [Expansão Biomecânica] Implementação da Rosca Scott no Banco com Enquadramento Lateral
+- **Objetivo / História de Usuário:** Reconhecer, contar repetições e avaliar com FSM + DTW a execução da Rosca Scott (Preacher Curl) no banco Scott, monitorando a flexão/extensão do cotovelo e a estabilidade do braço apoiado na almofada (ombro fixo), orientando o praticante a posicionar a câmera de perfil/lateral, detectando subida incompleta, descolamento do cotovelo do apoio e hiperextensão articular no retorno excêntrico.
+- **Tasks Executadas e Artefatos Gerados:**
+  - `[TASK-RS.01]` Modelada a FSM `RoscaScott` em [`Códigos/exercicios_fsm.py`](../Códigos/exercicios_fsm.py):
+    - Articulações monitoradas: `["cotovelo", "ombro"]`.
+    - Ciclo de 4 fases (`0: Repouso no banco >= 140°`, `1: Subindo concêntrico < 140°`, `2: Pico de contração <= 75°`, `3: Descendo excêntrico > 85°`).
+    - Histerese suave no banco: retorno a 0 se oscilar e recuar para $\ge 140^\circ$ sem contar repetição e sem acusar erro; e disparo de `SUBIDA_INCOMPLETA` (-25 pts, desqualificador) se desistir antes do pico ($\ge 105^\circ$).
+    - Detecção imediata de `DESCOLAMENTO_COTOVELO` (-15 pts se $ombro > 70^\circ$, indicando que o braço desencostou da almofada do banco) e `HIPEREXTENSAO_COTOVELO` (-15 pts se $cotovelo > 175^\circ$ ou desvio retrógrado).
+    - Cadastrada sob a tecla `"s"` (com aliases `"rosca_scott"`, `"rosca_scoot"`, `"scott"`, `"scoot"`, `"preacher_curl"`, `"13"`, `"s"`) no `CATALOGO_EXERCICIOS` com `"enquadramento": "lateral"`.
+  - `[TASK-RS.02]` Criado o gabarito oficial em [`Gabaritos/gabarito_especialista_rosca_scott.json`](../Gabaritos/gabarito_especialista_rosca_scott.json) e alinhado o gerador em [`Códigos/gabarito.py`](../Códigos/gabarito.py) via `extrair_primeira_repeticao()`.
+  - `[TASK-RS.03]` Atualizado o HUD em [`Códigos/app_tempo_real.py`](../Códigos/app_tempo_real.py) com atalho `[S]Scott` e banner de orientação lateral (`"ORIENTACAO: Fique de perfil / lateral para analise!"`).
+  - `[TASK-RS.04]` Criada a classe `TestRoscaScott` em [`tests/test_pipeline_pontuacao.py`](../tests/test_pipeline_pontuacao.py) cobrindo ciclo ideal, subida incompleta, descolamento de cotovelo, hiperextensão, histerese suave e alinhamento de gabarito DTW com nota $\ge 95\%$.
+  - **Suíte Total de Testes:** A suíte de pipeline avançou para **114 testes automatizados em `test_pipeline_pontuacao.py`** e **121 testes no motor/serviço de IA** (127 com rotas web) aprovados com 100% de sucesso.
+- **Decisões Técnicas e Observações:**
+  - O banco Scott isola os flexores do antebraço ao manter os cotovelos apoiados em plano inclinado (~45°). O descolamento do tríceps do acolchoado ($ombro > 70^\circ$) transfere a carga para os deltóides anteriores e coluna lombar, sendo rigorosamente penalizado.
+- **Estado Resultante / Próximos Passos:** Catálogo agora conta com 13 exercícios completos (`1` a `9`, `0`, `c`, `f`, `s`), todos cobertos por testes unitários e de integração, com guardas biomecânicas e gabaritos homologados.
+
 ### [Entrada #020] 2026-11-25 — [Expansão Biomecânica] Implementação do Crucifixo Reto com Halteres
 - **Objetivo / História de Usuário:** Reconhecer, contar repetições e avaliar com FSM + DTW a execução do Crucifixo Reto com Halteres (Dumbbell Flat Bench Fly), monitorando a abdução/adução horizontal dos ombros e a estabilidade dos cotovelos semi-flexionados, detectando abertura incompleta, cotovelo excessivamente dobrado (virando supino), abertura excessiva e hiperextensão articular.
 - **Tasks Executadas e Artefatos Gerados:**

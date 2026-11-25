@@ -286,6 +286,28 @@ def garantir_gabaritos_padrao(sobrescrever: bool = False) -> None:
             descricao="Gabarito padrão ouro para Crucifixo Reto com Halteres (recorte FSM).",
         ).salvar_json(arq_crucifixo)
 
+    # 10. Rosca Scott (Preacher Curl): Cotovelo (155° -> 65° -> 155°), Ombro estável no banco (~45° -> 42° -> 45°)
+    arq_scott = os.path.join(pasta_gabaritos, "gabarito_especialista_rosca_scott.json")
+    if not os.path.exists(arq_scott):
+        serie_scott: List[Dict[str, float]] = []
+        for _ in range(5):
+            serie_scott.append({"cotovelo": 155.0, "ombro": 45.0})
+        for val_t in t:
+            serie_scott.append({
+                "cotovelo": float(155.0 - 90.0 * np.sin(val_t)),
+                "ombro": float(45.0 - 3.0 * np.sin(val_t)),
+            })
+        for _ in range(5):
+            serie_scott.append({"cotovelo": 155.0, "ombro": 45.0})
+
+        dados_scott = extrair_primeira_repeticao("rosca_scott", serie_angulos=serie_scott, lancar_excecao=True)
+        GabaritoExercicio(
+            nome_exercicio="rosca_scott",
+            articulacoes=["cotovelo", "ombro"],
+            dados=dados_scott,
+            descricao="Gabarito padrão ouro para Rosca Scott (recorte FSM).",
+        ).salvar_json(arq_scott)
+
 
 if __name__ == "__main__":
     garantir_gabaritos_padrao(sobrescrever=True)
