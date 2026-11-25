@@ -242,6 +242,94 @@ def garantir_gabaritos_padrao(sobrescrever: bool = False) -> None:
             descricao="Gabarito padrão ouro para Tríceps Francês Sentado (recorte FSM).",
         ).salvar_json(arq_frances)
 
+    # 8. Puxada Alta (Costas / Lat Pulldown): Cotovelo (165° -> 50° -> 165°), Ombro (145° -> 45° -> 145°)
+    arq_costas = os.path.join(pasta_gabaritos, "gabarito_especialista_puxada_costas.json")
+    if not os.path.exists(arq_costas):
+        serie_costas: List[Dict[str, float]] = []
+        for _ in range(5):
+            serie_costas.append({"cotovelo": 165.0, "ombro": 145.0})
+        for val_t in t:
+            serie_costas.append({
+                "cotovelo": float(165.0 - 115.0 * np.sin(val_t)),
+                "ombro": float(145.0 - 100.0 * np.sin(val_t)),
+            })
+        for _ in range(5):
+            serie_costas.append({"cotovelo": 165.0, "ombro": 145.0})
+
+        dados_costas = extrair_primeira_repeticao("puxada_alta_costas", serie_angulos=serie_costas, lancar_excecao=True)
+        GabaritoExercicio(
+            nome_exercicio="puxada_alta_costas",
+            articulacoes=["cotovelo", "ombro"],
+            dados=dados_costas,
+            descricao="Gabarito padrão ouro para Puxada Alta (Costas) - Visão Posterior.",
+        ).salvar_json(arq_costas)
+
+    # 9. Crucifixo Reto com Halteres: Ombro (25° -> 85° -> 25°), Cotovelo estável (~145° -> 140° -> 145°)
+    arq_crucifixo = os.path.join(pasta_gabaritos, "gabarito_especialista_crucifixo_reto.json")
+    if not os.path.exists(arq_crucifixo):
+        serie_crucifixo: List[Dict[str, float]] = []
+        for _ in range(5):
+            serie_crucifixo.append({"ombro": 25.0, "cotovelo": 145.0})
+        for val_t in t:
+            serie_crucifixo.append({
+                "ombro": float(25.0 + 60.0 * np.sin(val_t)),
+                "cotovelo": float(145.0 - 5.0 * np.sin(val_t)),
+            })
+        for _ in range(5):
+            serie_crucifixo.append({"ombro": 25.0, "cotovelo": 145.0})
+
+        dados_crucifixo = extrair_primeira_repeticao("crucifixo_reto", serie_angulos=serie_crucifixo, lancar_excecao=True)
+        GabaritoExercicio(
+            nome_exercicio="crucifixo_reto",
+            articulacoes=["ombro", "cotovelo"],
+            dados=dados_crucifixo,
+            descricao="Gabarito padrão ouro para Crucifixo Reto com Halteres (recorte FSM).",
+        ).salvar_json(arq_crucifixo)
+
+    # 10. Rosca Scott (Preacher Curl): Cotovelo (155° -> 65° -> 155°), Ombro estável no banco (~45° -> 42° -> 45°)
+    arq_scott = os.path.join(pasta_gabaritos, "gabarito_especialista_rosca_scott.json")
+    if not os.path.exists(arq_scott):
+        serie_scott: List[Dict[str, float]] = []
+        for _ in range(5):
+            serie_scott.append({"cotovelo": 155.0, "ombro": 45.0})
+        for val_t in t:
+            serie_scott.append({
+                "cotovelo": float(155.0 - 90.0 * np.sin(val_t)),
+                "ombro": float(45.0 - 3.0 * np.sin(val_t)),
+            })
+        for _ in range(5):
+            serie_scott.append({"cotovelo": 155.0, "ombro": 45.0})
+
+        dados_scott = extrair_primeira_repeticao("rosca_scott", serie_angulos=serie_scott, lancar_excecao=True)
+        GabaritoExercicio(
+            nome_exercicio="rosca_scott",
+            articulacoes=["cotovelo", "ombro"],
+            dados=dados_scott,
+            descricao="Gabarito padrão ouro para Rosca Scott (recorte FSM).",
+        ).salvar_json(arq_scott)
+
+    # 11. Crucifixo Invertido com Halteres: Ombro (25° -> 95° -> 25°), Cotovelo estável (~160° -> 145° -> 160°)
+    arq_invertido = os.path.join(pasta_gabaritos, "gabarito_especialista_crucifixo_invertido.json")
+    if not os.path.exists(arq_invertido):
+        serie_invertido: List[Dict[str, float]] = []
+        for _ in range(5):
+            serie_invertido.append({"ombro": 25.0, "cotovelo": 160.0})
+        for val_t in t:
+            serie_invertido.append({
+                "ombro": float(25.0 + 70.0 * np.sin(val_t)),
+                "cotovelo": float(160.0 - 15.0 * np.sin(val_t)),
+            })
+        for _ in range(5):
+            serie_invertido.append({"ombro": 25.0, "cotovelo": 160.0})
+
+        dados_invertido = extrair_primeira_repeticao("crucifixo_invertido", serie_angulos=serie_invertido, lancar_excecao=True)
+        GabaritoExercicio(
+            nome_exercicio="crucifixo_invertido",
+            articulacoes=["ombro", "cotovelo"],
+            dados=dados_invertido,
+            descricao="Gabarito padrão ouro para Crucifixo Invertido com Halteres (recorte FSM).",
+        ).salvar_json(arq_invertido)
+
 
 if __name__ == "__main__":
     garantir_gabaritos_padrao(sobrescrever=True)

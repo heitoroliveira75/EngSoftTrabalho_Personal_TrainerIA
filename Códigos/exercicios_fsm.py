@@ -945,6 +945,326 @@ class TricepsFrances(ExercicioBaseFSM):
         return erros_no_frame[0] if erros_no_frame else None
 
 
+class PuxadaAltaCostas(ExercicioBaseFSM):
+    """
+    Avalia a Puxada Alta na Polia / Lat Pulldown gravada de costas (visão posterior).
+    Articulações: ['cotovelo', 'ombro']
+    """
+
+    NOMES_FASES = {
+        0: "Bracos Estendidos no Alto (Repouso)",
+        1: "Puxando (Flexao e Aducao)",
+        2: "Pico de Contracao (Barra no Peito/Nuca)",
+        3: "Retornando (Extensao Controlada)",
+    }
+
+    MENSAGENS_ERRO = {
+        "PUXADA_CURTA": "Puxe a barra completamente ate embaixo (cotovelo <= 80 graus) antes de retornar.",
+        "OMBRO_ELEVADO": "Deprima as escapulas e abaixe bem os ombros durante a puxada.",
+        "HIPEREXTENSAO_COTOVELO": "Evite trancos ao estender os bracos no topo da puxada.",
+    }
+
+    PENALIDADES_ERRO = {
+        "PUXADA_CURTA": 25.0,
+        "OMBRO_ELEVADO": 15.0,
+        "HIPEREXTENSAO_COTOVELO": 15.0,
+    }
+
+    def identificar_fase(self, angulos: dict, posicoes: dict, angulos_deltas: dict) -> int:
+        cotovelo = angulos.get("cotovelo", 160.0)
+        delta_cotovelo = angulos_deltas.get("cotovelo", 0.0)
+        fase = self.fases[1]
+
+        if fase == 0:
+            # Sai do repouso se o cotovelo começar a flexionar (< 140°) com delta negativo
+            if cotovelo < 140.0 and delta_cotovelo < 0:
+                fase = 1
+                self.erros_repeticao_atual = []
+        elif fase == 1:
+            # Fundo da puxada (contração máxima <= 80°)
+            if cotovelo <= 80.0:
+                fase = 2
+            elif delta_cotovelo > 0:
+                # Começou a estender antes de atingir o fundo
+                if cotovelo >= 140.0:
+                    fase = 0  # Histerese suave perto do topo
+                elif cotovelo >= 105.0:
+                    fase = 3  # Desistência / Repetição incompleta (PUXADA_CURTA)
+        elif fase == 2:
+            # Começou a retornar a barra para cima
+            if cotovelo > 90.0 or delta_cotovelo > 0:
+                fase = 3
+        elif fase == 3:
+            # Retorno completo ao topo com braços estendidos
+            if cotovelo >= 145.0:
+                fase = 0
+                self.repeticoes += 1
+
+        return fase
+
+    def classificar(self, angulos: dict, posicoes: dict, angulos_deltas: dict) -> Optional[str]:
+        fase_anterior = self.fases[1]
+        fase_atual = self.identificar_fase(angulos, posicoes, angulos_deltas)
+
+        self.fases[0] = fase_anterior
+        self.fases[1] = fase_atual
+
+        erros_no_frame = []
+        if self.fases[0] == 1 and self.fases[1] == 3:
+            erros_no_frame.append("PUXADA_CURTA")
+        if self.fases[1] == 2 and angulos.get("ombro", 60.0) > 115.0:
+            erros_no_frame.append("OMBRO_ELEVADO")
+        if self.fases[1] in (0, 3) and (angulos.get("cotovelo", 160.0) > 175.0 or angulos.get("cotovelo_orientado", 0.0) < -2.0):
+            erros_no_frame.append("HIPEREXTENSAO_COTOVELO")
+
+        for err in erros_no_frame:
+            self.registrar_erro(err)
+
+        return erros_no_frame[0] if erros_no_frame else None
+
+
+class CrucifixoReto(ExercicioBaseFSM):
+    """
+    Avalia o Crucifixo Reto com Halteres (Dumbbell Flat Bench Fly).
+    Articulações: ['ombro', 'cotovelo']
+    """
+
+    NOMES_FASES = {
+        0: "Topo / Bracos Fechados Acima do Peito (Repouso)",
+        1: "Abrindo (Descida / Abducao Horizontal)",
+        2: "Pico de Alongamento (Bracos Abertos)",
+        3: "Fechando (Subida / Aducao Horizontal)",
+    }
+
+    MENSAGENS_ERRO = {
+        "ABERTURA_INCOMPLETA": "Abra os bracos completamente ate a linha do peito (ombro >= 80 graus) antes de fechar.",
+        "COTOVELO_MUITO_FLEXIONADO": "Mantenha os cotovelos semi-flexionados fixos; evite dobrar demais virando um supino.",
+        "ABERTURA_EXCESSIVA": "Evite descer os halteres abaixo da linha dos ombros para proteger as articulacoes.",
+        "HIPEREXTENSAO_COTOVELO": "Mantenha uma leve flexao nos cotovelos; evite travar ou hiperestender.",
+    }
+
+    PENALIDADES_ERRO = {
+        "ABERTURA_INCOMPLETA": 25.0,
+        "COTOVELO_MUITO_FLEXIONADO": 15.0,
+        "ABERTURA_EXCESSIVA": 15.0,
+        "HIPEREXTENSAO_COTOVELO": 15.0,
+    }
+
+    def identificar_fase(self, angulos: dict, posicoes: dict, angulos_deltas: dict) -> int:
+        ombro = angulos.get("ombro", 30.0)
+        delta_ombro = angulos_deltas.get("ombro", 0.0)
+        fase = self.fases[1]
+
+        if fase == 0:
+            # Sai do repouso quando os braços começam a abrir (ombro > 45°) com delta positivo
+            if ombro > 45.0 and delta_ombro > 0:
+                fase = 1
+                self.erros_repeticao_atual = []
+        elif fase == 1:
+            # Fundo do crucifixo (máxima abertura na linha do peito >= 80°)
+            if ombro >= 80.0:
+                fase = 2
+            elif delta_ombro < 0:
+                # Começou a fechar antes de atingir a amplitude completa
+                if ombro <= 48.0:
+                    fase = 0  # Histerese suave perto do topo
+                elif ombro <= 70.0:
+                    fase = 3  # Desistência / Repetição incompleta (ABERTURA_INCOMPLETA)
+        elif fase == 2:
+            # Começou a fechar os braços (subida concêntrica)
+            if ombro < 75.0 or delta_ombro < 0:
+                fase = 3
+        elif fase == 3:
+            # Fechamento completo dos braços acima do peito
+            if ombro <= 45.0:
+                fase = 0
+                self.repeticoes += 1
+
+        return fase
+
+    def classificar(self, angulos: dict, posicoes: dict, angulos_deltas: dict) -> Optional[str]:
+        fase_anterior = self.fases[1]
+        fase_atual = self.identificar_fase(angulos, posicoes, angulos_deltas)
+
+        self.fases[0] = fase_anterior
+        self.fases[1] = fase_atual
+
+        erros_no_frame = []
+        if self.fases[0] == 1 and self.fases[1] == 3:
+            erros_no_frame.append("ABERTURA_INCOMPLETA")
+        if self.fases[1] in (1, 2, 3) and angulos.get("cotovelo", 145.0) < 105.0:
+            erros_no_frame.append("COTOVELO_MUITO_FLEXIONADO")
+        if self.fases[1] == 2 and angulos.get("ombro", 80.0) > 115.0:
+            erros_no_frame.append("ABERTURA_EXCESSIVA")
+        if self.fases[1] in (0, 1, 2, 3) and (angulos.get("cotovelo", 145.0) > 175.0 or angulos.get("cotovelo_orientado", 0.0) < -2.0):
+            erros_no_frame.append("HIPEREXTENSAO_COTOVELO")
+
+        for err in erros_no_frame:
+            self.registrar_erro(err)
+
+        return erros_no_frame[0] if erros_no_frame else None
+
+
+class RoscaScott(ExercicioBaseFSM):
+    """
+    Avalia a Rosca Scott / Preacher Curl no banco Scott em visão lateral/perfil.
+    Articulações: ['cotovelo', 'ombro']
+    """
+
+    NOMES_FASES = {
+        0: "Bracos Estendidos no Banco (Repouso)",
+        1: "Subindo (Flexao Concentrica)",
+        2: "Pico de Contracao no Topo",
+        3: "Descendo (Extensao Controlada)",
+    }
+
+    MENSAGENS_ERRO = {
+        "SUBIDA_INCOMPLETA": "Suba a barra completamente ate o topo (cotovelo <= 75 graus) antes de descer.",
+        "DESCOLAMENTO_COTOVELO": "Mantenha os cotovelos e bracos firmemente apoiados na almofada do banco Scott.",
+        "HIPEREXTENSAO_COTOVELO": "Evite trancos ou hiperextensao ao estender os cotovelos no final da descida.",
+    }
+
+    PENALIDADES_ERRO = {
+        "SUBIDA_INCOMPLETA": 25.0,
+        "DESCOLAMENTO_COTOVELO": 15.0,
+        "HIPEREXTENSAO_COTOVELO": 15.0,
+    }
+
+    def identificar_fase(self, angulos: dict, posicoes: dict, angulos_deltas: dict) -> int:
+        cotovelo = angulos.get("cotovelo", 150.0)
+        delta_cotovelo = angulos_deltas.get("cotovelo", 0.0)
+        fase = self.fases[1]
+
+        if fase == 0:
+            # Sai do repouso se cotovelo começar a flexionar (< 140°) com delta negativo
+            if cotovelo < 140.0 and delta_cotovelo < 0:
+                fase = 1
+                self.erros_repeticao_atual = []
+        elif fase == 1:
+            # Pico de contração no topo (<= 75°)
+            if cotovelo <= 75.0:
+                fase = 2
+            elif delta_cotovelo > 0:
+                # Começou a estender antes de atingir o topo
+                if cotovelo >= 140.0:
+                    fase = 0  # Histerese suave perto do repouso
+                elif cotovelo >= 105.0:
+                    fase = 3  # Desistência / Repetição incompleta (SUBIDA_INCOMPLETA)
+        elif fase == 2:
+            # Início da descida excêntrica
+            if cotovelo > 85.0 or delta_cotovelo > 0:
+                fase = 3
+        elif fase == 3:
+            # Retorno à extensão completa no banco
+            if cotovelo >= 145.0:
+                fase = 0
+                self.repeticoes += 1
+
+        return fase
+
+    def classificar(self, angulos: dict, posicoes: dict, angulos_deltas: dict) -> Optional[str]:
+        fase_anterior = self.fases[1]
+        fase_atual = self.identificar_fase(angulos, posicoes, angulos_deltas)
+
+        self.fases[0] = fase_anterior
+        self.fases[1] = fase_atual
+
+        erros_no_frame = []
+        if self.fases[0] == 1 and self.fases[1] == 3:
+            erros_no_frame.append("SUBIDA_INCOMPLETA")
+        if self.fases[1] in (1, 2, 3) and angulos.get("ombro", 45.0) > 70.0:
+            erros_no_frame.append("DESCOLAMENTO_COTOVELO")
+        if self.fases[1] in (0, 3) and (angulos.get("cotovelo", 150.0) > 175.0 or angulos.get("cotovelo_orientado", 0.0) < -2.0):
+            erros_no_frame.append("HIPEREXTENSAO_COTOVELO")
+
+        for err in erros_no_frame:
+            self.registrar_erro(err)
+
+        return erros_no_frame[0] if erros_no_frame else None
+
+
+class CrucifixoInvertido(ExercicioBaseFSM):
+    """
+    Avalia o Crucifixo Invertido com Halteres (Dumbbell Reverse Fly / Bent-Over Rear Delt Fly).
+    Articulações: ['ombro', 'cotovelo']
+    """
+
+    NOMES_FASES = {
+        0: "Bracos Fechados / Repouso Embaixo",
+        1: "Abrindo (Subida / Abducao Horizontal)",
+        2: "Pico de Contracao no Topo (Bracos Abertos)",
+        3: "Fechando (Descida Excentrica Controlada)",
+    }
+
+    MENSAGENS_ERRO = {
+        "ABERTURA_INCOMPLETA": "Abra os bracos ate a linha das costas/ombros (ombro >= 80 graus) antes de retornar.",
+        "COTOVELO_MUITO_FLEXIONADO": "Mantenha os cotovelos fixos semi-flexionados; evite dobrar demais transformando em remada.",
+        "ELEVACAO_EXCESSIVA": "Evite elevar os bracos acima da linha dos ombros para proteger as articulacoes.",
+        "HIPEREXTENSAO_COTOVELO": "Mantenha uma leve flexao nos cotovelos; evite travar ou hiperestender a articulacao.",
+    }
+
+    PENALIDADES_ERRO = {
+        "ABERTURA_INCOMPLETA": 25.0,
+        "COTOVELO_MUITO_FLEXIONADO": 15.0,
+        "ELEVACAO_EXCESSIVA": 15.0,
+        "HIPEREXTENSAO_COTOVELO": 15.0,
+    }
+
+    def identificar_fase(self, angulos: dict, posicoes: dict, angulos_deltas: dict) -> int:
+        ombro = angulos.get("ombro", 25.0)
+        delta_ombro = angulos_deltas.get("ombro", 0.0)
+        fase = self.fases[1]
+
+        if fase == 0:
+            # Sai do repouso quando os braços começam a abrir (ombro > 45°) com delta positivo
+            if ombro > 45.0 and delta_ombro > 0:
+                fase = 1
+                self.erros_repeticao_atual = []
+        elif fase == 1:
+            # Pico de abertura / abdução horizontal (ombro >= 80°)
+            if ombro >= 80.0:
+                fase = 2
+            elif delta_ombro < 0:
+                # Começou a fechar antes de atingir a amplitude completa
+                if ombro <= 45.0:
+                    fase = 0  # Histerese suave perto do repouso
+                elif ombro <= 70.0:
+                    fase = 3  # Desistência / Repetição incompleta (ABERTURA_INCOMPLETA)
+        elif fase == 2:
+            # Início da descida excêntrica / fechamento dos braços
+            if ombro < 75.0 or delta_ombro < 0:
+                fase = 3
+        elif fase == 3:
+            # Retorno completo ao repouso embaixo (ombro <= 40°)
+            if ombro <= 40.0:
+                fase = 0
+                self.repeticoes += 1
+
+        return fase
+
+    def classificar(self, angulos: dict, posicoes: dict, angulos_deltas: dict) -> Optional[str]:
+        fase_anterior = self.fases[1]
+        fase_atual = self.identificar_fase(angulos, posicoes, angulos_deltas)
+
+        self.fases[0] = fase_anterior
+        self.fases[1] = fase_atual
+
+        erros_no_frame = []
+        if self.fases[0] == 1 and self.fases[1] == 3:
+            erros_no_frame.append("ABERTURA_INCOMPLETA")
+        if self.fases[1] in (1, 2, 3) and angulos.get("cotovelo", 155.0) < 110.0:
+            erros_no_frame.append("COTOVELO_MUITO_FLEXIONADO")
+        if self.fases[1] == 2 and angulos.get("ombro", 80.0) > 125.0:
+            erros_no_frame.append("ELEVACAO_EXCESSIVA")
+        if self.fases[1] in (0, 1, 2, 3) and (angulos.get("cotovelo", 155.0) > 175.0 or angulos.get("cotovelo_orientado", 0.0) < -2.0):
+            erros_no_frame.append("HIPEREXTENSAO_COTOVELO")
+
+        for err in erros_no_frame:
+            self.registrar_erro(err)
+
+        return erros_no_frame[0] if erros_no_frame else None
+
+
 # Catálogo central que liga as teclas de atalho ou IDs aos componentes de cada exercício
 CATALOGO_EXERCICIOS: Dict[str, Dict[str, Any]] = {
     "1": {
@@ -1027,6 +1347,38 @@ CATALOGO_EXERCICIOS: Dict[str, Dict[str, Any]] = {
         "arquivo_gabarito": "gabarito_especialista_triceps_frances.json",
         "enquadramento": "lateral",
     },
+    "c": {
+        "id": "puxada_alta_costas",
+        "nome": "Puxada Alta (Costas)",
+        "classe_fsm": PuxadaAltaCostas,
+        "articulacoes": ["cotovelo", "ombro"],
+        "arquivo_gabarito": "gabarito_especialista_puxada_costas.json",
+        "enquadramento": "costas",
+    },
+    "f": {
+        "id": "crucifixo_reto",
+        "nome": "Crucifixo Reto com Halteres",
+        "classe_fsm": CrucifixoReto,
+        "articulacoes": ["ombro", "cotovelo"],
+        "arquivo_gabarito": "gabarito_especialista_crucifixo_reto.json",
+        "enquadramento": "livre",
+    },
+    "s": {
+        "id": "rosca_scott",
+        "nome": "Rosca Scott",
+        "classe_fsm": RoscaScott,
+        "articulacoes": ["cotovelo", "ombro"],
+        "arquivo_gabarito": "gabarito_especialista_rosca_scott.json",
+        "enquadramento": "lateral",
+    },
+    "i": {
+        "id": "crucifixo_invertido",
+        "nome": "Crucifixo Invertido com Halteres",
+        "classe_fsm": CrucifixoInvertido,
+        "articulacoes": ["ombro", "cotovelo"],
+        "arquivo_gabarito": "gabarito_especialista_crucifixo_invertido.json",
+        "enquadramento": "lateral",
+    },
 }
 
 
@@ -1053,6 +1405,18 @@ def obter_config_exercicio(identificador: str) -> Dict[str, Any]:
 
     if chave in ("triceps_frances", "frances", "french_press", "0", "10"):
         return CATALOGO_EXERCICIOS["0"]
+
+    if chave in ("puxada_alta_costas", "puxada_costas", "costas", "lat_pulldown", "puxada_polia", "11", "c", "p"):
+        return CATALOGO_EXERCICIOS["c"]
+
+    if chave in ("crucifixo_reto", "crucifixo", "crucifixo_halteres", "chest_fly", "fly", "12", "f", "x"):
+        return CATALOGO_EXERCICIOS["f"]
+
+    if chave in ("rosca_scott", "rosca_scoot", "scott", "scoot", "preacher_curl", "13", "s"):
+        return CATALOGO_EXERCICIOS["s"]
+
+    if chave in ("crucifixo_invertido", "crucifixo_invertido_halteres", "reverse_fly", "rear_delt_fly", "invertido", "14", "i"):
+        return CATALOGO_EXERCICIOS["i"]
 
     for item in CATALOGO_EXERCICIOS.values():
         if item["id"].lower() == chave:

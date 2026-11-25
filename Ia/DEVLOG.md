@@ -26,6 +26,75 @@
 
 ## Histórico de Entradas
 
+### [Entrada #022] 2026-11-25 — [Expansão Biomecânica] Implementação do Crucifixo Invertido com Halteres
+- **Objetivo / História de Usuário:** Reconhecer, contar repetições e avaliar com FSM + DTW a execução do Crucifixo Invertido com Halteres (Bent-Over Rear Delt Fly), monitorando a abdução horizontal/extensão transversa dos ombros e a estabilidade dos cotovelos semi-flexionados, orientando o praticante a posicionar a câmera de perfil/lateral, detectando abertura incompleta, cotovelo excessivamente dobrado (transformando em remada), elevação excessiva acima da linha neutra e hiperextensão articular.
+- **Tasks Executadas e Artefatos Gerados:**
+  - `[TASK-CI.01]` Modelada a FSM `CrucifixoInvertido` em [`Códigos/exercicios_fsm.py`](../Códigos/exercicios_fsm.py):
+    - Articulações monitoradas: `["ombro", "cotovelo"]`.
+    - Ciclo de 4 fases (`0: Braços fechados embaixo <= 40°`, `1: Subindo/abrindo > 45°`, `2: Pico de contração no topo >= 80°`, `3: Descendo/fechando < 75°`).
+    - Histerese suave no repouso: retorno a 0 se oscilar e recuar para $\le 45^\circ$ sem contar repetição e sem acusar erro; e disparo de `ABERTURA_INCOMPLETA` (-25 pts, desqualificador) se desistir antes do pico ($\le 70^\circ$).
+    - Detecção imediata de `COTOVELO_MUITO_FLEXIONADO` (-15 pts se $cotovelo < 110^\circ$, evitando transformação em remada curvada), `ELEVACAO_EXCESSIVA` (-15 pts se $ombro > 125^\circ$) e `HIPEREXTENSAO_COTOVELO` (-15 pts se $cotovelo > 175^\circ$ ou desvio retrógrado).
+    - Cadastrada sob a tecla `"i"` (com aliases `"crucifixo_invertido"`, `"crucifixo_invertido_halteres"`, `"reverse_fly"`, `"rear_delt_fly"`, `"invertido"`, `"14"`, `"i"`) no `CATALOGO_EXERCICIOS` com `"enquadramento": "lateral"`.
+  - `[TASK-CI.02]` Criado o gabarito oficial em [`Gabaritos/gabarito_especialista_crucifixo_invertido.json`](../Gabaritos/gabarito_especialista_crucifixo_invertido.json) e alinhado o gerador em [`Códigos/gabarito.py`](../Códigos/gabarito.py) via `extrair_primeira_repeticao()`.
+  - `[TASK-CI.03]` Atualizado o HUD em [`Códigos/app_tempo_real.py`](../Códigos/app_tempo_real.py) com atalho `[I]Invertido` e banner de orientação lateral (`"ORIENTACAO: Fique de perfil / lateral para analise!"`).
+  - `[TASK-CI.04]` Criada a classe `TestCrucifixoInvertido` em [`tests/test_pipeline_pontuacao.py`](../tests/test_pipeline_pontuacao.py) cobrindo ciclo ideal, abertura incompleta, cotovelo muito flexionado, elevação excessiva, hiperextensão, histerese suave e alinhamento de gabarito DTW com nota $\ge 95\%$.
+  - **Suíte Total de Testes:** A suíte de pipeline avançou para **121 testes automatizados em `test_pipeline_pontuacao.py`** e **128 testes no motor/serviço de IA** (134 com rotas web) aprovados com 100% de sucesso.
+- **Decisões Técnicas e Observações:**
+  - O crucifixo invertido foca na porção posterior do deltóide, rombóides e trapézio médio. Manter os cotovelos fixos semi-flexionados ($\ge 110^\circ$) é fundamental para evitar a ação sinergista dominante do grande dorsal e bíceps (remada).
+- **Estado Resultante / Próximos Passos:** Catálogo agora conta com 14 exercícios completos (`1` a `9`, `0`, `c`, `f`, `s`, `i`), todos cobertos por testes unitários e de integração, com guardas biomecânicas e gabaritos homologados.
+
+### [Entrada #021] 2026-11-25 — [Expansão Biomecânica] Implementação da Rosca Scott no Banco com Enquadramento Lateral
+- **Objetivo / História de Usuário:** Reconhecer, contar repetições e avaliar com FSM + DTW a execução da Rosca Scott (Preacher Curl) no banco Scott, monitorando a flexão/extensão do cotovelo e a estabilidade do braço apoiado na almofada (ombro fixo), orientando o praticante a posicionar a câmera de perfil/lateral, detectando subida incompleta, descolamento do cotovelo do apoio e hiperextensão articular no retorno excêntrico.
+- **Tasks Executadas e Artefatos Gerados:**
+  - `[TASK-RS.01]` Modelada a FSM `RoscaScott` em [`Códigos/exercicios_fsm.py`](../Códigos/exercicios_fsm.py):
+    - Articulações monitoradas: `["cotovelo", "ombro"]`.
+    - Ciclo de 4 fases (`0: Repouso no banco >= 140°`, `1: Subindo concêntrico < 140°`, `2: Pico de contração <= 75°`, `3: Descendo excêntrico > 85°`).
+    - Histerese suave no banco: retorno a 0 se oscilar e recuar para $\ge 140^\circ$ sem contar repetição e sem acusar erro; e disparo de `SUBIDA_INCOMPLETA` (-25 pts, desqualificador) se desistir antes do pico ($\ge 105^\circ$).
+    - Detecção imediata de `DESCOLAMENTO_COTOVELO` (-15 pts se $ombro > 70^\circ$, indicando que o braço desencostou da almofada do banco) e `HIPEREXTENSAO_COTOVELO` (-15 pts se $cotovelo > 175^\circ$ ou desvio retrógrado).
+    - Cadastrada sob a tecla `"s"` (com aliases `"rosca_scott"`, `"rosca_scoot"`, `"scott"`, `"scoot"`, `"preacher_curl"`, `"13"`, `"s"`) no `CATALOGO_EXERCICIOS` com `"enquadramento": "lateral"`.
+  - `[TASK-RS.02]` Criado o gabarito oficial em [`Gabaritos/gabarito_especialista_rosca_scott.json`](../Gabaritos/gabarito_especialista_rosca_scott.json) e alinhado o gerador em [`Códigos/gabarito.py`](../Códigos/gabarito.py) via `extrair_primeira_repeticao()`.
+  - `[TASK-RS.03]` Atualizado o HUD em [`Códigos/app_tempo_real.py`](../Códigos/app_tempo_real.py) com atalho `[S]Scott` e banner de orientação lateral (`"ORIENTACAO: Fique de perfil / lateral para analise!"`).
+  - `[TASK-RS.04]` Criada a classe `TestRoscaScott` em [`tests/test_pipeline_pontuacao.py`](../tests/test_pipeline_pontuacao.py) cobrindo ciclo ideal, subida incompleta, descolamento de cotovelo, hiperextensão, histerese suave e alinhamento de gabarito DTW com nota $\ge 95\%$.
+  - **Suíte Total de Testes:** A suíte de pipeline avançou para **114 testes automatizados em `test_pipeline_pontuacao.py`** e **121 testes no motor/serviço de IA** (127 com rotas web) aprovados com 100% de sucesso.
+- **Decisões Técnicas e Observações:**
+  - O banco Scott isola os flexores do antebraço ao manter os cotovelos apoiados em plano inclinado (~45°). O descolamento do tríceps do acolchoado ($ombro > 70^\circ$) transfere a carga para os deltóides anteriores e coluna lombar, sendo rigorosamente penalizado.
+- **Estado Resultante / Próximos Passos:** Catálogo agora conta com 13 exercícios completos (`1` a `9`, `0`, `c`, `f`, `s`), todos cobertos por testes unitários e de integração, com guardas biomecânicas e gabaritos homologados.
+
+### [Entrada #020] 2026-11-25 — [Expansão Biomecânica] Implementação do Crucifixo Reto com Halteres
+- **Objetivo / História de Usuário:** Reconhecer, contar repetições e avaliar com FSM + DTW a execução do Crucifixo Reto com Halteres (Dumbbell Flat Bench Fly), monitorando a abdução/adução horizontal dos ombros e a estabilidade dos cotovelos semi-flexionados, detectando abertura incompleta, cotovelo excessivamente dobrado (virando supino), abertura excessiva e hiperextensão articular.
+- **Tasks Executadas e Artefatos Gerados:**
+  - `[TASK-CR.01]` Modelada a FSM `CrucifixoReto` em [`Códigos/exercicios_fsm.py`](../Códigos/exercicios_fsm.py):
+    - Articulações monitoradas: `["ombro", "cotovelo"]`.
+    - Ciclo de 4 fases (`0: Topo / braços fechados <= 45°`, `1: Abrindo > 45°`, `2: Fundo de abertura >= 80°`, `3: Fechando < 75°`).
+    - Histerese suave perto do topo: retorno a 0 se oscilar e recuar para $\le 48^\circ$ sem contar repetição e sem acusar erro; e disparo de `ABERTURA_INCOMPLETA` (-25 pts, desqualificador) se desistir antes do fundo ($\le 70^\circ$).
+    - Detecção imediata de `COTOVELO_MUITO_FLEXIONADO` (-15 pts se $cotovelo < 105^\circ$), `ABERTURA_EXCESSIVA` (-15 pts se $ombro > 115^\circ$ no fundo) e `HIPEREXTENSAO_COTOVELO` (-15 pts se $cotovelo > 175^\circ$ ou $< -2^\circ$).
+    - Cadastrada sob a tecla `"f"` (com aliases `"crucifixo_reto"`, `"crucifixo"`, `"crucifixo_halteres"`, `"chest_fly"`, `"fly"`, `"12"`, `"x"`) no `CATALOGO_EXERCICIOS` com `"enquadramento": "livre"`.
+  - `[TASK-CR.02]` Adicionado `"ABERTURA_INCOMPLETA"` em `ERROS_INCOMPLETUDE` em [`Códigos/avaliador_pontuacao.py`](../Códigos/avaliador_pontuacao.py).
+  - `[TASK-CR.03]` Criado o gabarito oficial em [`Gabaritos/gabarito_especialista_crucifixo_reto.json`](../Gabaritos/gabarito_especialista_crucifixo_reto.json) e alinhado o gerador em [`Códigos/gabarito.py`](../Códigos/gabarito.py) via `extrair_primeira_repeticao()`.
+  - `[TASK-CR.04]` Atualizado o HUD em [`Códigos/app_tempo_real.py`](../Códigos/app_tempo_real.py) com atalho `[F]Crucifixo` e banner: `"ORIENTACAO: Enquadre o banco e a abertura dos bracos!"`.
+  - `[TASK-CR.05]` Criada a classe `TestCrucifixoReto` em [`tests/test_pipeline_pontuacao.py`](../tests/test_pipeline_pontuacao.py) cobrindo ciclo ideal, abertura incompleta, cotovelo muito flexionado, abertura excessiva, hiperextensão, histerese suave e alinhamento de gabarito DTW com nota $\ge 95\%$.
+  - **Suíte Total de Testes:** A suíte de pipeline avançou para **108 testes automatizados em `test_pipeline_pontuacao.py`** e **115 testes no total do motor de IA** (121 testes totais com API) aprovados com 100% de sucesso.
+- **Decisões Técnicas e Observações:**
+  - No crucifixo reto, a manutenção do ângulo do cotovelo entre $120^\circ$ e $155^\circ$ é crucial para isolar o peitoral maior e evitar a transição espúria para supino reto ($cotovelo < 105^\circ$) ou estresse no bíceps braquial por hiperextensão.
+- **Estado Resultante / Próximos Passos:** Catálogo agora conta com 12 exercícios completos (`1` a `9`, `0`, `c`, `f`), todos cobertos por testes unitários e de integração, com guardas biomecânicas e gabaritos homologados.
+
+### [Entrada #019] 2026-11-23 — [Expansão Biomecânica] Implementação da Puxada Alta na Polia com Enquadramento Posterior (Costas)
+- **Objetivo / História de Usuário:** Reconhecer, contar repetições e avaliar tecnicamente com FSM + DTW a execução da Puxada Alta na Polia / Lat Pulldown gravada sob enquadramento posterior (de costas), orientando o praticante a posicionar a câmera atrás de si para capturar a flexão/extensão dos cotovelos e a adução/elevação dos ombros e escápulas, com detecção de puxada curta, ombro elevado e hiperextensão articular.
+- **Tasks Executadas e Artefatos Gerados:**
+  - `[TASK-PAC.01]` Modelada a FSM `PuxadaAltaCostas` em [`Códigos/exercicios_fsm.py`](../Códigos/exercicios_fsm.py):
+    - Articulações monitoradas: `["cotovelo", "ombro"]`.
+    - Ciclo de 4 fases (`0: Repouso no topo >= 145°`, `1: Puxando concêntrico < 140°`, `2: Fundo da puxada <= 80°`, `3: Retorno excêntrico > 90°`).
+    - Histerese suave perto do topo: retorno a 0 se oscilar e recuar para $\ge 140^\circ$ sem contar repetição e sem acusar erro; e disparo de `PUXADA_CURTA` (-25 pts, desqualificador) se desistir antes do fundo ($\ge 105^\circ$).
+    - Detecção imediata de `OMBRO_ELEVADO` (-15 pts se $ombro > 115^\circ$ na fase 2) e `HIPEREXTENSAO_COTOVELO` (-15 pts se $cotovelo > 175^\circ$ ou $< -2^\circ$).
+    - Cadastrada sob a tecla `"c"` (com aliases `"puxada_alta_costas"`, `"puxada_costas"`, `"costas"`, `"lat_pulldown"`, `"puxada_polia"`, `"11"`, `"p"`) no `CATALOGO_EXERCICIOS` com `"enquadramento": "costas"`.
+  - `[TASK-PAC.02]` Criado o gabarito oficial em [`Gabaritos/gabarito_especialista_puxada_costas.json`](../Gabaritos/gabarito_especialista_puxada_costas.json) e alinhado o gerador canônico em [`Códigos/gabarito.py`](../Códigos/gabarito.py).
+  - `[TASK-PAC.03]` Atualizado o HUD em [`Códigos/app_tempo_real.py`](../Códigos/app_tempo_real.py) com atalho `[C]Costas` e banner: `"ORIENTACAO: Fique de costas para a camera para analise!"`.
+  - `[TASK-PAC.04]` Criada a classe `TestPuxadaAltaCostas` em [`tests/test_pipeline_pontuacao.py`](../tests/test_pipeline_pontuacao.py) cobrindo ciclo ideal, puxada curta, ombro elevado, hiperextensão, histerese suave e alinhamento de gabarito DTW com nota $\ge 95\%$.
+  - **Suíte Total de Testes:** A suíte de pipeline avançou para **101 testes automatizados em `test_pipeline_pontuacao.py`** e **108 testes no total do motor de IA** aprovados com 100% de sucesso.
+- **Decisões Técnicas e Observações:**
+  - O enquadramento de costas é o padrão ouro biomecânico para a puxada alta aberta (pulley), permitindo rastrear o movimento de depressão escapular e a trajetória bilateral dos cotovelos sem oclusão da barra ou do tronco.
+- **Estado Resultante / Próximos Passos:** Catálogo agora conta com 11 exercícios completos (`1` a `9`, `0` e `c`), todos cobertos por testes unitários e de integração, com guardas biomecânicas e gabaritos homologados.
+
 ### [Entrada #018] 2026-11-17 — [Expansão Biomecânica] Implementação do Tríceps Francês Sentado com Enquadramento Lateral
 - **Objetivo / História de Usuário:** Reconhecer, contar repetições e avaliar com Dynamic Time Warping (DTW) e penalidades FSM a execução do Tríceps Francês Sentado (Overhead French Press) com halteres sob visão lateral/perfil, orientando o praticante a posicionar a câmera de lado para capturar a extensão overhead e flexão de cotovelos, detectando extensão incompleta, braço baixo (ombro caído) e hiperextensão articular.
 - **Tasks Executadas e Artefatos Gerados:**

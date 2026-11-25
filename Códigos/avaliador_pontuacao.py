@@ -25,6 +25,7 @@ ERROS_INCOMPLETUDE = frozenset({
     "FLEXAO_CURTA",
     "REMADA_CURTA",
     "PUXADA_CURTA",
+    "ABERTURA_INCOMPLETA",
 })
 
 
