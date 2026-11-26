@@ -7,6 +7,9 @@ class FriendProfileScreen extends StatefulWidget {
   final String amigoId;
   final Map<String, dynamic>? dadosIniciais;
   final bool? isAmigoInicial;
+  final bool? isAmigoConfirmado;
+  final int? posicaoGlobalInicial;
+  final int? posicaoAmigosInicial;
   final VoidCallback? onBack;
 
   const FriendProfileScreen({
@@ -14,8 +17,43 @@ class FriendProfileScreen extends StatefulWidget {
     required this.amigoId,
     this.dadosIniciais,
     this.isAmigoInicial,
+    this.isAmigoConfirmado,
+    this.posicaoGlobalInicial,
+    this.posicaoAmigosInicial,
     this.onBack,
   });
+
+  // Cache curto em memória apenas na camada de tela (sem alterar ApiService)
+  static const Duration _ttlCache = Duration(seconds: 45);
+  static String? _cacheUsuarioLogadoId;
+  static Map<String, dynamic>? _cacheGlobal;
+  static DateTime? _cacheGlobalEm;
+  static Map<String, dynamic>? _cacheAmigosLeaderboard;
+  static DateTime? _cacheAmigosLeaderboardEm;
+  static Map<String, dynamic>? _cacheListaAmigos;
+  static DateTime? _cacheListaAmigosEm;
+
+  static void invalidarCacheSocial() {
+    _cacheGlobal = null;
+    _cacheGlobalEm = null;
+    _cacheAmigosLeaderboard = null;
+    _cacheAmigosLeaderboardEm = null;
+    _cacheListaAmigos = null;
+    _cacheListaAmigosEm = null;
+  }
+
+  static bool _cacheValido(DateTime? em) {
+    if (em == null) return false;
+    return DateTime.now().difference(em) < _ttlCache;
+  }
+
+  static void _garantirMesmoUsuarioLogado() {
+    final uidAtual = ApiService().idUsuarioAtual;
+    if (_cacheUsuarioLogadoId != uidAtual) {
+      invalidarCacheSocial();
+      _cacheUsuarioLogadoId = uidAtual;
+    }
+  }
 
   @override
   State<FriendProfileScreen> createState() => _FriendProfileScreenState();
@@ -38,6 +76,7 @@ class _FriendProfileScreenState extends State<FriendProfileScreen> {
   // Posições nos Rankings e Status de Amizade
   int? posicaoGlobal;
   int? posicaoAmigos;
+  bool _carregandoPerfil = true;
   bool _jaEhAmigo = false;
   bool _solicitacaoEnviada = false;
   bool _enviandoSolicitacao = false;
@@ -60,21 +99,115 @@ class _FriendProfileScreenState extends State<FriendProfileScreen> {
     pontosTotais = (dados?['pontuacao_total'] as num?)?.toInt() ?? pontosSemana;
     pontosHoje = (dados?['pontuacao_diaria'] as num?)?.toInt() ?? 0;
     treinouHoje = (dados?['checagem'] == true) || pontosHoje > 0;
-    _jaEhAmigo = widget.isAmigoInicial ?? (dados?['ja_amigo'] == true);
+    posicaoGlobal = widget.posicaoGlobalInicial;
+    posicaoAmigos = widget.posicaoAmigosInicial;
+    _jaEhAmigo =
+        widget.isAmigoConfirmado ??
+        widget.isAmigoInicial ??
+        (dados?['ja_amigo'] == true);
     _solicitacaoEnviada = dados?['solicitacao_enviada'] == true;
-    _carregarPerfil();
+    _carregarPerfil(mostrarLoading: true, forcarAtualizacao: false);
   }
 
-  Future<void> _carregarPerfil() async {
+  Future<Map<String, dynamic>> _obterGlobalOtimizado({
+    required bool forcarAtualizacao,
+  }) async {
+    FriendProfileScreen._garantirMesmoUsuarioLogado();
+    if (!forcarAtualizacao &&
+        FriendProfileScreen._cacheGlobal != null &&
+        FriendProfileScreen._cacheValido(FriendProfileScreen._cacheGlobalEm)) {
+      return FriendProfileScreen._cacheGlobal!;
+    }
+    final res = await ApiService().obterLeaderboardGlobal(limite: 100);
+    if (res['sucesso'] == true && res['leaderboard'] is List) {
+      FriendProfileScreen._cacheGlobal = res;
+      FriendProfileScreen._cacheGlobalEm = DateTime.now();
+    }
+    return res;
+  }
+
+  Future<Map<String, dynamic>> _obterAmigosLeaderboardOtimizado({
+    required bool forcarAtualizacao,
+  }) async {
+    FriendProfileScreen._garantirMesmoUsuarioLogado();
+    if (!forcarAtualizacao &&
+        FriendProfileScreen._cacheAmigosLeaderboard != null &&
+        FriendProfileScreen._cacheValido(
+          FriendProfileScreen._cacheAmigosLeaderboardEm,
+        )) {
+      return FriendProfileScreen._cacheAmigosLeaderboard!;
+    }
+    final res = await ApiService().obterLeaderboardAmigos();
+    if (res['sucesso'] == true && res['leaderboard'] is List) {
+      FriendProfileScreen._cacheAmigosLeaderboard = res;
+      FriendProfileScreen._cacheAmigosLeaderboardEm = DateTime.now();
+    }
+    return res;
+  }
+
+  Future<Map<String, dynamic>> _obterListaAmigosOtimizado({
+    required bool forcarAtualizacao,
+  }) async {
+    FriendProfileScreen._garantirMesmoUsuarioLogado();
+    if (!forcarAtualizacao &&
+        FriendProfileScreen._cacheListaAmigos != null &&
+        FriendProfileScreen._cacheValido(
+          FriendProfileScreen._cacheListaAmigosEm,
+        )) {
+      return FriendProfileScreen._cacheListaAmigos!;
+    }
+    final res = await ApiService().listarAmigos();
+    if (res['sucesso'] == true && res['amigos'] is List) {
+      FriendProfileScreen._cacheListaAmigos = res;
+      FriendProfileScreen._cacheListaAmigosEm = DateTime.now();
+    }
+    return res;
+  }
+
+  Future<void> _carregarPerfil({
+    bool mostrarLoading = false,
+    bool forcarAtualizacao = false,
+  }) async {
     final idAlvo = widget.amigoId.trim();
-    if (idAlvo.isEmpty) return;
+    if (idAlvo.isEmpty) {
+      if (mounted && _carregandoPerfil) {
+        setState(() => _carregandoPerfil = false);
+      }
+      return;
+    }
+
+    if (mostrarLoading && mounted && !_carregandoPerfil) {
+      setState(() => _carregandoPerfil = true);
+    }
+
+    // Aproveita dados já conhecidos pela tela anterior na abertura inicial
+    final bool statusAmizadeJaConfirmado =
+        !forcarAtualizacao && widget.isAmigoConfirmado != null;
+    final bool precisaBuscarGlobal =
+        forcarAtualizacao || widget.posicaoGlobalInicial == null;
+    final bool precisaBuscarAmigosLeaderboard =
+        forcarAtualizacao ||
+        (statusAmizadeJaConfirmado
+            ? (widget.isAmigoConfirmado == true &&
+                widget.posicaoAmigosInicial == null)
+            : true);
+    final bool precisaBuscarListaAmigos =
+        forcarAtualizacao || !statusAmizadeJaConfirmado;
 
     try {
-      final results = await Future.wait([
+      final results = await Future.wait<Map<String, dynamic>?>([
         ApiService().verPerfil(idAlvo),
-        ApiService().obterLeaderboardGlobal(limite: 100),
-        ApiService().obterLeaderboardAmigos(),
-        ApiService().listarAmigos(),
+        precisaBuscarGlobal
+            ? _obterGlobalOtimizado(forcarAtualizacao: forcarAtualizacao)
+            : Future.value(null),
+        precisaBuscarAmigosLeaderboard
+            ? _obterAmigosLeaderboardOtimizado(
+                forcarAtualizacao: forcarAtualizacao,
+              )
+            : Future.value(null),
+        precisaBuscarListaAmigos
+            ? _obterListaAmigosOtimizado(forcarAtualizacao: forcarAtualizacao)
+            : Future.value(null),
       ]);
 
       if (!mounted) return;
@@ -85,7 +218,9 @@ class _FriendProfileScreenState extends State<FriendProfileScreen> {
       final resListaAmigos = results[3];
 
       setState(() {
-        if (resPerfil['sucesso'] == true && resPerfil['perfil'] != null) {
+        if (resPerfil != null &&
+            resPerfil['sucesso'] == true &&
+            resPerfil['perfil'] != null) {
           final perfil = resPerfil['perfil'] as Map<String, dynamic>;
           if (perfil['nome'] != null &&
               perfil['nome'].toString().trim().isNotEmpty) {
@@ -105,49 +240,84 @@ class _FriendProfileScreenState extends State<FriendProfileScreen> {
           treinouHoje = (perfil['checagem'] == true) || pontosHoje > 0;
         }
 
-        if (resGlobal['sucesso'] == true && resGlobal['leaderboard'] is List) {
+        if (resGlobal != null &&
+            resGlobal['sucesso'] == true &&
+            resGlobal['leaderboard'] is List) {
+          int? novaPosicaoGlobal;
           final listaGlobal = resGlobal['leaderboard'] as List;
           for (int i = 0; i < listaGlobal.length; i++) {
             final item = listaGlobal[i];
             if (item is Map && item['id']?.toString().trim() == idAlvo) {
-              posicaoGlobal = (item['posicao'] as num?)?.toInt() ?? (i + 1);
+              novaPosicaoGlobal = (item['posicao'] as num?)?.toInt() ?? (i + 1);
               break;
             }
           }
+          posicaoGlobal = novaPosicaoGlobal;
         }
 
-        bool encontradoNosAmigos = false;
-        if (resAmigos['sucesso'] == true && resAmigos['leaderboard'] is List) {
-          final listaAmigos = resAmigos['leaderboard'] as List;
-          for (int i = 0; i < listaAmigos.length; i++) {
-            final item = listaAmigos[i];
-            if (item is Map && item['id']?.toString().trim() == idAlvo) {
-              posicaoAmigos = (item['posicao'] as num?)?.toInt() ?? (i + 1);
-              encontradoNosAmigos = true;
-              break;
-            }
-          }
-        }
-
-        if (resListaAmigos['sucesso'] == true &&
-            resListaAmigos['amigos'] is List) {
-          final lista = resListaAmigos['amigos'] as List;
-          for (final item in lista) {
-            if (item is Map && item['id']?.toString().trim() == idAlvo) {
-              encontradoNosAmigos = true;
-              break;
-            }
-          }
-        }
-
-        if (resAmigos['sucesso'] == true || resListaAmigos['sucesso'] == true) {
-          _jaEhAmigo = encontradoNosAmigos;
-          if (!encontradoNosAmigos) {
+        if (statusAmizadeJaConfirmado) {
+          _jaEhAmigo = widget.isAmigoConfirmado!;
+          if (!_jaEhAmigo) {
             posicaoAmigos = null;
+          } else if (resAmigos != null &&
+              resAmigos['sucesso'] == true &&
+              resAmigos['leaderboard'] is List) {
+            int? novaPosicaoAmigos;
+            final listaAmigos = resAmigos['leaderboard'] as List;
+            for (int i = 0; i < listaAmigos.length; i++) {
+              final item = listaAmigos[i];
+              if (item is Map && item['id']?.toString().trim() == idAlvo) {
+                novaPosicaoAmigos =
+                    (item['posicao'] as num?)?.toInt() ?? (i + 1);
+                break;
+              }
+            }
+            posicaoAmigos = novaPosicaoAmigos;
+          }
+        } else {
+          bool encontradoNosAmigos = false;
+          int? novaPosicaoAmigos;
+          if (resAmigos != null &&
+              resAmigos['sucesso'] == true &&
+              resAmigos['leaderboard'] is List) {
+            final listaAmigos = resAmigos['leaderboard'] as List;
+            for (int i = 0; i < listaAmigos.length; i++) {
+              final item = listaAmigos[i];
+              if (item is Map && item['id']?.toString().trim() == idAlvo) {
+                novaPosicaoAmigos =
+                    (item['posicao'] as num?)?.toInt() ?? (i + 1);
+                encontradoNosAmigos = true;
+                break;
+              }
+            }
+          }
+
+          if (resListaAmigos != null &&
+              resListaAmigos['sucesso'] == true &&
+              resListaAmigos['amigos'] is List) {
+            final lista = resListaAmigos['amigos'] as List;
+            for (final item in lista) {
+              if (item is Map && item['id']?.toString().trim() == idAlvo) {
+                encontradoNosAmigos = true;
+                break;
+              }
+            }
+          }
+
+          if ((resAmigos != null && resAmigos['sucesso'] == true) ||
+              (resListaAmigos != null && resListaAmigos['sucesso'] == true)) {
+            _jaEhAmigo = encontradoNosAmigos;
+            posicaoAmigos = encontradoNosAmigos ? novaPosicaoAmigos : null;
           }
         }
+
+        _carregandoPerfil = false;
       });
-    } catch (_) {}
+    } catch (_) {
+      if (mounted && _carregandoPerfil) {
+        setState(() => _carregandoPerfil = false);
+      }
+    }
   }
 
   Future<void> _enviarSolicitacaoAmizade() async {
@@ -286,6 +456,7 @@ class _FriendProfileScreenState extends State<FriendProfileScreen> {
       setState(() => _removendo = false);
 
       if (res['sucesso'] == true) {
+        FriendProfileScreen.invalidarCacheSocial();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('$nomeUsuario foi removido da sua lista.'),
@@ -336,7 +507,9 @@ class _FriendProfileScreenState extends State<FriendProfileScreen> {
             }
           },
           child: Text(
-            _jaEhAmigo ? 'PERFIL DO AMIGO' : 'PERFIL DO ATLETA',
+            _carregandoPerfil
+                ? 'PERFIL'
+                : (_jaEhAmigo ? 'PERFIL DO AMIGO' : 'PERFIL DO ATLETA'),
             style: const TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.bold,
@@ -344,8 +517,25 @@ class _FriendProfileScreenState extends State<FriendProfileScreen> {
           ),
         ),
       ),
-      body: RefreshIndicator(
-        onRefresh: _carregarPerfil,
+      body: _carregandoPerfil
+          ? const Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  CircularProgressIndicator(color: Color(0xFF00E676)),
+                  SizedBox(height: 14),
+                  Text(
+                    'Carregando perfil...',
+                    style: TextStyle(color: Colors.white60, fontSize: 14),
+                  ),
+                ],
+              ),
+            )
+          : RefreshIndicator(
+              onRefresh: () => _carregarPerfil(
+                mostrarLoading: false,
+                forcarAtualizacao: true,
+              ),
         color: const Color(0xFF00E676),
         backgroundColor: const Color(0xFF1E232A),
         child: SingleChildScrollView(

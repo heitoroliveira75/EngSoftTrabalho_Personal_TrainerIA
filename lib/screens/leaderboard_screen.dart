@@ -25,6 +25,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
 
   List<Map<String, dynamic>> _globalLeaderboard = [];
   List<Map<String, dynamic>> _amigosLeaderboard = [];
+  bool _amigosCarregados = false;
   int? _minhaPosicaoGlobal;
   int? _minhaPosicaoAmigos;
   int _meusPontos = 0;
@@ -138,6 +139,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
 
           // Processar Amigos
           if (resAmigos['sucesso'] == true && resAmigos['leaderboard'] is List) {
+            _amigosCarregados = true;
             final lista = resAmigos['leaderboard'] as List;
             _amigosLeaderboard = lista.map((e) {
               final map = Map<String, dynamic>.from(e as Map);
@@ -818,17 +820,47 @@ class _LeaderboardScreenState extends State<LeaderboardScreen>
           GestureDetector(
             onTap: (!isMe && amigoId.isNotEmpty)
                 ? () async {
+                    int? posGlobal;
+                    for (int i = 0; i < _globalLeaderboard.length; i++) {
+                      final entry = _globalLeaderboard[i];
+                      if (entry['id']?.toString().trim() == amigoId) {
+                        posGlobal =
+                            (entry['posicao'] as num?)?.toInt() ?? (i + 1);
+                        break;
+                      }
+                    }
+
+                    int? posAmigos;
+                    bool encontradoNosAmigos = false;
+                    for (int i = 0; i < _amigosLeaderboard.length; i++) {
+                      final entry = _amigosLeaderboard[i];
+                      if (entry['id']?.toString().trim() == amigoId) {
+                        posAmigos =
+                            (entry['posicao'] as num?)?.toInt() ?? (i + 1);
+                        encontradoNosAmigos = true;
+                        break;
+                      }
+                    }
+
+                    final bool? amigoConfirmado = isAmigosTab
+                        ? true
+                        : (_amigosCarregados ? encontradoNosAmigos : null);
+
                     final alterou = await Navigator.push<bool>(
                       context,
                       MaterialPageRoute(
                         builder: (context) => FriendProfileScreen(
                           amigoId: amigoId,
                           dadosIniciais: item,
-                          isAmigoInicial: isAmigosTab,
+                          isAmigoInicial: isAmigosTab || encontradoNosAmigos,
+                          isAmigoConfirmado: amigoConfirmado,
+                          posicaoGlobalInicial: posGlobal,
+                          posicaoAmigosInicial: posAmigos,
                         ),
                       ),
                     );
                     if (alterou == true && mounted) {
+                      FriendProfileScreen.invalidarCacheSocial();
                       _carregarLeaderboard();
                     }
                   }

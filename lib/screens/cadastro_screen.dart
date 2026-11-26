@@ -17,6 +17,8 @@ class _CadastroScreenState extends State<CadastroScreen> {
   final TextEditingController _confirmarSenhaController =
       TextEditingController();
   bool _carregando = false;
+  bool _esconderSenha = true;
+  bool _esconderConfirmarSenha = true;
 
   @override
   void dispose() {
@@ -185,7 +187,13 @@ class _CadastroScreenState extends State<CadastroScreen> {
                 _buildInputField(
                   controller: _senhaController,
                   hintText: 'Senha (mínimo 6 caracteres)',
-                  obscureText: true,
+                  obscureText: _esconderSenha,
+                  isPassword: true,
+                  onToggleVisibility: () {
+                    setState(() {
+                      _esconderSenha = !_esconderSenha;
+                    });
+                  },
                 ),
 
                 const SizedBox(height: 14),
@@ -194,7 +202,13 @@ class _CadastroScreenState extends State<CadastroScreen> {
                 _buildInputField(
                   controller: _confirmarSenhaController,
                   hintText: 'Confirme a senha',
-                  obscureText: true,
+                  obscureText: _esconderConfirmarSenha,
+                  isPassword: true,
+                  onToggleVisibility: () {
+                    setState(() {
+                      _esconderConfirmarSenha = !_esconderConfirmarSenha;
+                    });
+                  },
                 ),
 
                 const SizedBox(height: 20),
@@ -291,6 +305,8 @@ class _CadastroScreenState extends State<CadastroScreen> {
     required TextEditingController controller,
     required String hintText,
     bool obscureText = false,
+    bool isPassword = false,
+    VoidCallback? onToggleVisibility,
     TextInputType keyboardType = TextInputType.text,
   }) {
     return TextField(
@@ -319,6 +335,15 @@ class _CadastroScreenState extends State<CadastroScreen> {
           borderRadius: BorderRadius.circular(10.0),
           borderSide: const BorderSide(color: Color(0xFF00E676), width: 1.5),
         ),
+        suffixIcon: isPassword
+            ? IconButton(
+                icon: Icon(
+                  obscureText ? Icons.visibility_off : Icons.visibility,
+                  color: Colors.white60,
+                ),
+                onPressed: onToggleVisibility,
+              )
+            : null,
       ),
     );
   }

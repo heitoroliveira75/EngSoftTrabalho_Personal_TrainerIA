@@ -17,6 +17,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _senhaController = TextEditingController();
   bool _carregando = false;
+  bool _esconderSenha = true;
 
   @override
   void dispose() {
@@ -185,8 +186,14 @@ class _LoginScreenState extends State<LoginScreen> {
                     _buildInputField(
                       controller: _senhaController,
                       hintText: 'Senha',
-                      obscureText: true,
+                      obscureText: _esconderSenha,
+                      isPassword: true,
                       textInputAction: TextInputAction.done,
+                      onToggleVisibility: () {
+                        setState(() {
+                          _esconderSenha = !_esconderSenha;
+                        });
+                      },
                       onSubmitted: (_) {
                         if (!_carregando) _executarLogin();
                       },
@@ -293,6 +300,8 @@ class _LoginScreenState extends State<LoginScreen> {
     required TextEditingController controller,
     required String hintText,
     bool obscureText = false,
+    bool isPassword = false,
+    VoidCallback? onToggleVisibility,
     TextInputType keyboardType = TextInputType.text,
     TextInputAction? textInputAction,
     ValueChanged<String>? onSubmitted,
@@ -325,6 +334,15 @@ class _LoginScreenState extends State<LoginScreen> {
           borderRadius: BorderRadius.circular(10.0),
           borderSide: const BorderSide(color: Color(0xFF00E676), width: 1.5),
         ),
+        suffixIcon: isPassword
+            ? IconButton(
+                icon: Icon(
+                  obscureText ? Icons.visibility_off : Icons.visibility,
+                  color: Colors.white60,
+                ),
+                onPressed: onToggleVisibility,
+              )
+            : null,
       ),
     );
   }

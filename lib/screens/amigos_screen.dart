@@ -171,6 +171,7 @@ class _AmigosScreenState extends State<AmigosScreen>
     if (!mounted) return;
 
     if (res['sucesso'] == true) {
+      FriendProfileScreen.invalidarCacheSocial();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Você e $nome agora são amigos!'),
@@ -245,6 +246,7 @@ class _AmigosScreenState extends State<AmigosScreen>
       if (!mounted) return;
 
       if (res['sucesso'] == true) {
+        FriendProfileScreen.invalidarCacheSocial();
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('$nome foi removido da sua lista.'),
@@ -599,6 +601,7 @@ class _AmigosScreenState extends State<AmigosScreen>
                           amigoId: amigoId,
                           dadosIniciais: amigo,
                           isAmigoInicial: true,
+                          isAmigoConfirmado: true,
                         ),
                       ),
                     );
@@ -776,6 +779,7 @@ class _AmigosScreenState extends State<AmigosScreen>
                                     amigoId: usuarioSolicitanteId,
                                     dadosIniciais: solic,
                                     isAmigoInicial: false,
+                                    isAmigoConfirmado: false,
                                   ),
                                 ),
                               );
@@ -965,6 +969,8 @@ class _AmigosScreenState extends State<AmigosScreen>
                                                           amigoId: amigoId,
                                                           dadosIniciais: user,
                                                           isAmigoInicial:
+                                                              jaAmigo,
+                                                          isAmigoConfirmado:
                                                               jaAmigo,
                                                         ),
                                                   ),

@@ -17,6 +17,9 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
   final TextEditingController _newPassController = TextEditingController();
   final TextEditingController _confirmPassController = TextEditingController();
   bool _carregando = false;
+  bool _esconderSenhaAtual = true;
+  bool _esconderNovaSenha = true;
+  bool _esconderConfirmarSenha = true;
 
   @override
   void dispose() {
@@ -174,6 +177,12 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                     controller: _currentPassController,
                     hintText: 'Digite a sua senha atual',
                     isPassword: true,
+                    obscureText: _esconderSenhaAtual,
+                    onToggleVisibility: () {
+                      setState(() {
+                        _esconderSenhaAtual = !_esconderSenhaAtual;
+                      });
+                    },
                   ),
                   const SizedBox(height: 16),
 
@@ -183,6 +192,12 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                     controller: _newPassController,
                     hintText: 'Digite a nova senha',
                     isPassword: true,
+                    obscureText: _esconderNovaSenha,
+                    onToggleVisibility: () {
+                      setState(() {
+                        _esconderNovaSenha = !_esconderNovaSenha;
+                      });
+                    },
                   ),
                   const SizedBox(height: 16),
 
@@ -192,6 +207,12 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
                     controller: _confirmPassController,
                     hintText: 'Confirme a nova senha',
                     isPassword: true,
+                    obscureText: _esconderConfirmarSenha,
+                    onToggleVisibility: () {
+                      setState(() {
+                        _esconderConfirmarSenha = !_esconderConfirmarSenha;
+                      });
+                    },
                   ),
                 ],
               ),
@@ -242,6 +263,8 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
     required TextEditingController controller,
     required String hintText,
     bool isPassword = false,
+    bool obscureText = false,
+    VoidCallback? onToggleVisibility,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -257,7 +280,7 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
         const SizedBox(height: 6),
         TextField(
           controller: controller,
-          obscureText: isPassword,
+          obscureText: obscureText,
           obscuringCharacter: '*',
           style: const TextStyle(color: Colors.white, fontSize: 15),
           decoration: InputDecoration(
@@ -281,6 +304,15 @@ class _ChangePasswordScreenState extends State<ChangePasswordScreen> {
               borderRadius: BorderRadius.circular(8),
               borderSide: const BorderSide(color: Color(0xFF00E676), width: 1.5),
             ),
+            suffixIcon: isPassword
+                ? IconButton(
+                    icon: Icon(
+                      obscureText ? Icons.visibility_off : Icons.visibility,
+                      color: Colors.white60,
+                    ),
+                    onPressed: onToggleVisibility,
+                  )
+                : null,
           ),
         ),
       ],

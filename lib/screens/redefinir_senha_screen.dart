@@ -16,6 +16,8 @@ class _RedefinirSenhaScreenState extends State<RedefinirSenhaScreen> {
   final TextEditingController _novaSenhaController = TextEditingController();
   final TextEditingController _confirmeSenhaController = TextEditingController();
   bool _carregando = false;
+  bool _esconderNovaSenha = true;
+  bool _esconderConfirmarSenha = true;
 
   @override
   void initState() {
@@ -167,7 +169,13 @@ class _RedefinirSenhaScreenState extends State<RedefinirSenhaScreen> {
                 _buildInputField(
                   controller: _novaSenhaController,
                   hintText: 'Nova senha (mínimo 6 caracteres)',
-                  obscureText: true,
+                  obscureText: _esconderNovaSenha,
+                  isPassword: true,
+                  onToggleVisibility: () {
+                    setState(() {
+                      _esconderNovaSenha = !_esconderNovaSenha;
+                    });
+                  },
                 ),
 
                 const SizedBox(height: 16),
@@ -176,7 +184,13 @@ class _RedefinirSenhaScreenState extends State<RedefinirSenhaScreen> {
                 _buildInputField(
                   controller: _confirmeSenhaController,
                   hintText: 'Confirme a nova senha',
-                  obscureText: true,
+                  obscureText: _esconderConfirmarSenha,
+                  isPassword: true,
+                  onToggleVisibility: () {
+                    setState(() {
+                      _esconderConfirmarSenha = !_esconderConfirmarSenha;
+                    });
+                  },
                 ),
 
                 const SizedBox(height: 20),
@@ -224,6 +238,8 @@ class _RedefinirSenhaScreenState extends State<RedefinirSenhaScreen> {
     required TextEditingController controller,
     required String hintText,
     bool obscureText = false,
+    bool isPassword = false,
+    VoidCallback? onToggleVisibility,
     TextInputType keyboardType = TextInputType.text,
   }) {
     return TextField(
@@ -252,6 +268,15 @@ class _RedefinirSenhaScreenState extends State<RedefinirSenhaScreen> {
           borderRadius: BorderRadius.circular(10.0),
           borderSide: const BorderSide(color: Color(0xFF00E676), width: 1.5),
         ),
+        suffixIcon: isPassword
+            ? IconButton(
+                icon: Icon(
+                  obscureText ? Icons.visibility_off : Icons.visibility,
+                  color: Colors.white60,
+                ),
+                onPressed: onToggleVisibility,
+              )
+            : null,
       ),
     );
   }
