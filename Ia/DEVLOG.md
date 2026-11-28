@@ -26,6 +26,28 @@
 
 ## Histórico de Entradas
 
+### [Entrada #024] 2026-11-27 — [US-08 / Expansão do Catálogo] Adição da Prancha Abdominal e Homologação de Novos Exercícios do App
+- **Objetivo / História de Usuário:**
+  - Restaurar e homologar o exercício de Prancha Abdominal (ID 29), extraindo o gabarito de 68 frames via `extrator_video.py` a partir do trecho de prancha alta do vídeo de referência Fit3D (`pushup.mp4` da câmera lateral `50591643` do sujeito `s03`).
+  - Mapear e implementar os 8 novos exercícios solicitados pelo usuário (Elevação Frontal, Crucifixo Invertido, Rosca Alternada, Rosca Scott, Tríceps Pulley, Mergulho no Banco, Abdominal Supra, Elevação de Pernas), garantindo resolução de IDs compatível com o catálogo do aplicativo Flutter e gerando os gabaritos especialistas em `Gabaritos/`.
+- **Tasks Executadas e Artefatos Gerados:**
+  - `[TASK-01]` Implementação de novas classes de FSM em [`Códigos/exercicios_fsm.py`](../Códigos/exercicios_fsm.py):
+    - `PranchaAbdominal` (ID `'29'` / chave `'p'`), monitorando `quadril`, `joelho` e `cotovelo` com regras de alinhamento retilíneo e alertas para quadril caído/elevado.
+    - `ElevacaoFrontal` (ID `'18'` / chave `'ef'`), monitorando `ombro` e `cotovelo` com detecção de amplitude incompleta e hiperextensão.
+    - `RoscaAlternada` (ID `'21'` / chave `'ra'`), monitorando `cotovelo` e estabilidade de `ombro`.
+    - `TricepsPulley` (ID `'25'` / chave `'tp'`), extensão completa para baixo e ombro fixo.
+    - `MergulhoBanco` (ID `'27'` / chave `'mb'`), descida até 90° e extensão controlada.
+    - `AbdominalSupra` (ID `'28'` / chave `'as'`), flexão de coluna no solo.
+    - `ElevacaoPernas` (ID `'30'` / chave `'ep'`), subida de pernas retas a 90°.
+    - Vinculação de aliases para `CrucifixoInvertido` (ID `'19'`) e `RoscaScott` (ID `'23'`).
+  - `[TASK-02]` Extração e Geração de Gabaritos Especialistas em [`Gabaritos/`](../Gabaritos/):
+    - `gabarito_especialista_prancha_abdominal.json` (68 frames, extraído com MediaPipe Pose Tasks).
+    - `gabarito_especialista_elevacao_frontal.json` (extraído e homologado).
+    - `gabarito_especialista_rosca_alternada.json`, `gabarito_especialista_triceps_pulley.json`, `gabarito_especialista_mergulho_banco.json`, `gabarito_especialista_abdominal_supra.json`, `gabarito_especialista_elevacao_pernas.json`.
+  - `[TASK-03]` Atualização de [`Códigos/gabarito.py`](../Códigos/gabarito.py) com geradores automáticos para todos os exercícios e adição de testes automatizados em [`tests/test_pipeline_pontuacao.py`](../tests/test_pipeline_pontuacao.py), totalizando 127 testes passando com 100% de sucesso.
+- **Estado Resultante / Próximos Passos:**
+  - Todos os 9 exercícios solicitados estão integrados, catalogados e testados com sucesso no motor biomecânico.
+
 ### [Entrada #023] 2026-11-25 — [Recalibração Biomecânica & Blindagem] Deadzone, Normalização DTW, Baseline, Debounce FSM, Simetria Bilateral e Suíte 100% Verde
 - **Objetivo / História de Usuário:** Recalibrar a formulação matemática de pontuação e a resiliência da FSM para mitigar ruídos de câmera/MediaPipe e evitar notas excessivamente punitivas em execuções humanas legítimas, introduzindo: zona de tolerância fisiológica (deadzone), normalização por dimensionalidade articular ($\sqrt{D}$), alinhamento de linha de base de repouso (baseline offset), filtro antiespasmo com debounce de persistência na FSM, monitoramento universal de simetria bilateral e blindagem multiplataforma do carregamento de modelos MediaPipe em memória.
 - **Tasks Executadas e Artefatos Gerados:**

@@ -1265,6 +1265,487 @@ class CrucifixoInvertido(ExercicioBaseFSM):
         return erros_no_frame[0] if erros_no_frame else None
 
 
+class PranchaAbdominal(ExercicioBaseFSM):
+    """
+    Avalia a Prancha Abdominal (Plank) em visão lateral.
+    Articulações monitoradas: ['quadril', 'joelho', 'cotovelo']
+    """
+
+    NOMES_FASES = {
+        0: "Repouso (No solo ou em pe)",
+        1: "Entrando na Prancha",
+        2: "Sustentacao (Postura Alinhada)",
+        3: "Saindo da Prancha",
+    }
+
+    MENSAGENS_ERRO = {
+        "QUADRIL_CAIDO": "Cuidado com a lombar! Suba o quadril para manter o corpo alinhado.",
+        "QUADRIL_ELEVADO": "Abaixe um pouco o quadril para ativar o abdomen.",
+        "JOELHO_FLEXIONADO": "Mantenha as pernas estendidas e os joelhos firmes.",
+    }
+
+    PENALIDADES_ERRO = {
+        "QUADRIL_CAIDO": 25.0,
+        "QUADRIL_ELEVADO": 15.0,
+        "JOELHO_FLEXIONADO": 15.0,
+    }
+
+    def identificar_fase(self, angulos: dict, posicoes: dict, angulos_deltas: dict) -> int:
+        quadril = angulos.get("quadril", 90.0)
+        joelho = angulos.get("joelho", 90.0)
+        fase = self.fases[1]
+
+        alinhado = (quadril >= 155.0) and (joelho >= 155.0)
+
+        if fase == 0:
+            if alinhado:
+                fase = 1
+                self.erros_repeticao_atual = []
+        elif fase == 1:
+            if alinhado:
+                fase = 2
+            else:
+                fase = 0
+        elif fase == 2:
+            if not alinhado:
+                fase = 3
+        elif fase == 3:
+            if not alinhado:
+                fase = 0
+                self.repeticoes += 1
+
+        return fase
+
+    def classificar(self, angulos: dict, posicoes: dict, angulos_deltas: dict) -> Optional[str]:
+        fase_anterior = self.fases[1]
+        fase_atual = self.identificar_fase(angulos, posicoes, angulos_deltas)
+
+        self.fases[0] = fase_anterior
+        self.fases[1] = fase_atual
+
+        erros_no_frame = []
+        quadril = angulos.get("quadril", 180.0)
+        joelho = angulos.get("joelho", 180.0)
+
+        if self.fases[1] == 2:
+            if quadril < 155.0:
+                erros_no_frame.append("QUADRIL_CAIDO")
+            elif quadril > 195.0:
+                erros_no_frame.append("QUADRIL_ELEVADO")
+
+            if joelho < 155.0:
+                erros_no_frame.append("JOELHO_FLEXIONADO")
+
+        for err in erros_no_frame:
+            self.registrar_erro(err)
+
+        return erros_no_frame[0] if erros_no_frame else None
+
+
+class ElevacaoFrontal(ExercicioBaseFSM):
+    """
+    Avalia a Elevação Frontal com Halteres (Front Raise).
+    Articulações: ['ombro', 'cotovelo']
+    """
+
+    NOMES_FASES = {
+        0: "Repouso (Bracos Embaixo)",
+        1: "Subindo a Frente (Concentrica)",
+        2: "Pico (Bracos na Linha dos Ombros)",
+        3: "Descendo (Excentrica Controlada)",
+    }
+
+    MENSAGENS_ERRO = {
+        "SUBIDA_INCOMPLETA": "Eleve os bracos a frente ate a altura dos ombros (ombro >= 80 graus).",
+        "ELEVACAO_EXCESSIVA": "Nao eleve acima da linha dos olhos para proteger o manguito rotador.",
+        "COTOVELO_FLEXIONADO": "Mantenha os cotovelos quase estendidos (cotovelo >= 140 graus).",
+    }
+
+    PENALIDADES_ERRO = {
+        "SUBIDA_INCOMPLETA": 25.0,
+        "ELEVACAO_EXCESSIVA": 15.0,
+        "COTOVELO_FLEXIONADO": 15.0,
+    }
+
+    def identificar_fase(self, angulos: dict, posicoes: dict, angulos_deltas: dict) -> int:
+        ombro = angulos.get("ombro", 20.0)
+        delta_ombro = angulos_deltas.get("ombro", 0.0)
+        fase = self.fases[1]
+
+        if fase == 0:
+            if ombro > 40.0 and delta_ombro > 0:
+                fase = 1
+                self.erros_repeticao_atual = []
+        elif fase == 1:
+            if ombro >= 80.0:
+                fase = 2
+            elif delta_ombro < 0 and ombro < 65.0:
+                fase = 3
+        elif fase == 2:
+            if ombro < 75.0 or delta_ombro < 0:
+                fase = 3
+        elif fase == 3:
+            if ombro <= 35.0:
+                fase = 0
+                self.repeticoes += 1
+
+        return fase
+
+    def classificar(self, angulos: dict, posicoes: dict, angulos_deltas: dict) -> Optional[str]:
+        fase_anterior = self.fases[1]
+        fase_atual = self.identificar_fase(angulos, posicoes, angulos_deltas)
+
+        self.fases[0] = fase_anterior
+        self.fases[1] = fase_atual
+
+        erros_no_frame = []
+        if self.fases[0] == 1 and self.fases[1] == 3:
+            erros_no_frame.append("SUBIDA_INCOMPLETA")
+        if self.fases[1] == 2 and angulos.get("ombro", 80.0) > 120.0:
+            erros_no_frame.append("ELEVACAO_EXCESSIVA")
+        if self.fases[1] in (1, 2, 3) and angulos.get("cotovelo", 160.0) < 135.0:
+            erros_no_frame.append("COTOVELO_FLEXIONADO")
+
+        for err in erros_no_frame:
+            self.registrar_erro(err)
+
+        return erros_no_frame[0] if erros_no_frame else None
+
+
+class RoscaAlternada(ExercicioBaseFSM):
+    """
+    Avalia a Rosca Alternada de Bíceps com Halteres (Alternating Biceps Curl).
+    Articulações: ['cotovelo', 'ombro']
+    """
+
+    NOMES_FASES = {
+        0: "Repouso (Braco Estendido Embaixo)",
+        1: "Subindo Halter (Concentrica)",
+        2: "Pico de Contracao (Cotovelo Dobrado)",
+        3: "Descendo Halter (Excentrica Controlada)",
+    }
+
+    MENSAGENS_ERRO = {
+        "REPETICAO_INCOMPLETA": "Flexione o braco ate o topo (cotovelo <= 60 graus) antes de descer.",
+        "OMBRO_PROJETADO": "Mantenha o cotovelo colado ao corpo; nao projete o ombro para a frente.",
+        "DESCIDA_INCOMPLETA": "Estenda o braco quase completamente embaixo antes da proxima repeticao.",
+    }
+
+    PENALIDADES_ERRO = {
+        "REPETICAO_INCOMPLETA": 25.0,
+        "OMBRO_PROJETADO": 15.0,
+        "DESCIDA_INCOMPLETA": 15.0,
+    }
+
+    def identificar_fase(self, angulos: dict, posicoes: dict, angulos_deltas: dict) -> int:
+        cotovelo = angulos.get("cotovelo", 160.0)
+        delta_cotovelo = angulos_deltas.get("cotovelo", 0.0)
+        fase = self.fases[1]
+
+        if fase == 0:
+            if cotovelo < 140.0 and delta_cotovelo < 0:
+                fase = 1
+                self.erros_repeticao_atual = []
+        elif fase == 1:
+            if cotovelo <= 60.0:
+                fase = 2
+            elif delta_cotovelo > 0 and cotovelo > 85.0:
+                fase = 3
+        elif fase == 2:
+            if cotovelo > 75.0 or delta_cotovelo > 0:
+                fase = 3
+        elif fase == 3:
+            if cotovelo >= 145.0:
+                fase = 0
+                self.repeticoes += 1
+
+        return fase
+
+    def classificar(self, angulos: dict, posicoes: dict, angulos_deltas: dict) -> Optional[str]:
+        fase_anterior = self.fases[1]
+        fase_atual = self.identificar_fase(angulos, posicoes, angulos_deltas)
+
+        self.fases[0] = fase_anterior
+        self.fases[1] = fase_atual
+
+        erros_no_frame = []
+        if self.fases[0] == 1 and self.fases[1] == 3:
+            erros_no_frame.append("REPETICAO_INCOMPLETA")
+        if self.fases[1] in (1, 2, 3) and angulos.get("ombro", 15.0) > 40.0:
+            erros_no_frame.append("OMBRO_PROJETADO")
+        if self.fases[0] == 3 and self.fases[1] == 0 and angulos.get("cotovelo", 160.0) < 140.0:
+            erros_no_frame.append("DESCIDA_INCOMPLETA")
+
+        for err in erros_no_frame:
+            self.registrar_erro(err)
+
+        return erros_no_frame[0] if erros_no_frame else None
+
+
+class TricepsPulley(ExercicioBaseFSM):
+    """
+    Avalia o Tríceps Pulley / Barra na Polia.
+    Articulações: ['cotovelo', 'ombro']
+    """
+
+    NOMES_FASES = {
+        0: "Repouso (Cotovelos a 90 graus)",
+        1: "Estendendo Bracos para Baixo",
+        2: "Extensao Maxima (Pico Embaixo)",
+        3: "Retorno Controlado para 90 graus",
+    }
+
+    MENSAGENS_ERRO = {
+        "EXTENSAO_INCOMPLETA": "Estenda os bracos completamente ate o final (cotovelo >= 155 graus).",
+        "SUBIDA_EXCESSIVA": "Nao deixe os cotovelos subirem alem de 90 graus no retorno.",
+        "OMBRO_INSTAVEL": "Mantenha os cotovelos colados ao tronco e os ombros parados.",
+    }
+
+    PENALIDADES_ERRO = {
+        "EXTENSAO_INCOMPLETA": 25.0,
+        "SUBIDA_EXCESSIVA": 15.0,
+        "OMBRO_INSTAVEL": 15.0,
+    }
+
+    def identificar_fase(self, angulos: dict, posicoes: dict, angulos_deltas: dict) -> int:
+        cotovelo = angulos.get("cotovelo", 90.0)
+        delta_cotovelo = angulos_deltas.get("cotovelo", 0.0)
+        fase = self.fases[1]
+
+        if fase == 0:
+            if cotovelo > 105.0 and delta_cotovelo > 0:
+                fase = 1
+                self.erros_repeticao_atual = []
+        elif fase == 1:
+            if cotovelo >= 155.0:
+                fase = 2
+            elif delta_cotovelo < 0 and cotovelo < 130.0:
+                fase = 3
+        elif fase == 2:
+            if cotovelo < 145.0 or delta_cotovelo < 0:
+                fase = 3
+        elif fase == 3:
+            if cotovelo <= 95.0:
+                fase = 0
+                self.repeticoes += 1
+
+        return fase
+
+    def classificar(self, angulos: dict, posicoes: dict, angulos_deltas: dict) -> Optional[str]:
+        fase_anterior = self.fases[1]
+        fase_atual = self.identificar_fase(angulos, posicoes, angulos_deltas)
+
+        self.fases[0] = fase_anterior
+        self.fases[1] = fase_atual
+
+        erros_no_frame = []
+        if self.fases[0] == 1 and self.fases[1] == 3:
+            erros_no_frame.append("EXTENSAO_INCOMPLETA")
+        if self.fases[1] == 3 and angulos.get("cotovelo", 90.0) < 65.0:
+            erros_no_frame.append("SUBIDA_EXCESSIVA")
+        if self.fases[1] in (1, 2, 3) and angulos.get("ombro", 15.0) > 35.0:
+            erros_no_frame.append("OMBRO_INSTAVEL")
+
+        for err in erros_no_frame:
+            self.registrar_erro(err)
+
+        return erros_no_frame[0] if erros_no_frame else None
+
+
+class MergulhoBanco(ExercicioBaseFSM):
+    """
+    Avalia o Mergulho no Banco (Bench Dips).
+    Articulações: ['cotovelo', 'ombro']
+    """
+
+    NOMES_FASES = {
+        0: "Repouso no Topo (Bracos Estendidos)",
+        1: "Descendo o Tronco (Flexao dos Cotovelos)",
+        2: "Pico no Fundo (Cotovelos a 90 graus)",
+        3: "Subindo (Extensao dos Bracos)",
+    }
+
+    MENSAGENS_ERRO = {
+        "DESCIDA_CURTA": "Desca o quadril ate que os cotovelos dobrem a 90 graus antes de subir.",
+        "DESCIDA_EXCESSIVA": "Nao desca excessivamente para proteger os ombros (cotovelo >= 75 graus).",
+    }
+
+    PENALIDADES_ERRO = {
+        "DESCIDA_CURTA": 25.0,
+        "DESCIDA_EXCESSIVA": 15.0,
+    }
+
+    def identificar_fase(self, angulos: dict, posicoes: dict, angulos_deltas: dict) -> int:
+        cotovelo = angulos.get("cotovelo", 155.0)
+        delta_cotovelo = angulos_deltas.get("cotovelo", 0.0)
+        fase = self.fases[1]
+
+        if fase == 0:
+            if cotovelo < 140.0 and delta_cotovelo < 0:
+                fase = 1
+                self.erros_repeticao_atual = []
+        elif fase == 1:
+            if cotovelo <= 95.0:
+                fase = 2
+            elif delta_cotovelo > 0 and cotovelo > 115.0:
+                fase = 3
+        elif fase == 2:
+            if cotovelo > 105.0 or delta_cotovelo > 0:
+                fase = 3
+        elif fase == 3:
+            if cotovelo >= 145.0:
+                fase = 0
+                self.repeticoes += 1
+
+        return fase
+
+    def classificar(self, angulos: dict, posicoes: dict, angulos_deltas: dict) -> Optional[str]:
+        fase_anterior = self.fases[1]
+        fase_atual = self.identificar_fase(angulos, posicoes, angulos_deltas)
+
+        self.fases[0] = fase_anterior
+        self.fases[1] = fase_atual
+
+        erros_no_frame = []
+        if self.fases[0] == 1 and self.fases[1] == 3:
+            erros_no_frame.append("DESCIDA_CURTA")
+        if self.fases[1] == 2 and angulos.get("cotovelo", 90.0) < 70.0:
+            erros_no_frame.append("DESCIDA_EXCESSIVA")
+
+        for err in erros_no_frame:
+            self.registrar_erro(err)
+
+        return erros_no_frame[0] if erros_no_frame else None
+
+
+class AbdominalSupra(ExercicioBaseFSM):
+    """
+    Avalia o Abdominal Supra (Crunch) no solo.
+    Articulações: ['quadril', 'joelho']
+    """
+
+    NOMES_FASES = {
+        0: "Repouso no Solo (Deitado com Joelhos Dobrados)",
+        1: "Subindo o Tronco (Flexao da Coluna)",
+        2: "Pico de Contracao Abdominal",
+        3: "Descendo de Volta ao Solo",
+    }
+
+    MENSAGENS_ERRO = {
+        "SUBIDA_CURTA": "Suba mais o tronco flexionando o abdomen para atingir a contracao completa.",
+    }
+
+    PENALIDADES_ERRO = {
+        "SUBIDA_CURTA": 25.0,
+    }
+
+    def identificar_fase(self, angulos: dict, posicoes: dict, angulos_deltas: dict) -> int:
+        quadril = angulos.get("quadril", 75.0)
+        delta_quadril = angulos_deltas.get("quadril", 0.0)
+        fase = self.fases[1]
+
+        if fase == 0:
+            if quadril < 65.0 and delta_quadril < 0:
+                fase = 1
+                self.erros_repeticao_atual = []
+        elif fase == 1:
+            if quadril <= 50.0:
+                fase = 2
+            elif delta_quadril > 0 and quadril > 60.0:
+                fase = 3
+        elif fase == 2:
+            if quadril > 55.0 or delta_quadril > 0:
+                fase = 3
+        elif fase == 3:
+            if quadril >= 70.0:
+                fase = 0
+                self.repeticoes += 1
+
+        return fase
+
+    def classificar(self, angulos: dict, posicoes: dict, angulos_deltas: dict) -> Optional[str]:
+        fase_anterior = self.fases[1]
+        fase_atual = self.identificar_fase(angulos, posicoes, angulos_deltas)
+
+        self.fases[0] = fase_anterior
+        self.fases[1] = fase_atual
+
+        erros_no_frame = []
+        if self.fases[0] == 1 and self.fases[1] == 3:
+            erros_no_frame.append("SUBIDA_CURTA")
+
+        for err in erros_no_frame:
+            self.registrar_erro(err)
+
+        return erros_no_frame[0] if erros_no_frame else None
+
+
+class ElevacaoPernas(ExercicioBaseFSM):
+    """
+    Avalia a Elevação de Pernas no Solo (Lying Leg Raise).
+    Articulações: ['quadril', 'joelho']
+    """
+
+    NOMES_FASES = {
+        0: "Repouso (Pernas Estendidas no Solo)",
+        1: "Subindo as Pernas",
+        2: "Pico no Topo (Pernas a 90 graus)",
+        3: "Descendo Controladamente",
+    }
+
+    MENSAGENS_ERRO = {
+        "ELEVACAO_INCOMPLETA": "Eleve as pernas ate a vertical (quadril <= 100 graus) antes de descer.",
+        "JOELHO_DOBRADO": "Mantenha as pernas estendidas e joelhos firmes (joelho >= 150 graus).",
+    }
+
+    PENALIDADES_ERRO = {
+        "ELEVACAO_INCOMPLETA": 25.0,
+        "JOELHO_DOBRADO": 15.0,
+    }
+
+    def identificar_fase(self, angulos: dict, posicoes: dict, angulos_deltas: dict) -> int:
+        quadril = angulos.get("quadril", 170.0)
+        delta_quadril = angulos_deltas.get("quadril", 0.0)
+        fase = self.fases[1]
+
+        if fase == 0:
+            if quadril < 150.0 and delta_quadril < 0:
+                fase = 1
+                self.erros_repeticao_atual = []
+        elif fase == 1:
+            if quadril <= 100.0:
+                fase = 2
+            elif delta_quadril > 0 and quadril > 125.0:
+                fase = 3
+        elif fase == 2:
+            if quadril > 110.0 or delta_quadril > 0:
+                fase = 3
+        elif fase == 3:
+            if quadril >= 160.0:
+                fase = 0
+                self.repeticoes += 1
+
+        return fase
+
+    def classificar(self, angulos: dict, posicoes: dict, angulos_deltas: dict) -> Optional[str]:
+        fase_anterior = self.fases[1]
+        fase_atual = self.identificar_fase(angulos, posicoes, angulos_deltas)
+
+        self.fases[0] = fase_anterior
+        self.fases[1] = fase_atual
+
+        erros_no_frame = []
+        if self.fases[0] == 1 and self.fases[1] == 3:
+            erros_no_frame.append("ELEVACAO_INCOMPLETA")
+        if self.fases[1] in (1, 2, 3) and angulos.get("joelho", 170.0) < 145.0:
+            erros_no_frame.append("JOELHO_DOBRADO")
+
+        for err in erros_no_frame:
+            self.registrar_erro(err)
+
+        return erros_no_frame[0] if erros_no_frame else None
+
+
 # Catálogo central que liga as teclas de atalho ou IDs aos componentes de cada exercício
 CATALOGO_EXERCICIOS: Dict[str, Dict[str, Any]] = {
     "1": {
@@ -1385,48 +1866,204 @@ CATALOGO_EXERCICIOS: Dict[str, Dict[str, Any]] = {
         "enquadramento": "lateral",
         "bilateral": False,
     },
+    "p": {
+        "id": "prancha_abdominal",
+        "nome": "Prancha Abdominal",
+        "classe_fsm": PranchaAbdominal,
+        "articulacoes": ["quadril", "joelho", "cotovelo"],
+        "arquivo_gabarito": "gabarito_especialista_prancha_abdominal.json",
+        "enquadramento": "lateral",
+        "bilateral": True,
+    },
+    "ef": {
+        "id": "elevacao_frontal",
+        "nome": "Elevacao Frontal",
+        "classe_fsm": ElevacaoFrontal,
+        "articulacoes": ["ombro", "cotovelo"],
+        "arquivo_gabarito": "gabarito_especialista_elevacao_frontal.json",
+        "enquadramento": "livre",
+        "bilateral": True,
+    },
+    "ra": {
+        "id": "rosca_alternada",
+        "nome": "Rosca Alternada",
+        "classe_fsm": RoscaAlternada,
+        "articulacoes": ["cotovelo", "ombro"],
+        "arquivo_gabarito": "gabarito_especialista_rosca_alternada.json",
+        "enquadramento": "livre",
+        "bilateral": False,
+    },
+    "tp": {
+        "id": "triceps_pulley",
+        "nome": "Triceps Pulley",
+        "classe_fsm": TricepsPulley,
+        "articulacoes": ["cotovelo", "ombro"],
+        "arquivo_gabarito": "gabarito_especialista_triceps_pulley.json",
+        "enquadramento": "lateral",
+        "bilateral": True,
+    },
+    "mb": {
+        "id": "mergulho_banco",
+        "nome": "Mergulho no Banco",
+        "classe_fsm": MergulhoBanco,
+        "articulacoes": ["cotovelo", "ombro"],
+        "arquivo_gabarito": "gabarito_especialista_mergulho_banco.json",
+        "enquadramento": "lateral",
+        "bilateral": True,
+    },
+    "as": {
+        "id": "abdominal_supra",
+        "nome": "Abdominal Supra",
+        "classe_fsm": AbdominalSupra,
+        "articulacoes": ["quadril", "joelho"],
+        "arquivo_gabarito": "gabarito_especialista_abdominal_supra.json",
+        "enquadramento": "lateral",
+        "bilateral": True,
+    },
+    "ep": {
+        "id": "elevacao_pernas",
+        "nome": "Elevacao de Pernas",
+        "classe_fsm": ElevacaoPernas,
+        "articulacoes": ["quadril", "joelho"],
+        "arquivo_gabarito": "gabarito_especialista_elevacao_pernas.json",
+        "enquadramento": "lateral",
+        "bilateral": True,
+    },
 }
 
 
 def obter_config_exercicio(identificador: str) -> Dict[str, Any]:
     """
-    Busca a configuração do exercício por chave numérica ('1', '2', '3')
-    ou por identificador de texto ('desenvolvimento_ombro', 'agachamento', 'rosca_biceps').
+    Busca a configuração do exercício por chave curta, por ID do catálogo mobile
+    ou por identificador de texto.
     """
     chave = str(identificador).strip().lower()
     if chave in CATALOGO_EXERCICIOS:
         return CATALOGO_EXERCICIOS[chave]
 
-    if chave == "flexao":
-        return CATALOGO_EXERCICIOS["6"]
+    # Mapeamento completo de aliases e IDs do catálogo do aplicativo Flutter
+    aliases = {
+        # 1. Desenvolvimento com Halteres / Ombro (App ID: 16)
+        "16": "1",
+        "ombro": "1",
+        "desenvolvimento": "1",
+        # 2. Agachamento Livre (App ID: 11)
+        "11": "2",
+        "squat": "2",
+        "agachamento": "2",
+        # 3. Crucifixo Reto (App ID: 3)
+        "3": "f",
+        "crucifixo_reto": "f",
+        "crucifixo": "f",
+        "crucifixo_halteres": "f",
+        "chest_fly": "f",
+        "fly": "f",
+        "12": "f",
+        # 4. Elevação Lateral (App ID: 17)
+        "17": "4",
+        "elevacao_lateral": "4",
+        "lateral": "4",
+        # 5. Flexão de Braço / Diamante (App ID: 5)
+        "5": "6",
+        "flexao": "6",
+        "flexao_diamante": "6",
+        # 6. Puxada Frontal / Costas (App ID: 6)
+        "6": "c",
+        "puxada_alta_costas": "c",
+        "puxada_costas": "c",
+        "costas": "c",
+        "lat_pulldown": "c",
+        "puxada_polia": "c",
+        # 7. Remada Baixa (App ID: 7)
+        "7": "7",
+        "remada": "7",
+        "remada_baixa": "7",
+        # 8. Puxada Alta Halteres (App ID: 10 / Pulldown)
+        "10": "8",
+        "puxada_alta_halteres": "8",
+        "puxada_alta": "8",
+        "remada_alta": "8",
+        "dumbbell_high_pulls": "8",
+        "puxada": "8",
+        # 9. Rosca Martelo (App ID: 22)
+        "22": "9",
+        "rosca_martelo": "9",
+        "martelo": "9",
+        "hammer_curl": "9",
+        # 10. Tríceps Francês / Testa (App ID: 26)
+        "26": "0",
+        "triceps_frances": "0",
+        "triceps_testa": "0",
+        "frances": "0",
+        "french_press": "0",
+        # 11. Rosca Direta de Bíceps (App ID: 20)
+        "20": "3",
+        "rosca": "3",
+        "rosca_biceps": "3",
+        "rosca_direta": "3",
+        "biceps": "3",
+        # 12. Tríceps Corda (App ID: 24)
+        "24": "5",
+        "triceps_corda": "5",
+        "triceps": "5",
+        # 13. Rosca Scott (App ID: 23)
+        "23": "s",
+        "13": "s",
+        "rosca_scott": "s",
+        "scott": "s",
+        "preacher_curl": "s",
+        # 14. Crucifixo Invertido (App ID: 19)
+        "19": "i",
+        "14": "i",
+        "crucifixo_invertido": "i",
+        "crucifixo_inverso": "i",
+        "reverse_fly": "i",
+        "rear_delt_fly": "i",
+        "invertido": "i",
+        # 15. Prancha Abdominal (App ID: 29)
+        "29": "p",
+        "prancha": "p",
+        "prancha_abdominal": "p",
+        "plank": "p",
+        # 16. Elevação Frontal (App ID: 18)
+        "18": "ef",
+        "elevacao_frontal": "ef",
+        "frontal": "ef",
+        "front_raise": "ef",
+        # 17. Rosca Alternada (App ID: 21)
+        "21": "ra",
+        "rosca_alternada": "ra",
+        "alternada": "ra",
+        "alternating_curl": "ra",
+        # 18. Tríceps Pulley (App ID: 25)
+        "25": "tp",
+        "triceps_pulley": "tp",
+        "pulley": "tp",
+        # 19. Mergulho no Banco (App ID: 27)
+        "27": "mb",
+        "mergulho_no_banco": "mb",
+        "mergulho_banco": "mb",
+        "banco": "mb",
+        "bench_dips": "mb",
+        "dips": "mb",
+        # 20. Abdominal Supra (App ID: 28)
+        "28": "as",
+        "abdominal_supra": "as",
+        "crunch": "as",
+        "supra": "as",
+        # 21. Elevação de Pernas (App ID: 30)
+        "30": "ep",
+        "elevacao_de_pernas": "ep",
+        "elevacao_pernas": "ep",
+        "leg_raise": "ep",
+    }
 
-    if chave in ("remada", "remada_baixa"):
-        return CATALOGO_EXERCICIOS["7"]
-
-    if chave in ("puxada_alta_halteres", "puxada_alta", "remada_alta", "dumbbell_high_pulls", "puxada"):
-        return CATALOGO_EXERCICIOS["8"]
-
-    if chave in ("rosca_martelo", "martelo", "hammer_curl", "9"):
-        return CATALOGO_EXERCICIOS["9"]
-
-    if chave in ("triceps_frances", "frances", "french_press", "0", "10"):
-        return CATALOGO_EXERCICIOS["0"]
-
-    if chave in ("puxada_alta_costas", "puxada_costas", "costas", "lat_pulldown", "puxada_polia", "11", "c", "p"):
-        return CATALOGO_EXERCICIOS["c"]
-
-    if chave in ("crucifixo_reto", "crucifixo", "crucifixo_halteres", "chest_fly", "fly", "12", "f", "x"):
-        return CATALOGO_EXERCICIOS["f"]
-
-    if chave in ("rosca_scott", "rosca_scoot", "scott", "scoot", "preacher_curl", "13", "s"):
-        return CATALOGO_EXERCICIOS["s"]
-
-    if chave in ("crucifixo_invertido", "crucifixo_invertido_halteres", "reverse_fly", "rear_delt_fly", "invertido", "14", "i"):
-        return CATALOGO_EXERCICIOS["i"]
+    if chave in aliases:
+        return CATALOGO_EXERCICIOS[aliases[chave]]
 
     for item in CATALOGO_EXERCICIOS.values():
         if item["id"].lower() == chave:
             return item
 
-    opcoes = list(CATALOGO_EXERCICIOS.keys()) + [item["id"] for item in CATALOGO_EXERCICIOS.values()]
+    opcoes = list(CATALOGO_EXERCICIOS.keys()) + list(aliases.keys()) + [item["id"] for item in CATALOGO_EXERCICIOS.values()]
     raise ValueError(f"Exercício '{identificador}' não encontrado. Opções disponíveis: {opcoes}")

@@ -330,6 +330,157 @@ def garantir_gabaritos_padrao(sobrescrever: bool = False) -> None:
             descricao="Gabarito padrão ouro para Crucifixo Invertido com Halteres (recorte FSM).",
         ).salvar_json(arq_invertido)
 
+    # 12. Prancha Abdominal: Quadril (~170°), Joelho (~178°), Cotovelo (~160°)
+    arq_prancha = os.path.join(pasta_gabaritos, "gabarito_especialista_prancha_abdominal.json")
+    if not os.path.exists(arq_prancha):
+        serie_prancha: List[Dict[str, float]] = []
+        for _ in range(5):
+            serie_prancha.append({"quadril": 90.0, "joelho": 90.0, "cotovelo": 90.0})
+        for _ in range(30):
+            serie_prancha.append({"quadril": 170.0, "joelho": 178.0, "cotovelo": 160.0})
+        for _ in range(5):
+            serie_prancha.append({"quadril": 90.0, "joelho": 90.0, "cotovelo": 90.0})
+
+        dados_prancha = extrair_primeira_repeticao("prancha_abdominal", serie_angulos=serie_prancha, lancar_excecao=True)
+        GabaritoExercicio(
+            nome_exercicio="prancha_abdominal",
+            articulacoes=["quadril", "joelho", "cotovelo"],
+            dados=dados_prancha,
+            descricao="Gabarito padrão ouro para Prancha Abdominal (recorte FSM).",
+        ).salvar_json(arq_prancha)
+
+    # 13. Elevação Frontal: Ombro (25° -> 90° -> 25°), Cotovelo estável (~160°)
+    arq_frontal = os.path.join(pasta_gabaritos, "gabarito_especialista_elevacao_frontal.json")
+    if not os.path.exists(arq_frontal):
+        serie_frontal: List[Dict[str, float]] = []
+        for _ in range(5):
+            serie_frontal.append({"ombro": 25.0, "cotovelo": 160.0})
+        for val_t in t:
+            serie_frontal.append({
+                "ombro": float(25.0 + 65.0 * np.sin(val_t)),
+                "cotovelo": float(160.0 - 5.0 * np.sin(val_t)),
+            })
+        for _ in range(5):
+            serie_frontal.append({"ombro": 25.0, "cotovelo": 160.0})
+
+        dados_frontal = extrair_primeira_repeticao("elevacao_frontal", serie_angulos=serie_frontal, lancar_excecao=True)
+        GabaritoExercicio(
+            nome_exercicio="elevacao_frontal",
+            articulacoes=["ombro", "cotovelo"],
+            dados=dados_frontal,
+            descricao="Gabarito padrão ouro para Elevação Frontal (recorte FSM).",
+        ).salvar_json(arq_frontal)
+
+    # 14. Rosca Alternada: Cotovelo (165° -> 50° -> 165°), Ombro estável (~15°)
+    arq_alternada = os.path.join(pasta_gabaritos, "gabarito_especialista_rosca_alternada.json")
+    if not os.path.exists(arq_alternada):
+        serie_alternada: List[Dict[str, float]] = []
+        for _ in range(5):
+            serie_alternada.append({"cotovelo": 165.0, "ombro": 15.0})
+        for val_t in t:
+            serie_alternada.append({
+                "cotovelo": float(165.0 - 115.0 * np.sin(val_t)),
+                "ombro": float(15.0 + 3.0 * np.sin(val_t)),
+            })
+        for _ in range(5):
+            serie_alternada.append({"cotovelo": 165.0, "ombro": 15.0})
+
+        dados_alternada = extrair_primeira_repeticao("rosca_alternada", serie_angulos=serie_alternada, lancar_excecao=True)
+        GabaritoExercicio(
+            nome_exercicio="rosca_alternada",
+            articulacoes=["cotovelo", "ombro"],
+            dados=dados_alternada,
+            descricao="Gabarito padrão ouro para Rosca Alternada de Bíceps (recorte FSM).",
+        ).salvar_json(arq_alternada)
+
+    # 15. Tríceps Pulley: Cotovelo (90° -> 165° -> 90°), Ombro estável (~15°)
+    arq_pulley = os.path.join(pasta_gabaritos, "gabarito_especialista_triceps_pulley.json")
+    if not os.path.exists(arq_pulley):
+        serie_pulley: List[Dict[str, float]] = []
+        for _ in range(5):
+            serie_pulley.append({"cotovelo": 90.0, "ombro": 15.0})
+        for val_t in t:
+            serie_pulley.append({
+                "cotovelo": float(90.0 + 75.0 * np.sin(val_t)),
+                "ombro": float(15.0 + 2.0 * np.sin(val_t)),
+            })
+        for _ in range(5):
+            serie_pulley.append({"cotovelo": 90.0, "ombro": 15.0})
+
+        dados_pulley = extrair_primeira_repeticao("triceps_pulley", serie_angulos=serie_pulley, lancar_excecao=True)
+        GabaritoExercicio(
+            nome_exercicio="triceps_pulley",
+            articulacoes=["cotovelo", "ombro"],
+            dados=dados_pulley,
+            descricao="Gabarito padrão ouro para Tríceps Pulley (recorte FSM).",
+        ).salvar_json(arq_pulley)
+
+    # 16. Mergulho no Banco: Cotovelo (155° -> 90° -> 155°), Ombro (25° -> 60° -> 25°)
+    arq_mergulho = os.path.join(pasta_gabaritos, "gabarito_especialista_mergulho_banco.json")
+    if not os.path.exists(arq_mergulho):
+        serie_mergulho: List[Dict[str, float]] = []
+        for _ in range(5):
+            serie_mergulho.append({"cotovelo": 155.0, "ombro": 25.0})
+        for val_t in t:
+            serie_mergulho.append({
+                "cotovelo": float(155.0 - 65.0 * np.sin(val_t)),
+                "ombro": float(25.0 + 35.0 * np.sin(val_t)),
+            })
+        for _ in range(5):
+            serie_mergulho.append({"cotovelo": 155.0, "ombro": 25.0})
+
+        dados_mergulho = extrair_primeira_repeticao("mergulho_banco", serie_angulos=serie_mergulho, lancar_excecao=True)
+        GabaritoExercicio(
+            nome_exercicio="mergulho_banco",
+            articulacoes=["cotovelo", "ombro"],
+            dados=dados_mergulho,
+            descricao="Gabarito padrão ouro para Mergulho no Banco (recorte FSM).",
+        ).salvar_json(arq_mergulho)
+
+    # 17. Abdominal Supra: Quadril (75° -> 45° -> 75°), Joelho (~90°)
+    arq_supra = os.path.join(pasta_gabaritos, "gabarito_especialista_abdominal_supra.json")
+    if not os.path.exists(arq_supra):
+        serie_supra: List[Dict[str, float]] = []
+        for _ in range(5):
+            serie_supra.append({"quadril": 75.0, "joelho": 90.0})
+        for val_t in t:
+            serie_supra.append({
+                "quadril": float(75.0 - 30.0 * np.sin(val_t)),
+                "joelho": float(90.0),
+            })
+        for _ in range(5):
+            serie_supra.append({"quadril": 75.0, "joelho": 90.0})
+
+        dados_supra = extrair_primeira_repeticao("abdominal_supra", serie_angulos=serie_supra, lancar_excecao=True)
+        GabaritoExercicio(
+            nome_exercicio="abdominal_supra",
+            articulacoes=["quadril", "joelho"],
+            dados=dados_supra,
+            descricao="Gabarito padrão ouro para Abdominal Supra (recorte FSM).",
+        ).salvar_json(arq_supra)
+
+    # 18. Elevação de Pernas: Quadril (170° -> 95° -> 170°), Joelho estável (~170°)
+    arq_pernas = os.path.join(pasta_gabaritos, "gabarito_especialista_elevacao_pernas.json")
+    if not os.path.exists(arq_pernas):
+        serie_pernas: List[Dict[str, float]] = []
+        for _ in range(5):
+            serie_pernas.append({"quadril": 170.0, "joelho": 170.0})
+        for val_t in t:
+            serie_pernas.append({
+                "quadril": float(170.0 - 75.0 * np.sin(val_t)),
+                "joelho": float(170.0 - 3.0 * np.sin(val_t)),
+            })
+        for _ in range(5):
+            serie_pernas.append({"quadril": 170.0, "joelho": 170.0})
+
+        dados_pernas = extrair_primeira_repeticao("elevacao_pernas", serie_angulos=serie_pernas, lancar_excecao=True)
+        GabaritoExercicio(
+            nome_exercicio="elevacao_pernas",
+            articulacoes=["quadril", "joelho"],
+            dados=dados_pernas,
+            descricao="Gabarito padrão ouro para Elevação de Pernas (recorte FSM).",
+        ).salvar_json(arq_pernas)
+
 
 if __name__ == "__main__":
     garantir_gabaritos_padrao(sobrescrever=True)

@@ -112,6 +112,15 @@ Estes arquivos compõem a frente de trabalho imediata da branch, homologada por 
 | [`./gabarito_especialista_ombro.json`](./gabarito_especialista_ombro.json) | Curva padrão ouro para Desenvolvimento de Ombro (features: `["cotovelo", "ombro"]`). | **Ativo (Versionado)** |
 | [`./gabarito_especialista_agachamento.json`](./gabarito_especialista_agachamento.json) | Curva padrão ouro para Agachamento Livre (features: `["joelho", "quadril"]`). | **Ativo (Versionado)** |
 | [`./gabarito_especialista_rosca.json`](./gabarito_especialista_rosca.json) | Curva padrão ouro para Rosca Direta de Bíceps (features: `["cotovelo", "ombro"]`). | **Ativo (Versionado)** |
+| [`./Gabaritos/gabarito_especialista_prancha_abdominal.json`](../Gabaritos/gabarito_especialista_prancha_abdominal.json) | Curva padrão ouro para Prancha Abdominal (features: `["quadril", "joelho", "cotovelo"]`, 68 frames). | **Ativo (Versionado)** |
+| [`./Gabaritos/gabarito_especialista_elevacao_frontal.json`](../Gabaritos/gabarito_especialista_elevacao_frontal.json) | Curva padrão ouro para Elevação Frontal (features: `["ombro", "cotovelo"]`). | **Ativo (Versionado)** |
+| [`./Gabaritos/gabarito_especialista_rosca_alternada.json`](../Gabaritos/gabarito_especialista_rosca_alternada.json) | Curva padrão ouro para Rosca Alternada de Bíceps (features: `["cotovelo", "ombro"]`). | **Ativo (Versionado)** |
+| [`./Gabaritos/gabarito_especialista_crucifixo_invertido.json`](../Gabaritos/gabarito_especialista_crucifixo_invertido.json) | Curva padrão ouro para Crucifixo Invertido (features: `["ombro", "cotovelo"]`). | **Ativo (Versionado)** |
+| [`./Gabaritos/gabarito_especialista_rosca_scott.json`](../Gabaritos/gabarito_especialista_rosca_scott.json) | Curva padrão ouro para Rosca Scott (features: `["cotovelo", "ombro"]`). | **Ativo (Versionado)** |
+| [`./Gabaritos/gabarito_especialista_triceps_pulley.json`](../Gabaritos/gabarito_especialista_triceps_pulley.json) | Curva padrão ouro para Tríceps Pulley (features: `["cotovelo", "ombro"]`). | **Ativo (Versionado)** |
+| [`./Gabaritos/gabarito_especialista_mergulho_banco.json`](../Gabaritos/gabarito_especialista_mergulho_banco.json) | Curva padrão ouro para Mergulho no Banco (features: `["cotovelo", "ombro"]`). | **Ativo (Versionado)** |
+| [`./Gabaritos/gabarito_especialista_abdominal_supra.json`](../Gabaritos/gabarito_especialista_abdominal_supra.json) | Curva padrão ouro para Abdominal Supra (features: `["quadril", "joelho"]`). | **Ativo (Versionado)** |
+| [`./Gabaritos/gabarito_especialista_elevacao_pernas.json`](../Gabaritos/gabarito_especialista_elevacao_pernas.json) | Curva padrão ouro para Elevação de Pernas (features: `["quadril", "joelho"]`). | **Ativo (Versionado)** |
 | [`./pose_landmarker_lite.task`](./pose_landmarker_lite.task) | Modelo oficial MediaPipe Pose Landmarker Lite (~5.8 MB), padrão para tempo real e CLI. | **Ativo (Versionado)** |
 | [`./pose_landmarker_full.task`](./pose_landmarker_full.task) | Modelo MediaPipe Pose Landmarker Full (~9.4 MB), alta precisão. | **Versionado** |
 

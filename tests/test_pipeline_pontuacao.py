@@ -2709,6 +2709,63 @@ class TestCrucifixoInvertido:
         assert resultado_rep.score_final >= 95.0
         assert resultado_rep.aprovado is True
 
+    def test_catalogo_todos_novos_exercicios_carregam(self):
+        from exercicios_fsm import obter_config_exercicio
+        ids_esperados = ["18", "19", "21", "23", "25", "27", "28", "29", "30"]
+        for tid in ids_esperados:
+            cfg = obter_config_exercicio(tid)
+            assert cfg is not None
+            assert "id" in cfg
+            assert "nome" in cfg
+            assert "classe_fsm" in cfg
+            assert "arquivo_gabarito" in cfg
+            gab = GabaritoExercicio.carregar_json(cfg["arquivo_gabarito"])
+            assert gab.total_frames > 0
+
+    def test_pipeline_ouro_prancha_abdominal_gabarito(self):
+        gab = GabaritoExercicio.carregar_json("gabarito_especialista_prancha_abdominal.json")
+        assert "quadril" in gab.articulacoes
+        assert "joelho" in gab.articulacoes
+        assert gab.total_frames >= 20
+
+        orq = OrquestradorSessao("29")
+        resultado_rep = None
+
+        for linha in gab.dados:
+            frame_angulos = {
+                "quadril": float(linha[0]),
+                "joelho": float(linha[1]),
+                "cotovelo": float(linha[2]),
+            }
+            _, rep = orq.processar_frame(frame_angulos, visivel=True)
+            if rep is not None:
+                resultado_rep = rep
+
+        assert resultado_rep is not None
+        assert resultado_rep.score_final >= 90.0
+        assert resultado_rep.aprovado is True
+
+    def test_pipeline_ouro_elevacao_frontal_gabarito(self):
+        gab = GabaritoExercicio.carregar_json("gabarito_especialista_elevacao_frontal.json")
+        assert gab.articulacoes == ["ombro", "cotovelo"]
+        assert gab.total_frames >= 20
+
+        orq = OrquestradorSessao("18")
+        resultado_rep = None
+
+        for linha in gab.dados:
+            frame_angulos = {
+                "ombro": float(linha[0]),
+                "cotovelo": float(linha[1]),
+            }
+            _, rep = orq.processar_frame(frame_angulos, visivel=True)
+            if rep is not None:
+                resultado_rep = rep
+
+        assert resultado_rep is not None
+        assert resultado_rep.score_final >= 90.0
+        assert resultado_rep.aprovado is True
+
 
 
 
